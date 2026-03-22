@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.egg
+
+# Model weights (too large for git)
+mlx_models/
+*.bin
+*.safetensors
+*.gguf
+*.ggml
+
+# RAG index caches
+.rag_index/
+.rag_index_v2/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Outputs (regenerable)
+outputs/
+
+# Environment
+.env
