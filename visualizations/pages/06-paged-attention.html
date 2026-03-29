@@ -585,6 +585,7 @@
 
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
+  <script src="../shared/progress.js"></script>
   <script>
     // ============================================================
     //  Section 3: Interactive Block Table Demo
@@ -1654,6 +1655,7 @@
                         'Keep practicing — block table mapping takes practice!';
               document.getElementById('btPuzzleFeedback').textContent = 'All rounds complete! Final score: ' + btPoints + '/12 — ' + msg;
               document.getElementById('btPuzzleFeedback').className = 'game-feedback correct';
+              markGameCompleted('06');
               document.getElementById('btPuzzleResetBtn').style.display = 'inline-block';
             }, 600);
           }

@@ -325,6 +325,64 @@
       </div>
     </div>
 
+    <!-- ==================== GPU Pool Optimizer Game ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-red">Game</span> GPU Pool Optimizer</h2>
+      <p>You have <strong>8 GPUs</strong> total. Allocate them between Prefill and Decode pools to optimize for different workload profiles. How well can you match the optimal split?</p>
+
+      <div class="game-score" id="gpuGameScore">
+        <div class="game-score-item"><div class="score-val" id="gpuScore">0</div><div class="score-label">Score</div></div>
+        <div class="game-score-item"><div class="score-val" id="gpuRound">0 / 4</div><div class="score-label">Round</div></div>
+      </div>
+
+      <div class="game-scenario" id="gpuScenario" style="display:none;">
+        <div class="scenario-label">Workload Profile</div>
+        <div class="scenario-value" id="gpuWorkload"></div>
+        <div id="gpuWorkloadHint" style="font-size:0.85rem;color:var(--text-dim);margin-top:8px;"></div>
+      </div>
+
+      <div id="gpuInputArea" style="display:none;margin:20px 0;">
+        <div class="slider-group">
+          <label>Prefill GPUs</label>
+          <input type="range" min="1" max="7" value="4" id="gpuSlider" oninput="updateGpuDisplay()">
+          <span class="slider-val" id="gpuPrefill">4</span>
+        </div>
+        <div style="text-align:center;margin:8px 0;">
+          <span style="font-size:0.9rem;color:var(--text-dim);">Decode GPUs: </span>
+          <span style="font-size:1.1rem;font-weight:700;color:var(--accent2);" id="gpuDecode">4</span>
+        </div>
+
+        <div id="gpuMetricsPreview" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0;">
+          <div style="text-align:center;padding:8px 16px;background:rgba(108,99,255,.08);border-radius:8px;min-width:100px;">
+            <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;">TTFT</div>
+            <div style="font-weight:700;color:var(--accent);" id="metricTTFT">--</div>
+          </div>
+          <div style="text-align:center;padding:8px 16px;background:rgba(0,201,167,.08);border-radius:8px;min-width:100px;">
+            <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;">TBT</div>
+            <div style="font-weight:700;color:var(--accent2);" id="metricTBT">--</div>
+          </div>
+          <div style="text-align:center;padding:8px 16px;background:rgba(255,158,100,.08);border-radius:8px;min-width:100px;">
+            <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;">Throughput</div>
+            <div style="font-weight:700;color:#ff9e64;" id="metricThru">--</div>
+          </div>
+          <div style="text-align:center;padding:8px 16px;background:rgba(247,118,142,.08);border-radius:8px;min-width:100px;">
+            <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;">SLO Violations</div>
+            <div style="font-weight:700;color:#f7768e;" id="metricSLO">--</div>
+          </div>
+        </div>
+
+        <div class="anim-controls">
+          <button class="btn btn-accent" onclick="submitGpuAllocation()" id="gpuSubmitBtn">Lock In Allocation</button>
+        </div>
+      </div>
+
+      <div class="game-feedback" id="gpuFeedback">Press Start to begin!</div>
+
+      <div class="anim-controls">
+        <button class="btn btn-accent" onclick="startGpuGame()" id="gpuStartBtn">Start Game</button>
+      </div>
+    </div>
+
   </div><!-- container -->
 
   <nav class="page-nav">
@@ -1067,7 +1125,146 @@ const sloObserver = new IntersectionObserver(entries => {
   }
 }, { threshold: 0.3 });
 sloObserver.observe(document.getElementById('ttftCoupledTrack'));
+
+// ==================== GPU Pool Optimizer Game ====================
+const gpuWorkloads = [
+  {
+    name: 'Heavy prefill, light decode',
+    hint: 'Long prompts with short responses (e.g., document summarization)',
+    optimal: 5,
+    metrics: function(p) {
+      const d = 8 - p;
+      const ttft = Math.round(400 / p);
+      const tbt = Math.round(60 / d);
+      const thru = Math.round((p * 0.6 + d * 0.4) * 12);
+      const slo = Math.max(0, Math.round((3 - p) * 8 + (2 - d) * 4));
+      return { ttft: ttft + 'ms', tbt: tbt + 'ms', thru: thru + ' req/s', slo: slo + '%' };
+    }
+  },
+  {
+    name: 'Balanced workload',
+    hint: 'Mix of prompt lengths and response lengths (e.g., general chatbot)',
+    optimal: 4,
+    metrics: function(p) {
+      const d = 8 - p;
+      const ttft = Math.round(320 / p);
+      const tbt = Math.round(50 / d);
+      const thru = Math.round(Math.min(p, d) * 18);
+      const slo = Math.round(Math.abs(p - d) * 6);
+      return { ttft: ttft + 'ms', tbt: tbt + 'ms', thru: thru + ' req/s', slo: slo + '%' };
+    }
+  },
+  {
+    name: 'Many concurrent users, short prompts',
+    hint: 'High concurrency with quick questions (e.g., autocomplete / Q&A)',
+    optimal: 3,
+    metrics: function(p) {
+      const d = 8 - p;
+      const ttft = Math.round(180 / p);
+      const tbt = Math.round(80 / d);
+      const thru = Math.round(d * 22);
+      const slo = Math.max(0, Math.round((4 - d) * 10));
+      return { ttft: ttft + 'ms', tbt: tbt + 'ms', thru: thru + ' req/s', slo: slo + '%' };
+    }
+  },
+  {
+    name: 'Long-context RAG with streaming',
+    hint: '128K token contexts, users expect fast streaming (e.g., RAG pipeline)',
+    optimal: 6,
+    metrics: function(p) {
+      const d = 8 - p;
+      const ttft = Math.round(800 / p);
+      const tbt = Math.round(40 / d);
+      const thru = Math.round((p * 0.7 + d * 0.3) * 10);
+      const slo = Math.max(0, Math.round((5 - p) * 12 + (1.5 - d) * 8));
+      return { ttft: ttft + 'ms', tbt: tbt + 'ms', thru: thru + ' req/s', slo: slo + '%' };
+    }
+  }
+];
+
+let gpuState = { round: 0, score: 0, order: [] };
+
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function updateGpuDisplay() {
+  const p = parseInt(document.getElementById('gpuSlider').value);
+  document.getElementById('gpuPrefill').textContent = p;
+  document.getElementById('gpuDecode').textContent = 8 - p;
+  // Show live metrics preview
+  if (gpuState.round > 0 && gpuState.round <= 4) {
+    const w = gpuWorkloads[gpuState.order[gpuState.round - 1]];
+    const m = w.metrics(p);
+    document.getElementById('metricTTFT').textContent = m.ttft;
+    document.getElementById('metricTBT').textContent = m.tbt;
+    document.getElementById('metricThru').textContent = m.thru;
+    document.getElementById('metricSLO').textContent = m.slo;
+  }
+}
+
+function startGpuGame() {
+  gpuState = { round: 0, score: 0, order: shuffleArray([0, 1, 2, 3]) };
+  document.getElementById('gpuScore').textContent = '0';
+  document.getElementById('gpuStartBtn').style.display = 'none';
+  nextGpuRound();
+}
+
+function nextGpuRound() {
+  gpuState.round++;
+  if (gpuState.round > 4) {
+    document.getElementById('gpuScenario').style.display = 'none';
+    document.getElementById('gpuInputArea').style.display = 'none';
+    document.getElementById('gpuFeedback').innerHTML = 'Final score: <strong>' + gpuState.score + ' / 12</strong>! ' +
+      (gpuState.score >= 10 ? 'Excellent GPU architect!' : gpuState.score >= 6 ? 'Good intuition for workload balancing!' : 'Keep practicing workload analysis!');
+    document.getElementById('gpuFeedback').className = 'game-feedback ' + (gpuState.score >= 10 ? 'correct' : '');
+    document.getElementById('gpuStartBtn').textContent = 'Play Again';
+    document.getElementById('gpuStartBtn').style.display = '';
+    if (typeof markGameCompleted === 'function') markGameCompleted('09');
+    return;
+  }
+  document.getElementById('gpuRound').textContent = gpuState.round + ' / 4';
+  const w = gpuWorkloads[gpuState.order[gpuState.round - 1]];
+  document.getElementById('gpuWorkload').textContent = w.name;
+  document.getElementById('gpuWorkloadHint').textContent = w.hint;
+  document.getElementById('gpuScenario').style.display = '';
+  document.getElementById('gpuInputArea').style.display = '';
+  document.getElementById('gpuSlider').value = 4;
+  document.getElementById('gpuSubmitBtn').disabled = false;
+  updateGpuDisplay();
+  document.getElementById('gpuFeedback').textContent = 'Adjust the slider and lock in your allocation.';
+  document.getElementById('gpuFeedback').className = 'game-feedback';
+}
+
+function submitGpuAllocation() {
+  const p = parseInt(document.getElementById('gpuSlider').value);
+  const w = gpuWorkloads[gpuState.order[gpuState.round - 1]];
+  const diff = Math.abs(p - w.optimal);
+  let pts = 0;
+  if (diff === 0) pts = 3;
+  else if (diff === 1) pts = 2;
+  else if (diff === 2) pts = 1;
+
+  gpuState.score += pts;
+  document.getElementById('gpuScore').textContent = gpuState.score;
+  document.getElementById('gpuSubmitBtn').disabled = true;
+
+  const optMetrics = w.metrics(w.optimal);
+  let fb = (pts === 3 ? 'Perfect! ' : pts === 2 ? 'Close! ' : pts === 1 ? 'Not bad. ' : 'Off target. ') +
+    'You chose ' + p + 'P/' + (8 - p) + 'D. Optimal: ' + w.optimal + 'P/' + (8 - w.optimal) + 'D (+' + pts + 'pts). ' +
+    'Optimal metrics: TTFT ' + optMetrics.ttft + ', TBT ' + optMetrics.tbt + ', Throughput ' + optMetrics.thru + ', SLO violations ' + optMetrics.slo;
+  document.getElementById('gpuFeedback').textContent = fb;
+  document.getElementById('gpuFeedback').className = 'game-feedback ' + (pts >= 2 ? 'correct' : pts > 0 ? '' : 'wrong');
+
+  setTimeout(nextGpuRound, 2500);
+}
 </script>
+<script src="../shared/progress.js"></script>
 
 </body>
 </html>

@@ -363,6 +363,41 @@
       </p>
     </div>
 
+    <!-- ==================== Section: Cache Strategy Advisor Game ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-red">Game</span> Cache Strategy Advisor</h2>
+      <p>You are an ML engineer choosing the best KV cache strategy for each deployment scenario. Pick the optimal approach from four options. 2 points per correct answer.</p>
+
+      <div class="game-score" id="cacheGameScore">
+        <div class="game-score-item">
+          <div class="score-val" id="cacheRound">1</div>
+          <div class="score-label">Round</div>
+        </div>
+        <div class="game-score-item">
+          <div class="score-val" id="cacheCorrect">0</div>
+          <div class="score-label">Score</div>
+        </div>
+        <div class="game-score-item">
+          <div class="score-val" id="cacheTotal">5</div>
+          <div class="score-label">Rounds</div>
+        </div>
+      </div>
+
+      <div class="game-scenario" id="cacheScenario">
+        <div class="scenario-label">Deployment Scenario</div>
+        <div class="scenario-value" id="cacheScenarioText"></div>
+      </div>
+
+      <div class="game-options" id="cacheOptions" style="justify-content:center;"></div>
+
+      <div class="game-feedback" id="cacheFeedback"></div>
+
+      <div style="text-align:center;margin-top:16px;">
+        <button class="btn btn-accent" id="cacheNextBtn" onclick="cacheNextRound()" style="display:none;">Next Round</button>
+        <button class="btn btn-surface" id="cacheResetBtn" onclick="cacheReset()" style="display:none;">Play Again</button>
+      </div>
+    </div>
+
   </div>
 
   <footer>
@@ -371,6 +406,7 @@
 
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
+  <script src="../shared/progress.js"></script>
   <script>
     // ==================== Color Constants ==================== //
     const COL = {
@@ -831,6 +867,142 @@
       }
       drawStreamFrame();
       drawPPLChart(1);
+    });
+
+    // ==================== Cache Strategy Advisor Game ==================== //
+
+    var cacheScenarios = [
+      {
+        text: '100K token document summarization, 16GB GPU, quality matters most, no latency constraint',
+        answer: 'Dense',
+        options: ['Dense', 'Window Only', 'Sliding + Recompute', 'StreamingLLM'],
+        explanations: {
+          'Dense': 'Correct! With 16GB GPU and quality as the priority, Dense (full KV cache) preserves all context for the best output quality. The sequence fits in memory.',
+          'Window Only': 'Window Only discards early context entirely. For a 100K document where quality matters most, you would lose critical information from the beginning.',
+          'Sliding + Recompute': 'Sliding + Recompute can recover context but adds latency from recomputation. Since memory is sufficient and quality matters, Dense is simpler and better.',
+          'StreamingLLM': 'StreamingLLM keeps only sinks + recent window. For document summarization requiring full context understanding, this loses too much middle content.'
+        }
+      },
+      {
+        text: 'Infinite chat stream, 8GB GPU, must maintain constant latency, 24/7 uptime required',
+        answer: 'StreamingLLM',
+        options: ['Dense', 'Window Only', 'Sliding + Recompute', 'StreamingLLM'],
+        explanations: {
+          'Dense': 'Dense KV cache grows linearly with sequence length. For an infinite stream, memory will eventually be exhausted and latency will degrade.',
+          'Window Only': 'Window Only has constant memory but loses attention sinks, causing quality degradation and perplexity spikes as the sequence grows.',
+          'Sliding + Recompute': 'Recomputation adds variable latency, violating the constant latency requirement. Not suitable for real-time streaming.',
+          'StreamingLLM': 'Correct! StreamingLLM maintains constant memory (sinks + window), constant latency, and stable quality across infinite sequences. Perfect for always-on chat.'
+        }
+      },
+      {
+        text: 'Short prompt (512 tokens), plenty of GPU memory available, single inference request',
+        answer: 'Dense',
+        options: ['Dense', 'Window Only', 'Sliding + Recompute', 'StreamingLLM'],
+        explanations: {
+          'Dense': 'Correct! For short sequences with ample memory, Dense is the simplest and highest-quality option. No need for any eviction or compression strategy.',
+          'Window Only': 'Window Only adds unnecessary complexity for a short sequence. At 512 tokens, the full sequence likely fits within any window size anyway.',
+          'Sliding + Recompute': 'Recomputation overhead is wasted here. The entire 512-token sequence fits easily in memory with Dense caching.',
+          'StreamingLLM': 'StreamingLLM is designed for long/infinite sequences. For a 512-token prompt, it adds complexity with no benefit over Dense.'
+        }
+      },
+      {
+        text: 'Legal document review (50K tokens), must maintain perfect accuracy, audit trail required',
+        answer: 'Sliding + Recompute',
+        options: ['Dense', 'Window Only', 'Sliding + Recompute', 'StreamingLLM'],
+        explanations: {
+          'Dense': 'Dense would work if memory allows, but at 50K tokens it may be tight. Sliding + Recompute is more memory-efficient while maintaining accuracy through recomputation.',
+          'Window Only': 'Window Only permanently loses early context. For legal review where every clause matters, missing the preamble or early definitions would be unacceptable.',
+          'Sliding + Recompute': 'Correct! Sliding + Recompute can recover any needed context through recomputation, ensuring perfect accuracy while managing memory. The latency cost is acceptable for non-real-time legal review.',
+          'StreamingLLM': 'StreamingLLM keeps only sinks + recent tokens. For legal review, the discarded middle sections could contain critical contract terms.'
+        }
+      },
+      {
+        text: 'Real-time chatbot on a 4GB edge device, handling conversations that run for hours',
+        answer: 'StreamingLLM',
+        options: ['Dense', 'Window Only', 'Sliding + Recompute', 'StreamingLLM'],
+        explanations: {
+          'Dense': 'With only 4GB on an edge device, Dense caching will quickly exhaust memory as the hours-long conversation grows. Out of memory crash is inevitable.',
+          'Window Only': 'Window Only has constant memory but produces perplexity spikes when the sequence exceeds the window. Quality degrades noticeably over long conversations.',
+          'Sliding + Recompute': 'Recomputation is too expensive for a 4GB edge device with real-time requirements. The computational overhead would cause unacceptable latency.',
+          'StreamingLLM': 'Correct! StreamingLLM provides constant O(W+S) memory, stable quality through attention sink preservation, and predictable latency. Ideal for resource-constrained, long-running deployments.'
+        }
+      }
+    ];
+
+    var cacheState = { round: 0, score: 0, answered: false };
+
+    function cacheRenderRound() {
+      var scenario = cacheScenarios[cacheState.round];
+      document.getElementById('cacheRound').textContent = cacheState.round + 1;
+      document.getElementById('cacheScenarioText').textContent = scenario.text;
+      document.getElementById('cacheFeedback').className = 'game-feedback';
+      document.getElementById('cacheFeedback').textContent = '';
+      document.getElementById('cacheNextBtn').style.display = 'none';
+      document.getElementById('cacheResetBtn').style.display = 'none';
+      cacheState.answered = false;
+
+      var optionsHtml = '';
+      scenario.options.forEach(function(opt) {
+        optionsHtml += '<div class="game-option" onclick="cacheSelect(this, \'' + opt + '\')">' + opt + '</div>';
+      });
+      document.getElementById('cacheOptions').innerHTML = optionsHtml;
+    }
+
+    function cacheSelect(el, choice) {
+      if (cacheState.answered) return;
+      cacheState.answered = true;
+
+      var scenario = cacheScenarios[cacheState.round];
+      var correct = scenario.answer === choice;
+      var fb = document.getElementById('cacheFeedback');
+
+      // Disable all options and highlight
+      var opts = document.getElementById('cacheOptions').querySelectorAll('.game-option');
+      opts.forEach(function(opt) {
+        opt.classList.add('disabled');
+        if (opt.textContent === scenario.answer) {
+          opt.classList.add('correct-answer');
+        }
+        if (opt.textContent === choice && !correct) {
+          opt.classList.add('wrong-answer');
+        }
+      });
+
+      if (correct) {
+        cacheState.score += 2;
+        fb.className = 'game-feedback correct';
+      } else {
+        fb.className = 'game-feedback wrong';
+      }
+      fb.textContent = scenario.explanations[choice];
+      document.getElementById('cacheCorrect').textContent = cacheState.score;
+
+      if (cacheState.round < cacheScenarios.length - 1) {
+        document.getElementById('cacheNextBtn').style.display = '';
+      } else {
+        var maxScore = cacheScenarios.length * 2;
+        fb.textContent += ' | Final score: ' + cacheState.score + '/' + maxScore;
+        document.getElementById('cacheResetBtn').style.display = '';
+        markGameCompleted('08');
+      }
+    }
+
+    function cacheNextRound() {
+      cacheState.round++;
+      cacheRenderRound();
+    }
+
+    function cacheReset() {
+      cacheState.round = 0;
+      cacheState.score = 0;
+      cacheState.answered = false;
+      document.getElementById('cacheCorrect').textContent = '0';
+      cacheRenderRound();
+    }
+
+    // Initialize cache game on load
+    document.addEventListener('DOMContentLoaded', function() {
+      cacheRenderRound();
     });
   </script>
 </body>

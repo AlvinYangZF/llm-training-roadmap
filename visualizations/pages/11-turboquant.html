@@ -397,6 +397,78 @@
     <p class="dim-note">TurboQuant methods (purple/teal) sit strictly below and left of alternatives — the Pareto-optimal frontier.</p>
   </div>
 
+  <!-- ==================== Section 6: Compression Calculator Challenge ==================== -->
+  <div class="card">
+    <h2>Compression Calculator Challenge</h2>
+    <p>Test your understanding of KV cache memory! Given model parameters, estimate the KV cache size at FP16. Then see how TurboQuant (4.5 bits effective) compresses it.</p>
+    <p class="dim-note">Formula: KV Cache = 2 &times; layers &times; kv_heads &times; head_dim &times; seq_len &times; bytes_per_element</p>
+
+    <div class="game-score" id="cccScore">
+      <div class="game-score-item">
+        <div class="score-val" id="cccRound">1</div>
+        <div class="score-label">Round</div>
+      </div>
+      <div class="game-score-item">
+        <div class="score-val" id="cccPoints">0</div>
+        <div class="score-label">Points</div>
+      </div>
+      <div class="game-score-item">
+        <div class="score-val" id="cccMaxPoints">15</div>
+        <div class="score-label">Max Points</div>
+      </div>
+    </div>
+
+    <div class="game-scenario" id="cccScenario">
+      <div class="scenario-label" id="cccModelName"></div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-top:10px;">
+        <div><span class="scenario-label">Layers</span><div class="scenario-value" id="cccLayers"></div></div>
+        <div><span class="scenario-label">KV Heads</span><div class="scenario-value" id="cccKVHeads"></div></div>
+        <div><span class="scenario-label">Head Dim</span><div class="scenario-value" id="cccHeadDim"></div></div>
+        <div><span class="scenario-label">Seq Length</span><div class="scenario-value" id="cccSeqLen"></div></div>
+        <div><span class="scenario-label">Precision</span><div class="scenario-value">FP16 (2 bytes)</div></div>
+      </div>
+    </div>
+
+    <div class="game-input-group" id="cccInputGroup">
+      <div style="text-align:center;">
+        <div style="font-size:0.78rem;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;">Your FP16 Estimate (MB)</div>
+        <input class="game-input" type="number" id="cccGuessInput" placeholder="e.g. 512" step="any">
+      </div>
+      <button class="btn btn-accent" id="cccCheckBtn">Check</button>
+    </div>
+
+    <div id="cccResultArea" style="display:none;">
+      <div style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin:16px 0;">
+        <div>
+          <div style="font-size:0.82rem;font-weight:600;text-align:center;margin-bottom:8px;">KV Cache Size Comparison</div>
+          <div class="game-bar-compare" id="cccBars"></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0;text-align:center;">
+        <div style="padding:12px;border-radius:var(--radius);background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);">
+          <div style="font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;">FP16 Actual</div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--accent);" id="cccFP16Actual"></div>
+        </div>
+        <div style="padding:12px;border-radius:var(--radius);background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.2);">
+          <div style="font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;">TurboQuant (4.5-bit)</div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--accent2);" id="cccTQActual"></div>
+        </div>
+        <div style="padding:12px;border-radius:var(--radius);background:rgba(255,158,100,.08);border:1px solid rgba(255,158,100,.2);">
+          <div style="font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;">Compression Ratio</div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--accent4);" id="cccRatio"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-feedback" id="cccFeedback"></div>
+
+    <div class="anim-controls" id="cccControls">
+      <button class="btn btn-accent" id="cccNextBtn" style="display:none;">Next Round</button>
+      <button class="btn btn-surface" id="cccResetBtn" style="display:none;">Play Again</button>
+    </div>
+  </div>
+
 </div>
 
 <footer>
@@ -405,6 +477,7 @@
 
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -822,6 +895,154 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   paretoCanvas.addEventListener('mouseleave', () => { paretoTooltip.style.display = 'none'; });
+
+  // ==================== Section 6: Compression Calculator Challenge ==================== //
+  var cccScenarios = [
+    { name: 'LLaMA-7B', layers: 32, kvHeads: 32, headDim: 128, seqLen: 2048 },
+    { name: 'LLaMA-13B', layers: 40, kvHeads: 40, headDim: 128, seqLen: 4096 },
+    { name: 'LLaMA-7B (GQA)', layers: 32, kvHeads: 8, headDim: 128, seqLen: 4096 },
+    { name: 'LLaMA-70B', layers: 80, kvHeads: 8, headDim: 128, seqLen: 8192 },
+    { name: 'LLaMA-7B', layers: 32, kvHeads: 32, headDim: 128, seqLen: 16384 }
+  ];
+
+  var cccRound = 0;
+  var cccTotalPoints = 0;
+
+  function cccCalcFP16(s) {
+    // 2 (K+V) * layers * kv_heads * head_dim * seq_len * 2 bytes, result in MB
+    return (2 * s.layers * s.kvHeads * s.headDim * s.seqLen * 2) / (1024 * 1024);
+  }
+
+  function cccCalcTQ(fp16MB) {
+    return fp16MB * (4.5 / 16);
+  }
+
+  function cccSetupRound() {
+    var s = cccScenarios[cccRound];
+    document.getElementById('cccRound').textContent = (cccRound + 1);
+    document.getElementById('cccModelName').textContent = 'Round ' + (cccRound + 1) + '/5: ' + s.name;
+    document.getElementById('cccLayers').textContent = s.layers;
+    document.getElementById('cccKVHeads').textContent = s.kvHeads;
+    document.getElementById('cccHeadDim').textContent = s.headDim;
+    document.getElementById('cccSeqLen').textContent = s.seqLen.toLocaleString();
+
+    document.getElementById('cccGuessInput').value = '';
+    document.getElementById('cccInputGroup').style.display = '';
+    document.getElementById('cccResultArea').style.display = 'none';
+    document.getElementById('cccFeedback').textContent = '';
+    document.getElementById('cccFeedback').className = 'game-feedback';
+    document.getElementById('cccNextBtn').style.display = 'none';
+    document.getElementById('cccResetBtn').style.display = 'none';
+    document.getElementById('cccGuessInput').focus();
+  }
+
+  function cccRenderBars(guess, fp16, tq) {
+    var container = document.getElementById('cccBars');
+    var maxVal = Math.max(guess, fp16, tq);
+    var guessH = Math.max(8, Math.round((guess / maxVal) * 140));
+    var fp16H = Math.max(8, Math.round((fp16 / maxVal) * 140));
+    var tqH = Math.max(8, Math.round((tq / maxVal) * 140));
+
+    container.innerHTML =
+      '<div class="game-bar">' +
+        '<div class="bar-value" style="color:var(--accent3);">' + guess.toFixed(1) + ' MB</div>' +
+        '<div class="bar-fill" style="height:' + guessH + 'px;background:var(--accent3);"></div>' +
+        '<div class="bar-label">Your Guess</div>' +
+      '</div>' +
+      '<div class="game-bar">' +
+        '<div class="bar-value" style="color:var(--accent);">' + fp16.toFixed(1) + ' MB</div>' +
+        '<div class="bar-fill" style="height:' + fp16H + 'px;background:var(--accent);"></div>' +
+        '<div class="bar-label">FP16 Actual</div>' +
+      '</div>' +
+      '<div class="game-bar">' +
+        '<div class="bar-value" style="color:var(--accent2);">' + tq.toFixed(1) + ' MB</div>' +
+        '<div class="bar-fill" style="height:' + tqH + 'px;background:var(--accent2);"></div>' +
+        '<div class="bar-label">TurboQuant</div>' +
+      '</div>';
+  }
+
+  document.getElementById('cccCheckBtn').addEventListener('click', function() {
+    var guessStr = document.getElementById('cccGuessInput').value.trim();
+    if (!guessStr || isNaN(parseFloat(guessStr))) {
+      document.getElementById('cccFeedback').textContent = 'Please enter a number in MB.';
+      document.getElementById('cccFeedback').className = 'game-feedback wrong';
+      return;
+    }
+
+    var guess = parseFloat(guessStr);
+    var s = cccScenarios[cccRound];
+    var fp16 = cccCalcFP16(s);
+    var tq = cccCalcTQ(fp16);
+    var ratio = fp16 / tq;
+
+    // Score based on accuracy
+    var error = Math.abs(guess - fp16) / fp16;
+    var pts = 0;
+    var accuracy = '';
+    if (error <= 0.05) {
+      pts = 3;
+      accuracy = 'Exact! (within 5%)';
+    } else if (error <= 0.20) {
+      pts = 2;
+      accuracy = 'Close! (within 20%)';
+    } else if (error <= 0.50) {
+      pts = 1;
+      accuracy = 'Ballpark (within 50%)';
+    } else {
+      pts = 0;
+      accuracy = 'Off target (>' + (error * 100).toFixed(0) + '% error)';
+    }
+
+    cccTotalPoints += pts;
+    document.getElementById('cccPoints').textContent = cccTotalPoints;
+
+    // Show results
+    document.getElementById('cccInputGroup').style.display = 'none';
+    document.getElementById('cccResultArea').style.display = '';
+    document.getElementById('cccFP16Actual').textContent = fp16.toFixed(1) + ' MB';
+    document.getElementById('cccTQActual').textContent = tq.toFixed(1) + ' MB';
+    document.getElementById('cccRatio').textContent = ratio.toFixed(1) + 'x';
+
+    cccRenderBars(guess, fp16, tq);
+
+    var feedbackText = '+' + pts + ' points — ' + accuracy;
+    document.getElementById('cccFeedback').textContent = feedbackText;
+    document.getElementById('cccFeedback').className = 'game-feedback ' + (pts >= 2 ? 'correct' : pts === 1 ? 'correct' : 'wrong');
+
+    if (cccRound < cccScenarios.length - 1) {
+      document.getElementById('cccNextBtn').style.display = 'inline-block';
+    } else {
+      // Final round complete
+      var finalMsg = 'Final score: ' + cccTotalPoints + '/15 — ';
+      if (cccTotalPoints >= 13) finalMsg += 'KV cache master!';
+      else if (cccTotalPoints >= 9) finalMsg += 'Strong understanding!';
+      else if (cccTotalPoints >= 5) finalMsg += 'Getting there, keep practicing!';
+      else finalMsg += 'Review the formula and try again!';
+
+      document.getElementById('cccFeedback').textContent = feedbackText + '  |  ' + finalMsg;
+      document.getElementById('cccFeedback').className = 'game-feedback correct';
+      document.getElementById('cccResetBtn').style.display = 'inline-block';
+      markGameCompleted('11');
+    }
+  });
+
+  document.getElementById('cccGuessInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('cccCheckBtn').click();
+  });
+
+  document.getElementById('cccNextBtn').addEventListener('click', function() {
+    cccRound++;
+    cccSetupRound();
+  });
+
+  document.getElementById('cccResetBtn').addEventListener('click', function() {
+    cccRound = 0;
+    cccTotalPoints = 0;
+    document.getElementById('cccPoints').textContent = '0';
+    cccSetupRound();
+  });
+
+  cccSetupRound();
 
   // ==================== Resize handling ==================== //
   window.addEventListener('resize', () => {

@@ -26,6 +26,49 @@
     max-width: 700px;
     margin: 0 auto;
   }
+
+  /* View Toggle */
+  .view-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin: 24px auto 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px;
+    width: fit-content;
+    box-shadow: var(--shadow-sm);
+  }
+  .view-toggle button {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-dim);
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .view-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(91,91,214,0.25);
+  }
+  .view-toggle button:not(.active):hover {
+    color: var(--text);
+    background: rgba(91,91,214,0.06);
+  }
+  .view-toggle svg { width: 16px; height: 16px; }
+
+  /* Grid View */
+  .grid-view { transition: opacity 0.3s; }
+  .grid-view.hidden { display: none; }
+
   .topic-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -44,8 +87,6 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-  }
-  .topic-card {
     box-shadow: var(--shadow-sm);
   }
   .topic-card:hover {
@@ -85,6 +126,92 @@
   .tag-memory { background: rgba(225,29,72,.08); color: #e11d48; }
   .tag-system { background: rgba(234,88,12,.08); color: #ea580c; }
 
+  /* Progress Dashboard */
+  .progress-dashboard {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin: 20px auto 0;
+    max-width: 500px;
+    flex-wrap: wrap;
+  }
+  .progress-stat {
+    text-align: center;
+  }
+  .progress-stat .stat-val {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .progress-stat .stat-label {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .progress-bar-wrap {
+    max-width: 400px;
+    margin: 12px auto 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .progress-bar-track {
+    flex: 1;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 999px;
+    transition: width 0.6s ease;
+    width: 0;
+  }
+  .progress-bar-pct {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 36px;
+  }
+  .progress-reset {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    cursor: pointer;
+    text-decoration: underline;
+    margin-top: 4px;
+  }
+  .progress-reset:hover { color: var(--accent3); }
+
+  /* Progress indicators on topic cards */
+  .progress-indicator {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 0.85rem;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  .progress-indicator.visited {
+    color: var(--accent);
+    font-size: 0.5rem;
+  }
+  .progress-indicator.completed {
+    background: rgba(13,148,136,0.15);
+    color: var(--accent2);
+    font-weight: 700;
+    font-size: 0.75rem;
+  }
+  .topic-card { position: relative; }
+
   .section-title {
     max-width: 1100px;
     margin: 0 auto;
@@ -96,14 +223,132 @@
     color: var(--text-dim);
   }
 
+  /* Knowledge Graph View */
+  .graph-view { transition: opacity 0.3s; }
+  .graph-view.hidden { display: none; }
+
+  .graph-container {
+    max-width: 1100px;
+    margin: 24px auto;
+    padding: 0 24px;
+  }
+  .graph-legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .graph-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .graph-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  .graph-canvas-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+  #knowledgeGraph {
+    width: 100%;
+    height: 620px;
+    display: block;
+    cursor: grab;
+  }
+  #knowledgeGraph:active { cursor: grabbing; }
+  .graph-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(30, 41, 59, 0.95);
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    max-width: 280px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 10;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  }
+  .graph-tooltip.visible { opacity: 1; }
+  .graph-tooltip .tt-num {
+    font-size: 0.7rem;
+    font-weight: 700;
+    opacity: 0.7;
+    margin-bottom: 2px;
+  }
+  .graph-tooltip .tt-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .graph-tooltip .tt-desc {
+    font-size: 0.78rem;
+    opacity: 0.85;
+    line-height: 1.4;
+  }
+  .graph-tooltip .tt-hint {
+    font-size: 0.7rem;
+    opacity: 0.5;
+    margin-top: 6px;
+    text-align: center;
+  }
+  .graph-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    margin-bottom: 32px;
+  }
+  .graph-controls button {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+  }
+  .graph-controls button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .graph-help {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+
   @media (max-width: 900px) {
     .topic-grid { grid-template-columns: repeat(2, 1fr); }
     .hero h1 { font-size: 2.2rem; }
+    #knowledgeGraph { height: 500px; }
   }
   @media (max-width: 600px) {
     .topic-grid { grid-template-columns: 1fr; }
     .hero h1 { font-size: 1.8rem; }
     .hero { padding: 60px 24px 32px; }
+    #knowledgeGraph { height: 420px; }
+    .graph-legend { gap: 12px; }
   }
 </style>
 </head>
@@ -112,88 +357,146 @@
 <div class="hero">
   <h1>LLM Algorithm Visualizations</h1>
   <p>Interactive visual guides from Transformer fundamentals to production serving innovations. Learn how modern large language models work under the hood.</p>
+  <div class="view-toggle">
+    <button id="btnGridView" class="active" onclick="switchView('grid')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Grid
+    </button>
+    <button id="btnGraphView" onclick="switchView('graph')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="19" cy="18" r="2.5"/><line x1="7.5" y1="11" x2="16.5" y2="7"/><line x1="7.5" y1="13" x2="16.5" y2="17"/></svg>
+      Knowledge Graph
+    </button>
+  </div>
+  <div class="progress-dashboard">
+    <div class="progress-stat">
+      <div class="stat-val" id="progressVisited">0</div>
+      <div class="stat-label">Pages Visited</div>
+    </div>
+    <div class="progress-stat">
+      <div class="stat-val" id="progressGames">0</div>
+      <div class="stat-label">Games Completed</div>
+    </div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+    <span class="progress-bar-pct" id="progressPct">0%</span>
+  </div>
+  <div style="text-align:center"><button class="progress-reset" onclick="resetAllProgress();location.reload();">Reset Progress</button></div>
 </div>
 
-<div class="section-title">2017–2019 Foundations</div>
-<div class="topic-grid">
-  <a href="pages/01-transformer-basics.html" class="topic-card">
-    <span class="topic-num">01</span>
-    <span class="topic-tag tag-foundation">2017</span>
-    <span class="topic-title">Transformer Basics</span>
-    <span class="topic-desc">Attention Is All You Need — the architecture that started it all. Interactive QKV attention walkthrough.</span>
-  </a>
-  <a href="pages/02-gpt2-architecture.html" class="topic-card">
-    <span class="topic-num">02</span>
-    <span class="topic-tag tag-foundation">2019</span>
-    <span class="topic-title">GPT-2 Architecture</span>
-    <span class="topic-desc">Decoder-only Transformer, Pre-LayerNorm, BPE tokenization, and weight tying explained visually.</span>
-  </a>
-  <a href="pages/03-sparse-transformers.html" class="topic-card">
-    <span class="topic-num">03</span>
-    <span class="topic-tag tag-foundation">2019</span>
-    <span class="topic-title">Sparse Transformers</span>
-    <span class="topic-desc">O(N&radic;N) attention via local + strided patterns. Process sequences up to 65K tokens.</span>
-  </a>
+<!-- ==================== Grid View ==================== -->
+<div id="gridView" class="grid-view">
+  <div class="section-title">2017–2019 Foundations</div>
+  <div class="topic-grid">
+    <a href="pages/01-transformer-basics.html" class="topic-card">
+      <span class="topic-num">01</span>
+      <span class="topic-tag tag-foundation">2017</span>
+      <span class="topic-title">Transformer Basics</span>
+      <span class="topic-desc">Attention Is All You Need — the architecture that started it all. Interactive QKV attention walkthrough.</span>
+    </a>
+    <a href="pages/02-gpt2-architecture.html" class="topic-card">
+      <span class="topic-num">02</span>
+      <span class="topic-tag tag-foundation">2019</span>
+      <span class="topic-title">GPT-2 Architecture</span>
+      <span class="topic-desc">Decoder-only Transformer, Pre-LayerNorm, BPE tokenization, and weight tying explained visually.</span>
+    </a>
+    <a href="pages/03-sparse-transformers.html" class="topic-card">
+      <span class="topic-num">03</span>
+      <span class="topic-tag tag-foundation">2019</span>
+      <span class="topic-title">Sparse Transformers</span>
+      <span class="topic-desc">O(N&radic;N) attention via local + strided patterns. Process sequences up to 65K tokens.</span>
+    </a>
+  </div>
+
+  <div class="section-title">2022 Compute Optimization</div>
+  <div class="topic-grid">
+    <a href="pages/04-prefill-decode.html" class="topic-card">
+      <span class="topic-num">04</span>
+      <span class="topic-tag tag-compute">Core</span>
+      <span class="topic-title">Prefill & Decode</span>
+      <span class="topic-desc">The two-phase inference pipeline — compute-bound prefill and memory-bound autoregressive decoding.</span>
+    </a>
+    <a href="pages/05-flash-attention.html" class="topic-card">
+      <span class="topic-num">05</span>
+      <span class="topic-tag tag-compute">2022</span>
+      <span class="topic-title">FlashAttention</span>
+      <span class="topic-desc">IO-aware attention with tiling and online softmax. Never materialize the N&times;N matrix in HBM.</span>
+    </a>
+  </div>
+
+  <div class="section-title">2023 Memory Management</div>
+  <div class="topic-grid">
+    <a href="pages/06-paged-attention.html" class="topic-card">
+      <span class="topic-num">06</span>
+      <span class="topic-tag tag-memory">2023</span>
+      <span class="topic-title">PagedAttention / vLLM</span>
+      <span class="topic-desc">OS-inspired KV cache paging with block tables. Boost throughput 2-4&times; by eliminating memory fragmentation.</span>
+    </a>
+    <a href="pages/07-h2o.html" class="topic-card">
+      <span class="topic-num">07</span>
+      <span class="topic-tag tag-memory">2023</span>
+      <span class="topic-title">H2O — Heavy-Hitter Oracle</span>
+      <span class="topic-desc">Exploit 95%+ attention sparsity. Keep only heavy-hitter tokens for 20&times; KV cache compression.</span>
+    </a>
+  </div>
+
+  <div class="section-title">2024–2026 Advanced</div>
+  <div class="topic-grid">
+    <a href="pages/08-streaming-llm.html" class="topic-card">
+      <span class="topic-num">08</span>
+      <span class="topic-tag tag-system">2024</span>
+      <span class="topic-title">StreamingLLM</span>
+      <span class="topic-desc">Attention sinks discovery — constant memory streaming by keeping initial sink tokens + recent window.</span>
+    </a>
+    <a href="pages/09-pd-separation.html" class="topic-card">
+      <span class="topic-num">09</span>
+      <span class="topic-tag tag-system">2025</span>
+      <span class="topic-title">PD Separation</span>
+      <span class="topic-desc">Disaggregate prefill and decode into independent GPU pools for optimal resource utilization.</span>
+    </a>
+    <a href="pages/10-mooncake.html" class="topic-card">
+      <span class="topic-num">10</span>
+      <span class="topic-tag tag-system">2025</span>
+      <span class="topic-title">Mooncake Architecture</span>
+      <span class="topic-desc">KV-cache-centric disaggregated serving with distributed 3-tier cache pool. USENIX FAST 2025 Best Paper.</span>
+    </a>
+    <a href="pages/11-turboquant.html" class="topic-card">
+      <span class="topic-num">11</span>
+      <span class="topic-tag tag-memory">2026</span>
+      <span class="topic-title">TurboQuant</span>
+      <span class="topic-desc">Training-free KV cache quantization via random rotation + QJL. 6&times; compression, zero accuracy loss.</span>
+    </a>
+  </div>
 </div>
 
-<div class="section-title">2022 Compute Optimization</div>
-<div class="topic-grid">
-  <a href="pages/04-prefill-decode.html" class="topic-card">
-    <span class="topic-num">04</span>
-    <span class="topic-tag tag-compute">Core</span>
-    <span class="topic-title">Prefill & Decode</span>
-    <span class="topic-desc">The two-phase inference pipeline — compute-bound prefill and memory-bound autoregressive decoding.</span>
-  </a>
-  <a href="pages/05-flash-attention.html" class="topic-card">
-    <span class="topic-num">05</span>
-    <span class="topic-tag tag-compute">2022</span>
-    <span class="topic-title">FlashAttention</span>
-    <span class="topic-desc">IO-aware attention with tiling and online softmax. Never materialize the N&times;N matrix in HBM.</span>
-  </a>
-</div>
-
-<div class="section-title">2023 Memory Management</div>
-<div class="topic-grid">
-  <a href="pages/06-paged-attention.html" class="topic-card">
-    <span class="topic-num">06</span>
-    <span class="topic-tag tag-memory">2023</span>
-    <span class="topic-title">PagedAttention / vLLM</span>
-    <span class="topic-desc">OS-inspired KV cache paging with block tables. Boost throughput 2-4&times; by eliminating memory fragmentation.</span>
-  </a>
-  <a href="pages/07-h2o.html" class="topic-card">
-    <span class="topic-num">07</span>
-    <span class="topic-tag tag-memory">2023</span>
-    <span class="topic-title">H2O — Heavy-Hitter Oracle</span>
-    <span class="topic-desc">Exploit 95%+ attention sparsity. Keep only heavy-hitter tokens for 20&times; KV cache compression.</span>
-  </a>
-</div>
-
-<div class="section-title">2024–2026 Advanced</div>
-<div class="topic-grid">
-  <a href="pages/08-streaming-llm.html" class="topic-card">
-    <span class="topic-num">08</span>
-    <span class="topic-tag tag-system">2024</span>
-    <span class="topic-title">StreamingLLM</span>
-    <span class="topic-desc">Attention sinks discovery — constant memory streaming by keeping initial sink tokens + recent window.</span>
-  </a>
-  <a href="pages/09-pd-separation.html" class="topic-card">
-    <span class="topic-num">09</span>
-    <span class="topic-tag tag-system">2025</span>
-    <span class="topic-title">PD Separation</span>
-    <span class="topic-desc">Disaggregate prefill and decode into independent GPU pools for optimal resource utilization.</span>
-  </a>
-  <a href="pages/10-mooncake.html" class="topic-card">
-    <span class="topic-num">10</span>
-    <span class="topic-tag tag-system">2025</span>
-    <span class="topic-title">Mooncake Architecture</span>
-    <span class="topic-desc">KV-cache-centric disaggregated serving with distributed 3-tier cache pool. USENIX FAST 2025 Best Paper.</span>
-  </a>
-  <a href="pages/11-turboquant.html" class="topic-card">
-    <span class="topic-num">11</span>
-    <span class="topic-tag tag-memory">2026</span>
-    <span class="topic-title">TurboQuant</span>
-    <span class="topic-desc">Training-free KV cache quantization via random rotation + QJL. 6&times; compression, zero accuracy loss.</span>
-  </a>
+<!-- ==================== Knowledge Graph View ==================== -->
+<div id="graphView" class="graph-view hidden">
+  <div class="graph-container">
+    <div class="graph-legend">
+      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#5b5bd6"></span> Foundation</span>
+      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#0d9488"></span> Compute</span>
+      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#e11d48"></span> Memory</span>
+      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#ea580c"></span> System</span>
+      <span class="graph-legend-item"><span style="display:inline-block;width:24px;height:2px;background:#cbd5e1;vertical-align:middle;margin-right:2px"></span> Depends on</span>
+    </div>
+    <div class="graph-canvas-wrap">
+      <canvas id="knowledgeGraph"></canvas>
+      <div class="graph-tooltip" id="graphTooltip">
+        <div class="tt-num"></div>
+        <div class="tt-title"></div>
+        <div class="tt-desc"></div>
+        <div class="tt-hint">Click to open</div>
+      </div>
+    </div>
+    <div class="graph-controls">
+      <button onclick="graphZoom(1.2)" title="Zoom In">+</button>
+      <button onclick="graphZoom(0.83)" title="Zoom Out">&minus;</button>
+      <button onclick="graphReset()" title="Reset View">&#8634;</button>
+    </div>
+    <div class="graph-help">Drag nodes to rearrange &middot; Scroll to zoom &middot; Click node to navigate</div>
+  </div>
 </div>
 
 <footer>
@@ -201,5 +504,523 @@
 </footer>
 
 <script src="shared/nav.js"></script>
+<script src="shared/progress.js"></script>
+<script>
+// ==================== Knowledge Graph Data ==================== //
+const GRAPH_NODES = [
+  { id: '01', title: 'Transformer Basics', cat: 'foundation', year: '2017',
+    desc: 'Attention Is All You Need — QKV attention, multi-head, positional encoding.',
+    file: 'pages/01-transformer-basics.html' },
+  { id: '02', title: 'GPT-2 Architecture', cat: 'foundation', year: '2019',
+    desc: 'Decoder-only Transformer, Pre-LayerNorm, BPE tokenization, weight tying.',
+    file: 'pages/02-gpt2-architecture.html' },
+  { id: '03', title: 'Sparse Transformers', cat: 'foundation', year: '2019',
+    desc: 'O(N√N) attention via local + strided patterns. Up to 65K tokens.',
+    file: 'pages/03-sparse-transformers.html' },
+  { id: '04', title: 'Prefill & Decode', cat: 'compute', year: 'Core',
+    desc: 'Two-phase inference: compute-bound prefill, memory-bound decoding.',
+    file: 'pages/04-prefill-decode.html' },
+  { id: '05', title: 'FlashAttention', cat: 'compute', year: '2022',
+    desc: 'IO-aware tiling, online softmax. Never materialize N×N in HBM.',
+    file: 'pages/05-flash-attention.html' },
+  { id: '06', title: 'PagedAttention', cat: 'memory', year: '2023',
+    desc: 'OS-inspired KV cache paging. 2-4× throughput via block tables.',
+    file: 'pages/06-paged-attention.html' },
+  { id: '07', title: 'H2O', cat: 'memory', year: '2023',
+    desc: 'Heavy-Hitter Oracle. 20× KV cache compression via attention sparsity.',
+    file: 'pages/07-h2o.html' },
+  { id: '08', title: 'StreamingLLM', cat: 'system', year: '2024',
+    desc: 'Attention sinks + sliding window for constant-memory streaming.',
+    file: 'pages/08-streaming-llm.html' },
+  { id: '09', title: 'PD Separation', cat: 'system', year: '2025',
+    desc: 'Disaggregate prefill/decode into independent GPU pools.',
+    file: 'pages/09-pd-separation.html' },
+  { id: '10', title: 'Mooncake', cat: 'system', year: '2025',
+    desc: 'KV-cache-centric 3-tier disaggregated serving architecture.',
+    file: 'pages/10-mooncake.html' },
+  { id: '11', title: 'TurboQuant', cat: 'memory', year: '2026',
+    desc: 'Training-free KV quantization. 6× compression, zero accuracy loss.',
+    file: 'pages/11-turboquant.html' },
+];
+
+// Edges: [from, to] — "from" depends on "to"
+const GRAPH_EDGES = [
+  ['02', '01'], // GPT-2 builds on Transformer
+  ['03', '01'], // Sparse builds on Transformer attention
+  ['04', '02'], // Prefill/Decode requires understanding GPT architecture
+  ['05', '01'], // FlashAttention optimizes attention mechanism
+  ['05', '04'], // FlashAttention relates to compute phases
+  ['06', '04'], // PagedAttention manages KV cache from inference
+  ['07', '01'], // H2O based on attention patterns
+  ['07', '06'], // H2O compresses KV cache (PagedAttention context)
+  ['08', '07'], // StreamingLLM related to KV eviction (H2O)
+  ['08', '01'], // StreamingLLM based on attention sink discovery
+  ['09', '04'], // PD Separation splits prefill & decode
+  ['09', '06'], // PD Separation leverages paged KV cache
+  ['10', '09'], // Mooncake extends PD separation
+  ['10', '06'], // Mooncake distributes KV cache pages
+  ['11', '06'], // TurboQuant quantizes KV cache
+  ['11', '07'], // TurboQuant relates to KV compression
+];
+
+const CAT_COLORS = {
+  foundation: { fill: '#5b5bd6', light: 'rgba(91,91,214,0.12)', glow: 'rgba(91,91,214,0.3)' },
+  compute:    { fill: '#0d9488', light: 'rgba(13,148,136,0.12)', glow: 'rgba(13,148,136,0.3)' },
+  memory:     { fill: '#e11d48', light: 'rgba(225,29,72,0.10)', glow: 'rgba(225,29,72,0.3)' },
+  system:     { fill: '#ea580c', light: 'rgba(234,88,12,0.10)', glow: 'rgba(234,88,12,0.3)' },
+};
+
+// ==================== View Switching ==================== //
+function switchView(view) {
+  const gridView = document.getElementById('gridView');
+  const graphView = document.getElementById('graphView');
+  const btnGrid = document.getElementById('btnGridView');
+  const btnGraph = document.getElementById('btnGraphView');
+
+  if (view === 'graph') {
+    gridView.classList.add('hidden');
+    graphView.classList.remove('hidden');
+    btnGrid.classList.remove('active');
+    btnGraph.classList.add('active');
+    localStorage.setItem('llm-viz-view', 'graph');
+    if (!graphInitialized) initGraph();
+  } else {
+    graphView.classList.add('hidden');
+    gridView.classList.remove('hidden');
+    btnGraph.classList.remove('active');
+    btnGrid.classList.add('active');
+    localStorage.setItem('llm-viz-view', 'grid');
+  }
+}
+
+// ==================== Force-Directed Graph ==================== //
+let graphInitialized = false;
+let graphCanvas, graphCtx, graphW, graphH;
+let nodes = [], edges = [];
+let dragNode = null, hoveredNode = null;
+let camX = 0, camY = 0, camScale = 1;
+let isDragging = false, isPanning = false;
+let panStartX, panStartY, panCamStartX, panCamStartY;
+let animFrame;
+
+const NODE_RADIUS = 32;
+const SPRING_LENGTH = 180;
+const SPRING_K = 0.004;
+const REPULSION = 8000;
+const DAMPING = 0.88;
+const CENTER_GRAVITY = 0.002;
+
+function initGraph() {
+  graphInitialized = true;
+  graphCanvas = document.getElementById('knowledgeGraph');
+  const dpr = window.devicePixelRatio || 1;
+  graphW = graphCanvas.clientWidth;
+  graphH = graphCanvas.clientHeight;
+  graphCanvas.width = graphW * dpr;
+  graphCanvas.height = graphH * dpr;
+  graphCtx = graphCanvas.getContext('2d');
+  graphCtx.scale(dpr, dpr);
+
+  // Initialize node positions in a structured layout
+  const cx = graphW / 2, cy = graphH / 2;
+  // Arrange in layers: foundation top, compute mid-upper, memory mid-lower, system bottom
+  const layerY = { foundation: cy - 180, compute: cy - 60, memory: cy + 60, system: cy + 180 };
+  const catCounts = { foundation: 0, compute: 0, memory: 0, system: 0 };
+  const catTotals = {};
+  GRAPH_NODES.forEach(n => { catTotals[n.cat] = (catTotals[n.cat] || 0) + 1; });
+
+  nodes = GRAPH_NODES.map(n => {
+    const idx = catCounts[n.cat]++;
+    const total = catTotals[n.cat];
+    const spread = Math.min(graphW * 0.6, total * 160);
+    const xOff = total === 1 ? 0 : (idx / (total - 1) - 0.5) * spread;
+    return {
+      ...n,
+      x: cx + xOff + (Math.random() - 0.5) * 20,
+      y: layerY[n.cat] + (Math.random() - 0.5) * 20,
+      vx: 0, vy: 0,
+      targetR: NODE_RADIUS,
+      currentR: 0, // animate in
+    };
+  });
+
+  edges = GRAPH_EDGES.map(([from, to]) => ({
+    source: nodes.find(n => n.id === from),
+    target: nodes.find(n => n.id === to),
+  }));
+
+  // Animate nodes appearing
+  const appearStart = performance.now();
+  nodes.forEach((n, i) => { n.appearDelay = i * 60; });
+
+  setupGraphEvents();
+  tickGraph(appearStart);
+}
+
+function tickGraph(appearStart) {
+  const now = performance.now();
+
+  // Animate node radius
+  nodes.forEach(n => {
+    const elapsed = now - (appearStart || 0) - (n.appearDelay || 0);
+    if (elapsed > 0) {
+      n.currentR += (n.targetR - n.currentR) * 0.12;
+    }
+  });
+
+  // Physics simulation
+  applyForces();
+
+  // Render
+  drawGraph();
+
+  animFrame = requestAnimationFrame(() => tickGraph(appearStart));
+}
+
+function applyForces() {
+  // Repulsion between all node pairs
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      let dx = a.x - b.x, dy = a.y - b.y;
+      let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      let force = REPULSION / (dist * dist);
+      let fx = (dx / dist) * force, fy = (dy / dist) * force;
+      a.vx += fx; a.vy += fy;
+      b.vx -= fx; b.vy -= fy;
+    }
+  }
+
+  // Spring forces on edges
+  edges.forEach(e => {
+    let dx = e.source.x - e.target.x, dy = e.source.y - e.target.y;
+    let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    let force = (dist - SPRING_LENGTH) * SPRING_K;
+    let fx = (dx / dist) * force, fy = (dy / dist) * force;
+    e.source.vx -= fx; e.source.vy -= fy;
+    e.target.vx += fx; e.target.vy += fy;
+  });
+
+  // Center gravity
+  const cx = graphW / 2, cy = graphH / 2;
+  nodes.forEach(n => {
+    n.vx += (cx - n.x) * CENTER_GRAVITY;
+    n.vy += (cy - n.y) * CENTER_GRAVITY;
+  });
+
+  // Apply velocity with damping
+  nodes.forEach(n => {
+    if (n === dragNode) return;
+    n.vx *= DAMPING;
+    n.vy *= DAMPING;
+    n.x += n.vx;
+    n.y += n.vy;
+  });
+}
+
+function drawGraph() {
+  graphCtx.clearRect(0, 0, graphW, graphH);
+  graphCtx.save();
+  graphCtx.translate(graphW / 2, graphH / 2);
+  graphCtx.scale(camScale, camScale);
+  graphCtx.translate(-graphW / 2 + camX, -graphH / 2 + camY);
+
+  // Draw edges
+  edges.forEach(e => {
+    const s = e.source, t = e.target;
+    const dx = t.x - s.x, dy = t.y - s.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const sr = s.currentR + 4, tr = t.currentR + 4;
+
+    // Start and end points offset by node radius
+    const x1 = s.x + (dx / dist) * sr;
+    const y1 = s.y + (dy / dist) * sr;
+    const x2 = t.x - (dx / dist) * tr;
+    const y2 = t.y - (dy / dist) * tr;
+
+    // Edge line
+    graphCtx.beginPath();
+    graphCtx.moveTo(x1, y1);
+    graphCtx.lineTo(x2, y2);
+    const isHighlighted = hoveredNode && (hoveredNode === s || hoveredNode === t);
+    graphCtx.strokeStyle = isHighlighted ? 'rgba(91,91,214,0.5)' : 'rgba(203,213,225,0.6)';
+    graphCtx.lineWidth = isHighlighted ? 2.5 : 1.5;
+    graphCtx.stroke();
+
+    // Arrowhead (pointing from source to target, meaning source depends on target)
+    const arrowLen = 8;
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    graphCtx.beginPath();
+    graphCtx.moveTo(x2, y2);
+    graphCtx.lineTo(x2 - arrowLen * Math.cos(angle - 0.35), y2 - arrowLen * Math.sin(angle - 0.35));
+    graphCtx.lineTo(x2 - arrowLen * Math.cos(angle + 0.35), y2 - arrowLen * Math.sin(angle + 0.35));
+    graphCtx.closePath();
+    graphCtx.fillStyle = isHighlighted ? 'rgba(91,91,214,0.5)' : 'rgba(203,213,225,0.6)';
+    graphCtx.fill();
+  });
+
+  // Draw nodes
+  nodes.forEach(n => {
+    if (n.currentR < 1) return;
+    const colors = CAT_COLORS[n.cat];
+    const isHovered = n === hoveredNode;
+    const r = isHovered ? n.currentR + 4 : n.currentR;
+
+    // Glow
+    if (isHovered) {
+      graphCtx.beginPath();
+      graphCtx.arc(n.x, n.y, r + 8, 0, Math.PI * 2);
+      graphCtx.fillStyle = colors.glow;
+      graphCtx.fill();
+    }
+
+    // Outer ring
+    graphCtx.beginPath();
+    graphCtx.arc(n.x, n.y, r, 0, Math.PI * 2);
+    graphCtx.fillStyle = colors.light;
+    graphCtx.strokeStyle = colors.fill;
+    graphCtx.lineWidth = isHovered ? 3 : 2;
+    graphCtx.fill();
+    graphCtx.stroke();
+
+    // Inner filled circle
+    graphCtx.beginPath();
+    graphCtx.arc(n.x, n.y, r * 0.7, 0, Math.PI * 2);
+    graphCtx.fillStyle = colors.fill;
+    graphCtx.fill();
+
+    // Number text
+    graphCtx.fillStyle = '#fff';
+    graphCtx.font = `bold ${Math.round(r * 0.55)}px system-ui, sans-serif`;
+    graphCtx.textAlign = 'center';
+    graphCtx.textBaseline = 'middle';
+    graphCtx.fillText(n.id, n.x, n.y);
+
+    // Title below node
+    graphCtx.fillStyle = isHovered ? colors.fill : '#475569';
+    graphCtx.font = `${isHovered ? '600' : '500'} 12px system-ui, sans-serif`;
+    graphCtx.textAlign = 'center';
+    graphCtx.textBaseline = 'top';
+    graphCtx.fillText(n.title, n.x, n.y + r + 6);
+
+    // Year badge
+    graphCtx.font = '600 9px system-ui, sans-serif';
+    graphCtx.fillStyle = colors.fill;
+    graphCtx.globalAlpha = 0.7;
+    graphCtx.fillText(n.year, n.x, n.y + r + 22);
+    graphCtx.globalAlpha = 1;
+
+    // Progress indicator (checkmark for game completed, dot for visited)
+    var progress = getProgress();
+    if (progress.gamesCompleted.indexOf(n.id) !== -1) {
+      graphCtx.beginPath();
+      graphCtx.arc(n.x + r * 0.65, n.y - r * 0.65, 9, 0, Math.PI * 2);
+      graphCtx.fillStyle = '#0d9488';
+      graphCtx.fill();
+      graphCtx.fillStyle = '#fff';
+      graphCtx.font = 'bold 10px system-ui, sans-serif';
+      graphCtx.textAlign = 'center';
+      graphCtx.textBaseline = 'middle';
+      graphCtx.fillText('\u2713', n.x + r * 0.65, n.y - r * 0.65);
+    } else if (progress.visited.indexOf(n.id) !== -1) {
+      graphCtx.beginPath();
+      graphCtx.arc(n.x + r * 0.65, n.y - r * 0.65, 5, 0, Math.PI * 2);
+      graphCtx.fillStyle = '#5b5bd6';
+      graphCtx.fill();
+    }
+  });
+
+  graphCtx.restore();
+}
+
+// ==================== Graph Interaction ==================== //
+function screenToGraph(sx, sy) {
+  const x = (sx - graphW / 2) / camScale + graphW / 2 - camX;
+  const y = (sy - graphH / 2) / camScale + graphH / 2 - camY;
+  return { x, y };
+}
+
+function findNodeAt(sx, sy) {
+  const { x, y } = screenToGraph(sx, sy);
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    const dx = x - n.x, dy = y - n.y;
+    if (dx * dx + dy * dy < (n.currentR + 8) * (n.currentR + 8)) return n;
+  }
+  return null;
+}
+
+function setupGraphEvents() {
+  const tooltip = document.getElementById('graphTooltip');
+  let clickStartTime = 0;
+
+  graphCanvas.addEventListener('mousedown', e => {
+    const rect = graphCanvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+    const node = findNodeAt(sx, sy);
+    clickStartTime = Date.now();
+
+    if (node) {
+      dragNode = node;
+      isDragging = true;
+      node.vx = 0; node.vy = 0;
+    } else {
+      isPanning = true;
+      panStartX = e.clientX; panStartY = e.clientY;
+      panCamStartX = camX; panCamStartY = camY;
+    }
+  });
+
+  graphCanvas.addEventListener('mousemove', e => {
+    const rect = graphCanvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+
+    if (isDragging && dragNode) {
+      const { x, y } = screenToGraph(sx, sy);
+      dragNode.x = x; dragNode.y = y;
+      dragNode.vx = 0; dragNode.vy = 0;
+    } else if (isPanning) {
+      const dx = (e.clientX - panStartX) / camScale;
+      const dy = (e.clientY - panStartY) / camScale;
+      camX = panCamStartX + dx;
+      camY = panCamStartY + dy;
+    } else {
+      const node = findNodeAt(sx, sy);
+      hoveredNode = node;
+      graphCanvas.style.cursor = node ? 'pointer' : 'grab';
+
+      if (node) {
+        tooltip.querySelector('.tt-num').textContent = `#${node.id} · ${node.year}`;
+        tooltip.querySelector('.tt-title').textContent = node.title;
+        tooltip.querySelector('.tt-desc').textContent = node.desc;
+        tooltip.classList.add('visible');
+        // Position tooltip
+        let tx = e.clientX - rect.left + 16;
+        let ty = e.clientY - rect.top - 10;
+        if (tx + 280 > graphW) tx = e.clientX - rect.left - 296;
+        if (ty + 120 > graphH) ty = graphH - 130;
+        if (ty < 10) ty = 10;
+        tooltip.style.left = tx + 'px';
+        tooltip.style.top = ty + 'px';
+      } else {
+        tooltip.classList.remove('visible');
+      }
+    }
+  });
+
+  const endDrag = e => {
+    const elapsed = Date.now() - clickStartTime;
+    if (isDragging && dragNode && elapsed < 200) {
+      // Short click — navigate
+      window.location.href = dragNode.file;
+    }
+    dragNode = null;
+    isDragging = false;
+    isPanning = false;
+  };
+
+  graphCanvas.addEventListener('mouseup', endDrag);
+  graphCanvas.addEventListener('mouseleave', () => {
+    dragNode = null;
+    isDragging = false;
+    isPanning = false;
+    hoveredNode = null;
+    tooltip.classList.remove('visible');
+  });
+
+  // Zoom with scroll
+  graphCanvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 0.92 : 1.08;
+    camScale = Math.max(0.3, Math.min(3, camScale * factor));
+  }, { passive: false });
+
+  // Touch support
+  let touchNode = null, touchStartTime = 0;
+  graphCanvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = graphCanvas.getBoundingClientRect();
+    const sx = touch.clientX - rect.left, sy = touch.clientY - rect.top;
+    const node = findNodeAt(sx, sy);
+    touchStartTime = Date.now();
+    if (node) {
+      touchNode = node;
+      dragNode = node;
+      isDragging = true;
+      node.vx = 0; node.vy = 0;
+    } else {
+      isPanning = true;
+      panStartX = touch.clientX; panStartY = touch.clientY;
+      panCamStartX = camX; panCamStartY = camY;
+    }
+  }, { passive: false });
+
+  graphCanvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = graphCanvas.getBoundingClientRect();
+    const sx = touch.clientX - rect.left, sy = touch.clientY - rect.top;
+    if (isDragging && dragNode) {
+      const { x, y } = screenToGraph(sx, sy);
+      dragNode.x = x; dragNode.y = y;
+    } else if (isPanning) {
+      const dx = (touch.clientX - panStartX) / camScale;
+      const dy = (touch.clientY - panStartY) / camScale;
+      camX = panCamStartX + dx;
+      camY = panCamStartY + dy;
+    }
+  }, { passive: false });
+
+  graphCanvas.addEventListener('touchend', e => {
+    const elapsed = Date.now() - touchStartTime;
+    if (touchNode && elapsed < 250) {
+      window.location.href = touchNode.file;
+    }
+    touchNode = null; dragNode = null;
+    isDragging = false; isPanning = false;
+  });
+
+  // Resize handler
+  window.addEventListener('resize', () => {
+    if (!graphCanvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    graphW = graphCanvas.clientWidth;
+    graphH = graphCanvas.clientHeight;
+    graphCanvas.width = graphW * dpr;
+    graphCanvas.height = graphH * dpr;
+    graphCtx = graphCanvas.getContext('2d');
+    graphCtx.scale(dpr, dpr);
+  });
+}
+
+function graphZoom(factor) {
+  camScale = Math.max(0.3, Math.min(3, camScale * factor));
+}
+
+function graphReset() {
+  camX = 0; camY = 0; camScale = 1;
+  // Re-layout nodes
+  const cx = graphW / 2, cy = graphH / 2;
+  const layerY = { foundation: cy - 180, compute: cy - 60, memory: cy + 60, system: cy + 180 };
+  const catCounts = { foundation: 0, compute: 0, memory: 0, system: 0 };
+  const catTotals = {};
+  nodes.forEach(n => { catTotals[n.cat] = (catTotals[n.cat] || 0) + 1; });
+  nodes.forEach(n => {
+    const idx = catCounts[n.cat]++;
+    const total = catTotals[n.cat];
+    const spread = Math.min(graphW * 0.6, total * 160);
+    const xOff = total === 1 ? 0 : (idx / (total - 1) - 0.5) * spread;
+    n.x = cx + xOff; n.y = layerY[n.cat];
+    n.vx = 0; n.vy = 0;
+  });
+}
+
+// ==================== Restore saved view preference ==================== //
+document.addEventListener('DOMContentLoaded', () => {
+  const savedView = localStorage.getItem('llm-viz-view');
+  if (savedView === 'graph') switchView('graph');
+});
+</script>
 </body>
 </html>

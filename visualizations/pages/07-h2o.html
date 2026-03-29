@@ -379,12 +379,49 @@
       </div>
     </div>
 
+    <!-- ==================== Section 6: KV Eviction Challenge Game ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-red">Game</span> KV Eviction Challenge</h2>
+      <p>You are the H2O eviction policy! Given 8 tokens with attention scores, select which 4 to <strong>keep</strong> in the KV cache. H2O keeps the first token (attention sink) plus the top Heavy Hitters.</p>
+
+      <div class="game-score" id="evictGameScore">
+        <div class="game-score-item">
+          <div class="score-val" id="evictRound">1</div>
+          <div class="score-label">Round</div>
+        </div>
+        <div class="game-score-item">
+          <div class="score-val" id="evictCorrect">0</div>
+          <div class="score-label">Score</div>
+        </div>
+        <div class="game-score-item">
+          <div class="score-val" id="evictTotal">4</div>
+          <div class="score-label">Rounds</div>
+        </div>
+      </div>
+
+      <div class="game-scenario" id="evictScenario">
+        <div class="scenario-label">KV Cache Budget: Keep 4 of 8 tokens</div>
+        <div class="scenario-value" id="evictInstruction">Click 4 tokens to keep in the cache</div>
+      </div>
+
+      <div id="evictTokens" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin:20px 0;"></div>
+
+      <div class="game-feedback" id="evictFeedback"></div>
+
+      <div style="text-align:center;margin-top:16px;">
+        <button class="btn btn-accent" id="evictSubmitBtn" onclick="evictSubmit()" style="display:none;">Submit Selection</button>
+        <button class="btn btn-accent" id="evictNextBtn" onclick="evictNextRound()" style="display:none;">Next Round</button>
+        <button class="btn btn-surface" id="evictResetBtn" onclick="evictReset()" style="display:none;">Play Again</button>
+      </div>
+    </div>
+
   </div>
 
   <footer><p>LLM Algorithm Visualization Series</p></footer>
 
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
+  <script src="../shared/progress.js"></script>
   <script>
     // ==================== Section 1: Attention Heatmap ==================== //
 
@@ -970,6 +1007,155 @@
       container.innerHTML = html;
     }
 
+    // ==================== Section 6: KV Eviction Challenge Game ==================== //
+
+    var evictState = { round: 0, score: 0, totalRounds: 4, tokens: [], selected: [], optimal: [] };
+
+    function evictGenerateRound() {
+      var tokens = [];
+      for (var i = 0; i < 8; i++) {
+        var score;
+        if (i === 0) {
+          // Attention sink: always high cumulative attention
+          score = 0.7 + Math.random() * 0.3;
+        } else {
+          score = Math.random() * 0.85;
+        }
+        tokens.push({ index: i, label: 'T' + i, score: parseFloat(score.toFixed(3)) });
+      }
+      // Determine H2O optimal: token 0 (sink) + top 3 by score among tokens 1-7
+      var rest = tokens.slice(1).sort(function(a, b) { return b.score - a.score; });
+      var optimal = [0];
+      for (var j = 0; j < 3; j++) {
+        optimal.push(rest[j].index);
+      }
+      return { tokens: tokens, optimal: optimal };
+    }
+
+    function evictRenderTokens() {
+      var container = document.getElementById('evictTokens');
+      var html = '';
+      evictState.tokens.forEach(function(tok) {
+        var barWidth = Math.round(tok.score * 100);
+        var barColor = tok.index === 0 ? 'var(--accent3)' : 'var(--accent)';
+        html += '<div class="game-option" id="evictTok' + tok.index + '" onclick="evictToggle(' + tok.index + ')" style="width:90px;text-align:center;padding:12px 8px;">';
+        html += '<div style="font-weight:700;margin-bottom:6px;">' + tok.label + '</div>';
+        html += '<div style="background:rgba(0,0,0,.3);border-radius:4px;height:8px;width:100%;overflow:hidden;">';
+        html += '<div style="height:100%;width:' + barWidth + '%;background:' + barColor + ';border-radius:4px;"></div>';
+        html += '</div>';
+        html += '<div style="font-size:0.75rem;color:var(--text-dim);margin-top:4px;">' + tok.score.toFixed(3) + '</div>';
+        html += '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    function evictToggle(idx) {
+      var pos = evictState.selected.indexOf(idx);
+      var el = document.getElementById('evictTok' + idx);
+      if (pos === -1) {
+        if (evictState.selected.length >= 4) return; // budget full
+        evictState.selected.push(idx);
+        el.classList.add('selected');
+      } else {
+        evictState.selected.splice(pos, 1);
+        el.classList.remove('selected');
+      }
+      // Show/hide submit button
+      document.getElementById('evictSubmitBtn').style.display = evictState.selected.length === 4 ? '' : 'none';
+      document.getElementById('evictInstruction').textContent = 'Selected: ' + evictState.selected.length + ' / 4';
+    }
+
+    function evictSubmit() {
+      var optimal = evictState.optimal;
+      var selected = evictState.selected;
+      var overlap = 0;
+      selected.forEach(function(s) {
+        if (optimal.indexOf(s) !== -1) overlap++;
+      });
+      evictState.score += overlap;
+
+      // Color tokens
+      for (var i = 0; i < 8; i++) {
+        var el = document.getElementById('evictTok' + i);
+        el.classList.add('disabled');
+        if (optimal.indexOf(i) !== -1 && selected.indexOf(i) !== -1) {
+          el.classList.add('correct-answer');
+        } else if (selected.indexOf(i) !== -1 && optimal.indexOf(i) === -1) {
+          el.classList.add('wrong-answer');
+        } else if (optimal.indexOf(i) !== -1) {
+          el.classList.add('correct-answer');
+          el.style.opacity = '0.5';
+        }
+      }
+
+      var fb = document.getElementById('evictFeedback');
+      var optLabels = optimal.map(function(o) { return 'T' + o; }).join(', ');
+      if (overlap === 4) {
+        fb.className = 'game-feedback correct';
+        fb.textContent = 'Perfect! You matched H2O exactly. Optimal: ' + optLabels;
+      } else {
+        fb.className = 'game-feedback wrong';
+        fb.textContent = overlap + '/4 overlap with H2O. Optimal keeps: ' + optLabels + ' (T0 = attention sink + top 3 Heavy Hitters)';
+      }
+
+      document.getElementById('evictCorrect').textContent = evictState.score;
+      document.getElementById('evictSubmitBtn').style.display = 'none';
+
+      if (evictState.round < evictState.totalRounds) {
+        document.getElementById('evictNextBtn').style.display = '';
+      } else {
+        var finalMax = evictState.totalRounds * 4;
+        fb.textContent += ' | Final score: ' + evictState.score + '/' + finalMax;
+        document.getElementById('evictResetBtn').style.display = '';
+        markGameCompleted('07');
+      }
+    }
+
+    function evictNextRound() {
+      evictState.round++;
+      evictState.selected = [];
+      document.getElementById('evictRound').textContent = evictState.round;
+      document.getElementById('evictFeedback').className = 'game-feedback';
+      document.getElementById('evictFeedback').textContent = '';
+      document.getElementById('evictNextBtn').style.display = 'none';
+      document.getElementById('evictSubmitBtn').style.display = 'none';
+      document.getElementById('evictInstruction').textContent = 'Click 4 tokens to keep in the cache';
+
+      var roundData = evictGenerateRound();
+      evictState.tokens = roundData.tokens;
+      evictState.optimal = roundData.optimal;
+      evictRenderTokens();
+    }
+
+    function evictReset() {
+      evictState.round = 1;
+      evictState.score = 0;
+      evictState.selected = [];
+      document.getElementById('evictRound').textContent = '1';
+      document.getElementById('evictCorrect').textContent = '0';
+      document.getElementById('evictFeedback').className = 'game-feedback';
+      document.getElementById('evictFeedback').textContent = '';
+      document.getElementById('evictNextBtn').style.display = 'none';
+      document.getElementById('evictResetBtn').style.display = 'none';
+      document.getElementById('evictSubmitBtn').style.display = 'none';
+      document.getElementById('evictInstruction').textContent = 'Click 4 tokens to keep in the cache';
+
+      var roundData = evictGenerateRound();
+      evictState.tokens = roundData.tokens;
+      evictState.optimal = roundData.optimal;
+      evictRenderTokens();
+    }
+
+    function evictInit() {
+      evictState.round = 1;
+      evictState.score = 0;
+      evictState.selected = [];
+      var roundData = evictGenerateRound();
+      evictState.tokens = roundData.tokens;
+      evictState.optimal = roundData.optimal;
+      evictRenderTokens();
+    }
+
     // ==================== Initialization ==================== //
 
     window.addEventListener('DOMContentLoaded', function() {
@@ -978,6 +1164,7 @@
       drawEvictionFrame();
       buildPolicyDiagram();
       updateBudget(100);
+      evictInit();
     });
 
     window.addEventListener('resize', function() {

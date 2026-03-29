@@ -322,6 +322,7 @@
 
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
+  <script src="../shared/progress.js"></script>
   <script>
     // ==================== Section 3: QKV Attention Demo ==================== //
 
@@ -625,6 +626,7 @@
         document.getElementById('attnNextBtn').style.display = 'inline-block';
       } else {
         fb.textContent += ' | Final score: ' + attnPoints + '/' + ATTN_ROUNDS.length;
+        markGameCompleted('01');
         document.getElementById('attnRestart').style.display = 'inline-block';
       }
     }
