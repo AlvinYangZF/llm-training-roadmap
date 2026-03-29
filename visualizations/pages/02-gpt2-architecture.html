@@ -887,6 +887,74 @@
     </div>
   </div>
 
+  <!-- ========== Section 7: Token Count Challenge ========== -->
+  <div class="card">
+    <h2><span class="badge badge-orange">Game</span> Token Count Challenge</h2>
+    <p>How well can you predict BPE tokenization? Guess how many tokens each sentence will produce.</p>
+
+    <div class="game-score" id="tokGameScore">
+      <div class="game-score-item"><span class="score-val" id="tokRound">1</span><span class="score-label">Round</span></div>
+      <div class="game-score-item"><span class="score-val" id="tokPts">0</span><span class="score-label">Score</span></div>
+    </div>
+
+    <div class="game-scenario" id="tokScenario">
+      <div class="scenario-label">Tokenize this:</div>
+      <div class="scenario-value" id="tokSentence" style="font-family:'Courier New',monospace;"></div>
+    </div>
+
+    <div class="game-input-group" id="tokInputGroup">
+      <input type="number" class="game-input" id="tokGuessInput" placeholder="Your guess..." min="1" max="200">
+      <button class="btn btn-accent" onclick="tokCheck()">Check</button>
+    </div>
+
+    <div class="game-feedback" id="tokFeedback"></div>
+
+    <div class="token-display" id="tokRevealDisplay" style="display:none;"></div>
+
+    <div style="text-align:center;margin-top:16px;">
+      <button class="btn btn-accent" id="tokNextBtn" onclick="tokNextRound()" style="display:none;">Next Round &rarr;</button>
+      <button class="btn btn-surface" id="tokRestartBtn" onclick="tokRestart()" style="display:none;">Play Again</button>
+    </div>
+  </div>
+
+  <!-- ========== Section 8: Parameter Calculator ========== -->
+  <div class="card">
+    <h2><span class="badge badge-purple">Calculator</span> Parameter Calculator</h2>
+    <p>Explore how model dimensions affect total parameter count. Adjust the sliders or use preset buttons for GPT-2 configurations.</p>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+      <button class="btn btn-surface" onclick="paramPreset(12,768,50257)">GPT-2 Small</button>
+      <button class="btn btn-surface" onclick="paramPreset(24,1024,50257)">GPT-2 Medium</button>
+      <button class="btn btn-surface" onclick="paramPreset(36,1280,50257)">GPT-2 Large</button>
+      <button class="btn btn-surface" onclick="paramPreset(48,1600,50257)">GPT-2 XL</button>
+    </div>
+
+    <div class="slider-group">
+      <label>n_layers: <span class="slider-val" id="paramLayersVal">12</span></label>
+      <input type="range" id="paramLayers" min="1" max="96" value="12" step="1">
+    </div>
+    <div class="slider-group">
+      <label>d_model: <span class="slider-val" id="paramDModelVal">768</span></label>
+      <input type="range" id="paramDModel" min="64" max="4096" value="768" step="64">
+    </div>
+    <div class="slider-group">
+      <label>vocab_size: <span class="slider-val" id="paramVocabVal">50257</span></label>
+      <input type="range" id="paramVocab" min="1000" max="100000" value="50257" step="1000">
+    </div>
+
+    <div style="text-align:center;margin:24px 0;">
+      <div style="font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;" id="paramTotal">117.0M params</div>
+      <div style="font-size:0.85rem;color:var(--text-dim);margin-top:4px;" id="paramBreakdown"></div>
+    </div>
+
+    <canvas id="paramCanvas" style="width:100%;height:120px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(0,0,0,.3);"></canvas>
+    <div style="display:flex;justify-content:center;gap:20px;margin-top:10px;font-size:0.8rem;color:var(--text-dim);">
+      <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#6c63ff;vertical-align:middle;margin-right:4px;"></span>Embedding</span>
+      <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#bb9af7;vertical-align:middle;margin-right:4px;"></span>Attention</span>
+      <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#ff9e64;vertical-align:middle;margin-right:4px;"></span>FFN</span>
+    </div>
+  </div>
+
 </div>
 
 <!-- ==================== Footer ==================== -->
@@ -1275,12 +1343,200 @@ document.getElementById('modelTabs').addEventListener('click', (e) => {
   }
 });
 
+// ==================== Section 7: Token Count Challenge ==================== //
+
+const TOKEN_CHALLENGES = [
+  "Hello world",
+  "The quick brown fox jumps",
+  "Transformers are revolutionary",
+  "antidisestablishmentarianism",
+  "GPT-2 has 1,542,000,000 parameters!",
+  "\u3053\u3093\u306B\u3061\u306F\u4E16\u754C",
+  "https://openai.com/research",
+  "def fibonacci(n): return n if n < 2 else fibonacci(n-1) + fibonacci(n-2)",
+];
+
+let tokRoundIdx = 0;
+let tokPoints = 0;
+let tokAnswered = false;
+let tokShuffled = [];
+
+function tokShuffle() {
+  tokShuffled = TOKEN_CHALLENGES.slice().sort(function() { return Math.random() - 0.5; }).slice(0, 5);
+}
+
+function tokRenderRound() {
+  document.getElementById('tokRound').textContent = (tokRoundIdx + 1) + ' / 5';
+  document.getElementById('tokPts').textContent = tokPoints;
+  document.getElementById('tokSentence').textContent = tokShuffled[tokRoundIdx];
+  document.getElementById('tokGuessInput').value = '';
+  document.getElementById('tokGuessInput').disabled = false;
+  document.getElementById('tokFeedback').textContent = '';
+  document.getElementById('tokFeedback').className = 'game-feedback';
+  document.getElementById('tokRevealDisplay').style.display = 'none';
+  document.getElementById('tokRevealDisplay').innerHTML = '';
+  document.getElementById('tokNextBtn').style.display = 'none';
+  document.getElementById('tokRestartBtn').style.display = 'none';
+  tokAnswered = false;
+}
+
+function tokCheck() {
+  if (tokAnswered) return;
+  var guess = parseInt(document.getElementById('tokGuessInput').value);
+  if (isNaN(guess) || guess < 1) return;
+  tokAnswered = true;
+  document.getElementById('tokGuessInput').disabled = true;
+
+  var sentence = tokShuffled[tokRoundIdx];
+  var tokens = tokenizeBPE(sentence);
+  var actual = tokens.length;
+  var diff = Math.abs(guess - actual);
+  var pts = 0;
+  if (diff === 0) pts = 3;
+  else if (diff === 1) pts = 2;
+  else if (diff === 2) pts = 1;
+  tokPoints += pts;
+  document.getElementById('tokPts').textContent = tokPoints;
+
+  var fb = document.getElementById('tokFeedback');
+  var msg = 'Actual: ' + actual + ' tokens. You guessed: ' + guess + '. ';
+  if (pts === 3) msg += 'Exact! +3 points';
+  else if (pts === 2) msg += 'Close! Off by 1. +2 points';
+  else if (pts === 1) msg += 'Not bad! Off by 2. +1 point';
+  else msg += 'Off by ' + diff + '. +0 points';
+  fb.textContent = msg;
+  fb.className = 'game-feedback ' + (pts > 0 ? 'correct' : 'wrong');
+
+  // Show actual tokens
+  var display = document.getElementById('tokRevealDisplay');
+  display.style.display = 'flex';
+  display.innerHTML = '';
+  tokens.forEach(function(tok, idx) {
+    var el = document.createElement('span');
+    el.className = 'tok tok-' + tok.type;
+    el.textContent = tok.text;
+    el.style.animationDelay = (idx * 0.04) + 's';
+    display.appendChild(el);
+  });
+
+  if (tokRoundIdx < 4) {
+    document.getElementById('tokNextBtn').style.display = 'inline-block';
+  } else {
+    fb.textContent += ' | Final score: ' + tokPoints + '/15';
+    document.getElementById('tokRestartBtn').style.display = 'inline-block';
+  }
+}
+
+function tokNextRound() {
+  tokRoundIdx++;
+  tokRenderRound();
+}
+
+function tokRestart() {
+  tokRoundIdx = 0;
+  tokPoints = 0;
+  tokShuffle();
+  tokRenderRound();
+}
+
+// ==================== Section 8: Parameter Calculator ==================== //
+
+function paramCalc() {
+  var nLayers = parseInt(document.getElementById('paramLayers').value);
+  var dModel = parseInt(document.getElementById('paramDModel').value);
+  var vocabSize = parseInt(document.getElementById('paramVocab').value);
+  document.getElementById('paramLayersVal').textContent = nLayers;
+  document.getElementById('paramDModelVal').textContent = dModel;
+  document.getElementById('paramVocabVal').textContent = vocabSize;
+
+  var embedding = vocabSize * dModel;
+  // Per layer: 4 * d^2 for attention (Wq, Wk, Wv, Wo) + 8 * d^2 for FFN (up + down) = 12 * d^2 approx
+  var perLayer = 12 * dModel * dModel;
+  var totalAttn = nLayers * 4 * dModel * dModel;
+  var totalFFN = nLayers * 8 * dModel * dModel;
+  var total = embedding + nLayers * perLayer;
+
+  var label;
+  if (total >= 1e9) label = (total / 1e9).toFixed(1) + 'B params';
+  else label = (total / 1e6).toFixed(1) + 'M params';
+  document.getElementById('paramTotal').textContent = label;
+  document.getElementById('paramBreakdown').textContent =
+    'Embedding: ' + (embedding / 1e6).toFixed(1) + 'M | Attention: ' + (totalAttn / 1e6).toFixed(1) + 'M | FFN: ' + (totalFFN / 1e6).toFixed(1) + 'M';
+
+  // Draw stacked bar
+  drawParamBar(embedding, totalAttn, totalFFN, total);
+}
+
+function drawParamBar(embedding, attn, ffn, total) {
+  var canvas = document.getElementById('paramCanvas');
+  if (!canvas) return;
+  var rect = canvas.getBoundingClientRect();
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  var W = rect.width;
+  var H = rect.height;
+  ctx.clearRect(0, 0, W, H);
+
+  var barH = 40;
+  var y = (H - barH) / 2;
+  var pad = 20;
+  var barW = W - pad * 2;
+
+  var embW = (embedding / total) * barW;
+  var attnW = (attn / total) * barW;
+  var ffnW = (ffn / total) * barW;
+
+  // Embedding
+  ctx.fillStyle = '#6c63ff';
+  ctx.beginPath();
+  ctx.roundRect(pad, y, embW, barH, [8, 0, 0, 8]);
+  ctx.fill();
+
+  // Attention
+  ctx.fillStyle = '#bb9af7';
+  ctx.fillRect(pad + embW, y, attnW, barH);
+
+  // FFN
+  ctx.fillStyle = '#ff9e64';
+  ctx.beginPath();
+  ctx.roundRect(pad + embW + attnW, y, ffnW, barH, [0, 8, 8, 0]);
+  ctx.fill();
+
+  // Labels
+  ctx.fillStyle = '#fff';
+  ctx.font = '12px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if (embW > 50) ctx.fillText('Emb ' + Math.round(embedding / total * 100) + '%', pad + embW / 2, y + barH / 2);
+  if (attnW > 50) ctx.fillText('Attn ' + Math.round(attn / total * 100) + '%', pad + embW + attnW / 2, y + barH / 2);
+  if (ffnW > 50) ctx.fillText('FFN ' + Math.round(ffn / total * 100) + '%', pad + embW + attnW + ffnW / 2, y + barH / 2);
+}
+
+function paramPreset(layers, dModel, vocab) {
+  document.getElementById('paramLayers').value = layers;
+  document.getElementById('paramDModel').value = dModel;
+  document.getElementById('paramVocab').value = vocab;
+  paramCalc();
+}
+
+document.getElementById('paramLayers').addEventListener('input', paramCalc);
+document.getElementById('paramDModel').addEventListener('input', paramCalc);
+document.getElementById('paramVocab').addEventListener('input', paramCalc);
+
 // ==================== Initialize ==================== //
 document.addEventListener('DOMContentLoaded', () => {
   renderTokens();
   buildWeightMatrices();
   renderModelExplorer(0);
+  tokShuffle();
+  tokRenderRound();
+  paramCalc();
 });
+
+window.addEventListener('resize', paramCalc);
 </script>
 </body>
 </html>

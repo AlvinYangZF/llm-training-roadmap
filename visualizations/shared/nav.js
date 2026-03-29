@@ -1,39 +1,39 @@
 // ==================== LLM Algorithm Visualization — Navigation ==================== //
 
 const NAV_TOPICS = [
-  { cat: 'Foundation', items: [
-    { num: '01', title: 'Transformer Basics', file: '01-transformer-basics.html' },
-    { num: '02', title: 'GPT-2 Architecture', file: '02-gpt2-architecture.html' },
-    { num: '03', title: 'Prefill & Decode', file: '03-prefill-decode.html' },
+  { cat: '2017–2019 Foundations', items: [
+    { num: '01', title: 'Transformer Basics', file: '01-transformer-basics.html', year: '2017' },
+    { num: '02', title: 'GPT-2 Architecture', file: '02-gpt2-architecture.html', year: '2019' },
+    { num: '03', title: 'Sparse Transformers', file: '03-sparse-transformers.html', year: '2019' },
   ]},
-  { cat: 'Compute Optimization', items: [
-    { num: '04', title: 'FlashAttention', file: '04-flash-attention.html' },
-    { num: '10', title: 'Sparse Transformers', file: '10-sparse-transformers.html' },
+  { cat: '2022 Compute Optimization', items: [
+    { num: '04', title: 'Prefill & Decode', file: '04-prefill-decode.html', year: 'Core' },
+    { num: '05', title: 'FlashAttention', file: '05-flash-attention.html', year: '2022' },
   ]},
-  { cat: 'Memory Management', items: [
-    { num: '05', title: 'PagedAttention', file: '05-paged-attention.html' },
-    { num: '08', title: 'H2O', file: '08-h2o.html' },
-    { num: '09', title: 'StreamingLLM', file: '09-streaming-llm.html' },
-    { num: '11', title: 'TurboQuant', file: '11-turboquant.html' },
+  { cat: '2023 Memory Management', items: [
+    { num: '06', title: 'PagedAttention', file: '06-paged-attention.html', year: '2023' },
+    { num: '07', title: 'H2O', file: '07-h2o.html', year: '2023' },
   ]},
-  { cat: 'System Architecture', items: [
-    { num: '06', title: 'PD Separation', file: '06-pd-separation.html' },
-    { num: '07', title: 'Mooncake', file: '07-mooncake.html' },
+  { cat: '2024–2026 Advanced', items: [
+    { num: '08', title: 'StreamingLLM', file: '08-streaming-llm.html', year: '2024' },
+    { num: '09', title: 'PD Separation', file: '09-pd-separation.html', year: '2025' },
+    { num: '10', title: 'Mooncake', file: '10-mooncake.html', year: '2025' },
+    { num: '11', title: 'TurboQuant', file: '11-turboquant.html', year: '2026' },
   ]},
 ];
 
-// Flat ordered list for prev/next navigation
+// Flat ordered list for prev/next navigation (chronological)
 const NAV_ORDERED = [
   '01-transformer-basics.html',
   '02-gpt2-architecture.html',
-  '03-prefill-decode.html',
-  '04-flash-attention.html',
-  '05-paged-attention.html',
-  '06-pd-separation.html',
-  '07-mooncake.html',
-  '08-h2o.html',
-  '09-streaming-llm.html',
-  '10-sparse-transformers.html',
+  '03-sparse-transformers.html',
+  '04-prefill-decode.html',
+  '05-flash-attention.html',
+  '06-paged-attention.html',
+  '07-h2o.html',
+  '08-streaming-llm.html',
+  '09-pd-separation.html',
+  '10-mooncake.html',
   '11-turboquant.html',
 ];
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>03. Prefill & Decode — LLM Algorithm Visualizations</title>
+  <title>04. Prefill & Decode — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
   <style>
     /* ==================== Section 3: KV Cache ==================== */
@@ -307,6 +307,106 @@
       </div>
     </div>
 
+    <!-- ==================== Game 1: Latency Estimator ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-red">Game</span> Latency Estimator Challenge</h2>
+      <p>Can you estimate the Time-To-First-Token (TTFT) and Time-Between-Tokens (TBT) for different model+GPU combos? Enter your guesses in milliseconds.</p>
+
+      <div class="game-score" id="latencyGameScore">
+        <div class="game-score-item"><div class="score-val" id="latScore">0</div><div class="score-label">Score</div></div>
+        <div class="game-score-item"><div class="score-val" id="latRound">0 / 4</div><div class="score-label">Round</div></div>
+      </div>
+
+      <div class="game-scenario" id="latScenario" style="display:none;">
+        <div class="scenario-label">Scenario</div>
+        <div class="scenario-value" id="latScenarioText"></div>
+      </div>
+
+      <div class="game-input-group" id="latInputs" style="display:none;">
+        <div style="text-align:center;">
+          <div style="font-size:0.78rem;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;">TTFT (ms)</div>
+          <input class="game-input" type="number" id="latTTFTInput" placeholder="e.g. 50">
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:0.78rem;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;">TBT (ms)</div>
+          <input class="game-input" type="number" id="latTBTInput" placeholder="e.g. 15">
+        </div>
+        <button class="btn btn-accent" onclick="checkLatencyGuess()" id="latCheckBtn">Check</button>
+      </div>
+
+      <div class="game-feedback" id="latFeedback">Press Start to begin!</div>
+
+      <div id="latBarsContainer" style="display:none;">
+        <div style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin:16px 0;">
+          <div>
+            <div style="font-size:0.82rem;font-weight:600;text-align:center;margin-bottom:8px;">TTFT Comparison</div>
+            <div class="game-bar-compare" id="latTTFTBars"></div>
+          </div>
+          <div>
+            <div style="font-size:0.82rem;font-weight:600;text-align:center;margin-bottom:8px;">TBT Comparison</div>
+            <div class="game-bar-compare" id="latTBTBars"></div>
+          </div>
+        </div>
+        <div class="game-feedback" id="latExplain" style="font-size:0.88rem;color:var(--text-dim);font-weight:400;"></div>
+      </div>
+
+      <div class="anim-controls">
+        <button class="btn btn-accent" id="latStartBtn" onclick="startLatencyGame()">Start Game</button>
+      </div>
+    </div>
+
+    <!-- ==================== Game 2: KV Cache Calculator ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-orange">Game</span> KV Cache Calculator</h2>
+      <p>Adjust model parameters to see how KV cache memory scales. Use presets for common models, then tweak sequence length and precision to explore the impact.</p>
+
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:16px 0;">
+        <button class="btn btn-surface" onclick="kvPreset('llama7b')">LLaMA-2 7B</button>
+        <button class="btn btn-surface" onclick="kvPreset('llama70b')">LLaMA-2 70B</button>
+        <button class="btn btn-surface" onclick="kvPreset('mistral7b')">Mistral 7B</button>
+      </div>
+
+      <div class="slider-group">
+        <label>n_layers:</label>
+        <input type="range" id="kvLayers" min="1" max="80" value="32">
+        <span class="slider-val" id="kvLayersVal">32</span>
+      </div>
+      <div class="slider-group">
+        <label>d_model:</label>
+        <input type="range" id="kvDModel" min="512" max="8192" step="256" value="4096">
+        <span class="slider-val" id="kvDModelVal">4096</span>
+      </div>
+      <div class="slider-group">
+        <label>seq_len:</label>
+        <input type="range" id="kvSeqLen" min="128" max="32768" step="128" value="2048">
+        <span class="slider-val" id="kvSeqLenVal">2048</span>
+      </div>
+      <div class="slider-group">
+        <label>n_kv_heads:</label>
+        <input type="range" id="kvHeads" min="1" max="64" value="32">
+        <span class="slider-val" id="kvHeadsVal">32</span>
+      </div>
+      <div class="slider-group">
+        <label>dtype:</label>
+        <select id="kvDtype" style="padding:6px 12px;border-radius:8px;border:2px solid var(--border);font-weight:600;font-size:0.95rem;">
+          <option value="2" selected>FP16 (2 bytes)</option>
+          <option value="4">FP32 (4 bytes)</option>
+          <option value="1">INT8 (1 byte)</option>
+        </select>
+      </div>
+
+      <div class="game-scenario" style="margin:20px 0;">
+        <div class="scenario-label">KV Cache Size</div>
+        <div class="scenario-value" id="kvCacheSize" style="font-size:2rem;">0 MB</div>
+        <div style="font-size:0.82rem;color:var(--text-dim);margin-top:8px;" id="kvFormula"></div>
+      </div>
+
+      <div style="margin:16px 0;">
+        <div style="font-size:0.82rem;font-weight:600;margin-bottom:10px;">GPU Memory Usage</div>
+        <div id="kvGpuBars"></div>
+      </div>
+    </div>
+
   </div>
 
   <footer><p>LLM Algorithm Visualization Series</p></footer>
@@ -563,6 +663,187 @@
         if (gaugeSection) gaugeObserver.observe(gaugeSection);
       });
     }
+
+    // ==================== Game 1: Latency Estimator ==================== //
+    const LATENCY_SCENARIOS = [
+      { model: 'LLaMA-2 7B', promptLen: 512, gpu: 'A100 80GB',
+        ttft: 45, tbt: 12, explain: '7B is small — fast prefill, ~12ms/tok decode' },
+      { model: 'LLaMA-2 13B', promptLen: 128, gpu: 'A100 80GB',
+        ttft: 35, tbt: 18, explain: '13B with short prompt — TTFT low, TBT moderate' },
+      { model: 'LLaMA-2 70B', promptLen: 2048, gpu: 'H100 80GB',
+        ttft: 620, tbt: 38, explain: '70B on H100 — long prompt = high TTFT, 38ms/tok' },
+      { model: 'Mistral 7B', promptLen: 1024, gpu: 'RTX 4090 24GB',
+        ttft: 120, tbt: 22, explain: 'Consumer GPU — decent for 7B but slower than datacenter' },
+    ];
+
+    let latState = { round: 0, score: 0, order: [] };
+
+    function startLatencyGame() {
+      latState = { round: 0, score: 0, order: [0, 1, 2, 3] };
+      // Shuffle
+      for (let i = latState.order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [latState.order[i], latState.order[j]] = [latState.order[j], latState.order[i]];
+      }
+      document.getElementById('latScore').textContent = '0';
+      document.getElementById('latRound').textContent = '0 / 4';
+      document.getElementById('latStartBtn').disabled = true;
+      document.getElementById('latBarsContainer').style.display = 'none';
+      nextLatRound();
+    }
+
+    function nextLatRound() {
+      latState.round++;
+      if (latState.round > 4) {
+        document.getElementById('latFeedback').textContent = 'Game over! Final score: ' + latState.score + ' / 24';
+        document.getElementById('latFeedback').className = 'game-feedback';
+        document.getElementById('latStartBtn').disabled = false;
+        document.getElementById('latScenario').style.display = 'none';
+        document.getElementById('latInputs').style.display = 'none';
+        return;
+      }
+      document.getElementById('latRound').textContent = latState.round + ' / 4';
+      const s = LATENCY_SCENARIOS[latState.order[latState.round - 1]];
+      document.getElementById('latScenarioText').textContent =
+        s.model + '  |  Prompt: ' + s.promptLen + ' tokens  |  GPU: ' + s.gpu;
+      document.getElementById('latScenario').style.display = '';
+      document.getElementById('latInputs').style.display = '';
+      document.getElementById('latTTFTInput').value = '';
+      document.getElementById('latTBTInput').value = '';
+      document.getElementById('latCheckBtn').disabled = false;
+      document.getElementById('latFeedback').textContent = 'Enter your TTFT and TBT guesses in milliseconds.';
+      document.getElementById('latFeedback').className = 'game-feedback';
+      document.getElementById('latBarsContainer').style.display = 'none';
+      document.getElementById('latExplain').textContent = '';
+    }
+
+    function checkLatencyGuess() {
+      const s = LATENCY_SCENARIOS[latState.order[latState.round - 1]];
+      const guessTTFT = parseFloat(document.getElementById('latTTFTInput').value) || 0;
+      const guessTBT = parseFloat(document.getElementById('latTBTInput').value) || 0;
+      document.getElementById('latCheckBtn').disabled = true;
+
+      function score(guess, actual) {
+        const ratio = Math.abs(guess - actual) / actual;
+        if (ratio <= 0.2) return 3;
+        if (ratio <= 0.5) return 1;
+        return 0;
+      }
+
+      const ttftPts = score(guessTTFT, s.ttft);
+      const tbtPts = score(guessTBT, s.tbt);
+      const totalPts = ttftPts + tbtPts;
+      latState.score += totalPts;
+      document.getElementById('latScore').textContent = latState.score;
+
+      const fbText = 'TTFT: ' + guessTTFT + 'ms vs actual ' + s.ttft + 'ms (+' + ttftPts + 'pts) | TBT: ' + guessTBT + 'ms vs actual ' + s.tbt + 'ms (+' + tbtPts + 'pts)';
+      document.getElementById('latFeedback').textContent = fbText;
+      document.getElementById('latFeedback').className = 'game-feedback ' + (totalPts >= 4 ? 'correct' : totalPts > 0 ? '' : 'wrong');
+
+      // Show bars
+      document.getElementById('latBarsContainer').style.display = '';
+      renderLatBars('latTTFTBars', guessTTFT, s.ttft, 'TTFT');
+      renderLatBars('latTBTBars', guessTBT, s.tbt, 'TBT');
+      document.getElementById('latExplain').textContent = s.explain;
+
+      setTimeout(nextLatRound, 3500);
+    }
+
+    function renderLatBars(containerId, guess, actual, label) {
+      const container = document.getElementById(containerId);
+      const maxVal = Math.max(guess, actual, 1) * 1.2;
+      const guessH = Math.max((guess / maxVal) * 100, 4);
+      const actualH = Math.max((actual / maxVal) * 100, 4);
+
+      container.innerHTML =
+        '<div class="game-bar">' +
+          '<div class="bar-value" style="color:var(--accent);">' + guess + 'ms</div>' +
+          '<div class="bar-fill" style="height:' + guessH + 'px;background:var(--accent);"></div>' +
+          '<div class="bar-label">Your Guess</div>' +
+        '</div>' +
+        '<div class="game-bar">' +
+          '<div class="bar-value" style="color:var(--accent2);">' + actual + 'ms</div>' +
+          '<div class="bar-fill" style="height:' + actualH + 'px;background:var(--accent2);"></div>' +
+          '<div class="bar-label">Actual</div>' +
+        '</div>';
+    }
+
+    // ==================== Game 2: KV Cache Calculator ==================== //
+    const D_HEAD = 128; // typical head dimension
+
+    function updateKVCalc() {
+      const nLayers = parseInt(document.getElementById('kvLayers').value);
+      const dModel = parseInt(document.getElementById('kvDModel').value);
+      const seqLen = parseInt(document.getElementById('kvSeqLen').value);
+      const nKVHeads = parseInt(document.getElementById('kvHeads').value);
+      const dtypeBytes = parseInt(document.getElementById('kvDtype').value);
+
+      document.getElementById('kvLayersVal').textContent = nLayers;
+      document.getElementById('kvDModelVal').textContent = dModel;
+      document.getElementById('kvSeqLenVal').textContent = seqLen.toLocaleString();
+      document.getElementById('kvHeadsVal').textContent = nKVHeads;
+
+      // cache = 2 x n_layers x seq_len x n_kv_heads x d_head x dtype_bytes
+      const cacheBytes = 2 * nLayers * seqLen * nKVHeads * D_HEAD * dtypeBytes;
+      const cacheMB = cacheBytes / (1024 * 1024);
+      const cacheGB = cacheMB / 1024;
+
+      let sizeText;
+      if (cacheGB >= 1) {
+        sizeText = cacheGB.toFixed(2) + ' GB';
+      } else {
+        sizeText = cacheMB.toFixed(1) + ' MB';
+      }
+      document.getElementById('kvCacheSize').textContent = sizeText;
+      document.getElementById('kvFormula').textContent =
+        '2 x ' + nLayers + ' x ' + seqLen.toLocaleString() + ' x ' + nKVHeads + ' x ' + D_HEAD + ' x ' + dtypeBytes + ' = ' + cacheBytes.toLocaleString() + ' bytes';
+
+      // GPU comparison bars
+      const gpus = [
+        { name: 'RTX 4090 (24GB)', mem: 24 },
+        { name: 'A100 (40GB)', mem: 40 },
+        { name: 'H100 (80GB)', mem: 80 },
+      ];
+
+      let barsHTML = '';
+      gpus.forEach(gpu => {
+        const pct = Math.min((cacheGB / gpu.mem) * 100, 100);
+        const color = pct > 90 ? 'var(--accent3)' : pct > 50 ? 'var(--accent4)' : 'var(--accent2)';
+        barsHTML +=
+          '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">' +
+            '<div style="width:130px;text-align:right;font-size:0.85rem;font-weight:600;flex-shrink:0;">' + gpu.name + '</div>' +
+            '<div style="flex:1;height:24px;background:#e2e8f0;border-radius:6px;overflow:hidden;position:relative;">' +
+              '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:6px;transition:width 0.4s;"></div>' +
+            '</div>' +
+            '<div style="min-width:60px;font-size:0.82rem;font-weight:700;color:' + color + ';">' + pct.toFixed(1) + '%</div>' +
+          '</div>';
+      });
+      document.getElementById('kvGpuBars').innerHTML = barsHTML;
+    }
+
+    function kvPreset(name) {
+      const presets = {
+        llama7b: { layers: 32, dModel: 4096, kvHeads: 32 },
+        llama70b: { layers: 80, dModel: 8192, kvHeads: 8 },
+        mistral7b: { layers: 32, dModel: 4096, kvHeads: 8 },
+      };
+      const p = presets[name];
+      document.getElementById('kvLayers').value = p.layers;
+      document.getElementById('kvDModel').value = p.dModel;
+      document.getElementById('kvHeads').value = p.kvHeads;
+      updateKVCalc();
+    }
+
+    // KV calc event listeners
+    ['kvLayers', 'kvDModel', 'kvSeqLen', 'kvHeads'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateKVCalc);
+    });
+    document.getElementById('kvDtype').addEventListener('change', updateKVCalc);
+
+    // Initialize KV calculator on load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateKVCalc();
+    });
   </script>
 </body>
 </html>

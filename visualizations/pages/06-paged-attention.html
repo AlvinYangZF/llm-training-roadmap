@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>05. PagedAttention — LLM Algorithm Visualizations</title>
+  <title>06. PagedAttention — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
   <style>
     /* ===== Memory Bar ===== */
@@ -460,6 +460,122 @@
       <div class="anim-controls" style="margin-top: 12px;">
         <button class="btn btn-surface" onclick="goBeamStep(Math.max(0, beamStep - 1))">Prev Step</button>
         <button class="btn btn-accent" onclick="goBeamStep(Math.min(3, beamStep + 1))">Next Step</button>
+      </div>
+    </div>
+
+    <!-- ==================== Section 6: Memory Allocator Game ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-green">Game</span> Memory Allocator Game</h2>
+      <p>Experience the difference between contiguous and paged memory allocation. Allocate GPU memory for requests and see how fragmentation impacts utilization.</p>
+
+      <div style="display:flex; gap:0; margin-bottom:16px; justify-content:center;">
+        <button class="btn" id="allocTabContig" onclick="allocSwitchTab('contig')" style="border-radius:999px 0 0 999px; border:2px solid var(--accent); background:var(--accent); color:#fff; padding:10px 24px; font-weight:600; cursor:pointer;">Phase 1: Contiguous</button>
+        <button class="btn" id="allocTabPaged" onclick="allocSwitchTab('paged')" style="border-radius:0 999px 999px 0; border:2px solid var(--accent); background:var(--surface); color:var(--accent); padding:10px 24px; font-weight:600; cursor:pointer;">Phase 2: Paged</button>
+      </div>
+
+      <!-- Contiguous Mode -->
+      <div id="allocContigPanel">
+        <div class="game-scenario">
+          <div class="scenario-label">GPU Memory — 16 Slots (Contiguous Mode: each request reserves 6 consecutive slots)</div>
+          <div id="allocContigSlots" style="display:flex; gap:4px; justify-content:center; margin:12px 0; flex-wrap:wrap;"></div>
+        </div>
+
+        <div class="game-feedback" id="allocContigFeedback"></div>
+
+        <div class="game-score" id="allocContigInfo">
+          <div class="game-score-item">
+            <div class="score-val" id="allocContigUsed" style="color:var(--accent);">0</div>
+            <div class="score-label">Tokens Used</div>
+          </div>
+          <div class="game-score-item">
+            <div class="score-val" id="allocContigReserved" style="color:var(--accent4);">0</div>
+            <div class="score-label">Slots Reserved</div>
+          </div>
+          <div class="game-score-item">
+            <div class="score-val" id="allocContigWaste" style="color:var(--accent3);">0%</div>
+            <div class="score-label">Waste</div>
+          </div>
+        </div>
+
+        <div id="allocContigInstr" style="text-align:center; font-size:0.9rem; font-weight:600; margin:8px 0; color:var(--accent);"></div>
+
+        <div class="anim-controls">
+          <button class="btn btn-surface" onclick="allocContigReset()">Reset</button>
+        </div>
+      </div>
+
+      <!-- Paged Mode -->
+      <div id="allocPagedPanel" style="display:none;">
+        <div class="game-scenario">
+          <div class="scenario-label">GPU Memory — 16 Slots (Paged Mode: block_size=2, allocate on demand)</div>
+          <div id="allocPagedSlots" style="display:flex; gap:4px; justify-content:center; margin:12px 0; flex-wrap:wrap;"></div>
+        </div>
+
+        <div class="game-feedback" id="allocPagedFeedback"></div>
+
+        <div class="game-score" id="allocPagedInfo">
+          <div class="game-score-item">
+            <div class="score-val" id="allocPagedUsed" style="color:var(--accent);">0</div>
+            <div class="score-label">Tokens Used</div>
+          </div>
+          <div class="game-score-item">
+            <div class="score-val" id="allocPagedSlotCount" style="color:var(--accent2);">0</div>
+            <div class="score-label">Slots Allocated</div>
+          </div>
+          <div class="game-score-item">
+            <div class="score-val" id="allocPagedEfficiency" style="color:var(--accent2);">0%</div>
+            <div class="score-label">Efficiency</div>
+          </div>
+        </div>
+
+        <div id="allocPagedInstr" style="text-align:center; font-size:0.9rem; font-weight:600; margin:8px 0; color:var(--accent2);"></div>
+
+        <div class="anim-controls">
+          <button class="btn btn-surface" onclick="allocPagedReset()">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Section 7: Block Table Puzzle ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-orange">Game</span> Block Table Puzzle</h2>
+      <p>Match logical blocks to their physical memory locations. Click a logical block label, then click the correct physical slot containing those tokens.</p>
+
+      <div class="game-score" id="btPuzzleScore">
+        <div class="game-score-item">
+          <div class="score-val" id="btPuzzleRound">1</div>
+          <div class="score-label">Round</div>
+        </div>
+        <div class="game-score-item">
+          <div class="score-val" id="btPuzzlePoints">0</div>
+          <div class="score-label">Points</div>
+        </div>
+        <div class="game-score-item">
+          <div class="score-val" id="btPuzzleMax">12</div>
+          <div class="score-label">Max Points</div>
+        </div>
+      </div>
+
+      <div class="game-scenario" id="btPuzzleSentence">
+        <div class="scenario-label">Token Sequence (block_size=4)</div>
+        <div class="scenario-value" id="btPuzzleSentenceText"></div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin:20px 0;">
+        <div>
+          <h3 style="margin-top:0; text-align:center;">Logical Blocks</h3>
+          <div id="btPuzzleLogical" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+        <div>
+          <h3 style="margin-top:0; text-align:center;">Physical Memory (Scrambled)</h3>
+          <div id="btPuzzlePhysical" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
+        </div>
+      </div>
+
+      <div class="game-feedback" id="btPuzzleFeedback"></div>
+
+      <div class="anim-controls">
+        <button class="btn btn-surface" id="btPuzzleResetBtn" style="display:none;" onclick="btPuzzleReset()">Play Again</button>
       </div>
     </div>
 
@@ -1131,6 +1247,442 @@
     }
 
     // ============================================================
+    //  Section 6: Memory Allocator Game
+    // ============================================================
+    var ALLOC_TOTAL = 16;
+    var contigSlots = []; // null or {req, used}
+    var contigReqs = [
+      { name: 'A', tokens: 3, reserve: 6, color: '#7c3aed' },
+      { name: 'B', tokens: 2, reserve: 6, color: '#0d9488' },
+      { name: 'C', tokens: 4, reserve: 6, color: '#ea580c' },
+      { name: 'D', tokens: 2, reserve: 6, color: '#e11d48' }
+    ];
+    var contigPhase = 0; // which request we are allocating (0-3)
+    var contigStartSlot = -1; // first slot clicked for current allocation
+
+    function allocContigReset() {
+      contigSlots = new Array(ALLOC_TOTAL).fill(null);
+      contigPhase = 0;
+      contigStartSlot = -1;
+      allocContigRender();
+      document.getElementById('allocContigFeedback').textContent = '';
+      document.getElementById('allocContigFeedback').className = 'game-feedback';
+      document.getElementById('allocContigUsed').textContent = '0';
+      document.getElementById('allocContigReserved').textContent = '0';
+      document.getElementById('allocContigWaste').textContent = '0%';
+      document.getElementById('allocContigInstr').textContent = 'Click 6 consecutive free slots to allocate Req A (needs 3 tokens, reserves 6)';
+      document.getElementById('allocContigInstr').style.color = contigReqs[0].color;
+    }
+
+    function allocContigRender() {
+      var container = document.getElementById('allocContigSlots');
+      container.innerHTML = '';
+      for (var i = 0; i < ALLOC_TOTAL; i++) {
+        (function(idx) {
+          var slot = document.createElement('div');
+          slot.style.cssText = 'width:42px; height:42px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:700; cursor:pointer; border:2px solid; transition:all 0.2s; user-select:none;';
+          var data = contigSlots[idx];
+          if (data) {
+            slot.style.background = data.used ? data.color + '33' : 'repeating-linear-gradient(45deg, transparent, transparent 3px, ' + data.color + '15 3px, ' + data.color + '15 6px)';
+            slot.style.borderColor = data.color;
+            slot.style.color = data.color;
+            slot.textContent = data.req + (data.used ? '' : '?');
+          } else {
+            slot.style.background = 'var(--surface)';
+            slot.style.borderColor = 'var(--border)';
+            slot.style.color = 'var(--text-dim)';
+            slot.textContent = idx;
+          }
+          slot.onclick = function() { allocContigClick(idx); };
+          container.appendChild(slot);
+        })(i);
+      }
+    }
+
+    function allocContigClick(idx) {
+      if (contigPhase >= contigReqs.length) return;
+      var req = contigReqs[contigPhase];
+      if (contigSlots[idx] !== null) return;
+
+      // Check if 6 consecutive slots starting at idx are free
+      if (idx + req.reserve > ALLOC_TOTAL) {
+        document.getElementById('allocContigFeedback').textContent = 'Not enough consecutive slots starting at position ' + idx + '.';
+        document.getElementById('allocContigFeedback').className = 'game-feedback wrong';
+        return;
+      }
+      for (var i = idx; i < idx + req.reserve; i++) {
+        if (contigSlots[i] !== null) {
+          document.getElementById('allocContigFeedback').textContent = 'Slots must be consecutive and free. Slot ' + i + ' is already allocated.';
+          document.getElementById('allocContigFeedback').className = 'game-feedback wrong';
+          return;
+        }
+      }
+
+      // Allocate
+      for (var j = idx; j < idx + req.reserve; j++) {
+        contigSlots[j] = { req: req.name, used: (j - idx) < req.tokens, color: req.color };
+      }
+
+      document.getElementById('allocContigFeedback').textContent = 'Req ' + req.name + ' allocated: ' + req.tokens + ' tokens in ' + req.reserve + ' reserved slots.';
+      document.getElementById('allocContigFeedback').className = 'game-feedback correct';
+
+      contigPhase++;
+
+      // Update stats
+      var totalUsed = 0, totalReserved = 0;
+      contigSlots.forEach(function(s) { if (s) { totalReserved++; if (s.used) totalUsed++; } });
+      document.getElementById('allocContigUsed').textContent = totalUsed;
+      document.getElementById('allocContigReserved').textContent = totalReserved;
+      var waste = totalReserved > 0 ? Math.round((1 - totalUsed / totalReserved) * 100) : 0;
+      document.getElementById('allocContigWaste').textContent = waste + '%';
+
+      if (contigPhase < contigReqs.length) {
+        var nextReq = contigReqs[contigPhase];
+        // Check if next request can fit
+        var canFit = false;
+        for (var s = 0; s <= ALLOC_TOTAL - nextReq.reserve; s++) {
+          var ok = true;
+          for (var c = s; c < s + nextReq.reserve; c++) {
+            if (contigSlots[c] !== null) { ok = false; break; }
+          }
+          if (ok) { canFit = true; break; }
+        }
+        if (!canFit) {
+          document.getElementById('allocContigInstr').textContent = '';
+          setTimeout(function() {
+            document.getElementById('allocContigFeedback').innerHTML = '<span style="color:var(--accent3); font-size:1.1rem;">Out of Memory!</span> Req ' + nextReq.name + ' needs 6 consecutive slots but none available.';
+            document.getElementById('allocContigFeedback').className = 'game-feedback wrong';
+            document.getElementById('allocContigInstr').textContent = 'Utilization: ' + totalUsed + '/' + ALLOC_TOTAL + ' tokens used, but ' + (totalReserved + nextReq.reserve) + '/' + ALLOC_TOTAL + ' slots needed — fragmentation!';
+            document.getElementById('allocContigInstr').style.color = 'var(--accent3)';
+          }, 400);
+        } else {
+          document.getElementById('allocContigInstr').textContent = 'Click 6 consecutive free slots to allocate Req ' + nextReq.name + ' (needs ' + nextReq.tokens + ' tokens, reserves 6)';
+          document.getElementById('allocContigInstr').style.color = nextReq.color;
+        }
+      } else {
+        document.getElementById('allocContigInstr').textContent = 'All requests allocated. Utilization: ' + totalUsed + '/' + ALLOC_TOTAL + ' tokens used.';
+        document.getElementById('allocContigInstr').style.color = 'var(--accent2)';
+      }
+
+      allocContigRender();
+    }
+
+    // Paged mode
+    var pagedSlots = []; // null or {req, blockIdx}
+    var pagedReqs = [
+      { name: 'A', tokens: 3, blocks: 2, color: '#7c3aed' },
+      { name: 'B', tokens: 2, blocks: 1, color: '#0d9488' },
+      { name: 'C', tokens: 4, blocks: 2, color: '#ea580c' },
+      { name: 'D', tokens: 2, blocks: 1, color: '#e11d48' }
+    ];
+    var pagedPhase = 0;
+    var pagedBlocksClicked = 0; // how many blocks clicked for current req
+
+    function allocPagedReset() {
+      pagedSlots = new Array(ALLOC_TOTAL).fill(null);
+      pagedPhase = 0;
+      pagedBlocksClicked = 0;
+      allocPagedRender();
+      document.getElementById('allocPagedFeedback').textContent = '';
+      document.getElementById('allocPagedFeedback').className = 'game-feedback';
+      document.getElementById('allocPagedUsed').textContent = '0';
+      document.getElementById('allocPagedSlotCount').textContent = '0';
+      document.getElementById('allocPagedEfficiency').textContent = '0%';
+      var r = pagedReqs[0];
+      document.getElementById('allocPagedInstr').textContent = 'Click ' + r.blocks + ' free slot-pairs (blocks) for Req ' + r.name + ' (' + r.tokens + ' tokens = ' + r.blocks + ' blocks)';
+      document.getElementById('allocPagedInstr').style.color = r.color;
+    }
+
+    function allocPagedRender() {
+      var container = document.getElementById('allocPagedSlots');
+      container.innerHTML = '';
+      // Display as 8 pairs (blocks of 2)
+      for (var b = 0; b < ALLOC_TOTAL / 2; b++) {
+        (function(blockIdx) {
+          var pair = document.createElement('div');
+          pair.style.cssText = 'display:flex; gap:1px; cursor:pointer;';
+          var s0 = pagedSlots[blockIdx * 2];
+          var s1 = pagedSlots[blockIdx * 2 + 1];
+          var allocated = s0 !== null;
+
+          for (var t = 0; t < 2; t++) {
+            var slot = document.createElement('div');
+            slot.style.cssText = 'width:36px; height:42px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700; border:2px solid; transition:all 0.2s;';
+            slot.style.borderRadius = t === 0 ? '6px 0 0 6px' : '0 6px 6px 0';
+            var data = pagedSlots[blockIdx * 2 + t];
+            if (data) {
+              slot.style.background = data.color + '33';
+              slot.style.borderColor = data.color;
+              slot.style.color = data.color;
+              slot.textContent = data.req;
+            } else {
+              slot.style.background = 'var(--surface)';
+              slot.style.borderColor = 'var(--border)';
+              slot.style.color = 'var(--text-dim)';
+              slot.textContent = blockIdx * 2 + t;
+            }
+            pair.appendChild(slot);
+          }
+          pair.onclick = function() { allocPagedClick(blockIdx); };
+          container.appendChild(pair);
+        })(b);
+      }
+    }
+
+    function allocPagedClick(blockIdx) {
+      if (pagedPhase >= pagedReqs.length) return;
+      var req = pagedReqs[pagedPhase];
+      if (pagedSlots[blockIdx * 2] !== null) {
+        document.getElementById('allocPagedFeedback').textContent = 'That block is already allocated. Pick a free one.';
+        document.getElementById('allocPagedFeedback').className = 'game-feedback wrong';
+        return;
+      }
+
+      // Allocate block
+      pagedSlots[blockIdx * 2] = { req: req.name, color: req.color };
+      pagedSlots[blockIdx * 2 + 1] = { req: req.name, color: req.color };
+      pagedBlocksClicked++;
+
+      if (pagedBlocksClicked >= req.blocks) {
+        document.getElementById('allocPagedFeedback').textContent = 'Req ' + req.name + ' allocated: ' + req.tokens + ' tokens in ' + req.blocks + ' blocks.';
+        document.getElementById('allocPagedFeedback').className = 'game-feedback correct';
+
+        pagedPhase++;
+        pagedBlocksClicked = 0;
+
+        // Update stats
+        var totalTokens = 0, totalSlots = 0;
+        for (var p = 0; p < pagedPhase; p++) { totalTokens += pagedReqs[p].tokens; totalSlots += pagedReqs[p].blocks * 2; }
+        document.getElementById('allocPagedUsed').textContent = totalTokens;
+        document.getElementById('allocPagedSlotCount').textContent = totalSlots;
+        var eff = totalSlots > 0 ? Math.round(totalTokens / totalSlots * 100) : 0;
+        document.getElementById('allocPagedEfficiency').textContent = eff + '%';
+
+        if (pagedPhase < pagedReqs.length) {
+          var next = pagedReqs[pagedPhase];
+          document.getElementById('allocPagedInstr').textContent = 'Click ' + next.blocks + ' free slot-pairs (blocks) for Req ' + next.name + ' (' + next.tokens + ' tokens = ' + next.blocks + ' blocks)';
+          document.getElementById('allocPagedInstr').style.color = next.color;
+        } else {
+          document.getElementById('allocPagedInstr').textContent = 'All 4 requests fit! Utilization: ' + totalTokens + '/' + totalSlots + ' slots used — ' + eff + '% efficient!';
+          document.getElementById('allocPagedInstr').style.color = 'var(--accent2)';
+        }
+      } else {
+        document.getElementById('allocPagedFeedback').textContent = 'Block assigned. Pick ' + (req.blocks - pagedBlocksClicked) + ' more block(s) for Req ' + req.name + '.';
+        document.getElementById('allocPagedFeedback').className = 'game-feedback';
+      }
+
+      allocPagedRender();
+    }
+
+    function allocSwitchTab(tab) {
+      if (tab === 'contig') {
+        document.getElementById('allocContigPanel').style.display = '';
+        document.getElementById('allocPagedPanel').style.display = 'none';
+        document.getElementById('allocTabContig').style.background = 'var(--accent)';
+        document.getElementById('allocTabContig').style.color = '#fff';
+        document.getElementById('allocTabPaged').style.background = 'var(--surface)';
+        document.getElementById('allocTabPaged').style.color = 'var(--accent)';
+      } else {
+        document.getElementById('allocContigPanel').style.display = 'none';
+        document.getElementById('allocPagedPanel').style.display = '';
+        document.getElementById('allocTabPaged').style.background = 'var(--accent)';
+        document.getElementById('allocTabPaged').style.color = '#fff';
+        document.getElementById('allocTabContig').style.background = 'var(--surface)';
+        document.getElementById('allocTabContig').style.color = 'var(--accent)';
+      }
+    }
+
+    // ============================================================
+    //  Section 7: Block Table Puzzle
+    // ============================================================
+    var BT_BLOCK_SIZE = 4;
+    var btRounds = [
+      { sentence: 'The cat sat on the warm mat', tokens: ['The', 'cat', 'sat', 'on', 'the', 'warm', 'mat'] },
+      { sentence: 'How does paged attention work here', tokens: ['How', 'does', 'paged', 'attention', 'work', 'here'] },
+      { sentence: 'GPU memory blocks are scattered randomly', tokens: ['GPU', 'memory', 'blocks', 'are', 'scattered', 'randomly'] }
+    ];
+    var btRound = 0;
+    var btPoints = 0;
+    var btSelectedLogical = -1; // which logical block is selected
+    var btMatchedLogical = []; // which logical blocks have been matched
+    var btTries = {}; // {logicalIdx: number of tries}
+    var btPhysLayout = []; // shuffled array of {logicalBlock, slotIdx}
+
+    function btPuzzleInit() {
+      btRound = 0;
+      btPoints = 0;
+      document.getElementById('btPuzzleResetBtn').style.display = 'none';
+      btPuzzleSetupRound();
+    }
+
+    function btPuzzleSetupRound() {
+      var round = btRounds[btRound];
+      var tokens = round.tokens;
+      var numBlocks = Math.ceil(tokens.length / BT_BLOCK_SIZE);
+
+      document.getElementById('btPuzzleRound').textContent = btRound + 1;
+      document.getElementById('btPuzzlePoints').textContent = btPoints;
+      document.getElementById('btPuzzleSentenceText').textContent = '"' + round.sentence + '" (' + tokens.length + ' tokens, ' + numBlocks + ' logical blocks)';
+      document.getElementById('btPuzzleFeedback').textContent = 'Select a logical block, then click the matching physical slot.';
+      document.getElementById('btPuzzleFeedback').className = 'game-feedback';
+
+      btSelectedLogical = -1;
+      btMatchedLogical = [];
+      btTries = {};
+
+      // Create physical layout: numBlocks slots + some empty slots, shuffled
+      var totalPhysSlots = Math.max(numBlocks + 2, 4); // at least 4 for the 2x2 grid
+      // Limit to even number for 2-column grid
+      if (totalPhysSlots % 2 !== 0) totalPhysSlots++;
+      btPhysLayout = [];
+      for (var b = 0; b < numBlocks; b++) {
+        btPhysLayout.push({ logicalBlock: b, tokens: tokens.slice(b * BT_BLOCK_SIZE, (b + 1) * BT_BLOCK_SIZE) });
+      }
+      // Add empty slots
+      for (var e = numBlocks; e < totalPhysSlots; e++) {
+        btPhysLayout.push({ logicalBlock: -1, tokens: ['(empty)', '(empty)', '(empty)', '(empty)'] });
+      }
+      // Shuffle
+      for (var i = btPhysLayout.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = btPhysLayout[i]; btPhysLayout[i] = btPhysLayout[j]; btPhysLayout[j] = tmp;
+      }
+
+      btPuzzleRender(tokens, numBlocks);
+    }
+
+    function btPuzzleRender(tokens, numBlocks) {
+      if (!tokens) {
+        var round = btRounds[btRound];
+        tokens = round.tokens;
+        numBlocks = Math.ceil(tokens.length / BT_BLOCK_SIZE);
+      }
+
+      // Logical blocks
+      var logEl = document.getElementById('btPuzzleLogical');
+      logEl.innerHTML = '';
+      for (var b = 0; b < numBlocks; b++) {
+        (function(blockIdx) {
+          var blockTokens = tokens.slice(blockIdx * BT_BLOCK_SIZE, (blockIdx + 1) * BT_BLOCK_SIZE);
+          var btn = document.createElement('button');
+          btn.className = 'game-option';
+          btn.style.cssText = 'width:100%; text-align:left; padding:12px 16px;';
+
+          if (btMatchedLogical.indexOf(blockIdx) >= 0) {
+            btn.classList.add('correct-answer', 'disabled');
+            btn.innerHTML = '<strong>Block ' + blockIdx + ':</strong> [' + blockTokens.join(', ') + '] &#10004;';
+          } else if (btSelectedLogical === blockIdx) {
+            btn.classList.add('selected');
+            btn.innerHTML = '<strong>Block ' + blockIdx + ':</strong> [' + blockTokens.join(', ') + ']';
+          } else {
+            btn.innerHTML = '<strong>Block ' + blockIdx + ':</strong> [' + blockTokens.join(', ') + ']';
+          }
+
+          btn.onclick = function() {
+            if (btMatchedLogical.indexOf(blockIdx) >= 0) return;
+            btSelectedLogical = blockIdx;
+            document.getElementById('btPuzzleFeedback').textContent = 'Now click the physical slot containing Block ' + blockIdx + ' tokens.';
+            document.getElementById('btPuzzleFeedback').className = 'game-feedback';
+            btPuzzleRender();
+          };
+          logEl.appendChild(btn);
+        })(b);
+      }
+
+      // Physical slots
+      var physEl = document.getElementById('btPuzzlePhysical');
+      physEl.innerHTML = '';
+      for (var p = 0; p < btPhysLayout.length; p++) {
+        (function(physIdx) {
+          var slot = btPhysLayout[physIdx];
+          var btn = document.createElement('button');
+          btn.className = 'game-option';
+          btn.style.cssText = 'padding:12px 10px; text-align:center; font-size:0.82rem;';
+
+          // Check if this physical slot's logical block is already matched
+          var isMatched = slot.logicalBlock >= 0 && btMatchedLogical.indexOf(slot.logicalBlock) >= 0;
+          if (isMatched) {
+            btn.classList.add('correct-answer', 'disabled');
+            btn.innerHTML = '<div style="font-size:0.72rem;color:var(--text-dim);">Phys ' + physIdx + '</div>' + slot.tokens.join(', ');
+          } else {
+            btn.innerHTML = '<div style="font-size:0.72rem;color:var(--text-dim);">Phys ' + physIdx + '</div>' + slot.tokens.join(', ');
+          }
+
+          btn.onclick = function() { btPuzzlePhysClick(physIdx); };
+          physEl.appendChild(btn);
+        })(p);
+      }
+    }
+
+    function btPuzzlePhysClick(physIdx) {
+      if (btSelectedLogical < 0) {
+        document.getElementById('btPuzzleFeedback').textContent = 'First select a logical block on the left.';
+        document.getElementById('btPuzzleFeedback').className = 'game-feedback wrong';
+        return;
+      }
+
+      var slot = btPhysLayout[physIdx];
+      if (slot.logicalBlock === btSelectedLogical) {
+        // Correct match!
+        if (!btTries[btSelectedLogical]) btTries[btSelectedLogical] = 0;
+        btTries[btSelectedLogical]++;
+        var pts = btTries[btSelectedLogical] === 1 ? 2 : 1;
+        btPoints += pts;
+        btMatchedLogical.push(btSelectedLogical);
+
+        document.getElementById('btPuzzlePoints').textContent = btPoints;
+        document.getElementById('btPuzzleFeedback').textContent = 'Correct! +' + pts + ' points' + (pts === 2 ? ' (first try bonus!)' : '') + '.';
+        document.getElementById('btPuzzleFeedback').className = 'game-feedback correct';
+
+        btSelectedLogical = -1;
+
+        // Check if round complete
+        var round = btRounds[btRound];
+        var numBlocks = Math.ceil(round.tokens.length / BT_BLOCK_SIZE);
+        if (btMatchedLogical.length >= numBlocks) {
+          btRound++;
+          if (btRound < btRounds.length) {
+            setTimeout(function() {
+              document.getElementById('btPuzzleFeedback').textContent = 'Round complete! Moving to round ' + (btRound + 1) + '...';
+              document.getElementById('btPuzzleFeedback').className = 'game-feedback correct';
+              setTimeout(btPuzzleSetupRound, 800);
+            }, 600);
+          } else {
+            setTimeout(function() {
+              var msg = btPoints >= 10 ? 'Excellent! You are a PagedAttention master!' :
+                        btPoints >= 6 ? 'Great work! You understand block tables well.' :
+                        'Keep practicing — block table mapping takes practice!';
+              document.getElementById('btPuzzleFeedback').textContent = 'All rounds complete! Final score: ' + btPoints + '/12 — ' + msg;
+              document.getElementById('btPuzzleFeedback').className = 'game-feedback correct';
+              document.getElementById('btPuzzleResetBtn').style.display = 'inline-block';
+            }, 600);
+          }
+        }
+      } else {
+        // Wrong
+        if (!btTries[btSelectedLogical]) btTries[btSelectedLogical] = 0;
+        btTries[btSelectedLogical]++;
+        document.getElementById('btPuzzleFeedback').textContent = 'Wrong slot! Try again.';
+        document.getElementById('btPuzzleFeedback').className = 'game-feedback wrong';
+        // Flash the clicked physical slot red briefly
+        var physBtns = document.getElementById('btPuzzlePhysical').querySelectorAll('.game-option');
+        if (physBtns[physIdx]) {
+          physBtns[physIdx].classList.add('wrong-answer');
+          setTimeout(function() { physBtns[physIdx].classList.remove('wrong-answer'); }, 500);
+        }
+      }
+
+      btPuzzleRender();
+    }
+
+    function btPuzzleReset() {
+      btRound = 0;
+      btPoints = 0;
+      document.getElementById('btPuzzleResetBtn').style.display = 'none';
+      btPuzzleSetupRound();
+    }
+
+    // ============================================================
     //  Initialization
     // ============================================================
     function init() {
@@ -1140,6 +1692,9 @@
       drawBlockTableDemo();
       goBeamStep(0);
       animateUtilBars();
+      allocContigReset();
+      allocPagedReset();
+      btPuzzleInit();
 
       // Redraw on resize
       window.addEventListener('resize', () => {

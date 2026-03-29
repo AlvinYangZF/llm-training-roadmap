@@ -9,12 +9,13 @@
   .hero {
     text-align: center;
     padding: 80px 24px 48px;
-    background: linear-gradient(180deg, #1a1d2e 0%, #0f1117 100%);
+    background: linear-gradient(180deg, #eef2ff 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
   }
   .hero h1 {
     font-size: 3rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #6c63ff, #00c9a7, #f7768e);
+    background: linear-gradient(135deg, #5b5bd6, #0d9488, #e11d48);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 16px;
@@ -44,15 +45,18 @@
     flex-direction: column;
     gap: 12px;
   }
+  .topic-card {
+    box-shadow: var(--shadow-sm);
+  }
   .topic-card:hover {
     border-color: var(--accent);
     transform: translateY(-4px);
-    box-shadow: 0 8px 32px rgba(108, 99, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(91, 91, 214, 0.12);
   }
   .topic-card .topic-num {
     font-size: 2rem;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    background: linear-gradient(135deg, #5b5bd6, #0d9488);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     line-height: 1;
@@ -76,10 +80,10 @@
     text-transform: uppercase;
     width: fit-content;
   }
-  .tag-foundation { background: rgba(108,99,255,.15); color: var(--accent); }
-  .tag-compute { background: rgba(0,201,167,.15); color: var(--accent2); }
-  .tag-memory { background: rgba(247,118,142,.15); color: var(--accent3); }
-  .tag-system { background: rgba(255,158,100,.15); color: var(--accent4); }
+  .tag-foundation { background: rgba(91,91,214,.1); color: #4338ca; }
+  .tag-compute { background: rgba(13,148,136,.1); color: #0d9488; }
+  .tag-memory { background: rgba(225,29,72,.08); color: #e11d48; }
+  .tag-system { background: rgba(234,88,12,.08); color: #ea580c; }
 
   .section-title {
     max-width: 1100px;
@@ -110,85 +114,85 @@
   <p>Interactive visual guides from Transformer fundamentals to production serving innovations. Learn how modern large language models work under the hood.</p>
 </div>
 
-<div class="section-title">Foundation</div>
+<div class="section-title">2017–2019 Foundations</div>
 <div class="topic-grid">
   <a href="pages/01-transformer-basics.html" class="topic-card">
     <span class="topic-num">01</span>
-    <span class="topic-tag tag-foundation">Foundation</span>
+    <span class="topic-tag tag-foundation">2017</span>
     <span class="topic-title">Transformer Basics</span>
     <span class="topic-desc">Attention Is All You Need — the architecture that started it all. Interactive QKV attention walkthrough.</span>
   </a>
   <a href="pages/02-gpt2-architecture.html" class="topic-card">
     <span class="topic-num">02</span>
-    <span class="topic-tag tag-foundation">Foundation</span>
+    <span class="topic-tag tag-foundation">2019</span>
     <span class="topic-title">GPT-2 Architecture</span>
     <span class="topic-desc">Decoder-only Transformer, Pre-LayerNorm, BPE tokenization, and weight tying explained visually.</span>
   </a>
-  <a href="pages/03-prefill-decode.html" class="topic-card">
+  <a href="pages/03-sparse-transformers.html" class="topic-card">
     <span class="topic-num">03</span>
-    <span class="topic-tag tag-foundation">Foundation</span>
-    <span class="topic-title">Prefill & Decode</span>
-    <span class="topic-desc">The two-phase inference pipeline — compute-bound prefill and memory-bound autoregressive decoding.</span>
-  </a>
-</div>
-
-<div class="section-title">Compute Optimization</div>
-<div class="topic-grid">
-  <a href="pages/04-flash-attention.html" class="topic-card">
-    <span class="topic-num">04</span>
-    <span class="topic-tag tag-compute">Compute</span>
-    <span class="topic-title">FlashAttention</span>
-    <span class="topic-desc">IO-aware attention with tiling and online softmax. Never materialize the N&times;N matrix in HBM.</span>
-  </a>
-  <a href="pages/10-sparse-transformers.html" class="topic-card">
-    <span class="topic-num">10</span>
-    <span class="topic-tag tag-compute">Compute</span>
+    <span class="topic-tag tag-foundation">2019</span>
     <span class="topic-title">Sparse Transformers</span>
     <span class="topic-desc">O(N&radic;N) attention via local + strided patterns. Process sequences up to 65K tokens.</span>
   </a>
 </div>
 
-<div class="section-title">Memory Management</div>
+<div class="section-title">2022 Compute Optimization</div>
 <div class="topic-grid">
-  <a href="pages/05-paged-attention.html" class="topic-card">
+  <a href="pages/04-prefill-decode.html" class="topic-card">
+    <span class="topic-num">04</span>
+    <span class="topic-tag tag-compute">Core</span>
+    <span class="topic-title">Prefill & Decode</span>
+    <span class="topic-desc">The two-phase inference pipeline — compute-bound prefill and memory-bound autoregressive decoding.</span>
+  </a>
+  <a href="pages/05-flash-attention.html" class="topic-card">
     <span class="topic-num">05</span>
-    <span class="topic-tag tag-memory">Memory</span>
-    <span class="topic-title">PagedAttention / vLLM</span>
-    <span class="topic-desc">OS-inspired KV cache paging with block tables. Boost throughput 2-4&times; by eliminating memory fragmentation.</span>
-  </a>
-  <a href="pages/08-h2o.html" class="topic-card">
-    <span class="topic-num">08</span>
-    <span class="topic-tag tag-memory">Memory</span>
-    <span class="topic-title">H2O — Heavy-Hitter Oracle</span>
-    <span class="topic-desc">Exploit 95%+ attention sparsity. Keep only heavy-hitter tokens for 20&times; KV cache compression.</span>
-  </a>
-  <a href="pages/09-streaming-llm.html" class="topic-card">
-    <span class="topic-num">09</span>
-    <span class="topic-tag tag-memory">Memory</span>
-    <span class="topic-title">StreamingLLM</span>
-    <span class="topic-desc">Attention sinks discovery — constant memory streaming by keeping initial sink tokens + recent window.</span>
-  </a>
-  <a href="pages/11-turboquant.html" class="topic-card">
-    <span class="topic-num">11</span>
-    <span class="topic-tag tag-memory">Memory</span>
-    <span class="topic-title">TurboQuant</span>
-    <span class="topic-desc">Training-free KV cache quantization via random rotation + QJL. 6&times; compression, zero accuracy loss.</span>
+    <span class="topic-tag tag-compute">2022</span>
+    <span class="topic-title">FlashAttention</span>
+    <span class="topic-desc">IO-aware attention with tiling and online softmax. Never materialize the N&times;N matrix in HBM.</span>
   </a>
 </div>
 
-<div class="section-title">System Architecture</div>
+<div class="section-title">2023 Memory Management</div>
 <div class="topic-grid">
-  <a href="pages/06-pd-separation.html" class="topic-card">
+  <a href="pages/06-paged-attention.html" class="topic-card">
     <span class="topic-num">06</span>
-    <span class="topic-tag tag-system">System</span>
+    <span class="topic-tag tag-memory">2023</span>
+    <span class="topic-title">PagedAttention / vLLM</span>
+    <span class="topic-desc">OS-inspired KV cache paging with block tables. Boost throughput 2-4&times; by eliminating memory fragmentation.</span>
+  </a>
+  <a href="pages/07-h2o.html" class="topic-card">
+    <span class="topic-num">07</span>
+    <span class="topic-tag tag-memory">2023</span>
+    <span class="topic-title">H2O — Heavy-Hitter Oracle</span>
+    <span class="topic-desc">Exploit 95%+ attention sparsity. Keep only heavy-hitter tokens for 20&times; KV cache compression.</span>
+  </a>
+</div>
+
+<div class="section-title">2024–2026 Advanced</div>
+<div class="topic-grid">
+  <a href="pages/08-streaming-llm.html" class="topic-card">
+    <span class="topic-num">08</span>
+    <span class="topic-tag tag-system">2024</span>
+    <span class="topic-title">StreamingLLM</span>
+    <span class="topic-desc">Attention sinks discovery — constant memory streaming by keeping initial sink tokens + recent window.</span>
+  </a>
+  <a href="pages/09-pd-separation.html" class="topic-card">
+    <span class="topic-num">09</span>
+    <span class="topic-tag tag-system">2025</span>
     <span class="topic-title">PD Separation</span>
     <span class="topic-desc">Disaggregate prefill and decode into independent GPU pools for optimal resource utilization.</span>
   </a>
-  <a href="pages/07-mooncake.html" class="topic-card">
-    <span class="topic-num">07</span>
-    <span class="topic-tag tag-system">System</span>
+  <a href="pages/10-mooncake.html" class="topic-card">
+    <span class="topic-num">10</span>
+    <span class="topic-tag tag-system">2025</span>
     <span class="topic-title">Mooncake Architecture</span>
     <span class="topic-desc">KV-cache-centric disaggregated serving with distributed 3-tier cache pool. USENIX FAST 2025 Best Paper.</span>
+  </a>
+  <a href="pages/11-turboquant.html" class="topic-card">
+    <span class="topic-num">11</span>
+    <span class="topic-tag tag-memory">2026</span>
+    <span class="topic-title">TurboQuant</span>
+    <span class="topic-desc">Training-free KV cache quantization via random rotation + QJL. 6&times; compression, zero accuracy loss.</span>
   </a>
 </div>
 
