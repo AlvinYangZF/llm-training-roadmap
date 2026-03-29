@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LLM Algorithm Visualizations</title>
+<title data-i18n="index.pageTitle">LLM Algorithm Visualizations</title>
 <link rel="stylesheet" href="shared/style.css">
 <style>
   .hero {
@@ -355,26 +355,26 @@
 <body>
 
 <div class="hero">
-  <h1>LLM Algorithm Visualizations</h1>
-  <p>Interactive visual guides from Transformer fundamentals to production serving innovations. Learn how modern large language models work under the hood.</p>
+  <h1 data-i18n="index.title">LLM Algorithm Visualizations</h1>
+  <p data-i18n="index.subtitle">Interactive visual guides from Transformer fundamentals to production serving innovations. Learn how modern large language models work under the hood.</p>
   <div class="view-toggle">
     <button id="btnGridView" class="active" onclick="switchView('grid')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Grid
+      <span data-i18n="index.viewGrid">Grid</span>
     </button>
     <button id="btnGraphView" onclick="switchView('graph')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="19" cy="18" r="2.5"/><line x1="7.5" y1="11" x2="16.5" y2="7"/><line x1="7.5" y1="13" x2="16.5" y2="17"/></svg>
-      Knowledge Graph
+      <span data-i18n="index.viewGraph">Knowledge Graph</span>
     </button>
   </div>
   <div class="progress-dashboard">
     <div class="progress-stat">
       <div class="stat-val" id="progressVisited">0</div>
-      <div class="stat-label">Pages Visited</div>
+      <div class="stat-label" data-i18n="progress.visited">Pages Visited</div>
     </div>
     <div class="progress-stat">
       <div class="stat-val" id="progressGames">0</div>
-      <div class="stat-label">Games Completed</div>
+      <div class="stat-label" data-i18n="progress.games">Games Completed</div>
     </div>
   </div>
   <div class="progress-bar-wrap">
@@ -383,90 +383,90 @@
     </div>
     <span class="progress-bar-pct" id="progressPct">0%</span>
   </div>
-  <div style="text-align:center"><button class="progress-reset" onclick="resetAllProgress();location.reload();">Reset Progress</button></div>
+  <div style="text-align:center"><button class="progress-reset" onclick="resetAllProgress();location.reload();" data-i18n="progress.reset">Reset Progress</button></div>
 </div>
 
 <!-- ==================== Grid View ==================== -->
 <div id="gridView" class="grid-view">
-  <div class="section-title">2017–2019 Foundations</div>
+  <div class="section-title" data-i18n="index.section.foundations">2017–2019 Foundations</div>
   <div class="topic-grid">
     <a href="pages/01-transformer-basics.html" class="topic-card">
       <span class="topic-num">01</span>
       <span class="topic-tag tag-foundation">2017</span>
-      <span class="topic-title">Transformer Basics</span>
-      <span class="topic-desc">Attention Is All You Need — the architecture that started it all. Interactive QKV attention walkthrough.</span>
+      <span class="topic-title" data-i18n="index.01.title">Transformer Basics</span>
+      <span class="topic-desc" data-i18n="index.01.desc">Attention Is All You Need — the architecture that started it all. Interactive QKV attention walkthrough.</span>
     </a>
     <a href="pages/02-gpt2-architecture.html" class="topic-card">
       <span class="topic-num">02</span>
       <span class="topic-tag tag-foundation">2019</span>
-      <span class="topic-title">GPT-2 Architecture</span>
-      <span class="topic-desc">Decoder-only Transformer, Pre-LayerNorm, BPE tokenization, and weight tying explained visually.</span>
+      <span class="topic-title" data-i18n="index.02.title">GPT-2 Architecture</span>
+      <span class="topic-desc" data-i18n="index.02.desc">Decoder-only Transformer, Pre-LayerNorm, BPE tokenization, and weight tying explained visually.</span>
     </a>
     <a href="pages/03-sparse-transformers.html" class="topic-card">
       <span class="topic-num">03</span>
       <span class="topic-tag tag-foundation">2019</span>
-      <span class="topic-title">Sparse Transformers</span>
-      <span class="topic-desc">O(N&radic;N) attention via local + strided patterns. Process sequences up to 65K tokens.</span>
+      <span class="topic-title" data-i18n="index.03.title">Sparse Transformers</span>
+      <span class="topic-desc" data-i18n="index.03.desc">O(N&radic;N) attention via local + strided patterns. Process sequences up to 65K tokens.</span>
     </a>
   </div>
 
-  <div class="section-title">2022 Compute Optimization</div>
+  <div class="section-title" data-i18n="index.section.compute">2022 Compute Optimization</div>
   <div class="topic-grid">
     <a href="pages/04-prefill-decode.html" class="topic-card">
       <span class="topic-num">04</span>
       <span class="topic-tag tag-compute">Core</span>
-      <span class="topic-title">Prefill & Decode</span>
-      <span class="topic-desc">The two-phase inference pipeline — compute-bound prefill and memory-bound autoregressive decoding.</span>
+      <span class="topic-title" data-i18n="index.04.title">Prefill & Decode</span>
+      <span class="topic-desc" data-i18n="index.04.desc">The two-phase inference pipeline — compute-bound prefill and memory-bound autoregressive decoding.</span>
     </a>
     <a href="pages/05-flash-attention.html" class="topic-card">
       <span class="topic-num">05</span>
       <span class="topic-tag tag-compute">2022</span>
-      <span class="topic-title">FlashAttention</span>
-      <span class="topic-desc">IO-aware attention with tiling and online softmax. Never materialize the N&times;N matrix in HBM.</span>
+      <span class="topic-title" data-i18n="index.05.title">FlashAttention</span>
+      <span class="topic-desc" data-i18n="index.05.desc">IO-aware attention with tiling and online softmax. Never materialize the N&times;N matrix in HBM.</span>
     </a>
   </div>
 
-  <div class="section-title">2023 Memory Management</div>
+  <div class="section-title" data-i18n="index.section.memory">2023 Memory Management</div>
   <div class="topic-grid">
     <a href="pages/06-paged-attention.html" class="topic-card">
       <span class="topic-num">06</span>
       <span class="topic-tag tag-memory">2023</span>
-      <span class="topic-title">PagedAttention / vLLM</span>
-      <span class="topic-desc">OS-inspired KV cache paging with block tables. Boost throughput 2-4&times; by eliminating memory fragmentation.</span>
+      <span class="topic-title" data-i18n="index.06.title">PagedAttention / vLLM</span>
+      <span class="topic-desc" data-i18n="index.06.desc">OS-inspired KV cache paging with block tables. Boost throughput 2-4&times; by eliminating memory fragmentation.</span>
     </a>
     <a href="pages/07-h2o.html" class="topic-card">
       <span class="topic-num">07</span>
       <span class="topic-tag tag-memory">2023</span>
-      <span class="topic-title">H2O — Heavy-Hitter Oracle</span>
-      <span class="topic-desc">Exploit 95%+ attention sparsity. Keep only heavy-hitter tokens for 20&times; KV cache compression.</span>
+      <span class="topic-title" data-i18n="index.07.title">H2O — Heavy-Hitter Oracle</span>
+      <span class="topic-desc" data-i18n="index.07.desc">Exploit 95%+ attention sparsity. Keep only heavy-hitter tokens for 20&times; KV cache compression.</span>
     </a>
   </div>
 
-  <div class="section-title">2024–2026 Advanced</div>
+  <div class="section-title" data-i18n="index.section.advanced">2024–2026 Advanced</div>
   <div class="topic-grid">
     <a href="pages/08-streaming-llm.html" class="topic-card">
       <span class="topic-num">08</span>
       <span class="topic-tag tag-system">2024</span>
-      <span class="topic-title">StreamingLLM</span>
-      <span class="topic-desc">Attention sinks discovery — constant memory streaming by keeping initial sink tokens + recent window.</span>
+      <span class="topic-title" data-i18n="index.08.title">StreamingLLM</span>
+      <span class="topic-desc" data-i18n="index.08.desc">Attention sinks discovery — constant memory streaming by keeping initial sink tokens + recent window.</span>
     </a>
     <a href="pages/09-pd-separation.html" class="topic-card">
       <span class="topic-num">09</span>
       <span class="topic-tag tag-system">2025</span>
-      <span class="topic-title">PD Separation</span>
-      <span class="topic-desc">Disaggregate prefill and decode into independent GPU pools for optimal resource utilization.</span>
+      <span class="topic-title" data-i18n="index.09.title">PD Separation</span>
+      <span class="topic-desc" data-i18n="index.09.desc">Disaggregate prefill and decode into independent GPU pools for optimal resource utilization.</span>
     </a>
     <a href="pages/10-mooncake.html" class="topic-card">
       <span class="topic-num">10</span>
       <span class="topic-tag tag-system">2025</span>
-      <span class="topic-title">Mooncake Architecture</span>
-      <span class="topic-desc">KV-cache-centric disaggregated serving with distributed 3-tier cache pool. USENIX FAST 2025 Best Paper.</span>
+      <span class="topic-title" data-i18n="index.10.title">Mooncake Architecture</span>
+      <span class="topic-desc" data-i18n="index.10.desc">KV-cache-centric disaggregated serving with distributed 3-tier cache pool. USENIX FAST 2025 Best Paper.</span>
     </a>
     <a href="pages/11-turboquant.html" class="topic-card">
       <span class="topic-num">11</span>
       <span class="topic-tag tag-memory">2026</span>
-      <span class="topic-title">TurboQuant</span>
-      <span class="topic-desc">Training-free KV cache quantization via random rotation + QJL. 6&times; compression, zero accuracy loss.</span>
+      <span class="topic-title" data-i18n="index.11.title">TurboQuant</span>
+      <span class="topic-desc" data-i18n="index.11.desc">Training-free KV cache quantization via random rotation + QJL. 6&times; compression, zero accuracy loss.</span>
     </a>
   </div>
 </div>
@@ -475,11 +475,11 @@
 <div id="graphView" class="graph-view hidden">
   <div class="graph-container">
     <div class="graph-legend">
-      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#5b5bd6"></span> Foundation</span>
-      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#0d9488"></span> Compute</span>
-      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#e11d48"></span> Memory</span>
-      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#ea580c"></span> System</span>
-      <span class="graph-legend-item"><span style="display:inline-block;width:24px;height:2px;background:#cbd5e1;vertical-align:middle;margin-right:2px"></span> Depends on</span>
+      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#5b5bd6"></span> <span data-i18n="graph.legend.foundation">Foundation</span></span>
+      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#0d9488"></span> <span data-i18n="graph.legend.compute">Compute</span></span>
+      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#e11d48"></span> <span data-i18n="graph.legend.memory">Memory</span></span>
+      <span class="graph-legend-item"><span class="graph-legend-dot" style="background:#ea580c"></span> <span data-i18n="graph.legend.system">System</span></span>
+      <span class="graph-legend-item"><span style="display:inline-block;width:24px;height:2px;background:#cbd5e1;vertical-align:middle;margin-right:2px"></span> <span data-i18n="graph.legend.depends">Depends on</span></span>
     </div>
     <div class="graph-canvas-wrap">
       <canvas id="knowledgeGraph"></canvas>
@@ -487,7 +487,7 @@
         <div class="tt-num"></div>
         <div class="tt-title"></div>
         <div class="tt-desc"></div>
-        <div class="tt-hint">Click to open</div>
+        <div class="tt-hint" data-i18n="graph.tooltip.click">Click to open</div>
       </div>
     </div>
     <div class="graph-controls">
@@ -495,14 +495,15 @@
       <button onclick="graphZoom(0.83)" title="Zoom Out">&minus;</button>
       <button onclick="graphReset()" title="Reset View">&#8634;</button>
     </div>
-    <div class="graph-help">Drag nodes to rearrange &middot; Scroll to zoom &middot; Click node to navigate</div>
+    <div class="graph-help" data-i18n="graph.help">Drag nodes to rearrange &middot; Scroll to zoom &middot; Click node to navigate</div>
   </div>
 </div>
 
 <footer>
-  <p>LLM Algorithm Visualization Series &mdash; Built for interactive learning</p>
+  <p data-i18n="footer.text">LLM Algorithm Visualization Series &mdash; Built for interactive learning</p>
 </footer>
 
+<script src="shared/i18n.js"></script>
 <script src="shared/nav.js"></script>
 <script src="shared/progress.js"></script>
 <script>

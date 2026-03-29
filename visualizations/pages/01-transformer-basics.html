@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>01. Transformer Basics — LLM Algorithm Visualizations</title>
+  <title data-i18n="p01.title">01. Transformer Basics — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
   <style>
     /* Section 2: Key Components */
@@ -144,17 +144,17 @@
 </head>
 <body>
   <header>
-    <h1>Transformer Basics</h1>
-    <p>Attention Is All You Need — The Architecture That Started It All</p>
-    <div class="breadcrumb"><a href="../index.html">Home</a> / Transformer Basics</div>
+    <h1 data-i18n="p01.heading">Transformer Basics</h1>
+    <p data-i18n="p01.subtitle">Attention Is All You Need — The Architecture That Started It All</p>
+    <div class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p01.breadcrumb">Transformer Basics</span></div>
   </header>
 
   <div class="container">
 
     <!-- ==================== Section 1: Architecture Diagram ==================== -->
     <div class="card">
-      <h2><span class="badge badge-purple">Architecture</span> Decoder-Only Transformer</h2>
-      <p>The modern LLM architecture uses a decoder-only transformer. Data flows bottom to top, through repeated transformer blocks.</p>
+      <h2 data-i18n="p01.s1.heading" data-i18n-html><span class="badge badge-purple">Architecture</span> Decoder-Only Transformer</h2>
+      <p data-i18n="p01.s1.desc">The modern LLM architecture uses a decoder-only transformer. Data flows bottom to top, through repeated transformer blocks.</p>
 
       <div class="arch-diagram">
         <div class="arch-block blk-embed">Input Tokens &rarr; Token Embedding + Positional Encoding</div>
@@ -179,33 +179,33 @@
 
     <!-- ==================== Section 2: Key Components ==================== -->
     <div class="card">
-      <h2><span class="badge badge-green">Concepts</span> Key Components</h2>
-      <p>Each transformer block contains these core building blocks working together.</p>
+      <h2 data-i18n="p01.s2.heading" data-i18n-html><span class="badge badge-green">Concepts</span> Key Components</h2>
+      <p data-i18n="p01.s2.desc">Each transformer block contains these core building blocks working together.</p>
 
       <div class="components-grid">
         <div class="component-item">
-          <h3>Embedding Layer</h3>
-          <p>Converts discrete token IDs into dense vector representations. A learned lookup table maps each token in the vocabulary to a <code>d_model</code>-dimensional vector. Positional encodings are added to inject sequence order information, since the architecture has no inherent notion of position.</p>
+          <h3 data-i18n="p01.s2.embed.title">Embedding Layer</h3>
+          <p data-i18n="p01.s2.embed.desc" data-i18n-html>Converts discrete token IDs into dense vector representations. A learned lookup table maps each token in the vocabulary to a <code>d_model</code>-dimensional vector. Positional encodings are added to inject sequence order information, since the architecture has no inherent notion of position.</p>
         </div>
         <div class="component-item">
-          <h3>Multi-Head Self-Attention</h3>
-          <p>The core mechanism that lets each token attend to every other token in the sequence. The input is projected into Query, Key, and Value matrices. Attention scores are computed as scaled dot products of Q and K, then used to weight V. Multiple heads capture different relationship patterns in parallel.</p>
+          <h3 data-i18n="p01.s2.mhsa.title">Multi-Head Self-Attention</h3>
+          <p data-i18n="p01.s2.mhsa.desc">The core mechanism that lets each token attend to every other token in the sequence. The input is projected into Query, Key, and Value matrices. Attention scores are computed as scaled dot products of Q and K, then used to weight V. Multiple heads capture different relationship patterns in parallel.</p>
         </div>
         <div class="component-item">
-          <h3>Feed-Forward Network</h3>
-          <p>A position-wise two-layer MLP applied independently to each token. Typically expands the dimensionality by 4x (e.g., <code>d_model</code> &rarr; <code>4 &times; d_model</code> &rarr; <code>d_model</code>) with a nonlinear activation (ReLU or GELU) in between. This provides the model's capacity for complex transformations.</p>
+          <h3 data-i18n="p01.s2.ffn.title">Feed-Forward Network</h3>
+          <p data-i18n="p01.s2.ffn.desc" data-i18n-html>A position-wise two-layer MLP applied independently to each token. Typically expands the dimensionality by 4x (e.g., <code>d_model</code> &rarr; <code>4 &times; d_model</code> &rarr; <code>d_model</code>) with a nonlinear activation (ReLU or GELU) in between. This provides the model's capacity for complex transformations.</p>
         </div>
         <div class="component-item">
-          <h3>Residual Connections &amp; Layer Norm</h3>
-          <p>Skip connections add the input of each sub-layer to its output (<code>x + SubLayer(x)</code>), enabling gradient flow through deep networks. Layer normalization stabilizes training by normalizing activations across the feature dimension. Modern LLMs typically use pre-norm (normalize before the sub-layer).</p>
+          <h3 data-i18n="p01.s2.resid.title">Residual Connections &amp; Layer Norm</h3>
+          <p data-i18n="p01.s2.resid.desc" data-i18n-html>Skip connections add the input of each sub-layer to its output (<code>x + SubLayer(x)</code>), enabling gradient flow through deep networks. Layer normalization stabilizes training by normalizing activations across the feature dimension. Modern LLMs typically use pre-norm (normalize before the sub-layer).</p>
         </div>
       </div>
     </div>
 
     <!-- ==================== Section 3: Interactive QKV Demo ==================== -->
     <div class="card">
-      <h2><span class="badge badge-red">Interactive</span> Scaled Dot-Product Attention</h2>
-      <p>Step through the attention computation to see how Q, K, and V matrices produce the output.</p>
+      <h2 data-i18n="p01.s3.heading" data-i18n-html><span class="badge badge-red">Interactive</span> Scaled Dot-Product Attention</h2>
+      <p data-i18n="p01.s3.desc">Step through the attention computation to see how Q, K, and V matrices produce the output.</p>
 
       <div class="formula-box">
         <span class="op">Attention(</span><span class="q">Q</span><span class="op">,</span>
@@ -219,16 +219,16 @@
       <div class="matrix-area" id="matrixArea"></div>
 
       <div class="qkv-controls">
-        <button class="btn btn-surface" onclick="prevStep()">&larr; Prev</button>
-        <button class="btn btn-accent" onclick="nextStep()">Next &rarr;</button>
-        <button class="btn btn-surface" onclick="randomizeQKV()">Randomize</button>
+        <button class="btn btn-surface" onclick="prevStep()" data-i18n="btn.prev">&larr; Prev</button>
+        <button class="btn btn-accent" onclick="nextStep()" data-i18n="btn.next">Next &rarr;</button>
+        <button class="btn btn-surface" onclick="randomizeQKV()" data-i18n="btn.randomize">Randomize</button>
       </div>
     </div>
 
     <!-- ==================== Section 4: Multi-Head Attention ==================== -->
     <div class="card">
-      <h2><span class="badge badge-orange">Concept</span> Multi-Head Attention</h2>
-      <p>Instead of performing a single attention function, the model runs <strong>h</strong> parallel attention heads. Each head learns different aspects of the relationships between tokens &mdash; syntax, semantics, positional patterns, etc.</p>
+      <h2 data-i18n="p01.s4.heading" data-i18n-html><span class="badge badge-orange">Concept</span> Multi-Head Attention</h2>
+      <p data-i18n="p01.s4.desc" data-i18n-html>Instead of performing a single attention function, the model runs <strong>h</strong> parallel attention heads. Each head learns different aspects of the relationships between tokens &mdash; syntax, semantics, positional patterns, etc.</p>
 
       <div class="formula-box">
         <span class="o">MultiHead</span><span class="op">(</span><span class="q">Q</span><span class="op">,</span>
@@ -246,13 +246,13 @@
         <div class="mha-output-bar">Multi-Head Output (d_model = 512)</div>
       </div>
 
-      <p style="font-size: 0.9rem; color: var(--text-dim); text-align: center;">Each head operates on d_k = d_model / h = 64 dimensions. The parallel heads are computationally equivalent to a single full-dimension attention but capture richer patterns.</p>
+      <p style="font-size: 0.9rem; color: var(--text-dim); text-align: center;" data-i18n="p01.s4.note">Each head operates on d_k = d_model / h = 64 dimensions. The parallel heads are computationally equivalent to a single full-dimension attention but capture richer patterns.</p>
     </div>
 
     <!-- ==================== Section 5: Positional Encoding Heatmap ==================== -->
     <div class="card">
-      <h2><span class="badge badge-purple">Visualization</span> Sinusoidal Positional Encoding</h2>
-      <p>Positional encodings inject sequence order into the model. The sinusoidal pattern creates unique position signatures that generalize to unseen sequence lengths.</p>
+      <h2 data-i18n="p01.s5.heading" data-i18n-html><span class="badge badge-purple">Visualization</span> Sinusoidal Positional Encoding</h2>
+      <p data-i18n="p01.s5.desc">Positional encodings inject sequence order into the model. The sinusoidal pattern creates unique position signatures that generalize to unseen sequence lengths.</p>
 
       <div class="formula-box">
         <span class="q">PE</span><span class="op">(pos, 2i) = sin(pos / 10000<sup>2i/d</sup>)</span>
@@ -273,8 +273,8 @@
 
     <!-- ==================== Section 6: Attention Pattern Prediction Game ==================== -->
     <div class="card">
-      <h2><span class="badge badge-red">Game</span> Attention Pattern Prediction</h2>
-      <p>Given a highlighted <strong>Query</strong> word, predict which word the query attends to most strongly. Click the word you think has the highest attention weight.</p>
+      <h2 data-i18n="p01.s6.heading" data-i18n-html><span class="badge badge-red">Game</span> Attention Pattern Prediction</h2>
+      <p data-i18n="p01.s6.desc" data-i18n-html>Given a highlighted <strong>Query</strong> word, predict which word the query attends to most strongly. Click the word you think has the highest attention weight.</p>
 
       <div class="game-score" id="attnScore">
         <div class="game-score-item"><span class="score-val" id="attnRound">1</span><span class="score-label">Round</span></div>
@@ -286,15 +286,15 @@
       <div class="game-feedback" id="attnFeedback"></div>
 
       <div style="text-align:center;margin-top:16px;">
-        <button class="btn btn-accent" id="attnNextBtn" onclick="attnNext()" style="display:none;">Next Round &rarr;</button>
-        <button class="btn btn-surface" id="attnRestart" onclick="attnRestart()" style="display:none;">Play Again</button>
+        <button class="btn btn-accent" id="attnNextBtn" onclick="attnNext()" style="display:none;" data-i18n="btn.nextRound">Next Round &rarr;</button>
+        <button class="btn btn-surface" id="attnRestart" onclick="attnRestart()" style="display:none;" data-i18n="btn.playAgain">Play Again</button>
       </div>
     </div>
 
     <!-- ==================== Section 7: PE Dimension Explorer ==================== -->
     <div class="card">
-      <h2><span class="badge badge-green">Explorer</span> PE Dimension Explorer</h2>
-      <p>Adjust the model dimension and maximum position to see how the sinusoidal positional encoding pattern changes.</p>
+      <h2 data-i18n="p01.s7.heading" data-i18n-html><span class="badge badge-green">Explorer</span> PE Dimension Explorer</h2>
+      <p data-i18n="p01.s7.desc">Adjust the model dimension and maximum position to see how the sinusoidal positional encoding pattern changes.</p>
 
       <div class="pe-canvas-wrap">
         <canvas class="pe-canvas" id="peCanvasExplorer" style="height:280px;"></canvas>
@@ -318,8 +318,9 @@
 
   </div>
 
-  <footer><p>LLM Algorithm Visualization Series</p></footer>
+  <footer><p data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</p></footer>
 
+  <script src="../shared/i18n.js"></script>
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
   <script src="../shared/progress.js"></script>
@@ -667,6 +668,118 @@
     window.addEventListener('load', function() {
       drawPEExplorer();
     });
+  </script>
+  <script>
+  i18nRegister({
+    'en': {
+      'p01.title': '01. Transformer Basics — LLM Algorithm Visualizations',
+      'p01.heading': 'Transformer Basics',
+      'p01.subtitle': 'Attention Is All You Need — The Architecture That Started It All',
+      'p01.breadcrumb': 'Transformer Basics',
+      // Section 1
+      'p01.s1.heading': '<span class="badge badge-purple">Architecture</span> Decoder-Only Transformer',
+      'p01.s1.desc': 'The modern LLM architecture uses a decoder-only transformer. Data flows bottom to top, through repeated transformer blocks.',
+      // Section 2
+      'p01.s2.heading': '<span class="badge badge-green">Concepts</span> Key Components',
+      'p01.s2.desc': 'Each transformer block contains these core building blocks working together.',
+      'p01.s2.embed.title': 'Embedding Layer',
+      'p01.s2.embed.desc': 'Converts discrete token IDs into dense vector representations. A learned lookup table maps each token in the vocabulary to a <code>d_model</code>-dimensional vector. Positional encodings are added to inject sequence order information, since the architecture has no inherent notion of position.',
+      'p01.s2.mhsa.title': 'Multi-Head Self-Attention',
+      'p01.s2.mhsa.desc': 'The core mechanism that lets each token attend to every other token in the sequence. The input is projected into Query, Key, and Value matrices. Attention scores are computed as scaled dot products of Q and K, then used to weight V. Multiple heads capture different relationship patterns in parallel.',
+      'p01.s2.ffn.title': 'Feed-Forward Network',
+      'p01.s2.ffn.desc': 'A position-wise two-layer MLP applied independently to each token. Typically expands the dimensionality by 4x (e.g., <code>d_model</code> &rarr; <code>4 &times; d_model</code> &rarr; <code>d_model</code>) with a nonlinear activation (ReLU or GELU) in between. This provides the model\'s capacity for complex transformations.',
+      'p01.s2.resid.title': 'Residual Connections & Layer Norm',
+      'p01.s2.resid.desc': 'Skip connections add the input of each sub-layer to its output (<code>x + SubLayer(x)</code>), enabling gradient flow through deep networks. Layer normalization stabilizes training by normalizing activations across the feature dimension. Modern LLMs typically use pre-norm (normalize before the sub-layer).',
+      // Section 3
+      'p01.s3.heading': '<span class="badge badge-red">Interactive</span> Scaled Dot-Product Attention',
+      'p01.s3.desc': 'Step through the attention computation to see how Q, K, and V matrices produce the output.',
+      // Section 4
+      'p01.s4.heading': '<span class="badge badge-orange">Concept</span> Multi-Head Attention',
+      'p01.s4.desc': 'Instead of performing a single attention function, the model runs <strong>h</strong> parallel attention heads. Each head learns different aspects of the relationships between tokens — syntax, semantics, positional patterns, etc.',
+      'p01.s4.note': 'Each head operates on d_k = d_model / h = 64 dimensions. The parallel heads are computationally equivalent to a single full-dimension attention but capture richer patterns.',
+      // Section 5
+      'p01.s5.heading': '<span class="badge badge-purple">Visualization</span> Sinusoidal Positional Encoding',
+      'p01.s5.desc': 'Positional encodings inject sequence order into the model. The sinusoidal pattern creates unique position signatures that generalize to unseen sequence lengths.',
+      // Section 6
+      'p01.s6.heading': '<span class="badge badge-red">Game</span> Attention Pattern Prediction',
+      'p01.s6.desc': 'Given a highlighted <strong>Query</strong> word, predict which word the query attends to most strongly. Click the word you think has the highest attention weight.',
+      // Section 7
+      'p01.s7.heading': '<span class="badge badge-green">Explorer</span> PE Dimension Explorer',
+      'p01.s7.desc': 'Adjust the model dimension and maximum position to see how the sinusoidal positional encoding pattern changes.',
+    },
+    'zh-CN': {
+      'p01.title': '01. Transformer 基础 — 大语言模型算法可视化',
+      'p01.heading': 'Transformer 基础',
+      'p01.subtitle': 'Attention Is All You Need — 开启一切的架构',
+      'p01.breadcrumb': 'Transformer 基础',
+      // Section 1
+      'p01.s1.heading': '<span class="badge badge-purple">架构</span> 仅解码器 Transformer',
+      'p01.s1.desc': '现代大语言模型架构使用仅解码器 Transformer。数据从底部向顶部流动，经过重复的 Transformer 块。',
+      // Section 2
+      'p01.s2.heading': '<span class="badge badge-green">概念</span> 核心组件',
+      'p01.s2.desc': '每个 Transformer 块包含这些协同工作的核心构建模块。',
+      'p01.s2.embed.title': '嵌入层',
+      'p01.s2.embed.desc': '将离散的 token ID 转换为稠密向量表示。一个可学习的查找表将词表中的每个 token 映射为一个 <code>d_model</code> 维向量。由于架构本身没有位置概念，因此需要添加位置编码来注入序列顺序信息。',
+      'p01.s2.mhsa.title': '多头自注意力',
+      'p01.s2.mhsa.desc': '让每个 token 关注序列中所有其他 token 的核心机制。输入被投影为 Query、Key 和 Value 矩阵。注意力分数通过 Q 和 K 的缩放点积计算，然后用于加权 V。多个头并行捕获不同的关系模式。',
+      'p01.s2.ffn.title': '前馈网络',
+      'p01.s2.ffn.desc': '逐位置的两层 MLP，独立应用于每个 token。通常将维度扩展 4 倍（例如 <code>d_model</code> &rarr; <code>4 &times; d_model</code> &rarr; <code>d_model</code>），中间使用非线性激活函数（ReLU 或 GELU）。这为模型提供了复杂变换的能力。',
+      'p01.s2.resid.title': '残差连接与层归一化',
+      'p01.s2.resid.desc': '跳跃连接将每个子层的输入加到其输出上（<code>x + SubLayer(x)</code>），使梯度能够在深层网络中流动。层归一化通过在特征维度上归一化激活值来稳定训练。现代大语言模型通常使用 pre-norm（在子层之前进行归一化）。',
+      // Section 3
+      'p01.s3.heading': '<span class="badge badge-red">交互</span> 缩放点积注意力',
+      'p01.s3.desc': '逐步查看注意力计算过程，了解 Q、K、V 矩阵如何生成输出。',
+      // Section 4
+      'p01.s4.heading': '<span class="badge badge-orange">概念</span> 多头注意力',
+      'p01.s4.desc': '模型不是执行单一的注意力函数，而是并行运行 <strong>h</strong> 个注意力头。每个头学习 token 之间关系的不同方面——语法、语义、位置模式等。',
+      'p01.s4.note': '每个头在 d_k = d_model / h = 64 维上操作。并行的多个头在计算上等同于单一的全维注意力，但能捕获更丰富的模式。',
+      // Section 5
+      'p01.s5.heading': '<span class="badge badge-purple">可视化</span> 正弦位置编码',
+      'p01.s5.desc': '位置编码将序列顺序注入模型。正弦模式创建唯一的位置签名，可以泛化到未见过的序列长度。',
+      // Section 6
+      'p01.s6.heading': '<span class="badge badge-red">游戏</span> 注意力模式预测',
+      'p01.s6.desc': '给定一个高亮的 <strong>Query</strong> 词，预测 query 最强烈关注哪个词。点击你认为注意力权重最高的词。',
+      // Section 7
+      'p01.s7.heading': '<span class="badge badge-green">探索器</span> PE 维度探索器',
+      'p01.s7.desc': '调整模型维度和最大位置，查看正弦位置编码模式如何变化。',
+    },
+    'zh-TW': {
+      'p01.title': '01. Transformer 基礎 — 大語言模型演算法視覺化',
+      'p01.heading': 'Transformer 基礎',
+      'p01.subtitle': 'Attention Is All You Need — 開啟一切的架構',
+      'p01.breadcrumb': 'Transformer 基礎',
+      // Section 1
+      'p01.s1.heading': '<span class="badge badge-purple">架構</span> 僅解碼器 Transformer',
+      'p01.s1.desc': '現代大語言模型架構使用僅解碼器 Transformer。資料從底部向頂部流動，經過重複的 Transformer 區塊。',
+      // Section 2
+      'p01.s2.heading': '<span class="badge badge-green">概念</span> 核心元件',
+      'p01.s2.desc': '每個 Transformer 區塊包含這些協同運作的核心建構模組。',
+      'p01.s2.embed.title': '嵌入層',
+      'p01.s2.embed.desc': '將離散的 token ID 轉換為稠密向量表示。一個可學習的查找表將詞表中的每個 token 對映為一個 <code>d_model</code> 維向量。由於架構本身沒有位置概念，因此需要加入位置編碼來注入序列順序資訊。',
+      'p01.s2.mhsa.title': '多頭自注意力',
+      'p01.s2.mhsa.desc': '讓每個 token 關注序列中所有其他 token 的核心機制。輸入被投影為 Query、Key 和 Value 矩陣。注意力分數透過 Q 和 K 的縮放點積計算，然後用於加權 V。多個頭並行捕捉不同的關係模式。',
+      'p01.s2.ffn.title': '前饋網路',
+      'p01.s2.ffn.desc': '逐位置的兩層 MLP，獨立套用於每個 token。通常將維度擴展 4 倍（例如 <code>d_model</code> &rarr; <code>4 &times; d_model</code> &rarr; <code>d_model</code>），中間使用非線性啟動函式（ReLU 或 GELU）。這為模型提供了複雜變換的能力。',
+      'p01.s2.resid.title': '殘差連接與層正規化',
+      'p01.s2.resid.desc': '跳躍連接將每個子層的輸入加到其輸出上（<code>x + SubLayer(x)</code>），使梯度能夠在深層網路中流動。層正規化透過在特徵維度上正規化啟動值來穩定訓練。現代大語言模型通常使用 pre-norm（在子層之前進行正規化）。',
+      // Section 3
+      'p01.s3.heading': '<span class="badge badge-red">互動</span> 縮放點積注意力',
+      'p01.s3.desc': '逐步查看注意力計算過程，了解 Q、K、V 矩陣如何產生輸出。',
+      // Section 4
+      'p01.s4.heading': '<span class="badge badge-orange">概念</span> 多頭注意力',
+      'p01.s4.desc': '模型不是執行單一的注意力函式，而是並行運行 <strong>h</strong> 個注意力頭。每個頭學習 token 之間關係的不同面向——語法、語義、位置模式等。',
+      'p01.s4.note': '每個頭在 d_k = d_model / h = 64 維上運算。並行的多個頭在計算上等同於單一的全維注意力，但能捕捉更豐富的模式。',
+      // Section 5
+      'p01.s5.heading': '<span class="badge badge-purple">視覺化</span> 正弦位置編碼',
+      'p01.s5.desc': '位置編碼將序列順序注入模型。正弦模式建立唯一的位置簽章，可以泛化到未見過的序列長度。',
+      // Section 6
+      'p01.s6.heading': '<span class="badge badge-red">遊戲</span> 注意力模式預測',
+      'p01.s6.desc': '給定一個高亮的 <strong>Query</strong> 詞，預測 query 最強烈關注哪個詞。點擊你認為注意力權重最高的詞。',
+      // Section 7
+      'p01.s7.heading': '<span class="badge badge-green">探索器</span> PE 維度探索器',
+      'p01.s7.desc': '調整模型維度和最大位置，查看正弦位置編碼模式如何變化。',
+    }
+  });
   </script>
 </body>
 </html>
