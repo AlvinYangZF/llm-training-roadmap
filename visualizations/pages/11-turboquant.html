@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>11. TurboQuant — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    /* ===== Pipeline Flow Diagram ===== */
+    .pipeline-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin: 28px 0;
+      flex-wrap: wrap;
+    }
+    .pipeline-stage {
+      padding: 18px 22px;
+      border-radius: var(--radius);
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+      min-width: 160px;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .pipeline-stage:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(108,99,255,.3);
+    }
+    .pipeline-stage .stage-sub {
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: var(--text-dim);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+    .pipeline-stage .stage-bits {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 2px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .stage-input {
+      background: linear-gradient(135deg, rgba(247,118,142,.15), rgba(247,118,142,.05));
+      border: 1px solid var(--accent3);
+    }
+    .stage-input .stage-bits { background: rgba(247,118,142,.25); color: var(--accent3); }
+    .stage-polar {
+      background: linear-gradient(135deg, rgba(108,99,255,.2), rgba(108,99,255,.08));
+      border: 1px solid var(--accent);
+    }
+    .stage-polar .stage-bits { background: rgba(108,99,255,.25); color: var(--accent); }
+    .stage-qjl {
+      background: linear-gradient(135deg, rgba(0,201,167,.15), rgba(0,201,167,.05));
+      border: 1px solid var(--accent2);
+    }
+    .stage-qjl .stage-bits { background: rgba(0,201,167,.25); color: var(--accent2); }
+    .stage-output {
+      background: linear-gradient(135deg, rgba(255,158,100,.15), rgba(255,158,100,.05));
+      border: 1px solid var(--accent4);
+    }
+    .stage-output .stage-bits { background: rgba(255,158,100,.25); color: var(--accent4); }
+    .pipeline-arrow {
+      font-size: 1.6rem;
+      color: var(--text-dim);
+      padding: 0 6px;
+      flex-shrink: 0;
+    }
+
+    /* ===== Scatter Canvas ===== */
+    .scatter-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .scatter-panel { text-align: center; }
+    .scatter-panel h3 { margin-bottom: 8px; font-size: 1rem; }
+    .scatter-canvas {
+      width: 100%;
+      height: 300px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+
+    /* ===== Chart Canvas ===== */
+    .chart-canvas {
+      width: 100%;
+      height: 380px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+
+    /* ===== Tooltip ===== */
+    .canvas-tooltip {
+      position: absolute;
+      background: rgba(26,29,46,.95);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.8rem;
+      color: var(--text);
+      pointer-events: none;
+      display: none;
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    /* ===== Comparison Table ===== */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 0.88rem;
+    }
+    .compare-table th {
+      background: rgba(108,99,255,.12);
+      color: var(--accent);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 2px solid var(--border);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .compare-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    .compare-table tr:hover td {
+      background: rgba(108,99,255,.04);
+    }
+    .compare-table .highlight-row td {
+      background: rgba(108,99,255,.08);
+      font-weight: 600;
+    }
+    .compare-table .best-row td {
+      background: rgba(0,201,167,.08);
+      font-weight: 600;
+    }
+    .cell-good { color: var(--accent2); font-weight: 600; }
+    .cell-ok { color: var(--accent4); font-weight: 600; }
+    .cell-bad { color: var(--accent3); font-weight: 600; }
+
+    /* ===== Pareto Canvas ===== */
+    .pareto-canvas {
+      width: 100%;
+      height: 360px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 700px) {
+      .scatter-wrap { grid-template-columns: 1fr; }
+      .pipeline-flow { flex-direction: column; gap: 4px; }
+      .pipeline-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>TurboQuant</h1>
+  <p>Training-Free KV Cache Quantization — 6x Compression, Zero Accuracy Loss</p>
+  <div class="breadcrumb">
+    <a href="../index.html">Home</a> / Topic 11
+    <span class="badge badge-purple" style="margin-left:10px;">ICLR 2026</span>
+    <span class="badge badge-green">Google Research / DeepMind</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ==================== Section 1: Two-Stage Pipeline ==================== -->
+  <div class="card">
+    <h2>The Two-Stage Pipeline</h2>
+    <p>TurboQuant compresses the KV cache in two complementary stages: <strong style="color:var(--accent)">PolarQuant</strong> makes scalar quantization MSE-optimal via random rotation, then <strong style="color:var(--accent2)">QJL</strong> corrects residual inner-product error with a 1-bit sketch.</p>
+
+    <div class="pipeline-flow">
+      <div class="pipeline-stage stage-input">
+        FP16 KV Cache
+        <div class="stage-sub">Full-precision key/value vectors</div>
+        <div class="stage-bits">16 bits/ch</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-stage stage-polar">
+        Stage 1: PolarQuant
+        <div class="stage-sub">Random orthogonal rotation R<br>then scalar quantization</div>
+        <div class="stage-bits">3.5 bits/ch</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-stage stage-qjl">
+        Stage 2: QJL Correction
+        <div class="stage-sub">1-bit Johnson-Lindenstrauss<br>sketch of quantization error</div>
+        <div class="stage-bits">+1 bit correction</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-stage stage-output">
+        Compressed KV Cache
+        <div class="stage-sub">Training-free, data-agnostic</div>
+        <div class="stage-bits">3.5 + 1 = 4.5 effective</div>
+      </div>
+    </div>
+
+    <div class="formula-box">
+      <span class="q">q</span> = <span class="op">Quantize(</span><span class="k">R</span> <span class="op">&middot;</span> <span class="v">v</span><span class="op">)</span>
+      &nbsp;&nbsp;,&nbsp;&nbsp;
+      <span class="s">s</span> = <span class="op">sign(</span><span class="k">S</span> <span class="op">&middot;</span> <span class="o">e</span><span class="op">)</span>
+      &nbsp;&nbsp;where&nbsp;&nbsp;
+      <span class="o">e</span> = <span class="v">v</span> <span class="op">-</span> <span class="k">R</span><sup>T</sup><span class="q">q</span>
+    </div>
+    <p class="dim-note">R = random orthogonal matrix, S = JL random projection, e = quantization error, s = 1-bit sketch</p>
+  </div>
+
+  <!-- ==================== Section 2: Random Rotation Intuition ==================== -->
+  <div class="card">
+    <h2>Random Rotation Intuition</h2>
+    <p>Real KV cache vectors are <strong>non-isotropic</strong> — energy concentrates along certain axes, making per-coordinate quantization suboptimal. A random orthogonal rotation spreads the energy uniformly, letting each coordinate be quantized independently with a known optimal grid.</p>
+
+    <div class="scatter-wrap">
+      <div class="scatter-panel">
+        <h3 style="color:var(--accent3)">Before Rotation</h3>
+        <canvas class="scatter-canvas" id="scatterBefore"></canvas>
+      </div>
+      <div class="scatter-panel">
+        <h3 style="color:var(--accent2)">After Rotation</h3>
+        <canvas class="scatter-canvas" id="scatterAfter"></canvas>
+      </div>
+    </div>
+
+    <div class="anim-controls">
+      <button class="btn btn-accent" id="btnRotate">Rotate</button>
+      <button class="btn btn-surface" id="btnResetRotation" style="margin-left:8px;">Reset</button>
+    </div>
+    <p class="dim-note">Points colored by distance from origin. After rotation, the distribution becomes near-isotropic (circular).</p>
+  </div>
+
+  <!-- ==================== Section 3: Bit-Width vs Quality Tradeoff ==================== -->
+  <div class="card">
+    <h2>Bit-Width vs Quality Tradeoff</h2>
+    <p>Lower bits save memory but increase distortion. PolarQuant shifts the Pareto frontier down, and QJL correction pushes it even further — achieving near-zero distortion at just 3.5 bits.</p>
+
+    <div style="position:relative;">
+      <canvas class="chart-canvas" id="tradeoffChart"></canvas>
+      <div class="canvas-tooltip" id="tradeoffTooltip"></div>
+    </div>
+
+    <div style="display:flex; justify-content:center; gap:24px; margin-top:12px; flex-wrap:wrap;">
+      <div class="tile-legend-item"><div class="tile-legend-swatch" style="background:var(--accent3)"></div>Scalar Quantization</div>
+      <div class="tile-legend-item"><div class="tile-legend-swatch" style="background:var(--accent)"></div>PolarQuant Only</div>
+      <div class="tile-legend-item"><div class="tile-legend-swatch" style="background:var(--accent2)"></div>PolarQuant + QJL</div>
+    </div>
+    <p class="dim-note">Hover over chart to see exact values at each bit-width. Key thresholds marked at 2.5, 3.5, and 4 bits.</p>
+  </div>
+
+  <!-- ==================== Section 4: KV Cache Compression Comparison ==================== -->
+  <div class="card">
+    <h2>KV Cache Compression Comparison</h2>
+    <p>Memory footprint for a <strong>70B parameter model</strong> with 4K context length. TurboQuant achieves up to 8.4x compression.</p>
+
+    <h3>Memory Usage</h3>
+    <div class="speedup-bar-wrap" id="memoryBars">
+      <div class="speedup-row">
+        <div class="speedup-label">FP16</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-standard" data-width="100" style="width:0;">16 GB &mdash; 1x</div>
+        </div>
+      </div>
+      <div class="speedup-row">
+        <div class="speedup-label">INT4 (KIVI)</div>
+        <div class="speedup-track">
+          <div class="speedup-fill" style="width:0; background:linear-gradient(90deg,var(--accent4),#cc7a44);" data-width="25">4 GB &mdash; 4x</div>
+        </div>
+      </div>
+      <div class="speedup-row">
+        <div class="speedup-label" style="color:var(--accent)">TQ 3.5-bit</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-flash" data-width="16.7">2.67 GB &mdash; 6x</div>
+        </div>
+      </div>
+      <div class="speedup-row">
+        <div class="speedup-label" style="color:var(--accent2)">TQ 2.5-bit</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-flash2" data-width="11.9">1.9 GB &mdash; 8.4x</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Attention Computation Speedup</h3>
+    <div class="speedup-bar-wrap" id="speedupBars">
+      <div class="speedup-row">
+        <div class="speedup-label">FP16</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-standard" data-width="12.5" style="width:0;">1x</div>
+        </div>
+      </div>
+      <div class="speedup-row">
+        <div class="speedup-label">INT4 (KIVI)</div>
+        <div class="speedup-track">
+          <div class="speedup-fill" style="width:0; background:linear-gradient(90deg,var(--accent4),#cc7a44);" data-width="25">2x</div>
+        </div>
+      </div>
+      <div class="speedup-row">
+        <div class="speedup-label" style="color:var(--accent)">TQ 3.5-bit</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-flash" data-width="75">6x</div>
+        </div>
+      </div>
+      <div class="speedup-row">
+        <div class="speedup-label" style="color:var(--accent2)">TQ 2.5-bit</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-flash2" data-width="100">8x</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anim-controls">
+      <button class="btn btn-accent" id="btnAnimateBars">Animate</button>
+    </div>
+  </div>
+
+  <!-- ==================== Section 5: Comparison with Other Methods ==================== -->
+  <div class="card">
+    <h2>Comparison with Other Methods</h2>
+    <p>TurboQuant dominates the Pareto frontier: better quality at the same bit-width, or fewer bits at the same quality level.</p>
+
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Bits/Channel</th>
+          <th>Norm. MSE</th>
+          <th>Perplexity (WikiText-2)</th>
+          <th>Memory (70B, 4K)</th>
+          <th>Attn Speedup</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>FP16 (baseline)</td>
+          <td>16.0</td>
+          <td class="cell-good">0.000</td>
+          <td class="cell-good">5.12</td>
+          <td class="cell-bad">16 GB</td>
+          <td>1x</td>
+        </tr>
+        <tr>
+          <td>GPTQ 4-bit</td>
+          <td>4.0</td>
+          <td class="cell-ok">0.038</td>
+          <td class="cell-ok">5.41</td>
+          <td>4.5 GB</td>
+          <td>2x</td>
+        </tr>
+        <tr>
+          <td>KIVI 4-bit</td>
+          <td>4.0</td>
+          <td class="cell-ok">0.032</td>
+          <td class="cell-ok">5.35</td>
+          <td>4.0 GB</td>
+          <td>2x</td>
+        </tr>
+        <tr class="highlight-row">
+          <td style="color:var(--accent)">TurboQuant 3.5-bit</td>
+          <td class="cell-good">3.5</td>
+          <td class="cell-good">0.004</td>
+          <td class="cell-good">5.13</td>
+          <td class="cell-good">2.67 GB</td>
+          <td class="cell-good">6x</td>
+        </tr>
+        <tr class="best-row">
+          <td style="color:var(--accent2)">TurboQuant 2.5-bit</td>
+          <td class="cell-good">2.5</td>
+          <td class="cell-ok">0.021</td>
+          <td class="cell-ok">5.29</td>
+          <td class="cell-good">1.9 GB</td>
+          <td class="cell-good">8x</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Pareto Frontier: Bits vs Perplexity</h3>
+    <div style="position:relative;">
+      <canvas class="pareto-canvas" id="paretoChart"></canvas>
+      <div class="canvas-tooltip" id="paretoTooltip"></div>
+    </div>
+    <p class="dim-note">TurboQuant methods (purple/teal) sit strictly below and left of alternatives — the Pareto-optimal frontier.</p>
+  </div>
+
+</div>
+
+<footer>
+  <p>LLM Algorithm Visualizations &mdash; Topic 11: TurboQuant (ICLR 2026, Google Research / DeepMind)</p>
+</footer>
+
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  // ==================== Section 2: Scatter Plot (Random Rotation) ==================== //
+  const NUM_POINTS = 120;
+  let scatterPoints = [];
+  let rotationProgress = 0;
+  let rotationAnimId = null;
+
+  // Generate non-isotropic points (elongated ellipse along ~30 degrees)
+  function generatePoints() {
+    const pts = [];
+    const angle = Math.PI / 6; // elongation direction
+    for (let i = 0; i < NUM_POINTS; i++) {
+      // Elongated Gaussian: big variance along one axis, small along other
+      const x0 = (Math.random() - 0.5) * 2.8;
+      const y0 = (Math.random() - 0.5) * 0.8;
+      // Rotate to elongation direction
+      const x = x0 * Math.cos(angle) - y0 * Math.sin(angle);
+      const y = x0 * Math.sin(angle) + y0 * Math.cos(angle);
+      pts.push({ x, y });
+    }
+    return pts;
+  }
+
+  // Random orthogonal rotation angle
+  const rotAngle = Math.PI * 0.38; // ~68 degrees
+
+  function getRotatedPoint(p, t) {
+    const a = rotAngle * t;
+    const rx = p.x * Math.cos(a) - p.y * Math.sin(a);
+    const ry = p.x * Math.sin(a) + p.y * Math.cos(a);
+    return { x: rx, y: ry };
+  }
+
+  function distFromOrigin(p) {
+    return Math.sqrt(p.x * p.x + p.y * p.y);
+  }
+
+  function colorByDist(d, maxD) {
+    const t = Math.min(d / maxD, 1);
+    // Interpolate from teal to pink
+    const r = Math.round(0 + t * 247);
+    const g = Math.round(201 - t * 83);
+    const b = Math.round(167 - t * 25);
+    return `rgba(${r},${g},${b},0.85)`;
+  }
+
+  function drawScatter(canvas, points, label) {
+    const { ctx, W, H } = setupCanvas(canvas);
+    ctx.clearRect(0, 0, W, H);
+
+    const pad = 30;
+    const plotW = W - pad * 2;
+    const plotH = H - pad * 2;
+    const cx = W / 2;
+    const cy = H / 2;
+    const scale = Math.min(plotW, plotH) / 4;
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(42,45,62,0.6)';
+    ctx.lineWidth = 1;
+    for (let i = -2; i <= 2; i++) {
+      const gx = cx + i * scale;
+      const gy = cy + i * scale;
+      ctx.beginPath(); ctx.moveTo(gx, pad); ctx.lineTo(gx, H - pad); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pad, gy); ctx.lineTo(W - pad, gy); ctx.stroke();
+    }
+
+    // Axes
+    ctx.strokeStyle = 'rgba(108,112,134,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(pad, cy); ctx.lineTo(W - pad, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, pad); ctx.lineTo(cx, H - pad); ctx.stroke();
+
+    // Find max distance for coloring
+    const maxD = Math.max(...points.map(distFromOrigin), 1);
+
+    // Points
+    points.forEach(p => {
+      const sx = cx + p.x * scale;
+      const sy = cy - p.y * scale;
+      if (sx < pad || sx > W - pad || sy < pad || sy > H - pad) return;
+      const d = distFromOrigin(p);
+      ctx.fillStyle = colorByDist(d, maxD);
+      ctx.beginPath();
+      ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Label
+    ctx.fillStyle = 'rgba(108,112,134,0.7)';
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, cx, H - 8);
+  }
+
+  function drawBothScatters() {
+    const beforePts = scatterPoints;
+    const afterPts = scatterPoints.map(p => getRotatedPoint(p, rotationProgress));
+    drawScatter(document.getElementById('scatterBefore'), beforePts, 'Non-isotropic (elongated ellipse)');
+    drawScatter(document.getElementById('scatterAfter'), afterPts,
+      rotationProgress > 0.01 ? 'Isotropic (near-circular)' : 'Waiting for rotation...');
+  }
+
+  scatterPoints = generatePoints();
+  drawBothScatters();
+
+  document.getElementById('btnRotate').addEventListener('click', () => {
+    if (rotationAnimId) return;
+    rotationProgress = 0;
+    rotationAnimId = animate((p) => {
+      rotationProgress = easeOutCubic(p);
+      drawBothScatters();
+    }, 1200, () => { rotationAnimId = null; });
+  });
+
+  document.getElementById('btnResetRotation').addEventListener('click', () => {
+    if (rotationAnimId) { cancelAnimationFrame(rotationAnimId); rotationAnimId = null; }
+    rotationProgress = 0;
+    scatterPoints = generatePoints();
+    drawBothScatters();
+  });
+
+  // ==================== Section 3: Bit-Width vs Quality Tradeoff ==================== //
+  const tradeoffCanvas = document.getElementById('tradeoffChart');
+  const tradeoffTooltip = document.getElementById('tradeoffTooltip');
+
+  // Synthetic but representative distortion curves
+  function scalarMSE(bits) {
+    // Rough: MSE ~ C * 2^(-2*bits) with higher base
+    return Math.min(1, 0.9 * Math.pow(2, -1.2 * (bits - 1)));
+  }
+  function polarMSE(bits) {
+    return Math.min(1, 0.5 * Math.pow(2, -1.5 * (bits - 1)));
+  }
+  function turboMSE(bits) {
+    return Math.min(1, 0.3 * Math.pow(2, -1.8 * (bits - 1)));
+  }
+
+  const bitRange = [];
+  for (let b = 1.0; b <= 8.0; b += 0.1) bitRange.push(Math.round(b * 10) / 10);
+
+  function drawTradeoffChart() {
+    const { ctx, W, H } = setupCanvas(tradeoffCanvas);
+    ctx.clearRect(0, 0, W, H);
+
+    const pad = { top: 30, right: 30, bottom: 50, left: 65 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    // Y is log scale from 0.001 to 1
+    const yMin = 0.001, yMax = 1.0;
+    const logMin = Math.log10(yMin), logMax = Math.log10(yMax);
+    const xMin = 1.0, xMax = 8.0;
+
+    function toX(bits) { return pad.left + (bits - xMin) / (xMax - xMin) * plotW; }
+    function toY(mse) {
+      const logV = Math.log10(Math.max(mse, yMin));
+      return pad.top + (1 - (logV - logMin) / (logMax - logMin)) * plotH;
+    }
+
+    // Grid
+    ctx.strokeStyle = 'rgba(42,45,62,0.5)';
+    ctx.lineWidth = 0.5;
+    // Horizontal log grid
+    [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0].forEach(v => {
+      const y = toY(v);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+      ctx.fillStyle = 'rgba(108,112,134,0.6)';
+      ctx.font = '11px Courier New, monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(v.toString(), pad.left - 8, y + 4);
+    });
+    // Vertical grid
+    for (let b = 1; b <= 8; b++) {
+      const x = toX(b);
+      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, H - pad.bottom); ctx.stroke();
+      ctx.fillStyle = 'rgba(108,112,134,0.6)';
+      ctx.font = '11px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(b + '', x, H - pad.bottom + 18);
+    }
+
+    // Axis labels
+    ctx.fillStyle = 'var(--text-dim)';
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Bits per Channel', pad.left + plotW / 2, H - 8);
+    ctx.save();
+    ctx.translate(14, pad.top + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Normalized MSE (log)', 0, 0);
+    ctx.restore();
+
+    // Draw curves
+    function drawCurve(fn, color, label) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      bitRange.forEach((b, i) => {
+        const x = toX(b);
+        const y = toY(fn(b));
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
+    drawCurve(scalarMSE, '#f7768e', 'Scalar');
+    drawCurve(polarMSE, '#6c63ff', 'PolarQuant');
+    drawCurve(turboMSE, '#00c9a7', 'PolarQuant+QJL');
+
+    // Mark key points
+    const markers = [
+      { bits: 2.5, fn: turboMSE, color: '#00c9a7', label: '2.5 bits' },
+      { bits: 3.5, fn: turboMSE, color: '#00c9a7', label: '3.5 bits: ~zero loss' },
+      { bits: 4.0, fn: polarMSE, color: '#6c63ff', label: '4 bits' },
+    ];
+    markers.forEach(m => {
+      const x = toX(m.bits);
+      const y = toY(m.fn(m.bits));
+      ctx.fillStyle = m.color;
+      ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = m.color;
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(m.label, x + 10, y - 6);
+    });
+
+    // Store chart coords for tooltip
+    tradeoffCanvas._chartMeta = { pad, plotW, plotH, xMin, xMax, toX, toY };
+  }
+
+  drawTradeoffChart();
+
+  // Tooltip interaction
+  tradeoffCanvas.addEventListener('mousemove', (e) => {
+    const rect = tradeoffCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const meta = tradeoffCanvas._chartMeta;
+    if (!meta) return;
+
+    const bits = meta.xMin + (mx - meta.pad.left) / meta.plotW * (meta.xMax - meta.xMin);
+    if (bits < 1 || bits > 8) { tradeoffTooltip.style.display = 'none'; return; }
+
+    const bRound = Math.round(bits * 10) / 10;
+    const sVal = scalarMSE(bRound).toFixed(4);
+    const pVal = polarMSE(bRound).toFixed(4);
+    const tVal = turboMSE(bRound).toFixed(4);
+
+    tradeoffTooltip.innerHTML = `<strong>${bRound} bits/ch</strong><br>Scalar: ${sVal}<br>PolarQuant: ${pVal}<br>PQ+QJL: ${tVal}`;
+    tradeoffTooltip.style.display = 'block';
+    tradeoffTooltip.style.left = (e.clientX - rect.left + 14) + 'px';
+    tradeoffTooltip.style.top = (e.clientY - rect.top - 30) + 'px';
+  });
+  tradeoffCanvas.addEventListener('mouseleave', () => { tradeoffTooltip.style.display = 'none'; });
+
+  // ==================== Section 4: Bar Animations ==================== //
+  document.getElementById('btnAnimateBars').addEventListener('click', () => {
+    animateBars('#memoryBars .speedup-fill');
+    animateBars('#speedupBars .speedup-fill');
+  });
+  // Auto-animate on scroll
+  let barsAnimated = false;
+  const barsObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !barsAnimated) {
+      barsAnimated = true;
+      animateBars('#memoryBars .speedup-fill');
+      animateBars('#speedupBars .speedup-fill');
+    }
+  }, { threshold: 0.3 });
+  barsObserver.observe(document.getElementById('memoryBars'));
+
+  // ==================== Section 5: Pareto Frontier Chart ==================== //
+  const paretoCanvas = document.getElementById('paretoChart');
+  const paretoTooltip = document.getElementById('paretoTooltip');
+
+  const paretoData = [
+    { name: 'FP16', bits: 16, ppl: 5.12, color: '#6c7086', r: 8 },
+    { name: 'GPTQ 4-bit', bits: 4.0, ppl: 5.41, color: '#ff9e64', r: 8 },
+    { name: 'KIVI 4-bit', bits: 4.0, ppl: 5.35, color: '#f7768e', r: 8 },
+    { name: 'TQ 3.5-bit', bits: 3.5, ppl: 5.13, color: '#6c63ff', r: 10 },
+    { name: 'TQ 2.5-bit', bits: 2.5, ppl: 5.29, color: '#00c9a7', r: 10 },
+  ];
+
+  function drawParetoChart() {
+    const { ctx, W, H } = setupCanvas(paretoCanvas);
+    ctx.clearRect(0, 0, W, H);
+
+    const pad = { top: 30, right: 40, bottom: 50, left: 65 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    const xMin = 1, xMax = 18;
+    const yMin = 5.0, yMax = 5.55;
+
+    function toX(bits) { return pad.left + (bits - xMin) / (xMax - xMin) * plotW; }
+    function toY(ppl) { return pad.top + (1 - (ppl - yMin) / (yMax - yMin)) * plotH; }
+
+    // Grid
+    ctx.strokeStyle = 'rgba(42,45,62,0.5)';
+    ctx.lineWidth = 0.5;
+    for (let b = 2; b <= 16; b += 2) {
+      const x = toX(b);
+      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, H - pad.bottom); ctx.stroke();
+      ctx.fillStyle = 'rgba(108,112,134,0.6)';
+      ctx.font = '11px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(b + '', x, H - pad.bottom + 18);
+    }
+    for (let p = 5.0; p <= 5.55; p += 0.1) {
+      const y = toY(p);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+      ctx.fillStyle = 'rgba(108,112,134,0.6)';
+      ctx.font = '11px Courier New';
+      ctx.textAlign = 'right';
+      ctx.fillText(p.toFixed(1), pad.left - 8, y + 4);
+    }
+
+    // Axis labels
+    ctx.fillStyle = 'rgba(108,112,134,0.7)';
+    ctx.font = '12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Bits per Channel', pad.left + plotW / 2, H - 8);
+    ctx.save();
+    ctx.translate(14, pad.top + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Perplexity (WikiText-2)', 0, 0);
+    ctx.restore();
+
+    // Pareto frontier line (TQ 2.5 -> TQ 3.5 -> FP16)
+    const frontier = [paretoData[4], paretoData[3], paretoData[0]]; // TQ2.5, TQ3.5, FP16
+    ctx.strokeStyle = 'rgba(108,99,255,0.3)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    frontier.forEach((d, i) => {
+      const x = toX(d.bits), y = toY(d.ppl);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Shade Pareto-dominated region
+    ctx.fillStyle = 'rgba(108,99,255,0.04)';
+    ctx.beginPath();
+    ctx.moveTo(toX(frontier[0].bits), toY(frontier[0].ppl));
+    frontier.forEach(d => ctx.lineTo(toX(d.bits), toY(d.ppl)));
+    ctx.lineTo(toX(frontier[frontier.length-1].bits), toY(yMax));
+    ctx.lineTo(toX(xMax), toY(yMax));
+    ctx.lineTo(toX(xMax), toY(frontier[0].ppl));
+    ctx.closePath();
+    ctx.fill();
+
+    // "Dominated" label
+    ctx.fillStyle = 'rgba(108,112,134,0.3)';
+    ctx.font = 'italic 13px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Pareto-dominated region', toX(10), toY(5.38));
+
+    // Data points
+    paretoData.forEach(d => {
+      const x = toX(d.bits), y = toY(d.ppl);
+
+      // Glow
+      ctx.shadowColor = d.color;
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = d.color;
+      ctx.beginPath(); ctx.arc(x, y, d.r, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Inner white dot
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+
+      // Label
+      ctx.fillStyle = d.color;
+      ctx.font = 'bold 11px system-ui';
+      ctx.textAlign = d.bits > 10 ? 'right' : 'left';
+      const labelX = d.bits > 10 ? x - 14 : x + 14;
+      ctx.fillText(d.name, labelX, y - 12);
+    });
+
+    paretoCanvas._data = paretoData;
+    paretoCanvas._meta = { pad, plotW, plotH, xMin, xMax, yMin, yMax, toX, toY };
+  }
+
+  drawParetoChart();
+
+  // Pareto tooltip
+  paretoCanvas.addEventListener('mousemove', (e) => {
+    const rect = paretoCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const meta = paretoCanvas._meta;
+    if (!meta) return;
+
+    let closest = null, minDist = 30;
+    paretoData.forEach(d => {
+      const dx = meta.toX(d.bits) - mx;
+      const dy = meta.toY(d.ppl) - my;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minDist) { minDist = dist; closest = d; }
+    });
+
+    if (closest) {
+      paretoTooltip.innerHTML = `<strong>${closest.name}</strong><br>Bits: ${closest.bits}<br>PPL: ${closest.ppl}`;
+      paretoTooltip.style.display = 'block';
+      paretoTooltip.style.left = (e.clientX - rect.left + 14) + 'px';
+      paretoTooltip.style.top = (e.clientY - rect.top - 30) + 'px';
+    } else {
+      paretoTooltip.style.display = 'none';
+    }
+  });
+  paretoCanvas.addEventListener('mouseleave', () => { paretoTooltip.style.display = 'none'; });
+
+  // ==================== Resize handling ==================== //
+  window.addEventListener('resize', () => {
+    drawBothScatters();
+    drawTradeoffChart();
+    drawParetoChart();
+  });
+
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Algorithm Visualizations</title>
+<link rel="stylesheet" href="shared/style.css">
+<style>
+  .hero {
+    text-align: center;
+    padding: 80px 24px 48px;
+    background: linear-gradient(180deg, #1a1d2e 0%, #0f1117 100%);
+  }
+  .hero h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #6c63ff, #00c9a7, #f7768e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 16px;
+  }
+  .hero p {
+    color: var(--text-dim);
+    font-size: 1.15rem;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .topic-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .topic-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-decoration: none;
+    transition: all 0.25s;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .topic-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(108, 99, 255, 0.15);
+  }
+  .topic-card .topic-num {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+  }
+  .topic-card .topic-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .topic-card .topic-desc {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .topic-card .topic-tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    width: fit-content;
+  }
+  .tag-foundation { background: rgba(108,99,255,.15); color: var(--accent); }
+  .tag-compute { background: rgba(0,201,167,.15); color: var(--accent2); }
+  .tag-memory { background: rgba(247,118,142,.15); color: var(--accent3); }
+  .tag-system { background: rgba(255,158,100,.15); color: var(--accent4); }
+
+  .section-title {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+  }
+
+  @media (max-width: 900px) {
+    .topic-grid { grid-template-columns: repeat(2, 1fr); }
+    .hero h1 { font-size: 2.2rem; }
+  }
+  @media (max-width: 600px) {
+    .topic-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 1.8rem; }
+    .hero { padding: 60px 24px 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>LLM Algorithm Visualizations</h1>
+  <p>Interactive visual guides from Transformer fundamentals to production serving innovations. Learn how modern large language models work under the hood.</p>
+</div>
+
+<div class="section-title">Foundation</div>
+<div class="topic-grid">
+  <a href="pages/01-transformer-basics.html" class="topic-card">
+    <span class="topic-num">01</span>
+    <span class="topic-tag tag-foundation">Foundation</span>
+    <span class="topic-title">Transformer Basics</span>
+    <span class="topic-desc">Attention Is All You Need — the architecture that started it all. Interactive QKV attention walkthrough.</span>
+  </a>
+  <a href="pages/02-gpt2-architecture.html" class="topic-card">
+    <span class="topic-num">02</span>
+    <span class="topic-tag tag-foundation">Foundation</span>
+    <span class="topic-title">GPT-2 Architecture</span>
+    <span class="topic-desc">Decoder-only Transformer, Pre-LayerNorm, BPE tokenization, and weight tying explained visually.</span>
+  </a>
+  <a href="pages/03-prefill-decode.html" class="topic-card">
+    <span class="topic-num">03</span>
+    <span class="topic-tag tag-foundation">Foundation</span>
+    <span class="topic-title">Prefill & Decode</span>
+    <span class="topic-desc">The two-phase inference pipeline — compute-bound prefill and memory-bound autoregressive decoding.</span>
+  </a>
+</div>
+
+<div class="section-title">Compute Optimization</div>
+<div class="topic-grid">
+  <a href="pages/04-flash-attention.html" class="topic-card">
+    <span class="topic-num">04</span>
+    <span class="topic-tag tag-compute">Compute</span>
+    <span class="topic-title">FlashAttention</span>
+    <span class="topic-desc">IO-aware attention with tiling and online softmax. Never materialize the N&times;N matrix in HBM.</span>
+  </a>
+  <a href="pages/10-sparse-transformers.html" class="topic-card">
+    <span class="topic-num">10</span>
+    <span class="topic-tag tag-compute">Compute</span>
+    <span class="topic-title">Sparse Transformers</span>
+    <span class="topic-desc">O(N&radic;N) attention via local + strided patterns. Process sequences up to 65K tokens.</span>
+  </a>
+</div>
+
+<div class="section-title">Memory Management</div>
+<div class="topic-grid">
+  <a href="pages/05-paged-attention.html" class="topic-card">
+    <span class="topic-num">05</span>
+    <span class="topic-tag tag-memory">Memory</span>
+    <span class="topic-title">PagedAttention / vLLM</span>
+    <span class="topic-desc">OS-inspired KV cache paging with block tables. Boost throughput 2-4&times; by eliminating memory fragmentation.</span>
+  </a>
+  <a href="pages/08-h2o.html" class="topic-card">
+    <span class="topic-num">08</span>
+    <span class="topic-tag tag-memory">Memory</span>
+    <span class="topic-title">H2O — Heavy-Hitter Oracle</span>
+    <span class="topic-desc">Exploit 95%+ attention sparsity. Keep only heavy-hitter tokens for 20&times; KV cache compression.</span>
+  </a>
+  <a href="pages/09-streaming-llm.html" class="topic-card">
+    <span class="topic-num">09</span>
+    <span class="topic-tag tag-memory">Memory</span>
+    <span class="topic-title">StreamingLLM</span>
+    <span class="topic-desc">Attention sinks discovery — constant memory streaming by keeping initial sink tokens + recent window.</span>
+  </a>
+  <a href="pages/11-turboquant.html" class="topic-card">
+    <span class="topic-num">11</span>
+    <span class="topic-tag tag-memory">Memory</span>
+    <span class="topic-title">TurboQuant</span>
+    <span class="topic-desc">Training-free KV cache quantization via random rotation + QJL. 6&times; compression, zero accuracy loss.</span>
+  </a>
+</div>
+
+<div class="section-title">System Architecture</div>
+<div class="topic-grid">
+  <a href="pages/06-pd-separation.html" class="topic-card">
+    <span class="topic-num">06</span>
+    <span class="topic-tag tag-system">System</span>
+    <span class="topic-title">PD Separation</span>
+    <span class="topic-desc">Disaggregate prefill and decode into independent GPU pools for optimal resource utilization.</span>
+  </a>
+  <a href="pages/07-mooncake.html" class="topic-card">
+    <span class="topic-num">07</span>
+    <span class="topic-tag tag-system">System</span>
+    <span class="topic-title">Mooncake Architecture</span>
+    <span class="topic-desc">KV-cache-centric disaggregated serving with distributed 3-tier cache pool. USENIX FAST 2025 Best Paper.</span>
+  </a>
+</div>
+
+<footer>
+  <p>LLM Algorithm Visualization Series &mdash; Built for interactive learning</p>
+</footer>
+
+<script src="shared/nav.js"></script>
+</body>
+</html>

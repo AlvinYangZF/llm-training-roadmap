@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>07. Mooncake Architecture — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    /* ===== System Architecture Canvas ===== */
+    .arch-canvas-wrap {
+      position: relative;
+      margin: 20px auto;
+      max-width: 780px;
+    }
+    .arch-canvas {
+      width: 100%;
+      height: 520px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+
+    /* ===== Request Lifecycle ===== */
+    .lifecycle-canvas-wrap {
+      position: relative;
+      margin: 20px auto;
+      max-width: 780px;
+    }
+    .lifecycle-canvas {
+      width: 100%;
+      height: 420px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+    .stage-info {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 1rem;
+      min-height: 52px;
+      line-height: 1.5;
+    }
+    .stage-info strong {
+      color: var(--accent);
+    }
+
+    /* ===== Three-Tier KV Cache ===== */
+    .tier-canvas-wrap {
+      position: relative;
+      margin: 20px auto;
+      max-width: 680px;
+    }
+    .tier-canvas {
+      width: 100%;
+      height: 400px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+
+    /* ===== Cache-Aware Scheduling ===== */
+    .sched-canvas-wrap {
+      position: relative;
+      margin: 20px auto;
+      max-width: 720px;
+    }
+    .sched-canvas {
+      width: 100%;
+      height: 380px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+    .sched-result {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 0.95rem;
+      min-height: 28px;
+      font-weight: 600;
+    }
+
+    /* ===== Key Insight Boxes ===== */
+    .insight-box {
+      background: rgba(108,99,255,.08);
+      border: 1px solid rgba(108,99,255,.25);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+    .insight-box strong { color: var(--accent); }
+
+    /* ===== Feature Grid ===== */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .feature-item {
+      background: rgba(0,0,0,.2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .feature-item h4 {
+      font-size: 0.95rem;
+      margin-bottom: 6px;
+      color: var(--accent2);
+    }
+    .feature-item p {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 700px) {
+      .feature-grid { grid-template-columns: 1fr; }
+      .arch-canvas { height: 440px; }
+      .lifecycle-canvas { height: 360px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Mooncake Architecture</h1>
+  <p>KV-Cache-Centric Disaggregated Serving — USENIX FAST 2025 Best Paper</p>
+  <div class="breadcrumb">
+    <a href="../index.html">Home</a> / Topic 07
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ==================== Section 1: System Architecture Overview ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-purple">Architecture</span> System Architecture Overview</h2>
+    <p>Mooncake separates prefill and decode into independent, elastically-scalable pools coordinated by a global Conductor scheduler. A distributed KV cache pool spanning GPU VRAM, CPU DRAM, and NVMe SSD enables aggressive cache reuse across requests.</p>
+
+    <div class="arch-canvas-wrap">
+      <canvas id="archCanvas" class="arch-canvas"></canvas>
+    </div>
+    <p class="dim-note">Mooncake production architecture deployed at Kimi (Moonshot AI)</p>
+
+    <div class="feature-grid">
+      <div class="feature-item">
+        <h4>Conductor</h4>
+        <p>Global scheduler with prefix-hash routing, load balancing, and cache-aware request placement.</p>
+      </div>
+      <div class="feature-item">
+        <h4>Prefill Pool</h4>
+        <p>Compute-optimized nodes for prompt processing. Supports incremental prefill to skip cached tokens.</p>
+      </div>
+      <div class="feature-item">
+        <h4>Decode Pool</h4>
+        <p>Memory-bandwidth-optimized nodes for autoregressive token generation with received KV caches.</p>
+      </div>
+      <div class="feature-item">
+        <h4>KV Cache Pool</h4>
+        <p>Distributed 3-tier storage across all nodes. GPUDirect RDMA enables fast cross-node KV transfers.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Section 2: Request Lifecycle Animation ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-green">Lifecycle</span> Request Lifecycle Animation</h2>
+    <p>Follow a single request through Mooncake's pipeline, from arrival to token generation. Each stage highlights the active system components.</p>
+
+    <div class="lifecycle-canvas-wrap">
+      <canvas id="lifecycleCanvas" class="lifecycle-canvas"></canvas>
+    </div>
+
+    <div class="step-indicator" id="lifecycleSteps">
+      <div class="step-dot active" data-step="0" onclick="goToStage(0)">1</div>
+      <div class="step-dot" data-step="1" onclick="goToStage(1)">2</div>
+      <div class="step-dot" data-step="2" onclick="goToStage(2)">3</div>
+      <div class="step-dot" data-step="3" onclick="goToStage(3)">4</div>
+      <div class="step-dot" data-step="4" onclick="goToStage(4)">5</div>
+    </div>
+
+    <div class="stage-info" id="stageInfo">
+      <strong>Stage 1 — Hash Lookup:</strong> Request arrives at Conductor. Prefix of prompt is hashed to locate cached KV entries across the cluster.
+    </div>
+
+    <div class="anim-controls">
+      <button class="btn btn-accent" id="nextStageBtn" onclick="nextStage()">Next Stage &rarr;</button>
+      <button class="btn btn-surface" onclick="goToStage(0)" style="margin-left:8px;">Reset</button>
+    </div>
+  </div>
+
+  <!-- ==================== Section 3: Three-Tier KV Cache Pool ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-orange">Storage</span> Three-Tier KV Cache Pool</h2>
+    <p>Mooncake's distributed KV cache pool organizes storage into three tiers with automatic promotion and demotion of KV blocks based on access frequency.</p>
+
+    <div class="tier-canvas-wrap">
+      <canvas id="tierCanvas" class="tier-canvas"></canvas>
+    </div>
+
+    <div class="anim-controls">
+      <button class="btn btn-accent" id="tierAnimBtn" onclick="animateTierFlow()">Animate Data Flow</button>
+    </div>
+    <p class="dim-note">Hot KV entries are promoted up; cold entries are demoted down</p>
+
+    <div class="insight-box">
+      <strong>Why three tiers?</strong> GPU VRAM is fastest but scarce (~40GB per GPU). CPU DRAM offers 6x more capacity at 1/20th the bandwidth. NVMe SSD adds another 16x capacity for cold KV entries that may be reused later. Together, they let Mooncake cache far more KV data than VRAM-only systems.
+    </div>
+  </div>
+
+  <!-- ==================== Section 4: Cache-Aware Scheduling ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-purple">Scheduling</span> Cache-Aware Scheduling</h2>
+    <p>The Conductor hashes the prompt prefix and evaluates cache hit ratios on all prefill nodes, then routes the request to the node with the highest overlap — dramatically reducing time-to-first-token.</p>
+
+    <div class="sched-canvas-wrap">
+      <canvas id="schedCanvas" class="sched-canvas"></canvas>
+    </div>
+
+    <div class="sched-result" id="schedResult"></div>
+
+    <div class="anim-controls">
+      <button class="btn btn-accent" id="schedBtn" onclick="runScheduling()">Run Scheduling</button>
+    </div>
+
+    <div class="insight-box">
+      <strong>Cache-aware routing saves compute:</strong> An 85% cache hit means only 15% of the prompt needs prefill computation, translating to roughly 6x faster time-to-first-token compared to a cold start.
+    </div>
+  </div>
+
+  <!-- ==================== Section 5: Performance Results ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-green">Results</span> Performance Results</h2>
+    <p>Mooncake achieves significant improvements over monolithic serving baselines across throughput, latency, and cost metrics. These numbers reflect production deployment at Kimi serving millions of users.</p>
+
+    <h3>Throughput Improvement</h3>
+    <div class="speedup-bar-wrap">
+      <div class="speedup-row">
+        <div class="speedup-label">Baseline</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-standard" data-width="38" id="bar-tp-base">1.0x</div>
+        </div>
+      </div>
+      <div class="speedup-row">
+        <div class="speedup-label">Mooncake</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-flash2" data-width="95" id="bar-tp-moon">2.5x</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>TTFT P99 Latency</h3>
+    <div class="speedup-bar-wrap">
+      <div class="speedup-row">
+        <div class="speedup-label">Baseline</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-standard" data-width="95" id="bar-ttft-base">4.2s</div>
+        </div>
+      </div>
+      <div class="speedup-row">
+        <div class="speedup-label">Mooncake</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-flash" data-width="24" id="bar-ttft-moon">1.05s (4x better)</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Cost per Token</h3>
+    <div class="speedup-bar-wrap">
+      <div class="speedup-row">
+        <div class="speedup-label">Baseline</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-standard" data-width="90" id="bar-cost-base">$1.00 (normalized)</div>
+        </div>
+      </div>
+      <div class="speedup-row">
+        <div class="speedup-label">Mooncake</div>
+        <div class="speedup-track">
+          <div class="speedup-fill fill-flash2" data-width="45" id="bar-cost-moon">$0.45 (55% reduction)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anim-controls" style="margin-top:20px;">
+      <button class="btn btn-accent" onclick="animatePerformanceBars()">Animate Bars</button>
+    </div>
+
+    <div class="insight-box" style="margin-top:20px;">
+      <strong>Production-proven:</strong> Deployed at Moonshot AI's Kimi chatbot serving millions of daily users. The disaggregated architecture allows independent scaling of prefill and decode resources based on real-time demand patterns.
+    </div>
+  </div>
+
+</div><!-- .container -->
+
+<footer>
+  LLM Algorithm Visualizations &mdash; Topic 07: Mooncake Architecture
+</footer>
+
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script>
+// ==================== Color Constants ==================== //
+const COLORS = {
+  bg: '#0f1117',
+  surface: '#1a1d2e',
+  border: '#2a2d3e',
+  accent: '#6c63ff',
+  accent2: '#00c9a7',
+  accent3: '#f7768e',
+  accent4: '#ff9e64',
+  text: '#cdd6f4',
+  textDim: '#6c7086',
+  conductor: '#e0af68',
+  prefill: '#6c63ff',
+  decode: '#00c9a7',
+  kvcache: '#f7768e',
+  vram: '#bb9af7',
+  dram: '#ff9e64',
+  ssd: '#7aa2f7',
+};
+
+// ==================== Section 1: System Architecture ==================== //
+(function drawArchitecture() {
+  const canvas = document.getElementById('archCanvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Clients
+    ctx.fillStyle = COLORS.textDim;
+    ctx.font = '600 13px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+
+    // Draw client icons on the left
+    for (let i = 0; i < 3; i++) {
+      const y = 160 + i * 50;
+      roundRect(ctx, 20, y - 14, 60, 28, 6);
+      ctx.fillStyle = 'rgba(108,99,255,0.15)';
+      ctx.fill();
+      ctx.strokeStyle = COLORS.accent;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = COLORS.text;
+      ctx.font = '600 11px system-ui, sans-serif';
+      ctx.fillText('Client', 50, y + 4);
+    }
+
+    // Arrows from clients to conductor
+    ctx.strokeStyle = COLORS.textDim;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    for (let i = 0; i < 3; i++) {
+      const y = 160 + i * 50;
+      drawArrow(ctx, 84, y, W / 2 - 100, 50);
+    }
+    ctx.setLineDash([]);
+
+    // Conductor box (top center)
+    const condW = 280, condH = 48;
+    const condX = (W - condW) / 2, condY = 20;
+    const condGrad = ctx.createLinearGradient(condX, condY, condX + condW, condY + condH);
+    condGrad.addColorStop(0, 'rgba(224,175,104,0.25)');
+    condGrad.addColorStop(1, 'rgba(224,175,104,0.1)');
+    roundRect(ctx, condX, condY, condW, condH, 10);
+    ctx.fillStyle = condGrad;
+    ctx.fill();
+    ctx.strokeStyle = COLORS.conductor;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = COLORS.conductor;
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Conductor (Global Scheduler)', W / 2, condY + 30);
+
+    // Prefill Pool (left)
+    const poolW = 240, poolH = 180;
+    const prefX = W / 2 - poolW - 30, prefY = 110;
+    drawPool(ctx, prefX, prefY, poolW, poolH, COLORS.prefill, 'Prefill Pool', 3);
+
+    // Decode Pool (right)
+    const decX = W / 2 + 30, decY = 110;
+    drawPool(ctx, decX, decY, poolW, poolH, COLORS.decode, 'Decode Pool', 3);
+
+    // Arrows from Conductor to pools
+    ctx.setLineDash([]);
+    ctx.strokeStyle = COLORS.conductor;
+    ctx.lineWidth = 2;
+    drawArrow(ctx, W / 2 - 60, condY + condH, prefX + poolW / 2, prefY);
+    drawArrow(ctx, W / 2 + 60, condY + condH, decX + poolW / 2, decY);
+
+    // Labels on arrows
+    ctx.fillStyle = COLORS.conductor;
+    ctx.font = '600 10px system-ui, sans-serif';
+    ctx.fillText('schedule', W / 2 - 100, 88);
+    ctx.fillText('schedule', W / 2 + 100, 88);
+
+    // KV Cache Pool (bottom, full width)
+    const kvY = 330, kvH = 140;
+    const kvX = 30, kvW = W - 60;
+    const kvGrad = ctx.createLinearGradient(kvX, kvY, kvX + kvW, kvY + kvH);
+    kvGrad.addColorStop(0, 'rgba(247,118,142,0.12)');
+    kvGrad.addColorStop(0.5, 'rgba(247,118,142,0.08)');
+    kvGrad.addColorStop(1, 'rgba(247,118,142,0.12)');
+    roundRect(ctx, kvX, kvY, kvW, kvH, 12);
+    ctx.fillStyle = kvGrad;
+    ctx.fill();
+    ctx.strokeStyle = COLORS.kvcache;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = COLORS.kvcache;
+    ctx.font = 'bold 14px system-ui, sans-serif';
+    ctx.fillText('Distributed KV Cache Pool', W / 2, kvY + 24);
+
+    // Three tiers inside KV cache
+    const tierLabels = ['GPU VRAM', 'CPU DRAM', 'NVMe SSD'];
+    const tierColors = [COLORS.vram, COLORS.dram, COLORS.ssd];
+    const tierW = (kvW - 80) / 3;
+    for (let i = 0; i < 3; i++) {
+      const tx = kvX + 30 + i * (tierW + 10);
+      const ty = kvY + 42;
+      const tH = 80;
+      roundRect(ctx, tx, ty, tierW, tH, 8);
+      ctx.fillStyle = `${tierColors[i]}15`;
+      ctx.fill();
+      ctx.strokeStyle = tierColors[i];
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = tierColors[i];
+      ctx.font = 'bold 12px system-ui, sans-serif';
+      ctx.fillText(tierLabels[i], tx + tierW / 2, ty + 30);
+      ctx.fillStyle = COLORS.textDim;
+      ctx.font = '11px system-ui, sans-serif';
+      const sizes = ['~40GB/GPU', '~256GB/node', '~4TB/node'];
+      ctx.fillText(sizes[i], tx + tierW / 2, ty + 52);
+      const bws = ['2 TB/s', '100 GB/s', '7 GB/s'];
+      ctx.fillText(bws[i], tx + tierW / 2, ty + 68);
+    }
+
+    // Arrow: Prefill → KV Cache (write)
+    ctx.strokeStyle = COLORS.prefill;
+    ctx.lineWidth = 2;
+    drawArrow(ctx, prefX + poolW / 2, prefY + poolH, prefX + poolW / 2, kvY);
+    ctx.fillStyle = COLORS.prefill;
+    ctx.font = '600 10px system-ui, sans-serif';
+    ctx.fillText('write KV', prefX + poolW / 2 + 40, prefY + poolH + 20);
+
+    // Arrow: KV Cache → Decode (read)
+    ctx.strokeStyle = COLORS.decode;
+    drawArrow(ctx, decX + poolW / 2, kvY, decX + poolW / 2, decY + poolH);
+    ctx.fillStyle = COLORS.decode;
+    ctx.fillText('read KV', decX + poolW / 2 + 40, decY + poolH + 20);
+
+    // RDMA label
+    ctx.fillStyle = COLORS.accent4;
+    ctx.font = 'italic 10px system-ui, sans-serif';
+    ctx.fillText('GPUDirect RDMA', W / 2, kvY + kvH + 16);
+  }
+
+  function drawPool(ctx, x, y, w, h, color, label, count) {
+    const grad = ctx.createLinearGradient(x, y, x + w, y + h);
+    grad.addColorStop(0, `${color}18`);
+    grad.addColorStop(1, `${color}08`);
+    roundRect(ctx, x, y, w, h, 12);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    ctx.font = 'bold 13px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x + w / 2, y + 24);
+
+    // GPU nodes inside
+    const nodeW = 60, nodeH = 36, gap = 10;
+    const totalW = count * nodeW + (count - 1) * gap;
+    const startX = x + (w - totalW) / 2;
+    for (let i = 0; i < count; i++) {
+      const nx = startX + i * (nodeW + gap);
+      const ny = y + 50;
+      roundRect(ctx, nx, ny, nodeW, nodeH, 6);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fill();
+      ctx.strokeStyle = `${color}80`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = COLORS.text;
+      ctx.font = '600 10px system-ui, sans-serif';
+      ctx.fillText(`GPU ${i + 1}`, nx + nodeW / 2, ny + 14);
+      ctx.fillStyle = COLORS.textDim;
+      ctx.font = '9px system-ui, sans-serif';
+      ctx.fillText('A100 80GB', nx + nodeW / 2, ny + 28);
+    }
+
+    // Utilization bars
+    const barY = y + 105;
+    ctx.fillStyle = COLORS.textDim;
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.fillText('utilization', x + w / 2, barY);
+    const utils = [0.75, 0.85, 0.60];
+    for (let i = 0; i < count; i++) {
+      const bx = startX + i * (nodeW + gap);
+      const bw = nodeW;
+      roundRect(ctx, bx, barY + 8, bw, 8, 3);
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fill();
+      roundRect(ctx, bx, barY + 8, bw * utils[i], 8, 3);
+      ctx.fillStyle = `${color}60`;
+      ctx.fill();
+    }
+  }
+
+  draw();
+
+  // Redraw on resize
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      setupCanvas(canvas);
+      draw();
+    }, 150);
+  });
+})();
+
+// ==================== Arrow Drawing Utility ==================== //
+function drawArrow(ctx, x1, y1, x2, y2) {
+  const headLen = 8;
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+  ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+  ctx.closePath();
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.fill();
+}
+
+// ==================== Section 2: Request Lifecycle ==================== //
+let currentStage = 0;
+const STAGES = [
+  {
+    title: 'Stage 1 — Hash Lookup',
+    desc: 'Request arrives at Conductor. Prefix of prompt is hashed to locate cached KV entries across the cluster.',
+    highlight: 'conductor'
+  },
+  {
+    title: 'Stage 2 — Cache Hit / Route',
+    desc: 'Conductor finds partial cache on Prefill Node 2 (85% match). Routes the request there for maximum cache reuse.',
+    highlight: 'route'
+  },
+  {
+    title: 'Stage 3 — Incremental Prefill',
+    desc: 'Only the uncached 15% of prompt tokens are processed. Cached KV entries are loaded directly, saving 85% of prefill compute.',
+    highlight: 'prefill'
+  },
+  {
+    title: 'Stage 4 — KV Transfer',
+    desc: 'Complete KV cache is transferred from Prefill Node to Decode Node via GPUDirect RDMA at up to 200 Gbps.',
+    highlight: 'transfer'
+  },
+  {
+    title: 'Stage 5 — Decode',
+    desc: 'Decode node generates tokens autoregressively using the received KV cache. New KV entries are stored back to the cache pool.',
+    highlight: 'decode'
+  }
+];
+
+function drawLifecycle(stage) {
+  const canvas = document.getElementById('lifecycleCanvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, W, H);
+
+  const s = STAGES[stage];
+
+  // Mini architecture layout
+  // Conductor
+  const condW = 200, condH = 38;
+  const condX = (W - condW) / 2, condY = 15;
+  const condActive = s.highlight === 'conductor' || s.highlight === 'route';
+  drawMiniBox(ctx, condX, condY, condW, condH, COLORS.conductor, 'Conductor', condActive);
+
+  // Prefill nodes
+  const pnW = 110, pnH = 55;
+  const pnStartX = 40;
+  const pnY = 110;
+  for (let i = 0; i < 3; i++) {
+    const x = pnStartX + i * (pnW + 16);
+    const active = (s.highlight === 'prefill' && i === 1) || (s.highlight === 'route' && i === 1);
+    drawMiniBox(ctx, x, pnY, pnW, pnH, COLORS.prefill, `Prefill Node ${i + 1}`, active);
+    if (i === 1 && (s.highlight === 'route' || s.highlight === 'prefill')) {
+      ctx.fillStyle = COLORS.accent2;
+      ctx.font = 'bold 10px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('85% cache hit', x + pnW / 2, pnY + pnH + 14);
+    }
+  }
+
+  // Decode nodes
+  const dnY = 240;
+  const dnStartX = W / 2 + 20;
+  for (let i = 0; i < 3; i++) {
+    const x = dnStartX + i * (pnW + 16);
+    const active = s.highlight === 'decode' && i === 0;
+    if (x + pnW > W - 10) break;
+    drawMiniBox(ctx, x, dnY, pnW, pnH, COLORS.decode, `Decode Node ${i + 1}`, active);
+  }
+
+  // KV Cache bar at bottom
+  const kvY = 340, kvH = 50;
+  const kvX = 30, kvW = W - 60;
+  const kvActive = s.highlight === 'transfer' || s.highlight === 'prefill';
+  roundRect(ctx, kvX, kvY, kvW, kvH, 10);
+  ctx.fillStyle = kvActive ? 'rgba(247,118,142,0.2)' : 'rgba(247,118,142,0.08)';
+  ctx.fill();
+  ctx.strokeStyle = kvActive ? COLORS.kvcache : `${COLORS.kvcache}60`;
+  ctx.lineWidth = kvActive ? 2.5 : 1.5;
+  ctx.stroke();
+  ctx.fillStyle = kvActive ? COLORS.kvcache : COLORS.textDim;
+  ctx.font = 'bold 12px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Distributed KV Cache Pool', W / 2, kvY + 30);
+
+  // Draw flow arrows based on stage
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([]);
+
+  if (s.highlight === 'conductor') {
+    // Request arrow coming in
+    ctx.strokeStyle = COLORS.accent4;
+    ctx.setLineDash([6, 4]);
+    drawArrow(ctx, 20, condY + condH / 2, condX, condY + condH / 2);
+    ctx.setLineDash([]);
+    ctx.fillStyle = COLORS.accent4;
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Request', 10, condY + condH / 2 - 10);
+
+    // Hash lookup visualization
+    ctx.fillStyle = COLORS.conductor;
+    ctx.font = 'italic 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('hash(prefix) → lookup cache map...', W / 2, condY + condH + 18);
+  }
+
+  if (s.highlight === 'route') {
+    ctx.strokeStyle = COLORS.conductor;
+    const targetX = pnStartX + 1 * (pnW + 16) + pnW / 2;
+    drawArrow(ctx, W / 2, condY + condH, targetX, pnY);
+    ctx.fillStyle = COLORS.conductor;
+    ctx.font = '600 10px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('route to best match', (W / 2 + targetX) / 2 + 30, (condY + condH + pnY) / 2);
+  }
+
+  if (s.highlight === 'prefill') {
+    const pn2X = pnStartX + 1 * (pnW + 16) + pnW / 2;
+    ctx.strokeStyle = COLORS.prefill;
+    drawArrow(ctx, pn2X, pnY + pnH, pn2X, kvY);
+
+    // Show cached vs uncached
+    const barX = pnStartX + 1 * (pnW + 16) + pnW + 20;
+    const barY2 = pnY + 10;
+    const barW2 = 130, barH2 = 16;
+    roundRect(ctx, barX, barY2, barW2, barH2, 4);
+    ctx.fillStyle = 'rgba(0,201,167,0.3)';
+    ctx.fill();
+    roundRect(ctx, barX, barY2, barW2 * 0.85, barH2, 4);
+    ctx.fillStyle = 'rgba(0,201,167,0.6)';
+    ctx.fill();
+    ctx.fillStyle = COLORS.text;
+    ctx.font = '600 9px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('85% cached (skip)', barX + 4, barY2 + 12);
+
+    roundRect(ctx, barX, barY2 + 22, barW2, barH2, 4);
+    ctx.fillStyle = 'rgba(108,99,255,0.3)';
+    ctx.fill();
+    roundRect(ctx, barX, barY2 + 22, barW2 * 0.15, barH2, 4);
+    ctx.fillStyle = 'rgba(108,99,255,0.6)';
+    ctx.fill();
+    ctx.fillStyle = COLORS.text;
+    ctx.fillText('15% compute', barX + 4, barY2 + 34);
+  }
+
+  if (s.highlight === 'transfer') {
+    const pn2X = pnStartX + 1 * (pnW + 16) + pnW / 2;
+    const dn1X = dnStartX + pnW / 2;
+    // Prefill → KV Cache
+    ctx.strokeStyle = COLORS.kvcache;
+    ctx.setLineDash([6, 4]);
+    drawArrow(ctx, pn2X, pnY + pnH, pn2X, kvY);
+    // KV Cache → Decode
+    drawArrow(ctx, dn1X, kvY, dn1X, dnY + pnH);
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = COLORS.accent4;
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('RDMA Transfer ~200 Gbps', W / 2, kvY - 8);
+  }
+
+  if (s.highlight === 'decode') {
+    const dn1X = dnStartX + pnW / 2;
+    // Generated tokens visualization
+    ctx.fillStyle = COLORS.decode;
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    const tokens = ['The', 'answer', 'is', '42', '...'];
+    for (let i = 0; i < tokens.length; i++) {
+      const tx = dnStartX + i * 52;
+      const ty = dnY - 30;
+      roundRect(ctx, tx, ty, 46, 22, 5);
+      ctx.fillStyle = i < 3 ? 'rgba(0,201,167,0.35)' : 'rgba(0,201,167,0.15)';
+      ctx.fill();
+      ctx.fillStyle = COLORS.decode;
+      ctx.font = '600 10px system-ui, sans-serif';
+      ctx.fillText(tokens[i], tx + 23, ty + 15);
+    }
+    ctx.fillStyle = COLORS.textDim;
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.fillText('tokens generated', dnStartX + 110, dnY - 38);
+  }
+
+  // Update step indicators and info
+  document.querySelectorAll('#lifecycleSteps .step-dot').forEach((dot, i) => {
+    dot.className = 'step-dot';
+    if (i === stage) dot.classList.add('active');
+    else if (i < stage) dot.classList.add('done');
+  });
+
+  document.getElementById('stageInfo').innerHTML =
+    `<strong>${s.title}:</strong> ${s.desc}`;
+
+  document.getElementById('nextStageBtn').textContent =
+    stage < STAGES.length - 1 ? 'Next Stage \u2192' : 'Restart';
+}
+
+function drawMiniBox(ctx, x, y, w, h, color, label, active) {
+  roundRect(ctx, x, y, w, h, 8);
+  ctx.fillStyle = active ? `${color}30` : `${color}10`;
+  ctx.fill();
+  ctx.strokeStyle = active ? color : `${color}50`;
+  ctx.lineWidth = active ? 2.5 : 1;
+  ctx.stroke();
+
+  if (active) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 16;
+    roundRect(ctx, x, y, w, h, 8);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  ctx.fillStyle = active ? color : COLORS.textDim;
+  ctx.font = `${active ? 'bold' : '600'} 11px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(label, x + w / 2, y + h / 2 + 4);
+}
+
+function nextStage() {
+  currentStage = (currentStage + 1) % STAGES.length;
+  drawLifecycle(currentStage);
+}
+
+function goToStage(s) {
+  currentStage = s;
+  drawLifecycle(currentStage);
+}
+
+// Initialize lifecycle
+drawLifecycle(0);
+
+// ==================== Section 3: Three-Tier KV Cache ==================== //
+let tierAnimating = false;
+
+function drawTierStatic() {
+  const canvas = document.getElementById('tierCanvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+  drawTiers(ctx, W, H, []);
+}
+
+function drawTiers(ctx, W, H, particles) {
+  ctx.clearRect(0, 0, W, H);
+
+  const tiers = [
+    { label: 'Tier 1: GPU VRAM', cap: '~40 GB per GPU', bw: '2 TB/s', color: COLORS.vram, w: 0.35 },
+    { label: 'Tier 2: CPU DRAM', cap: '~256 GB per node', bw: '100 GB/s', color: COLORS.dram, w: 0.55 },
+    { label: 'Tier 3: NVMe SSD', cap: '~4 TB per node', bw: '7 GB/s', color: COLORS.ssd, w: 0.80 },
+  ];
+
+  const tierH = 70;
+  const gap = 30;
+  const startY = 40;
+
+  for (let i = 0; i < tiers.length; i++) {
+    const t = tiers[i];
+    const tw = W * t.w;
+    const tx = (W - tw) / 2;
+    const ty = startY + i * (tierH + gap);
+
+    // Tier box
+    const grad = ctx.createLinearGradient(tx, ty, tx + tw, ty + tierH);
+    grad.addColorStop(0, `${t.color}25`);
+    grad.addColorStop(1, `${t.color}10`);
+    roundRect(ctx, tx, ty, tw, tierH, 10);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = t.color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = t.color;
+    ctx.font = 'bold 14px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(t.label, W / 2, ty + 24);
+
+    // Stats
+    ctx.fillStyle = COLORS.text;
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.fillText(`Capacity: ${t.cap}  |  Bandwidth: ${t.bw}`, W / 2, ty + 46);
+
+    // Speed indicator bar
+    const speeds = [1, 0.05, 0.0035]; // relative to VRAM
+    const barMaxW = tw * 0.7;
+    const barW = barMaxW * speeds[i];
+    const barH = 6;
+    const barX = (W - barMaxW) / 2;
+    const barY = ty + 55;
+    roundRect(ctx, barX, barY, barMaxW, barH, 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fill();
+    roundRect(ctx, barX, barY, Math.max(barW, 8), barH, 3);
+    ctx.fillStyle = `${t.color}80`;
+    ctx.fill();
+
+    // Arrows between tiers
+    if (i < tiers.length - 1) {
+      const arrowY = ty + tierH + 4;
+      const arrowEndY = ty + tierH + gap - 4;
+      ctx.strokeStyle = COLORS.textDim;
+      ctx.lineWidth = 1.5;
+
+      // Up arrow (promote)
+      ctx.beginPath();
+      ctx.moveTo(W / 2 - 30, arrowEndY);
+      ctx.lineTo(W / 2 - 30, arrowY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(W / 2 - 30, arrowY);
+      ctx.lineTo(W / 2 - 35, arrowY + 6);
+      ctx.moveTo(W / 2 - 30, arrowY);
+      ctx.lineTo(W / 2 - 25, arrowY + 6);
+      ctx.stroke();
+
+      // Down arrow (demote)
+      ctx.beginPath();
+      ctx.moveTo(W / 2 + 30, arrowY);
+      ctx.lineTo(W / 2 + 30, arrowEndY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(W / 2 + 30, arrowEndY);
+      ctx.lineTo(W / 2 + 25, arrowEndY - 6);
+      ctx.moveTo(W / 2 + 30, arrowEndY);
+      ctx.lineTo(W / 2 + 35, arrowEndY - 6);
+      ctx.stroke();
+
+      ctx.fillStyle = COLORS.accent2;
+      ctx.font = '600 9px system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('promote', W / 2 - 38, arrowY + gap / 2 + 3);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = COLORS.accent3;
+      ctx.fillText('demote', W / 2 + 38, arrowY + gap / 2 + 3);
+    }
+  }
+
+  // Draw particles
+  particles.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+}
+
+function animateTierFlow() {
+  if (tierAnimating) return;
+  tierAnimating = true;
+  document.getElementById('tierAnimBtn').textContent = 'Animating...';
+
+  const canvas = document.getElementById('tierCanvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+
+  const tierH = 70;
+  const gap = 30;
+  const startY = 40;
+
+  // Particle configs: some promote up, some demote down
+  const particles = [];
+  const tierCenters = [0, 1, 2].map(i => startY + i * (tierH + gap) + tierH / 2);
+
+  // Promote particles (going up): from tier 2→1 and 3→2
+  for (let i = 0; i < 4; i++) {
+    particles.push({
+      x: W / 2 - 30 + Math.random() * 10 - 5,
+      startY: tierCenters[2],
+      endY: tierCenters[1],
+      color: COLORS.accent2,
+      delay: i * 200,
+      duration: 1500,
+    });
+  }
+  for (let i = 0; i < 3; i++) {
+    particles.push({
+      x: W / 2 - 30 + Math.random() * 10 - 5,
+      startY: tierCenters[1],
+      endY: tierCenters[0],
+      color: COLORS.accent2,
+      delay: 600 + i * 250,
+      duration: 1500,
+    });
+  }
+
+  // Demote particles (going down): from tier 1→2 and 2→3
+  for (let i = 0; i < 3; i++) {
+    particles.push({
+      x: W / 2 + 30 + Math.random() * 10 - 5,
+      startY: tierCenters[0],
+      endY: tierCenters[1],
+      color: COLORS.accent3,
+      delay: 300 + i * 300,
+      duration: 1500,
+    });
+  }
+  for (let i = 0; i < 4; i++) {
+    particles.push({
+      x: W / 2 + 30 + Math.random() * 10 - 5,
+      startY: tierCenters[1],
+      endY: tierCenters[2],
+      color: COLORS.accent3,
+      delay: 500 + i * 200,
+      duration: 1500,
+    });
+  }
+
+  const totalDuration = 3000;
+  const startTime = performance.now();
+
+  function tick(now) {
+    const elapsed = now - startTime;
+    if (elapsed > totalDuration) {
+      tierAnimating = false;
+      document.getElementById('tierAnimBtn').textContent = 'Animate Data Flow';
+      drawTiers(ctx, W, H, []);
+      return;
+    }
+
+    const activeParticles = [];
+    particles.forEach(p => {
+      const pElapsed = elapsed - p.delay;
+      if (pElapsed < 0 || pElapsed > p.duration) return;
+      const progress = easeInOutCubic(pElapsed / p.duration);
+      activeParticles.push({
+        x: p.x,
+        y: p.startY + (p.endY - p.startY) * progress,
+        color: p.color
+      });
+    });
+
+    drawTiers(ctx, W, H, activeParticles);
+    requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+}
+
+drawTierStatic();
+
+// ==================== Section 4: Cache-Aware Scheduling ==================== //
+let schedAnimating = false;
+
+function drawScheduling(phase, progress) {
+  const canvas = document.getElementById('schedCanvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, W, H);
+
+  const nodes = [
+    { label: 'Prefill Node 1', hitRate: 0.20 },
+    { label: 'Prefill Node 2', hitRate: 0.85 },
+    { label: 'Prefill Node 3', hitRate: 0.10 },
+    { label: 'Prefill Node 4', hitRate: 0.45 },
+  ];
+
+  const nodeW = 130, nodeH = 100;
+  const totalW = nodes.length * nodeW + (nodes.length - 1) * 20;
+  const startX = (W - totalW) / 2;
+  const nodeY = 130;
+
+  // Conductor at top
+  const condW = 220, condH = 40;
+  const condX = (W - condW) / 2, condY = 15;
+  roundRect(ctx, condX, condY, condW, condH, 10);
+  ctx.fillStyle = 'rgba(224,175,104,0.2)';
+  ctx.fill();
+  ctx.strokeStyle = COLORS.conductor;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = COLORS.conductor;
+  ctx.font = 'bold 13px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Conductor', W / 2, condY + 26);
+
+  // Request arriving
+  if (phase >= 0) {
+    const reqX = Math.min(condX - 10, 20 + (condX - 30) * Math.min(progress * 2, 1));
+    roundRect(ctx, reqX - 40, condY + 5, 50, 28, 6);
+    ctx.fillStyle = 'rgba(255,158,100,0.3)';
+    ctx.fill();
+    ctx.strokeStyle = COLORS.accent4;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = COLORS.accent4;
+    ctx.font = '600 9px system-ui, sans-serif';
+    ctx.fillText('Request', reqX - 15, condY + 24);
+  }
+
+  // Label for hash
+  if (phase >= 0) {
+    ctx.fillStyle = COLORS.textDim;
+    ctx.font = 'italic 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('prefix hash: 0xA3F7...', W / 2, condY + condH + 20);
+  }
+
+  // Draw nodes
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    const nx = startX + i * (nodeW + 20);
+    const isBest = i === 1;
+    const showHit = phase >= 1;
+    const showSelect = phase >= 2 && isBest;
+
+    // Node box
+    roundRect(ctx, nx, nodeY, nodeW, nodeH, 10);
+    ctx.fillStyle = showSelect ? 'rgba(0,201,167,0.2)' : 'rgba(108,99,255,0.08)';
+    ctx.fill();
+    ctx.strokeStyle = showSelect ? COLORS.accent2 : `${COLORS.prefill}50`;
+    ctx.lineWidth = showSelect ? 2.5 : 1.5;
+    ctx.stroke();
+
+    if (showSelect) {
+      ctx.shadowColor = COLORS.accent2;
+      ctx.shadowBlur = 16;
+      roundRect(ctx, nx, nodeY, nodeW, nodeH, 10);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    // Node label
+    ctx.fillStyle = showSelect ? COLORS.accent2 : COLORS.text;
+    ctx.font = '600 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(n.label, nx + nodeW / 2, nodeY + 20);
+
+    // Cache contents visualization (colored segments)
+    const segY = nodeY + 32;
+    const segW = nodeW - 20;
+    const segX = nx + 10;
+    roundRect(ctx, segX, segY, segW, 14, 4);
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fill();
+
+    // Cached portion
+    const cachedW = segW * n.hitRate;
+    if (cachedW > 0) {
+      roundRect(ctx, segX, segY, cachedW, 14, 4);
+      ctx.fillStyle = isBest ? 'rgba(0,201,167,0.5)' : 'rgba(108,99,255,0.3)';
+      ctx.fill();
+    }
+
+    ctx.fillStyle = COLORS.textDim;
+    ctx.font = '9px system-ui, sans-serif';
+    ctx.fillText('cache contents', nx + nodeW / 2, segY + 26);
+
+    // Hit rate
+    if (showHit) {
+      const hitPct = Math.round(n.hitRate * 100);
+      ctx.fillStyle = isBest ? COLORS.accent2 : COLORS.textDim;
+      ctx.font = `bold ${isBest ? '16' : '13'}px system-ui, sans-serif`;
+      ctx.fillText(`${hitPct}%`, nx + nodeW / 2, nodeY + 80);
+      ctx.fillStyle = COLORS.textDim;
+      ctx.font = '9px system-ui, sans-serif';
+      ctx.fillText('cache hit', nx + nodeW / 2, nodeY + 93);
+    }
+
+    // Arrow from conductor
+    if (phase >= 1) {
+      ctx.strokeStyle = showSelect ? COLORS.accent2 : COLORS.textDim;
+      ctx.lineWidth = showSelect ? 2 : 1;
+      ctx.setLineDash(showSelect ? [] : [4, 3]);
+      drawArrow(ctx, W / 2, condY + condH, nx + nodeW / 2, nodeY);
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Selection result text
+  if (phase >= 2) {
+    const resultY = nodeY + nodeH + 30;
+    ctx.fillStyle = COLORS.accent2;
+    ctx.font = 'bold 13px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Selected: Prefill Node 2 (85% cache hit)', W / 2, resultY);
+    ctx.fillStyle = COLORS.text;
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.fillText('Only 15% of prompt needs prefill → ~6x faster TTFT', W / 2, resultY + 22);
+  }
+}
+
+function runScheduling() {
+  if (schedAnimating) return;
+  schedAnimating = true;
+  document.getElementById('schedBtn').textContent = 'Running...';
+  document.getElementById('schedResult').textContent = '';
+
+  let phase = 0;
+  const phaseTimings = [800, 1200, 1000];
+
+  function runPhase() {
+    animate((p) => {
+      drawScheduling(phase, p);
+    }, phaseTimings[phase], () => {
+      phase++;
+      if (phase < phaseTimings.length) {
+        setTimeout(runPhase, 200);
+      } else {
+        schedAnimating = false;
+        document.getElementById('schedBtn').textContent = 'Run Scheduling';
+        document.getElementById('schedResult').innerHTML =
+          '<span style="color:var(--accent2)">85% cache hit → Only 15% of prompt needs prefill → 6x faster TTFT</span>';
+      }
+    });
+  }
+
+  drawScheduling(-1, 0);
+  setTimeout(runPhase, 300);
+}
+
+// Initialize scheduling view
+drawScheduling(-1, 0);
+
+// ==================== Section 5: Performance Bars ==================== //
+function animatePerformanceBars() {
+  const fills = document.querySelectorAll('.speedup-fill');
+  fills.forEach(f => { f.style.width = '0'; });
+  setTimeout(() => {
+    fills.forEach(f => { f.style.width = f.dataset.width + '%'; });
+  }, 100);
+}
+
+// Animate bars on scroll into view
+const perfObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      animatePerformanceBars();
+      perfObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.3 });
+
+document.querySelectorAll('.speedup-bar-wrap').forEach(el => {
+  perfObserver.observe(el);
+});
+
+// ==================== Resize handlers ==================== //
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    drawLifecycle(currentStage);
+    drawTierStatic();
+    drawScheduling(-1, 0);
+  }, 200);
+});
+</script>
+</body>
+</html>

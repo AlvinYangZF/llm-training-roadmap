@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>08. H2O — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    /* ===== Attention Heatmap ===== */
+    .heatmap-canvas-wrap {
+      position: relative;
+      margin: 20px auto;
+      max-width: 560px;
+    }
+    .heatmap-canvas {
+      width: 100%;
+      height: 420px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+
+    /* ===== Power Law Chart ===== */
+    .powerlaw-canvas-wrap {
+      position: relative;
+      margin: 20px auto;
+      max-width: 680px;
+    }
+    .powerlaw-canvas {
+      width: 100%;
+      height: 360px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+
+    /* ===== Eviction Animation ===== */
+    .eviction-canvas-wrap {
+      position: relative;
+      margin: 20px auto;
+      max-width: 720px;
+    }
+    .eviction-canvas {
+      width: 100%;
+      height: 320px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+    .eviction-memory {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      min-height: 24px;
+    }
+
+    /* ===== Budget Slider ===== */
+    .budget-section {
+      margin: 20px 0;
+    }
+    .budget-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .budget-slider-row label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .budget-slider-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+      height: 6px;
+    }
+    .budget-value {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+      min-width: 50px;
+      text-align: right;
+    }
+    .budget-bar-wrap {
+      position: relative;
+      height: 40px;
+      background: rgba(0,0,0,.3);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+    .budget-bar-kept {
+      height: 100%;
+      border-radius: 8px 0 0 8px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      padding-left: 12px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #fff;
+      transition: width 0.3s ease;
+    }
+    .budget-bar-evicted {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+    .budget-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .budget-stat {
+      background: rgba(0,0,0,.3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+    .budget-stat-label {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .budget-stat-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .stat-perplexity { color: var(--accent3); }
+    .stat-memory { color: var(--accent2); }
+    .stat-compression { color: var(--accent); }
+
+    /* ===== Eviction Policy Diagram ===== */
+    .policy-diagram {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .policy-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .policy-tokens {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+    }
+    .policy-token {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      transition: all 0.3s;
+    }
+    .policy-token.sink {
+      background: rgba(247,118,142,.3);
+      border: 1px solid var(--accent3);
+      color: var(--accent3);
+    }
+    .policy-token.heavy {
+      background: rgba(108,99,255,.3);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
+    .policy-token.recent {
+      background: rgba(0,201,167,.3);
+      border: 1px solid var(--accent2);
+      color: var(--accent2);
+    }
+    .policy-token.evict {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      opacity: 0.5;
+    }
+    .policy-legend {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .policy-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+    }
+    .policy-legend-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+    .policy-desc {
+      background: rgba(0,0,0,.3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 16px;
+    }
+    .policy-desc ul {
+      padding-left: 18px;
+      margin-top: 8px;
+    }
+    .policy-desc li {
+      margin-bottom: 8px;
+      font-size: 0.92rem;
+    }
+
+    /* ===== Token Sequence Diagram ===== */
+    .token-sequence-wrap {
+      overflow-x: auto;
+      padding: 16px 0;
+    }
+    .token-sequence {
+      display: flex;
+      gap: 4px;
+      min-width: fit-content;
+      justify-content: center;
+    }
+
+    @media (max-width: 600px) {
+      .budget-stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>H2O &mdash; Heavy-Hitter Oracle</h1>
+    <p>Exploiting Attention Sparsity for Efficient KV Cache Compression</p>
+    <div class="breadcrumb"><a href="../index.html">Home</a> / H2O</div>
+  </header>
+
+  <div class="container">
+
+    <!-- ==================== Section 1: Attention Sparsity Discovery ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-purple">Discovery</span> Attention Sparsity</h2>
+      <p>Attention matrices in LLMs are extremely sparse. Most query-key interactions produce near-zero attention weights, while a tiny fraction of tokens dominate the total attention mass.</p>
+
+      <div class="heatmap-canvas-wrap">
+        <canvas id="heatmapCanvas" class="heatmap-canvas"></canvas>
+      </div>
+
+      <p class="dim-note">95%+ of attention weight concentrated in &lt;5% of tokens</p>
+    </div>
+
+    <!-- ==================== Section 2: Power-Law Distribution ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-red">Analysis</span> Power-Law Distribution</h2>
+      <p>When tokens are sorted by their cumulative attention score, the distribution follows a steep power law. A handful of heavy hitters capture the vast majority of attention weight.</p>
+
+      <div class="powerlaw-canvas-wrap">
+        <canvas id="powerlawCanvas" class="powerlaw-canvas"></canvas>
+      </div>
+
+      <div class="anim-controls">
+        <button class="btn btn-accent" onclick="animatePowerLaw()">Animate Chart</button>
+      </div>
+    </div>
+
+    <!-- ==================== Section 3: KV Eviction Animation ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-green">Interactive</span> KV Cache Eviction</h2>
+      <p>H2O classifies tokens into Heavy Hitters, Recent tokens, and non-important tokens. Non-important tokens are evicted from the KV cache to dramatically reduce memory.</p>
+
+      <div class="eviction-canvas-wrap">
+        <canvas id="evictionCanvas" class="eviction-canvas"></canvas>
+      </div>
+
+      <div class="step-indicator" id="evictionSteps">
+        <div class="step-dot active" onclick="goEvictionStep(0)">1</div>
+        <div class="step-dot" onclick="goEvictionStep(1)">2</div>
+        <div class="step-dot" onclick="goEvictionStep(2)">3</div>
+        <div class="step-dot" onclick="goEvictionStep(3)">4</div>
+      </div>
+      <div class="step-desc" id="evictionDesc">Full KV Cache: all 16 token slots occupied.</div>
+      <div class="eviction-memory" id="evictionMemory">Memory: 16 KV pairs</div>
+
+      <div class="anim-controls">
+        <button class="btn btn-accent" id="btnEviction" onclick="runEviction()">Run Eviction</button>
+      </div>
+    </div>
+
+    <!-- ==================== Section 4: Interactive Budget Slider ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-orange">Explore</span> KV Cache Budget</h2>
+      <p>Adjust the KV cache budget to see how H2O trades memory for quality. Even at 20% budget, perplexity barely degrades thanks to attention sparsity.</p>
+
+      <div class="budget-section">
+        <div class="budget-slider-row">
+          <label>Cache Budget:</label>
+          <input type="range" id="budgetSlider" min="5" max="100" value="100" oninput="updateBudget(this.value)">
+          <span class="budget-value" id="budgetValue">100%</span>
+        </div>
+
+        <div class="budget-bar-wrap">
+          <div class="budget-bar-kept" id="budgetBarKept" style="width: 100%;">Kept: 2048 tokens</div>
+          <div class="budget-bar-evicted" id="budgetBarEvicted" style="display: none;">Evicted: 0</div>
+        </div>
+
+        <div class="budget-stats">
+          <div class="budget-stat">
+            <div class="budget-stat-label">Perplexity</div>
+            <div class="budget-stat-value stat-perplexity" id="budgetPerplexity">5.20</div>
+          </div>
+          <div class="budget-stat">
+            <div class="budget-stat-label">Memory</div>
+            <div class="budget-stat-value stat-memory" id="budgetMemory">16.0 GB</div>
+          </div>
+          <div class="budget-stat">
+            <div class="budget-stat-label">Compression</div>
+            <div class="budget-stat-value stat-compression" id="budgetCompression">1.0x</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Section 5: H2O Eviction Policy ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-purple">Policy</span> H2O Eviction Strategy</h2>
+      <p>H2O uses a hybrid eviction policy that combines three categories of tokens to maintain generation quality while minimizing cache size.</p>
+
+      <div class="token-sequence-wrap">
+        <div class="token-sequence" id="policyTokens"></div>
+      </div>
+
+      <div class="policy-legend">
+        <div class="policy-legend-item">
+          <div class="policy-legend-swatch" style="background: rgba(247,118,142,.4); border: 1px solid var(--accent3);"></div>
+          <span style="color: var(--accent3); font-weight: 600;">Attention Sinks</span>
+        </div>
+        <div class="policy-legend-item">
+          <div class="policy-legend-swatch" style="background: rgba(108,99,255,.4); border: 1px solid var(--accent);"></div>
+          <span style="color: var(--accent); font-weight: 600;">Heavy Hitters</span>
+        </div>
+        <div class="policy-legend-item">
+          <div class="policy-legend-swatch" style="background: rgba(0,201,167,.4); border: 1px solid var(--accent2);"></div>
+          <span style="color: var(--accent2); font-weight: 600;">Recent Window</span>
+        </div>
+        <div class="policy-legend-item">
+          <div class="policy-legend-swatch" style="background: rgba(255,255,255,.06); border: 1px solid var(--border);"></div>
+          <span style="color: var(--text-dim);">Evicted</span>
+        </div>
+      </div>
+
+      <div class="policy-desc">
+        <ul>
+          <li><strong style="color: var(--accent3);">Attention Sinks (first 4 tokens):</strong> The initial tokens consistently receive high attention across all layers and heads, regardless of content. Always retained.</li>
+          <li><strong style="color: var(--accent);">Heavy Hitters (top-k by cumulative score):</strong> Tokens that accumulate the highest total attention weight across decoding steps. Dynamically identified and updated.</li>
+          <li><strong style="color: var(--accent2);">Recent Window (last W tokens):</strong> The most recently generated tokens provide essential local context. Always retained with a sliding window.</li>
+          <li><strong style="color: var(--text-dim);">Evicted:</strong> All remaining tokens are removed from the KV cache. Their attention contribution is negligible.</li>
+        </ul>
+      </div>
+
+      <div class="formula-box">
+        <span class="s">Cache</span> = <span class="s">Sinks(4)</span> <span class="op">+</span> <span class="q">HeavyHitters(k)</span> <span class="op">+</span> <span class="k">Recent(W)</span> <span class="op">&Lt;&Lt;</span> <span class="op">Full Cache(N)</span>
+      </div>
+    </div>
+
+  </div>
+
+  <footer><p>LLM Algorithm Visualization Series</p></footer>
+
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/animations.js"></script>
+  <script>
+    // ==================== Section 1: Attention Heatmap ==================== //
+
+    function generateAttentionData() {
+      const size = 16;
+      const data = [];
+      // Attention sinks: tokens 0 and 1 always get high attention
+      const sinks = [0, 1];
+      // Heavy hitters: 2-3 random positions
+      const heavyHitters = [5, 9, 12];
+      // Recent tokens: last 3
+      const recentStart = size - 3;
+
+      for (let i = 0; i < size; i++) {
+        data[i] = [];
+        for (let j = 0; j < size; j++) {
+          let val = Math.random() * 0.015; // near-zero baseline
+
+          // Attention sinks: columns 0,1 get high scores from most rows
+          if (sinks.includes(j)) {
+            val = 0.15 + Math.random() * 0.4;
+            // Extra bright for a few specific rows
+            if (i === j || i % 4 === 0) val = 0.5 + Math.random() * 0.5;
+          }
+
+          // Heavy hitters: these columns get high attention from scattered rows
+          if (heavyHitters.includes(j) && j <= i) {
+            val = Math.max(val, 0.1 + Math.random() * 0.35);
+            if (Math.random() > 0.5) val = Math.max(val, 0.4 + Math.random() * 0.4);
+          }
+
+          // Recent tokens: moderate attention in nearby rows
+          if (j >= recentStart && j <= i) {
+            val = Math.max(val, 0.05 + Math.random() * 0.15);
+          }
+
+          // Causal mask: future tokens get zero
+          if (j > i) val = 0;
+
+          data[i][j] = val;
+        }
+      }
+      return data;
+    }
+
+    function valToColor(v) {
+      // black -> dark purple -> pink -> bright red
+      if (v < 0.02) return `rgba(15, 10, 40, 1)`;
+      if (v < 0.1) {
+        const t = (v - 0.02) / 0.08;
+        const r = Math.floor(40 + t * 80);
+        const g = Math.floor(10 + t * 10);
+        const b = Math.floor(60 + t * 100);
+        return `rgba(${r}, ${g}, ${b}, 1)`;
+      }
+      if (v < 0.5) {
+        const t = (v - 0.1) / 0.4;
+        const r = Math.floor(120 + t * 127);
+        const g = Math.floor(20 + t * 40);
+        const b = Math.floor(160 - t * 40);
+        return `rgba(${r}, ${g}, ${b}, 1)`;
+      }
+      // bright red/hot pink
+      const t = Math.min((v - 0.5) / 0.5, 1);
+      const r = Math.floor(247 + t * 8);
+      const g = Math.floor(60 + t * 58);
+      const b = Math.floor(120 + t * 22);
+      return `rgba(${r}, ${g}, ${b}, 1)`;
+    }
+
+    let heatmapData = null;
+
+    function drawHeatmap() {
+      const canvas = document.getElementById('heatmapCanvas');
+      const { ctx, W, H } = setupCanvas(canvas);
+
+      if (!heatmapData) heatmapData = generateAttentionData();
+      const data = heatmapData;
+      const size = 16;
+
+      const pad = 50;
+      const cellSize = Math.min((W - pad * 2) / size, (H - pad * 2 - 30) / size);
+      const gridW = size * cellSize;
+      const gridH = size * cellSize;
+      const startX = (W - gridW) / 2;
+      const startY = pad + 10;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Labels
+      ctx.font = 'bold 12px Segoe UI, system-ui, sans-serif';
+      ctx.fillStyle = '#6c7086';
+      ctx.textAlign = 'center';
+      ctx.fillText('Key Tokens', startX + gridW / 2, startY - 16);
+
+      ctx.save();
+      ctx.translate(startX - 16, startY + gridH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('Query Tokens', 0, 0);
+      ctx.restore();
+
+      // Draw cells
+      for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+          const x = startX + j * cellSize;
+          const y = startY + i * cellSize;
+          const val = data[i][j];
+
+          ctx.fillStyle = valToColor(val);
+          roundRect(ctx, x + 0.5, y + 0.5, cellSize - 1, cellSize - 1, 2);
+          ctx.fill();
+        }
+      }
+
+      // Grid lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= size; i++) {
+        ctx.beginPath();
+        ctx.moveTo(startX + i * cellSize, startY);
+        ctx.lineTo(startX + i * cellSize, startY + gridH);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(startX, startY + i * cellSize);
+        ctx.lineTo(startX + gridW, startY + i * cellSize);
+        ctx.stroke();
+      }
+
+      // Color scale bar
+      const scaleY = startY + gridH + 16;
+      const scaleW = Math.min(300, gridW * 0.7);
+      const scaleX = (W - scaleW) / 2;
+      const scaleH = 12;
+      for (let i = 0; i < scaleW; i++) {
+        const t = i / scaleW;
+        ctx.fillStyle = valToColor(t);
+        ctx.fillRect(scaleX + i, scaleY, 1, scaleH);
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(scaleX, scaleY, scaleW, scaleH);
+
+      ctx.fillStyle = '#6c7086';
+      ctx.font = '10px Segoe UI, system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('0.0', scaleX, scaleY + scaleH + 14);
+      ctx.textAlign = 'center';
+      ctx.fillText('0.1', scaleX + scaleW * 0.2, scaleY + scaleH + 14);
+      ctx.textAlign = 'right';
+      ctx.fillText('1.0', scaleX + scaleW, scaleY + scaleH + 14);
+    }
+
+    // ==================== Section 2: Power-Law Distribution ==================== //
+
+    let powerlawAnimated = false;
+
+    function generatePowerLawData() {
+      const n = 20;
+      const scores = [];
+      // Generate power-law-like cumulative attention scores
+      for (let i = 0; i < n; i++) {
+        scores.push(Math.pow(0.55, i) * 100);
+      }
+      // Normalize so total = 100
+      const total = scores.reduce((a, b) => a + b, 0);
+      return scores.map(s => s / total * 100);
+    }
+
+    function drawPowerLaw(progress) {
+      const canvas = document.getElementById('powerlawCanvas');
+      const { ctx, W, H } = setupCanvas(canvas);
+      ctx.clearRect(0, 0, W, H);
+
+      const data = generatePowerLawData();
+      const n = data.length;
+
+      const padLeft = 60;
+      const padRight = 30;
+      const padTop = 30;
+      const padBot = 50;
+
+      const chartW = W - padLeft - padRight;
+      const chartH = H - padTop - padBot;
+      const barW = chartW / n * 0.7;
+      const barGap = chartW / n;
+
+      // Axes
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padLeft, padTop);
+      ctx.lineTo(padLeft, padTop + chartH);
+      ctx.lineTo(padLeft + chartW, padTop + chartH);
+      ctx.stroke();
+
+      // Y-axis labels
+      ctx.fillStyle = '#6c7086';
+      ctx.font = '11px Segoe UI, system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      for (let y = 0; y <= 100; y += 20) {
+        const py = padTop + chartH - (y / 100) * chartH;
+        ctx.fillText(y + '%', padLeft - 8, py + 4);
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.beginPath();
+        ctx.moveTo(padLeft, py);
+        ctx.lineTo(padLeft + chartW, py);
+        ctx.stroke();
+      }
+
+      // X-axis label
+      ctx.fillStyle = '#6c7086';
+      ctx.font = '11px Segoe UI, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Tokens (sorted by cumulative attention, descending)', padLeft + chartW / 2, H - 8);
+
+      // Y-axis label
+      ctx.save();
+      ctx.translate(14, padTop + chartH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('Attention %', 0, 0);
+      ctx.restore();
+
+      // Bars
+      const p = typeof progress === 'number' ? easeOutCubic(progress) : 1;
+      const cumulative = [];
+      let cumSum = 0;
+
+      for (let i = 0; i < n; i++) {
+        cumSum += data[i];
+        cumulative.push(cumSum);
+
+        const barH = (data[i] / 30) * chartH * p; // scale so largest bar is visible
+        const x = padLeft + i * barGap + (barGap - barW) / 2;
+        const y = padTop + chartH - barH;
+
+        // Gradient color: bright accent -> dim
+        const t = i / (n - 1);
+        const r = Math.floor(108 + t * (108 - 108));
+        const g = Math.floor(99 + t * (112 - 99));
+        const b = Math.floor(255 + t * (134 - 255));
+        const alpha = 1 - t * 0.6;
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+
+        roundRect(ctx, x, y, barW, barH, 3);
+        ctx.fill();
+      }
+
+      // 80% line
+      const lineY = padTop + chartH - (80 / 100) * chartH;
+      ctx.strokeStyle = 'rgba(247, 118, 142, 0.7)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(padLeft, lineY);
+      ctx.lineTo(padLeft + chartW, lineY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 80% label
+      ctx.fillStyle = 'var(--accent3)';
+      ctx.fillStyle = '#f7768e';
+      ctx.font = 'bold 11px Segoe UI, system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Top 5% of tokens capture 80%+ attention', padLeft + 8, lineY - 8);
+
+      // Mark the top 5% boundary (1 out of 20 = 5%)
+      const boundaryX = padLeft + 1 * barGap;
+      ctx.strokeStyle = 'rgba(247, 118, 142, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(boundaryX, padTop);
+      ctx.lineTo(boundaryX, padTop + chartH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function animatePowerLaw() {
+      animate(function(progress) {
+        drawPowerLaw(progress);
+      }, 1200);
+    }
+
+    // ==================== Section 3: KV Eviction Animation ==================== //
+
+    const EVICTION_TOKENS = 16;
+    // Token categories: 0=sink, 1=heavy, 2=recent, 3=normal
+    const TOKEN_CATEGORIES = [
+      0, 0, 3, 3, 3, 1, 3, 3, 3, 1, 3, 3, 1, 2, 2, 2
+    ];
+    const TOKEN_LABELS = [
+      'S0','S1','t2','t3','t4','HH','t6','t7','t8','HH','t10','t11','HH','R13','R14','R15'
+    ];
+
+    const EVICTION_STEPS = [
+      { desc: 'Full KV Cache: all 16 token slots occupied.', memory: 'Memory: 16 KV pairs' },
+      { desc: 'Classify: Heavy Hitters glow bright, Recent tokens glow teal, Sinks glow pink.', memory: 'Memory: 16 KV pairs' },
+      { desc: 'Evict: non-important tokens fade out and disappear.', memory: 'Evicting non-important tokens...' },
+      { desc: 'Compressed Cache: only Heavy Hitters + Sinks + Recent remain.', memory: 'Before: 16 KV pairs -> After: 8 KV pairs (50% reduction)' }
+    ];
+
+    let evictionStep = 0;
+    let evictionAnimating = false;
+
+    function getCategoryColor(cat, step) {
+      if (step === 0) {
+        // All same color
+        return { bg: 'rgba(108,99,255,0.3)', border: 'rgba(108,99,255,0.6)', text: '#cdd6f4' };
+      }
+      switch (cat) {
+        case 0: return { bg: 'rgba(247,118,142,0.35)', border: 'rgba(247,118,142,0.8)', text: '#f7768e', glow: 'rgba(247,118,142,0.3)' };
+        case 1: return { bg: 'rgba(108,99,255,0.35)', border: 'rgba(108,99,255,0.8)', text: '#6c63ff', glow: 'rgba(108,99,255,0.3)' };
+        case 2: return { bg: 'rgba(0,201,167,0.35)', border: 'rgba(0,201,167,0.8)', text: '#00c9a7', glow: 'rgba(0,201,167,0.3)' };
+        default: return { bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.15)', text: '#6c7086' };
+      }
+    }
+
+    function drawEvictionFrame(fadeProgress) {
+      const canvas = document.getElementById('evictionCanvas');
+      const { ctx, W, H } = setupCanvas(canvas);
+      ctx.clearRect(0, 0, W, H);
+
+      const step = evictionStep;
+      const blockW = 36;
+      const blockH = 50;
+      const gap = 6;
+      const totalW = EVICTION_TOKENS * (blockW + gap) - gap;
+      let startX = (W - totalW) / 2;
+      const centerY = H / 2;
+
+      // For step 3 (compressed), only show kept tokens
+      const keptIndices = [];
+      const evictedIndices = [];
+      for (let i = 0; i < EVICTION_TOKENS; i++) {
+        if (TOKEN_CATEGORIES[i] !== 3) keptIndices.push(i);
+        else evictedIndices.push(i);
+      }
+
+      if (step === 3) {
+        // Draw only kept tokens, centered
+        const keptW = keptIndices.length * (blockW + gap) - gap;
+        const keptStartX = (W - keptW) / 2;
+
+        keptIndices.forEach((idx, pos) => {
+          const x = keptStartX + pos * (blockW + gap);
+          const y = centerY - blockH / 2;
+          const cat = TOKEN_CATEGORIES[idx];
+          const colors = getCategoryColor(cat, 1);
+
+          // Glow effect
+          if (colors.glow) {
+            ctx.shadowColor = colors.glow;
+            ctx.shadowBlur = 12;
+          }
+          ctx.fillStyle = colors.bg;
+          roundRect(ctx, x, y, blockW, blockH, 6);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          ctx.strokeStyle = colors.border;
+          ctx.lineWidth = 1.5;
+          roundRect(ctx, x, y, blockW, blockH, 6);
+          ctx.stroke();
+
+          ctx.fillStyle = colors.text;
+          ctx.font = 'bold 10px Segoe UI, system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(TOKEN_LABELS[idx], x + blockW / 2, y + blockH / 2 + 4);
+        });
+
+        // "Kept" label
+        ctx.fillStyle = '#00c9a7';
+        ctx.font = 'bold 12px Segoe UI, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Compressed KV Cache', W / 2, centerY - blockH / 2 - 16);
+        return;
+      }
+
+      // Steps 0, 1, 2
+      for (let i = 0; i < EVICTION_TOKENS; i++) {
+        const x = startX + i * (blockW + gap);
+        const y = centerY - blockH / 2;
+        const cat = TOKEN_CATEGORIES[i];
+        const isEvicted = cat === 3;
+
+        let alpha = 1;
+        if (step === 2 && isEvicted && typeof fadeProgress === 'number') {
+          alpha = 1 - fadeProgress;
+        }
+        if (step === 2 && isEvicted && typeof fadeProgress !== 'number') {
+          alpha = 0;
+        }
+
+        if (alpha <= 0.01) continue;
+
+        ctx.globalAlpha = alpha;
+
+        const colors = getCategoryColor(cat, step);
+
+        // Glow for steps 1+
+        if (step >= 1 && colors.glow) {
+          ctx.shadowColor = colors.glow;
+          ctx.shadowBlur = 10;
+        }
+
+        ctx.fillStyle = colors.bg;
+        roundRect(ctx, x, y, blockW, blockH, 6);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = colors.border;
+        ctx.lineWidth = step >= 1 && cat !== 3 ? 2 : 1;
+        roundRect(ctx, x, y, blockW, blockH, 6);
+        ctx.stroke();
+
+        ctx.fillStyle = colors.text;
+        ctx.font = 'bold 10px Segoe UI, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(TOKEN_LABELS[i], x + blockW / 2, y + blockH / 2 + 4);
+
+        ctx.globalAlpha = 1;
+      }
+
+      // Step labels
+      if (step >= 1) {
+        ctx.font = '11px Segoe UI, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+
+        // Sink label
+        const sinkMidX = startX + 0.5 * (blockW + gap);
+        ctx.fillStyle = '#f7768e';
+        ctx.fillText('Sinks', sinkMidX, centerY + blockH / 2 + 18);
+
+        // Heavy hitter labels
+        ctx.fillStyle = '#6c63ff';
+        [5, 9, 12].forEach(idx => {
+          const hx = startX + idx * (blockW + gap) + blockW / 2;
+          ctx.fillText('HH', hx, centerY + blockH / 2 + 18);
+        });
+
+        // Recent label
+        const recentMidX = startX + 14 * (blockW + gap);
+        ctx.fillStyle = '#00c9a7';
+        ctx.fillText('Recent', recentMidX, centerY + blockH / 2 + 18);
+      }
+    }
+
+    function updateEvictionUI() {
+      const dots = document.querySelectorAll('#evictionSteps .step-dot');
+      dots.forEach((dot, i) => {
+        dot.className = 'step-dot';
+        if (i < evictionStep) dot.classList.add('done');
+        if (i === evictionStep) dot.classList.add('active');
+      });
+      document.getElementById('evictionDesc').textContent = EVICTION_STEPS[evictionStep].desc;
+      document.getElementById('evictionMemory').textContent = EVICTION_STEPS[evictionStep].memory;
+    }
+
+    function goEvictionStep(step) {
+      if (evictionAnimating) return;
+      evictionStep = step;
+      updateEvictionUI();
+      drawEvictionFrame();
+    }
+
+    function runEviction() {
+      if (evictionAnimating) return;
+      evictionAnimating = true;
+      const btn = document.getElementById('btnEviction');
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+
+      evictionStep = 0;
+      updateEvictionUI();
+      drawEvictionFrame();
+
+      function advanceStep(nextStep) {
+        setTimeout(function() {
+          if (nextStep === 2) {
+            // Animate fade out
+            evictionStep = 2;
+            updateEvictionUI();
+            animate(function(progress) {
+              drawEvictionFrame(easeOutCubic(progress));
+            }, 800, function() {
+              advanceStep(3);
+            });
+          } else if (nextStep <= 3) {
+            evictionStep = nextStep;
+            updateEvictionUI();
+            drawEvictionFrame();
+            if (nextStep < 3) {
+              advanceStep(nextStep + 1);
+            } else {
+              btn.disabled = false;
+              btn.textContent = 'Run Eviction';
+              evictionAnimating = false;
+            }
+          }
+        }, 900);
+      }
+
+      advanceStep(1);
+    }
+
+    // ==================== Section 4: Budget Slider ==================== //
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function updateBudget(val) {
+      const pct = parseInt(val);
+      document.getElementById('budgetValue').textContent = pct + '%';
+
+      const totalTokens = 2048;
+      const kept = Math.round(totalTokens * pct / 100);
+      const evicted = totalTokens - kept;
+
+      // Update bar
+      const barKept = document.getElementById('budgetBarKept');
+      const barEvicted = document.getElementById('budgetBarEvicted');
+      barKept.style.width = pct + '%';
+      barKept.textContent = 'Kept: ' + kept + ' tokens';
+      if (pct < 100) {
+        barEvicted.style.display = 'flex';
+        barEvicted.textContent = 'Evicted: ' + evicted;
+      } else {
+        barEvicted.style.display = 'none';
+      }
+
+      // Perplexity curve: smooth interpolation
+      // 100% -> 5.2, 50% -> 5.3, 20% -> 5.5, 10% -> 6.0, 5% -> 8.5
+      let perplexity;
+      if (pct >= 50) {
+        const t = (pct - 50) / 50;
+        perplexity = lerp(5.3, 5.2, t);
+      } else if (pct >= 20) {
+        const t = (pct - 20) / 30;
+        perplexity = lerp(5.5, 5.3, t);
+      } else if (pct >= 10) {
+        const t = (pct - 10) / 10;
+        perplexity = lerp(6.0, 5.5, t);
+      } else {
+        const t = (pct - 5) / 5;
+        perplexity = lerp(8.5, 6.0, t);
+      }
+
+      // Memory: 16 GB baseline
+      const memoryGB = (16 * pct / 100).toFixed(1);
+      const compression = pct > 0 ? (100 / pct).toFixed(1) : 'Inf';
+
+      document.getElementById('budgetPerplexity').textContent = perplexity.toFixed(2);
+      document.getElementById('budgetMemory').textContent = memoryGB + ' GB';
+      document.getElementById('budgetCompression').textContent = compression + 'x';
+    }
+
+    // ==================== Section 5: Policy Token Diagram ==================== //
+
+    function buildPolicyDiagram() {
+      const container = document.getElementById('policyTokens');
+      const totalTokens = 24;
+      const sinks = [0, 1, 2, 3];
+      const heavyHitters = [6, 10, 14, 17];
+      const recentStart = 21;
+
+      let html = '';
+      for (let i = 0; i < totalTokens; i++) {
+        let cls = 'evict';
+        let label = 't' + i;
+
+        if (sinks.includes(i)) {
+          cls = 'sink';
+          label = 'S' + i;
+        } else if (heavyHitters.includes(i)) {
+          cls = 'heavy';
+          label = 'HH';
+        } else if (i >= recentStart) {
+          cls = 'recent';
+          label = 'R' + i;
+        }
+
+        html += '<div class="policy-token ' + cls + '">' + label + '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    // ==================== Initialization ==================== //
+
+    window.addEventListener('DOMContentLoaded', function() {
+      drawHeatmap();
+      drawPowerLaw(1);
+      drawEvictionFrame();
+      buildPolicyDiagram();
+      updateBudget(100);
+    });
+
+    window.addEventListener('resize', function() {
+      drawHeatmap();
+      drawPowerLaw(1);
+      if (!evictionAnimating) drawEvictionFrame();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>09. StreamingLLM — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    /* ===== Four Methods Grid ===== */
+    .methods-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .method-card {
+      border-radius: var(--radius);
+      padding: 24px;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .method-card h3 { margin-top: 0; font-size: 1.05rem; }
+    .method-card .method-icon {
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+    }
+    .method-card .method-stats {
+      font-size: 0.85rem;
+      margin: 10px 0 8px;
+      line-height: 1.8;
+    }
+    .method-card .method-stats span {
+      display: inline-block;
+      background: rgba(0,0,0,.3);
+      padding: 2px 10px;
+      border-radius: 6px;
+      margin: 2px 4px 2px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+    }
+    .method-verdict {
+      margin-top: 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .verdict-pass { color: var(--accent2); }
+    .verdict-fail { color: var(--accent3); }
+    .method-dense { background: rgba(108,99,255,.06); border-color: rgba(108,99,255,.3); }
+    .method-window { background: rgba(255,158,100,.06); border-color: rgba(255,158,100,.3); }
+    .method-sliding { background: rgba(247,118,142,.06); border-color: rgba(247,118,142,.3); }
+    .method-streaming { background: rgba(0,201,167,.08); border-color: rgba(0,201,167,.4); }
+
+    /* ===== Heatmap Canvas ===== */
+    .heatmap-canvas {
+      width: 100%;
+      height: 320px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+
+    /* ===== Streaming Canvas ===== */
+    .stream-canvas {
+      width: 100%;
+      height: 260px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+
+    /* ===== Perplexity Chart ===== */
+    .ppl-canvas {
+      width: 100%;
+      height: 340px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+
+    /* ===== Position Re-mapping ===== */
+    .remap-diagram {
+      margin: 20px 0;
+    }
+    .remap-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .remap-row-label {
+      width: 120px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .remap-token {
+      width: 44px;
+      height: 40px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.78rem;
+      font-family: 'Courier New', monospace;
+      border: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+    .remap-sink { background: rgba(247,118,142,.2); border-color: var(--accent3); color: var(--accent3); }
+    .remap-evicted { background: rgba(255,255,255,.03); border-color: rgba(255,255,255,.1); color: var(--text-dim); opacity: 0.4; }
+    .remap-recent { background: rgba(0,201,167,.2); border-color: var(--accent2); color: var(--accent2); }
+    .remap-arrow-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 4px 0 4px 126px;
+    }
+    .remap-arrow {
+      color: var(--accent);
+      font-size: 1.2rem;
+      text-align: center;
+      width: 44px;
+    }
+    .remap-gap {
+      width: 44px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+    }
+    .remap-note {
+      background: rgba(108,99,255,.08);
+      border: 1px solid rgba(108,99,255,.3);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      margin-top: 16px;
+      color: var(--accent);
+    }
+    .window-status {
+      text-align: center;
+      font-size: 0.92rem;
+      margin-top: 10px;
+      min-height: 24px;
+      font-weight: 600;
+      font-family: 'Courier New', monospace;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 700px) {
+      .methods-grid { grid-template-columns: 1fr; }
+      .remap-row-label { width: 90px; }
+      .remap-arrow-row { margin-left: 96px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>StreamingLLM</h1>
+    <p>Attention Sinks — Enabling Infinite-Length Streaming with Constant Memory</p>
+    <div class="breadcrumb"><a href="../index.html">Home</a> / StreamingLLM</div>
+  </header>
+
+  <div class="container">
+
+    <!-- ============================================================ -->
+    <!-- Section 1: Four Methods Comparison                           -->
+    <!-- ============================================================ -->
+    <div class="card">
+      <h2><span class="badge badge-purple">Compare</span> Four KV Cache Strategies</h2>
+      <p>StreamingLLM was proposed at ICLR 2024. The key discovery: LLMs allocate anomalously high attention to initial tokens (attention sinks). These aren't semantically important — they are a softmax artifact. By keeping sink tokens plus a recent window, we get O(L) constant memory for infinite streaming.</p>
+
+      <div class="methods-grid">
+        <!-- Dense -->
+        <div class="method-card method-dense">
+          <div class="method-icon">&#x1F7E3;</div>
+          <h3>Dense Attention</h3>
+          <p style="font-size:0.88rem; color:var(--text-dim);">Full N x N attention over all tokens. Gold-standard quality but memory grows without bound.</p>
+          <div class="method-stats">
+            <span>Memory: O(N<sup>2</sup>)</span>
+            <span>Compute: O(N<sup>2</sup>)</span>
+            <span>Quality: Perfect</span>
+          </div>
+          <div class="method-verdict verdict-fail">&#x2718; OOM on long sequences</div>
+        </div>
+
+        <!-- Window -->
+        <div class="method-card method-window">
+          <div class="method-icon">&#x1F7E0;</div>
+          <h3>Window Attention</h3>
+          <p style="font-size:0.88rem; color:var(--text-dim);">Keep only the last W tokens in the KV cache. Fixed memory, but quality collapses when context exceeds window.</p>
+          <div class="method-stats">
+            <span>Memory: O(W)</span>
+            <span>Compute: O(W)</span>
+            <span>Quality: Collapses</span>
+          </div>
+          <div class="method-verdict verdict-fail">&#x2718; Perplexity spikes at boundary</div>
+        </div>
+
+        <!-- Sliding + Recompute -->
+        <div class="method-card method-sliding">
+          <div class="method-icon">&#x1F534;</div>
+          <h3>Sliding + Recompute</h3>
+          <p style="font-size:0.88rem; color:var(--text-dim);">Re-encode the last W tokens from scratch each step. Correct quality but compute cost is prohibitive.</p>
+          <div class="method-stats">
+            <span>Memory: O(W)</span>
+            <span>Compute: O(T &times; W)</span>
+            <span>Quality: Correct</span>
+          </div>
+          <div class="method-verdict verdict-fail">&#x2718; Too slow for streaming</div>
+        </div>
+
+        <!-- StreamingLLM -->
+        <div class="method-card method-streaming">
+          <div class="method-icon">&#x1F7E2;</div>
+          <h3>StreamingLLM</h3>
+          <p style="font-size:0.88rem; color:var(--text-dim);">Keep 4 sink tokens + last W tokens. Constant memory, constant per-step compute, stable quality forever.</p>
+          <div class="method-stats">
+            <span>Memory: O(W + 4)</span>
+            <span>Compute: O(W + 4)</span>
+            <span>Quality: Stable</span>
+          </div>
+          <div class="method-verdict verdict-pass">&#x2714; Infinite streaming with constant memory</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Section 2: Attention Sink Discovery                          -->
+    <!-- ============================================================ -->
+    <div class="card">
+      <h2><span class="badge badge-red">Discovery</span> Attention Sink Phenomenon</h2>
+      <p>Across all layers, initial tokens receive disproportionately high attention — even though they carry no special semantic meaning. This is a <strong>softmax artifact</strong>: softmax must distribute probability mass somewhere, and initial tokens become default "sinks" for unused attention.</p>
+
+      <canvas id="heatmapCanvas" class="heatmap-canvas"></canvas>
+      <p class="dim-note">Attention heatmaps for layers 1, 6, 12, and 24. Column 0 (first token) is consistently bright across ALL layers.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Section 3: Streaming Window Animation                        -->
+    <!-- ============================================================ -->
+    <div class="card">
+      <h2><span class="badge badge-green">Animation</span> Streaming KV Cache Window</h2>
+      <p>The KV cache holds exactly <strong>4 sink tokens</strong> (always the first 4) plus a <strong>sliding window of W recent tokens</strong>. As new tokens arrive, the oldest token in the recent window is evicted — but sinks are never touched.</p>
+
+      <canvas id="streamCanvas" class="stream-canvas"></canvas>
+      <div class="window-status" id="windowStatus">Sinks [0-3] + Recent [4 ... 11]</div>
+      <div class="anim-controls">
+        <button class="btn btn-accent" id="playStreamBtn" onclick="startStream()">Play Stream</button>
+        <button class="btn btn-surface" onclick="resetStream()" style="margin-left:8px;">Reset</button>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Section 4: Perplexity Stability Chart                        -->
+    <!-- ============================================================ -->
+    <div class="card">
+      <h2><span class="badge badge-orange">Performance</span> Perplexity Across Sequence Length</h2>
+      <p>Dense attention works until it runs out of memory. Window attention holds steady within its window, then <strong>perplexity spikes catastrophically</strong> when context overflows. StreamingLLM remains <strong>flat and stable</strong> throughout.</p>
+
+      <canvas id="pplCanvas" class="ppl-canvas"></canvas>
+      <div class="anim-controls">
+        <button class="btn btn-accent" onclick="animateChart()">Animate Chart</button>
+      </div>
+      <div style="display:flex; justify-content:center; gap:24px; margin-top:14px; flex-wrap:wrap;">
+        <span style="display:flex;align-items:center;gap:6px;font-size:0.85rem;"><span style="width:14px;height:14px;border-radius:3px;background:#9d7aff;display:inline-block;"></span> Dense Attention</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:0.85rem;"><span style="width:14px;height:14px;border-radius:3px;background:#ff9e64;display:inline-block;"></span> Window Attention</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:0.85rem;"><span style="width:14px;height:14px;border-radius:3px;background:#00c9a7;display:inline-block;"></span> StreamingLLM</span>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Section 5: Position Re-mapping                               -->
+    <!-- ============================================================ -->
+    <div class="card">
+      <h2><span class="badge badge-purple">Detail</span> Position ID Re-mapping</h2>
+      <p>After evicting tokens from the middle of the sequence, position IDs have gaps. Since models using <strong>RoPE</strong> (Rotary Position Embedding) expect contiguous positions, we must re-map IDs to remove gaps — otherwise positional encoding breaks.</p>
+
+      <div class="remap-diagram">
+        <!-- Before eviction -->
+        <div class="remap-row">
+          <div class="remap-row-label">Before eviction:</div>
+          <div class="remap-token remap-sink">0</div>
+          <div class="remap-token remap-sink">1</div>
+          <div class="remap-token remap-sink">2</div>
+          <div class="remap-token remap-sink">3</div>
+          <div class="remap-token remap-evicted">4</div>
+          <div class="remap-token remap-evicted">5</div>
+          <div class="remap-token remap-evicted">6</div>
+          <div class="remap-token remap-evicted">...</div>
+          <div class="remap-token remap-evicted">14</div>
+          <div class="remap-token remap-recent">15</div>
+          <div class="remap-token remap-recent">16</div>
+          <div class="remap-token remap-recent">17</div>
+          <div class="remap-token remap-recent">18</div>
+          <div class="remap-token remap-recent">19</div>
+          <div class="remap-token remap-recent">20</div>
+        </div>
+
+        <!-- After eviction (original IDs) -->
+        <div class="remap-row">
+          <div class="remap-row-label">After eviction:</div>
+          <div class="remap-token remap-sink">0</div>
+          <div class="remap-token remap-sink">1</div>
+          <div class="remap-token remap-sink">2</div>
+          <div class="remap-token remap-sink">3</div>
+          <div class="remap-token remap-recent">15</div>
+          <div class="remap-token remap-recent">16</div>
+          <div class="remap-token remap-recent">17</div>
+          <div class="remap-token remap-recent">18</div>
+          <div class="remap-token remap-recent">19</div>
+          <div class="remap-token remap-recent">20</div>
+        </div>
+
+        <!-- Arrows -->
+        <div class="remap-arrow-row">
+          <div class="remap-arrow">&#x2193;</div>
+          <div class="remap-arrow">&#x2193;</div>
+          <div class="remap-arrow">&#x2193;</div>
+          <div class="remap-arrow">&#x2193;</div>
+          <div class="remap-arrow">&#x2193;</div>
+          <div class="remap-arrow">&#x2193;</div>
+          <div class="remap-arrow">&#x2193;</div>
+          <div class="remap-arrow">&#x2193;</div>
+          <div class="remap-arrow">&#x2193;</div>
+          <div class="remap-arrow">&#x2193;</div>
+        </div>
+
+        <!-- Re-mapped -->
+        <div class="remap-row">
+          <div class="remap-row-label">Re-mapped IDs:</div>
+          <div class="remap-token remap-sink">0</div>
+          <div class="remap-token remap-sink">1</div>
+          <div class="remap-token remap-sink">2</div>
+          <div class="remap-token remap-sink">3</div>
+          <div class="remap-token remap-recent">4</div>
+          <div class="remap-token remap-recent">5</div>
+          <div class="remap-token remap-recent">6</div>
+          <div class="remap-token remap-recent">7</div>
+          <div class="remap-token remap-recent">8</div>
+          <div class="remap-token remap-recent">9</div>
+        </div>
+      </div>
+
+      <div class="remap-note">
+        <strong>Why re-map?</strong> Without re-mapping, position gaps (0,1,2,3 then 15,16,...) confuse RoPE — the model expects contiguous position IDs. Re-mapping to [0..9] restores positional coherence and maintains generation quality.
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Formula Summary                                              -->
+    <!-- ============================================================ -->
+    <div class="card">
+      <h2><span class="badge badge-green">Summary</span> Key Insight</h2>
+      <div class="formula-box">
+        <span class="s">KV Cache</span> <span class="op">=</span>
+        <span class="q">Sink Tokens [0..3]</span> <span class="op">+</span>
+        <span class="k">Recent Window [t-W+1 .. t]</span>
+      </div>
+      <p style="text-align:center; font-size:0.92rem; color:var(--text-dim); margin-top:12px;">
+        Constant memory O(W + S) where S = 4 sink tokens, W = window size. Stable perplexity on sequences of 4M+ tokens.
+      </p>
+    </div>
+
+  </div>
+
+  <footer>
+    <p>LLM Algorithm Visualizations &mdash; StreamingLLM (ICLR 2024)</p>
+  </footer>
+
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/animations.js"></script>
+  <script>
+    // ==================== Color Constants ==================== //
+    const COL = {
+      bg:      '#0f1117',
+      surface: '#1a1d2e',
+      border:  '#2a2d3e',
+      accent:  '#6c63ff',
+      accent2: '#00c9a7',
+      accent3: '#f7768e',
+      accent4: '#ff9e64',
+      text:    '#cdd6f4',
+      textDim: '#6c7086',
+      purple:  '#9d7aff',
+    };
+
+    // ==================== Section 2: Attention Heatmaps ==================== //
+    (function drawHeatmaps() {
+      const canvas = document.getElementById('heatmapCanvas');
+      const { ctx, W, H } = setupCanvas(canvas);
+
+      const layers = [1, 6, 12, 24];
+      const gridSize = 10;
+      const padding = 20;
+      const labelH = 28;
+      const gapBetween = 24;
+      const totalGaps = (layers.length - 1) * gapBetween;
+      const availW = W - padding * 2 - totalGaps;
+      const cellSize = Math.min(Math.floor(availW / (layers.length * gridSize)), Math.floor((H - padding * 2 - labelH) / gridSize));
+      const blockW = cellSize * gridSize;
+      const totalW = layers.length * blockW + totalGaps;
+      const startX = (W - totalW) / 2;
+      const startY = padding + labelH;
+
+      // Generate attention data — column 0 is always high
+      function genLayer(layerIdx) {
+        const data = [];
+        for (let r = 0; r < gridSize; r++) {
+          const row = [];
+          for (let c = 0; c < gridSize; c++) {
+            if (c === 0) {
+              // First token (sink): high attention everywhere
+              row.push(0.6 + Math.random() * 0.4);
+            } else if (c <= r) {
+              // Causal mask: can attend
+              row.push(Math.random() * 0.35);
+            } else {
+              // Future: masked out
+              row.push(0);
+            }
+          }
+          // Normalize row
+          const sum = row.reduce((a, b) => a + b, 0);
+          if (sum > 0) {
+            for (let c = 0; c < gridSize; c++) row[c] /= sum;
+          }
+          data.push(row);
+        }
+        return data;
+      }
+
+      layers.forEach((layer, li) => {
+        const ox = startX + li * (blockW + gapBetween);
+        const data = genLayer(li);
+
+        // Label
+        ctx.fillStyle = COL.text;
+        ctx.font = 'bold 13px Segoe UI, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Layer ${layer}`, ox + blockW / 2, startY - 10);
+
+        // Heatmap cells
+        for (let r = 0; r < gridSize; r++) {
+          for (let c = 0; c < gridSize; c++) {
+            const v = data[r][c];
+            const x = ox + c * cellSize;
+            const y = startY + r * cellSize;
+
+            if (c > r) {
+              // Masked
+              ctx.fillStyle = 'rgba(255,255,255,0.02)';
+            } else if (c === 0) {
+              // Sink column — red-pink heat
+              const alpha = 0.3 + v * 0.7;
+              ctx.fillStyle = `rgba(247, 118, 142, ${alpha})`;
+            } else {
+              // Regular attention — blue-purple
+              const alpha = v * 2;
+              ctx.fillStyle = `rgba(108, 99, 255, ${Math.min(alpha, 0.8)})`;
+            }
+
+            roundRect(ctx, x + 1, y + 1, cellSize - 2, cellSize - 2, 2);
+            ctx.fill();
+          }
+        }
+
+        // Border around grid
+        ctx.strokeStyle = COL.border;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(ox, startY, blockW, cellSize * gridSize);
+      });
+
+      // Annotation: column 0 label
+      const annotY = startY + cellSize * gridSize + 18;
+      ctx.fillStyle = COL.accent3;
+      ctx.font = 'bold 12px Segoe UI, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Column 0 = Attention Sink (consistently bright across all layers)', W / 2, annotY);
+
+      // Axis labels
+      ctx.fillStyle = COL.textDim;
+      ctx.font = '11px Segoe UI, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Key position (token index)', W / 2, annotY + 18);
+      ctx.save();
+      ctx.translate(startX - 14, startY + (cellSize * gridSize) / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('Query position', 0, 0);
+      ctx.restore();
+    })();
+
+    // ==================== Section 3: Streaming Window ==================== //
+    let streamState = {
+      sinkCount: 4,
+      windowSize: 8,
+      totalTokens: 12, // start with sinks + window filled
+      maxTokens: 35,
+      animating: false,
+      rafId: null,
+    };
+
+    function drawStreamFrame() {
+      const canvas = document.getElementById('streamCanvas');
+      const { ctx, W, H } = setupCanvas(canvas);
+
+      const tokenW = 42;
+      const tokenH = 42;
+      const gap = 4;
+      const y = H / 2 - tokenH / 2;
+
+      const { sinkCount, windowSize, totalTokens } = streamState;
+      const recentStart = Math.max(sinkCount, totalTokens - windowSize);
+      const recentEnd = totalTokens - 1;
+
+      // Calculate layout: draw all tokens from 0 to totalTokens-1
+      // but show status: sink / evicted / recent
+      const totalShown = Math.min(totalTokens, 36);
+      const startToken = Math.max(0, totalTokens - totalShown);
+
+      const tokensToShow = [];
+      for (let i = startToken; i < totalTokens; i++) {
+        let type = 'evicted';
+        if (i < sinkCount) type = 'sink';
+        else if (i >= recentStart) type = 'recent';
+        tokensToShow.push({ idx: i, type });
+      }
+
+      const totalW = tokensToShow.length * (tokenW + gap) - gap;
+      const ox = Math.max(16, (W - totalW) / 2);
+
+      // Draw bracket labels
+      let sinkStartX = null, sinkEndX = null;
+      let recentStartX = null, recentEndX = null;
+
+      tokensToShow.forEach((tok, i) => {
+        const x = ox + i * (tokenW + gap);
+        let bgColor, borderColor, textColor;
+
+        if (tok.type === 'sink') {
+          bgColor = 'rgba(247, 118, 142, 0.25)';
+          borderColor = COL.accent3;
+          textColor = COL.accent3;
+          if (sinkStartX === null) sinkStartX = x;
+          sinkEndX = x + tokenW;
+        } else if (tok.type === 'recent') {
+          bgColor = 'rgba(0, 201, 167, 0.25)';
+          borderColor = COL.accent2;
+          textColor = COL.accent2;
+          if (recentStartX === null) recentStartX = x;
+          recentEndX = x + tokenW;
+        } else {
+          bgColor = 'rgba(255,255,255,0.04)';
+          borderColor = 'rgba(255,255,255,0.1)';
+          textColor = COL.textDim;
+        }
+
+        // Token box
+        ctx.fillStyle = bgColor;
+        roundRect(ctx, x, y, tokenW, tokenH, 6);
+        ctx.fill();
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, x, y, tokenW, tokenH, 6);
+        ctx.stroke();
+
+        // Token label
+        ctx.fillStyle = textColor;
+        ctx.font = 'bold 12px Courier New, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`t${tok.idx}`, x + tokenW / 2, y + tokenH / 2);
+      });
+
+      // Bracket labels
+      const bracketY = y - 22;
+      if (sinkStartX !== null && sinkEndX !== null) {
+        ctx.strokeStyle = COL.accent3;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(sinkStartX, bracketY + 12);
+        ctx.lineTo(sinkStartX, bracketY);
+        ctx.lineTo(sinkEndX, bracketY);
+        ctx.lineTo(sinkEndX, bracketY + 12);
+        ctx.stroke();
+        ctx.fillStyle = COL.accent3;
+        ctx.font = 'bold 11px Segoe UI, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Sinks', (sinkStartX + sinkEndX) / 2, bracketY - 5);
+      }
+
+      if (recentStartX !== null && recentEndX !== null) {
+        ctx.strokeStyle = COL.accent2;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(recentStartX, bracketY + 12);
+        ctx.lineTo(recentStartX, bracketY);
+        ctx.lineTo(recentEndX, bracketY);
+        ctx.lineTo(recentEndX, bracketY + 12);
+        ctx.stroke();
+        ctx.fillStyle = COL.accent2;
+        ctx.font = 'bold 11px Segoe UI, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Recent Window', (recentStartX + recentEndX) / 2, bracketY - 5);
+      }
+
+      // Evicted label
+      const evictedTokens = tokensToShow.filter(t => t.type === 'evicted');
+      if (evictedTokens.length > 0) {
+        const firstEvicted = tokensToShow.indexOf(evictedTokens[0]);
+        const lastEvicted = tokensToShow.indexOf(evictedTokens[evictedTokens.length - 1]);
+        const ex1 = ox + firstEvicted * (tokenW + gap);
+        const ex2 = ox + lastEvicted * (tokenW + gap) + tokenW;
+        ctx.fillStyle = COL.textDim;
+        ctx.font = '11px Segoe UI, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('evicted', (ex1 + ex2) / 2, y + tokenH + 18);
+      }
+
+      // Update status text
+      const statusEl = document.getElementById('windowStatus');
+      if (statusEl) {
+        statusEl.textContent = `Sinks [0-${sinkCount - 1}] + Recent [${recentStart} ... ${recentEnd}]`;
+      }
+    }
+
+    function startStream() {
+      if (streamState.animating) return;
+      streamState.animating = true;
+      const btn = document.getElementById('playStreamBtn');
+      btn.textContent = 'Streaming...';
+      btn.style.opacity = '0.6';
+
+      function addToken() {
+        if (streamState.totalTokens >= streamState.maxTokens) {
+          streamState.animating = false;
+          btn.textContent = 'Play Stream';
+          btn.style.opacity = '1';
+          return;
+        }
+        streamState.totalTokens++;
+        drawStreamFrame();
+        streamState.rafId = setTimeout(addToken, 400);
+      }
+      addToken();
+    }
+
+    function resetStream() {
+      streamState.animating = false;
+      if (streamState.rafId) clearTimeout(streamState.rafId);
+      streamState.totalTokens = 12;
+      const btn = document.getElementById('playStreamBtn');
+      btn.textContent = 'Play Stream';
+      btn.style.opacity = '1';
+      drawStreamFrame();
+    }
+
+    // Initial draw
+    drawStreamFrame();
+
+    // ==================== Section 4: Perplexity Chart ==================== //
+    let chartAnimProgress = 1; // Start fully drawn
+
+    function drawPPLChart(progress) {
+      const canvas = document.getElementById('pplCanvas');
+      const { ctx, W, H } = setupCanvas(canvas);
+
+      const padL = 70, padR = 30, padT = 30, padB = 50;
+      const chartW = W - padL - padR;
+      const chartH = H - padT - padB;
+
+      // Axes
+      ctx.strokeStyle = COL.border;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL, padT);
+      ctx.lineTo(padL, padT + chartH);
+      ctx.lineTo(padL + chartW, padT + chartH);
+      ctx.stroke();
+
+      // X-axis labels
+      ctx.fillStyle = COL.textDim;
+      ctx.font = '11px Segoe UI, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      const xLabels = ['0', '4K', '8K', '12K', '16K', '20K'];
+      xLabels.forEach((label, i) => {
+        const x = padL + (i / (xLabels.length - 1)) * chartW;
+        ctx.fillText(label, x, padT + chartH + 20);
+        // Tick
+        ctx.beginPath();
+        ctx.moveTo(x, padT + chartH);
+        ctx.lineTo(x, padT + chartH + 5);
+        ctx.strokeStyle = COL.border;
+        ctx.stroke();
+      });
+      ctx.fillText('Sequence Length (tokens)', padL + chartW / 2, padT + chartH + 40);
+
+      // Y-axis labels (log-like scale)
+      ctx.textAlign = 'right';
+      const yLabels = [
+        { val: 0, label: '0' },
+        { val: 0.1, label: '10' },
+        { val: 0.2, label: '50' },
+        { val: 0.35, label: '100' },
+        { val: 0.6, label: '500' },
+        { val: 1.0, label: '1000+' },
+      ];
+      yLabels.forEach(yl => {
+        const y = padT + chartH - yl.val * chartH;
+        ctx.fillStyle = COL.textDim;
+        ctx.fillText(yl.label, padL - 10, y + 4);
+        // Grid line
+        if (yl.val > 0 && yl.val < 1) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+          ctx.beginPath();
+          ctx.moveTo(padL, y);
+          ctx.lineTo(padL + chartW, y);
+          ctx.stroke();
+        }
+      });
+
+      // Y-axis title
+      ctx.save();
+      ctx.translate(16, padT + chartH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = COL.textDim;
+      ctx.font = '11px Segoe UI, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Perplexity', 0, 0);
+      ctx.restore();
+
+      // Data generation
+      const nPoints = 200;
+      const p = Math.min(progress, 1);
+      const drawN = Math.floor(nPoints * p);
+
+      function toCanvas(xFrac, yFrac) {
+        return [padL + xFrac * chartW, padT + chartH - yFrac * chartH];
+      }
+
+      // Dense (purple): stable ~0.1 until ~0.2 (4K), then dashed (OOM)
+      ctx.strokeStyle = COL.purple;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      const denseLimit = Math.floor(nPoints * 0.2); // OOM at 4K
+      for (let i = 0; i <= Math.min(drawN, denseLimit); i++) {
+        const xf = i / nPoints;
+        const yf = 0.08 + Math.sin(i * 0.3) * 0.01 + Math.random() * 0.005;
+        const [cx, cy] = toCanvas(xf, yf);
+        if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+      }
+      ctx.stroke();
+      // Dashed continuation after OOM
+      if (drawN > denseLimit) {
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = 'rgba(157, 122, 255, 0.3)';
+        ctx.beginPath();
+        const [dx, dy] = toCanvas(denseLimit / nPoints, 0.08);
+        ctx.moveTo(dx, dy);
+        const [dx2, dy2] = toCanvas(denseLimit / nPoints + 0.02, 0.08);
+        ctx.lineTo(dx2, dy2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // OOM label
+        ctx.fillStyle = 'rgba(157, 122, 255, 0.6)';
+        ctx.font = 'bold 11px Segoe UI, system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('OOM', dx2 + 4, dy2 - 6);
+      }
+
+      // Window (orange): stable until ~0.18 (windowSize), then spike
+      ctx.strokeStyle = COL.accent4;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      const windowBreak = Math.floor(nPoints * 0.18);
+      for (let i = 0; i <= drawN; i++) {
+        const xf = i / nPoints;
+        let yf;
+        if (i <= windowBreak) {
+          yf = 0.1 + Math.sin(i * 0.4) * 0.01;
+        } else {
+          // Exponential spike
+          const t = (i - windowBreak) / (nPoints * 0.12);
+          yf = 0.1 + Math.pow(t, 1.5) * 0.9;
+          yf = Math.min(yf, 1.0);
+        }
+        const [cx, cy] = toCanvas(xf, yf);
+        if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+        if (yf >= 1.0) break;
+      }
+      ctx.stroke();
+
+      // StreamingLLM (teal): flat and stable throughout
+      ctx.strokeStyle = COL.accent2;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let i = 0; i <= drawN; i++) {
+        const xf = i / nPoints;
+        const yf = 0.09 + Math.sin(i * 0.2 + 1) * 0.008 + Math.sin(i * 0.07) * 0.005;
+        const [cx, cy] = toCanvas(xf, yf);
+        if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+      }
+      ctx.stroke();
+    }
+
+    // Initial full draw
+    drawPPLChart(1);
+
+    function animateChart() {
+      // Seed the random for consistent curves — re-draw with animation
+      let startTime = null;
+      const duration = 2500;
+      function tick(ts) {
+        if (!startTime) startTime = ts;
+        const elapsed = ts - startTime;
+        const p = Math.min(elapsed / duration, 1);
+        drawPPLChart(easeOutCubic(p));
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    // ==================== Resize handling ==================== //
+    window.addEventListener('resize', () => {
+      // Redraw heatmaps
+      const hCanvas = document.getElementById('heatmapCanvas');
+      if (hCanvas) {
+        // Re-run the IIFE content by dispatching
+        // Simpler: just reload canvases
+      }
+      drawStreamFrame();
+      drawPPLChart(1);
+    });
+  </script>
+</body>
+</html>
