@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>06. PagedAttention — LLM Algorithm Visualizations</title>
+  <title data-i18n="p06.title">06. PagedAttention — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
   <style>
     /* ===== Memory Bar ===== */
@@ -209,37 +209,37 @@
 </head>
 <body>
   <header>
-    <h1>PagedAttention / vLLM</h1>
-    <p>OS-Inspired KV Cache Memory Management — Eliminating Fragmentation</p>
-    <div class="breadcrumb"><a href="../index.html">Home</a> / PagedAttention</div>
+    <h1 data-i18n="p06.header">PagedAttention / vLLM</h1>
+    <p data-i18n="p06.subtitle">OS-Inspired KV Cache Memory Management — Eliminating Fragmentation</p>
+    <div class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p06.breadcrumb">PagedAttention</span></div>
   </header>
 
   <div class="container">
 
     <!-- ==================== Section 1: The Problem ==================== -->
     <div class="card">
-      <h2><span class="badge badge-red">Problem</span> KV Cache Memory Waste</h2>
-      <p>In traditional LLM serving systems, KV cache memory is <strong>pre-allocated contiguously</strong> for each request up to the maximum sequence length. Since actual generation lengths are unpredictable, this leads to massive memory waste — often <strong>60-80%</strong> of allocated GPU memory is unused.</p>
+      <h2 data-i18n="p06.s1.heading" data-i18n-html><span class="badge badge-red">Problem</span> KV Cache Memory Waste</h2>
+      <p data-i18n="p06.s1.desc" data-i18n-html>In traditional LLM serving systems, KV cache memory is <strong>pre-allocated contiguously</strong> for each request up to the maximum sequence length. Since actual generation lengths are unpredictable, this leads to massive memory waste — often <strong>60-80%</strong> of allocated GPU memory is unused.</p>
 
-      <h3>Three Types of Waste</h3>
+      <h3 data-i18n="p06.s1.wasteTitle">Three Types of Waste</h3>
 
       <div class="phase-grid" style="grid-template-columns: 1fr 1fr 1fr;">
         <div class="phase-card" style="background: rgba(255,158,100,.08); border-color: rgba(255,158,100,.3);">
-          <h3 style="color: var(--accent4); margin-top: 0;">Reservation Waste</h3>
-          <p style="font-size: 0.9rem;">Pre-allocate for max_seq_len (e.g., 2048) but the request only generates 128 tokens. <strong>93%</strong> of reserved memory is never used.</p>
+          <h3 style="color: var(--accent4); margin-top: 0;" data-i18n="p06.s1.reservation.title">Reservation Waste</h3>
+          <p style="font-size: 0.9rem;" data-i18n="p06.s1.reservation.desc" data-i18n-html>Pre-allocate for max_seq_len (e.g., 2048) but the request only generates 128 tokens. <strong>93%</strong> of reserved memory is never used.</p>
         </div>
         <div class="phase-card" style="background: rgba(247,118,142,.08); border-color: rgba(247,118,142,.3);">
-          <h3 style="color: var(--accent3); margin-top: 0;">Internal Fragmentation</h3>
-          <p style="font-size: 0.9rem;">Last allocated block is only partially filled with KV entries. The remainder of that block is wasted space.</p>
+          <h3 style="color: var(--accent3); margin-top: 0;" data-i18n="p06.s1.internal.title">Internal Fragmentation</h3>
+          <p style="font-size: 0.9rem;" data-i18n="p06.s1.internal.desc">Last allocated block is only partially filled with KV entries. The remainder of that block is wasted space.</p>
         </div>
         <div class="phase-card" style="background: rgba(108,99,255,.08); border-color: rgba(108,99,255,.3);">
-          <h3 style="color: var(--accent); margin-top: 0;">External Fragmentation</h3>
-          <p style="font-size: 0.9rem;">Free memory exists across GPU but in small scattered chunks — not enough contiguous space for a new request.</p>
+          <h3 style="color: var(--accent); margin-top: 0;" data-i18n="p06.s1.external.title">External Fragmentation</h3>
+          <p style="font-size: 0.9rem;" data-i18n="p06.s1.external.desc">Free memory exists across GPU but in small scattered chunks — not enough contiguous space for a new request.</p>
         </div>
       </div>
 
-      <h3>Traditional Contiguous Allocation</h3>
-      <p style="font-size: 0.9rem; margin-bottom: 12px;">A snapshot of GPU KV cache memory — each request reserves a full contiguous block for max sequence length:</p>
+      <h3 data-i18n="p06.s1.contigTitle">Traditional Contiguous Allocation</h3>
+      <p style="font-size: 0.9rem; margin-bottom: 12px;" data-i18n="p06.s1.contigDesc">A snapshot of GPU KV cache memory — each request reserves a full contiguous block for max sequence length:</p>
 
       <div class="mem-bar-container">
         <div class="mem-bar-label">
@@ -272,13 +272,13 @@
 
     <!-- ==================== Section 2: OS Virtual Memory Analogy ==================== -->
     <div class="card">
-      <h2><span class="badge badge-purple">Analogy</span> OS Virtual Memory Mapping</h2>
-      <p>PagedAttention borrows the core idea from operating system virtual memory: use a <strong>page table</strong> (block table) to map logical addresses to non-contiguous physical locations. The KV cache no longer needs contiguous memory.</p>
+      <h2 data-i18n="p06.s2.heading" data-i18n-html><span class="badge badge-purple">Analogy</span> OS Virtual Memory Mapping</h2>
+      <p data-i18n="p06.s2.desc" data-i18n-html>PagedAttention borrows the core idea from operating system virtual memory: use a <strong>page table</strong> (block table) to map logical addresses to non-contiguous physical locations. The KV cache no longer needs contiguous memory.</p>
 
       <div class="compare-grid">
         <div class="compare-card analogy-side" style="background: rgba(108,99,255,.06); border-color: rgba(108,99,255,.3);">
-          <h3 style="color: var(--accent);">OS Virtual Memory</h3>
-          <p style="font-size: 0.88rem; margin-bottom: 12px;">Page Table maps virtual pages to physical page frames in RAM</p>
+          <h3 style="color: var(--accent);" data-i18n="p06.s2.os.title">OS Virtual Memory</h3>
+          <p style="font-size: 0.88rem; margin-bottom: 12px;" data-i18n="p06.s2.os.desc">Page Table maps virtual pages to physical page frames in RAM</p>
           <div class="block-map">
             <div class="block-map-row">
               <div class="block-map-label" style="color: var(--accent);">V.Page 0</div>
@@ -305,12 +305,12 @@
               <div class="block-map-phys phys-os">P.F 5</div>
             </div>
           </div>
-          <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 10px;">Physical frames need NOT be contiguous. The page table provides the indirection layer.</p>
+          <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 10px;" data-i18n="p06.s2.os.note">Physical frames need NOT be contiguous. The page table provides the indirection layer.</p>
         </div>
 
         <div class="compare-card analogy-side" style="background: rgba(0,201,167,.06); border-color: rgba(0,201,167,.3);">
-          <h3 style="color: var(--accent2);">PagedAttention</h3>
-          <p style="font-size: 0.88rem; margin-bottom: 12px;">Block Table maps logical KV blocks to physical GPU memory blocks</p>
+          <h3 style="color: var(--accent2);" data-i18n="p06.s2.pa.title">PagedAttention</h3>
+          <p style="font-size: 0.88rem; margin-bottom: 12px;" data-i18n="p06.s2.pa.desc">Block Table maps logical KV blocks to physical GPU memory blocks</p>
           <div class="block-map">
             <div class="block-map-row">
               <div class="block-map-label" style="color: var(--accent2);">KV Block 0</div>
@@ -337,19 +337,19 @@
               <div class="block-map-phys phys-pa">GPU 0</div>
             </div>
           </div>
-          <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 10px;">Physical GPU blocks need NOT be contiguous. Block table provides indirection for KV cache.</p>
+          <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 10px;" data-i18n="p06.s2.pa.note">Physical GPU blocks need NOT be contiguous. Block table provides indirection for KV cache.</p>
         </div>
       </div>
 
-      <div class="analogy-key-point">
+      <div class="analogy-key-point" data-i18n="p06.s2.keyPoint">
         Same concept, different domain — virtual memory paging eliminates fragmentation in both cases.
       </div>
     </div>
 
     <!-- ==================== Section 3: Interactive Block Table Demo ==================== -->
     <div class="card">
-      <h2><span class="badge badge-green">Interactive</span> Block Table Demo</h2>
-      <p>Tokens are grouped into fixed-size blocks (block_size = 4). Physical GPU memory blocks are allocated on demand and can be scattered anywhere. Click the buttons to add or remove tokens and watch the block table update.</p>
+      <h2 data-i18n="p06.s3.heading" data-i18n-html><span class="badge badge-green">Interactive</span> Block Table Demo</h2>
+      <p data-i18n="p06.s3.desc">Tokens are grouped into fixed-size blocks (block_size = 4). Physical GPU memory blocks are allocated on demand and can be scattered anywhere. Click the buttons to add or remove tokens and watch the block table update.</p>
 
       <div class="demo-layout">
         <div class="demo-canvas-wrap">
@@ -358,25 +358,25 @@
       </div>
 
       <div class="demo-stats">
-        <div class="demo-stat"><div class="val" id="statTokens" style="color: var(--accent);">7</div><div class="label">Tokens</div></div>
-        <div class="demo-stat"><div class="val" id="statLogical" style="color: var(--accent2);">2</div><div class="label">Logical Blocks</div></div>
-        <div class="demo-stat"><div class="val" id="statPhysical" style="color: var(--accent4);">2</div><div class="label">Physical Blocks</div></div>
-        <div class="demo-stat"><div class="val" id="statUtil" style="color: var(--accent3);">87%</div><div class="label">Utilization</div></div>
+        <div class="demo-stat"><div class="val" id="statTokens" style="color: var(--accent);">7</div><div class="label" data-i18n="p06.s3.tokens">Tokens</div></div>
+        <div class="demo-stat"><div class="val" id="statLogical" style="color: var(--accent2);">2</div><div class="label" data-i18n="p06.s3.logicalBlocks">Logical Blocks</div></div>
+        <div class="demo-stat"><div class="val" id="statPhysical" style="color: var(--accent4);">2</div><div class="label" data-i18n="p06.s3.physicalBlocks">Physical Blocks</div></div>
+        <div class="demo-stat"><div class="val" id="statUtil" style="color: var(--accent3);">87%</div><div class="label" data-i18n="p06.s3.utilization">Utilization</div></div>
       </div>
 
       <div class="demo-controls">
-        <button class="btn btn-accent" id="btnAddToken" onclick="addToken()">Add Token</button>
-        <button class="btn btn-surface" id="btnRemoveToken" onclick="removeToken()">Remove Token</button>
-        <button class="btn btn-surface" onclick="resetDemo()">Reset</button>
+        <button class="btn btn-accent" id="btnAddToken" onclick="addToken()" data-i18n="p06.s3.addToken">Add Token</button>
+        <button class="btn btn-surface" id="btnRemoveToken" onclick="removeToken()" data-i18n="p06.s3.removeToken">Remove Token</button>
+        <button class="btn btn-surface" onclick="resetDemo()" data-i18n="btn.reset">Reset</button>
       </div>
 
-      <p class="dim-note">Physical blocks are allocated only when needed. Waste is limited to internal fragmentation in the last block.</p>
+      <p class="dim-note" data-i18n="p06.s3.note">Physical blocks are allocated only when needed. Waste is limited to internal fragmentation in the last block.</p>
     </div>
 
     <!-- ==================== Section 4: Memory Utilization Comparison ==================== -->
     <div class="card">
-      <h2><span class="badge badge-orange">Comparison</span> Memory Utilization</h2>
-      <p>PagedAttention eliminates reservation waste and external fragmentation entirely. The only remaining waste is internal fragmentation in the last block of each sequence — typically just a few tokens.</p>
+      <h2 data-i18n="p06.s4.heading" data-i18n-html><span class="badge badge-orange">Comparison</span> Memory Utilization</h2>
+      <p data-i18n="p06.s4.desc">PagedAttention eliminates reservation waste and external fragmentation entirely. The only remaining waste is internal fragmentation in the last block of each sequence — typically just a few tokens.</p>
 
       <div class="speedup-bar-wrap" id="utilBars">
         <div class="speedup-row">
@@ -399,27 +399,27 @@
 
       <div class="compare-grid" style="margin-top: 20px;">
         <div class="compare-card compare-standard">
-          <h3 style="color: var(--accent3);">Contiguous Allocation</h3>
+          <h3 style="color: var(--accent3);" data-i18n="p06.s4.contig.title">Contiguous Allocation</h3>
           <ul>
-            <li>Pre-allocate for max_seq_len per request</li>
-            <li>Reservation waste: <strong>60%+</strong></li>
-            <li>External fragmentation blocks new requests</li>
-            <li>Cannot share memory between sequences</li>
+            <li data-i18n="p06.s4.contig.li1">Pre-allocate for max_seq_len per request</li>
+            <li data-i18n="p06.s4.contig.li2" data-i18n-html>Reservation waste: <strong>60%+</strong></li>
+            <li data-i18n="p06.s4.contig.li3">External fragmentation blocks new requests</li>
+            <li data-i18n="p06.s4.contig.li4">Cannot share memory between sequences</li>
           </ul>
         </div>
         <div class="compare-card" style="background: rgba(0,201,167,.06); border-color: rgba(0,201,167,.3);">
-          <h3 style="color: var(--accent2);">PagedAttention</h3>
+          <h3 style="color: var(--accent2);" data-i18n="p06.s4.paged.title">PagedAttention</h3>
           <ul>
-            <li>Allocate blocks on demand as tokens generated</li>
-            <li>Waste: <strong>&lt;4%</strong> (last block only)</li>
-            <li>No external fragmentation — any free block works</li>
-            <li>Copy-on-Write sharing for beam search</li>
+            <li data-i18n="p06.s4.paged.li1">Allocate blocks on demand as tokens generated</li>
+            <li data-i18n="p06.s4.paged.li2" data-i18n-html>Waste: <strong>&lt;4%</strong> (last block only)</li>
+            <li data-i18n="p06.s4.paged.li3">No external fragmentation — any free block works</li>
+            <li data-i18n="p06.s4.paged.li4">Copy-on-Write sharing for beam search</li>
           </ul>
         </div>
       </div>
 
       <div class="anim-controls">
-        <button class="btn btn-accent" onclick="animateUtilBars()">Animate</button>
+        <button class="btn btn-accent" onclick="animateUtilBars()" data-i18n="btn.animate">Animate</button>
       </div>
 
       <div class="formula-box" style="margin-top: 20px;">
@@ -429,8 +429,8 @@
 
     <!-- ==================== Section 5: Beam Search with Copy-on-Write ==================== -->
     <div class="card">
-      <h2><span class="badge badge-purple">Advanced</span> Beam Search with Copy-on-Write</h2>
-      <p>In beam search, multiple beams share the same prefix. PagedAttention uses <strong>Copy-on-Write (CoW)</strong>: beams share physical blocks via reference counting. A block is only copied when a beam needs to write different tokens to it.</p>
+      <h2 data-i18n="p06.s5.heading" data-i18n-html><span class="badge badge-purple">Advanced</span> Beam Search with Copy-on-Write</h2>
+      <p data-i18n="p06.s5.desc" data-i18n-html>In beam search, multiple beams share the same prefix. PagedAttention uses <strong>Copy-on-Write (CoW)</strong>: beams share physical blocks via reference counting. A block is only copied when a beam needs to write different tokens to it.</p>
 
       <div class="step-indicator" id="beamSteps">
         <div class="step-dot active" onclick="goBeamStep(0)">1</div>
@@ -445,32 +445,32 @@
       <div class="beam-info">
         <div class="beam-info-box">
           <div class="val" id="beamBlocksUsed" style="color: var(--accent);">3</div>
-          <div class="label">Physical Blocks Used</div>
+          <div class="label" data-i18n="p06.s5.physUsed">Physical Blocks Used</div>
         </div>
         <div class="beam-info-box">
           <div class="val" id="beamWithoutCoW" style="color: var(--accent3);">3</div>
-          <div class="label">Without CoW</div>
+          <div class="label" data-i18n="p06.s5.withoutCoW">Without CoW</div>
         </div>
         <div class="beam-info-box">
           <div class="val" id="beamSaved" style="color: var(--accent2);">0</div>
-          <div class="label">Blocks Saved</div>
+          <div class="label" data-i18n="p06.s5.blocksSaved">Blocks Saved</div>
         </div>
       </div>
 
       <div class="anim-controls" style="margin-top: 12px;">
-        <button class="btn btn-surface" onclick="goBeamStep(Math.max(0, beamStep - 1))">Prev Step</button>
-        <button class="btn btn-accent" onclick="goBeamStep(Math.min(3, beamStep + 1))">Next Step</button>
+        <button class="btn btn-surface" onclick="goBeamStep(Math.max(0, beamStep - 1))" data-i18n="p06.s5.prevStep">Prev Step</button>
+        <button class="btn btn-accent" onclick="goBeamStep(Math.min(3, beamStep + 1))" data-i18n="p06.s5.nextStep">Next Step</button>
       </div>
     </div>
 
     <!-- ==================== Section 6: Memory Allocator Game ==================== -->
     <div class="card">
-      <h2><span class="badge badge-green">Game</span> Memory Allocator Game</h2>
-      <p>Experience the difference between contiguous and paged memory allocation. Allocate GPU memory for requests and see how fragmentation impacts utilization.</p>
+      <h2 data-i18n="p06.g1.heading" data-i18n-html><span class="badge badge-green">Game</span> Memory Allocator Game</h2>
+      <p data-i18n="p06.g1.desc">Experience the difference between contiguous and paged memory allocation. Allocate GPU memory for requests and see how fragmentation impacts utilization.</p>
 
       <div style="display:flex; gap:0; margin-bottom:16px; justify-content:center;">
-        <button class="btn" id="allocTabContig" onclick="allocSwitchTab('contig')" style="border-radius:999px 0 0 999px; border:2px solid var(--accent); background:var(--accent); color:#fff; padding:10px 24px; font-weight:600; cursor:pointer;">Phase 1: Contiguous</button>
-        <button class="btn" id="allocTabPaged" onclick="allocSwitchTab('paged')" style="border-radius:0 999px 999px 0; border:2px solid var(--accent); background:var(--surface); color:var(--accent); padding:10px 24px; font-weight:600; cursor:pointer;">Phase 2: Paged</button>
+        <button class="btn" id="allocTabContig" onclick="allocSwitchTab('contig')" style="border-radius:999px 0 0 999px; border:2px solid var(--accent); background:var(--accent); color:#fff; padding:10px 24px; font-weight:600; cursor:pointer;" data-i18n="p06.g1.tabContig">Phase 1: Contiguous</button>
+        <button class="btn" id="allocTabPaged" onclick="allocSwitchTab('paged')" style="border-radius:0 999px 999px 0; border:2px solid var(--accent); background:var(--surface); color:var(--accent); padding:10px 24px; font-weight:600; cursor:pointer;" data-i18n="p06.g1.tabPaged">Phase 2: Paged</button>
       </div>
 
       <!-- Contiguous Mode -->
@@ -485,15 +485,15 @@
         <div class="game-score" id="allocContigInfo">
           <div class="game-score-item">
             <div class="score-val" id="allocContigUsed" style="color:var(--accent);">0</div>
-            <div class="score-label">Tokens Used</div>
+            <div class="score-label" data-i18n="p06.g1.tokensUsed">Tokens Used</div>
           </div>
           <div class="game-score-item">
             <div class="score-val" id="allocContigReserved" style="color:var(--accent4);">0</div>
-            <div class="score-label">Slots Reserved</div>
+            <div class="score-label" data-i18n="p06.g1.slotsReserved">Slots Reserved</div>
           </div>
           <div class="game-score-item">
             <div class="score-val" id="allocContigWaste" style="color:var(--accent3);">0%</div>
-            <div class="score-label">Waste</div>
+            <div class="score-label" data-i18n="p06.g1.waste">Waste</div>
           </div>
         </div>
 
@@ -516,15 +516,15 @@
         <div class="game-score" id="allocPagedInfo">
           <div class="game-score-item">
             <div class="score-val" id="allocPagedUsed" style="color:var(--accent);">0</div>
-            <div class="score-label">Tokens Used</div>
+            <div class="score-label" data-i18n="p06.g1.tokensUsed">Tokens Used</div>
           </div>
           <div class="game-score-item">
             <div class="score-val" id="allocPagedSlotCount" style="color:var(--accent2);">0</div>
-            <div class="score-label">Slots Allocated</div>
+            <div class="score-label" data-i18n="p06.g1.slotsAlloc">Slots Allocated</div>
           </div>
           <div class="game-score-item">
             <div class="score-val" id="allocPagedEfficiency" style="color:var(--accent2);">0%</div>
-            <div class="score-label">Efficiency</div>
+            <div class="score-label" data-i18n="p06.g1.efficiency">Efficiency</div>
           </div>
         </div>
 
@@ -538,21 +538,21 @@
 
     <!-- ==================== Section 7: Block Table Puzzle ==================== -->
     <div class="card">
-      <h2><span class="badge badge-orange">Game</span> Block Table Puzzle</h2>
-      <p>Match logical blocks to their physical memory locations. Click a logical block label, then click the correct physical slot containing those tokens.</p>
+      <h2 data-i18n="p06.g2.heading" data-i18n-html><span class="badge badge-orange">Game</span> Block Table Puzzle</h2>
+      <p data-i18n="p06.g2.desc">Match logical blocks to their physical memory locations. Click a logical block label, then click the correct physical slot containing those tokens.</p>
 
       <div class="game-score" id="btPuzzleScore">
         <div class="game-score-item">
           <div class="score-val" id="btPuzzleRound">1</div>
-          <div class="score-label">Round</div>
+          <div class="score-label" data-i18n="p06.g2.round">Round</div>
         </div>
         <div class="game-score-item">
           <div class="score-val" id="btPuzzlePoints">0</div>
-          <div class="score-label">Points</div>
+          <div class="score-label" data-i18n="p06.g2.points">Points</div>
         </div>
         <div class="game-score-item">
           <div class="score-val" id="btPuzzleMax">12</div>
-          <div class="score-label">Max Points</div>
+          <div class="score-label" data-i18n="p06.g2.maxPoints">Max Points</div>
         </div>
       </div>
 
@@ -563,11 +563,11 @@
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin:20px 0;">
         <div>
-          <h3 style="margin-top:0; text-align:center;">Logical Blocks</h3>
+          <h3 style="margin-top:0; text-align:center;" data-i18n="p06.g2.logicalBlocks">Logical Blocks</h3>
           <div id="btPuzzleLogical" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
         <div>
-          <h3 style="margin-top:0; text-align:center;">Physical Memory (Scrambled)</h3>
+          <h3 style="margin-top:0; text-align:center;" data-i18n="p06.g2.physMem">Physical Memory (Scrambled)</h3>
           <div id="btPuzzlePhysical" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
         </div>
       </div>
@@ -575,14 +575,15 @@
       <div class="game-feedback" id="btPuzzleFeedback"></div>
 
       <div class="anim-controls">
-        <button class="btn btn-surface" id="btPuzzleResetBtn" style="display:none;" onclick="btPuzzleReset()">Play Again</button>
+        <button class="btn btn-surface" id="btPuzzleResetBtn" style="display:none;" onclick="btPuzzleReset()" data-i18n="btn.playAgain">Play Again</button>
       </div>
     </div>
 
   </div>
 
-  <footer><p>LLM Algorithm Visualization Series</p></footer>
+  <footer><p data-i18n="footer.text">LLM Algorithm Visualization Series</p></footer>
 
+  <script src="../shared/i18n.js"></script>
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
   <script src="../shared/progress.js"></script>
@@ -1711,6 +1712,220 @@
     } else {
       init();
     }
+  </script>
+  <script>
+  i18nRegister({
+    'en': {
+      'p06.title': '06. PagedAttention — LLM Algorithm Visualizations',
+      'p06.header': 'PagedAttention / vLLM',
+      'p06.subtitle': 'OS-Inspired KV Cache Memory Management — Eliminating Fragmentation',
+      'p06.breadcrumb': 'PagedAttention',
+      'p06.s1.heading': '<span class="badge badge-red">Problem</span> KV Cache Memory Waste',
+      'p06.s1.desc': 'In traditional LLM serving systems, KV cache memory is <strong>pre-allocated contiguously</strong> for each request up to the maximum sequence length. Since actual generation lengths are unpredictable, this leads to massive memory waste — often <strong>60-80%</strong> of allocated GPU memory is unused.',
+      'p06.s1.wasteTitle': 'Three Types of Waste',
+      'p06.s1.reservation.title': 'Reservation Waste',
+      'p06.s1.reservation.desc': 'Pre-allocate for max_seq_len (e.g., 2048) but the request only generates 128 tokens. <strong>93%</strong> of reserved memory is never used.',
+      'p06.s1.internal.title': 'Internal Fragmentation',
+      'p06.s1.internal.desc': 'Last allocated block is only partially filled with KV entries. The remainder of that block is wasted space.',
+      'p06.s1.external.title': 'External Fragmentation',
+      'p06.s1.external.desc': 'Free memory exists across GPU but in small scattered chunks — not enough contiguous space for a new request.',
+      'p06.s1.contigTitle': 'Traditional Contiguous Allocation',
+      'p06.s1.contigDesc': 'A snapshot of GPU KV cache memory — each request reserves a full contiguous block for max sequence length:',
+      'p06.s2.heading': '<span class="badge badge-purple">Analogy</span> OS Virtual Memory Mapping',
+      'p06.s2.desc': 'PagedAttention borrows the core idea from operating system virtual memory: use a <strong>page table</strong> (block table) to map logical addresses to non-contiguous physical locations. The KV cache no longer needs contiguous memory.',
+      'p06.s2.os.title': 'OS Virtual Memory',
+      'p06.s2.os.desc': 'Page Table maps virtual pages to physical page frames in RAM',
+      'p06.s2.os.note': 'Physical frames need NOT be contiguous. The page table provides the indirection layer.',
+      'p06.s2.pa.title': 'PagedAttention',
+      'p06.s2.pa.desc': 'Block Table maps logical KV blocks to physical GPU memory blocks',
+      'p06.s2.pa.note': 'Physical GPU blocks need NOT be contiguous. Block table provides indirection for KV cache.',
+      'p06.s2.keyPoint': 'Same concept, different domain — virtual memory paging eliminates fragmentation in both cases.',
+      'p06.s3.heading': '<span class="badge badge-green">Interactive</span> Block Table Demo',
+      'p06.s3.desc': 'Tokens are grouped into fixed-size blocks (block_size = 4). Physical GPU memory blocks are allocated on demand and can be scattered anywhere. Click the buttons to add or remove tokens and watch the block table update.',
+      'p06.s3.tokens': 'Tokens',
+      'p06.s3.logicalBlocks': 'Logical Blocks',
+      'p06.s3.physicalBlocks': 'Physical Blocks',
+      'p06.s3.utilization': 'Utilization',
+      'p06.s3.addToken': 'Add Token',
+      'p06.s3.removeToken': 'Remove Token',
+      'p06.s3.note': 'Physical blocks are allocated only when needed. Waste is limited to internal fragmentation in the last block.',
+      'p06.s4.heading': '<span class="badge badge-orange">Comparison</span> Memory Utilization',
+      'p06.s4.desc': 'PagedAttention eliminates reservation waste and external fragmentation entirely. The only remaining waste is internal fragmentation in the last block of each sequence — typically just a few tokens.',
+      'p06.s4.contig.title': 'Contiguous Allocation',
+      'p06.s4.contig.li1': 'Pre-allocate for max_seq_len per request',
+      'p06.s4.contig.li2': 'Reservation waste: <strong>60%+</strong>',
+      'p06.s4.contig.li3': 'External fragmentation blocks new requests',
+      'p06.s4.contig.li4': 'Cannot share memory between sequences',
+      'p06.s4.paged.title': 'PagedAttention',
+      'p06.s4.paged.li1': 'Allocate blocks on demand as tokens generated',
+      'p06.s4.paged.li2': 'Waste: <strong>&lt;4%</strong> (last block only)',
+      'p06.s4.paged.li3': 'No external fragmentation — any free block works',
+      'p06.s4.paged.li4': 'Copy-on-Write sharing for beam search',
+      'p06.s5.heading': '<span class="badge badge-purple">Advanced</span> Beam Search with Copy-on-Write',
+      'p06.s5.desc': 'In beam search, multiple beams share the same prefix. PagedAttention uses <strong>Copy-on-Write (CoW)</strong>: beams share physical blocks via reference counting. A block is only copied when a beam needs to write different tokens to it.',
+      'p06.s5.physUsed': 'Physical Blocks Used',
+      'p06.s5.withoutCoW': 'Without CoW',
+      'p06.s5.blocksSaved': 'Blocks Saved',
+      'p06.s5.prevStep': 'Prev Step',
+      'p06.s5.nextStep': 'Next Step',
+      'p06.g1.heading': '<span class="badge badge-green">Game</span> Memory Allocator Game',
+      'p06.g1.desc': 'Experience the difference between contiguous and paged memory allocation. Allocate GPU memory for requests and see how fragmentation impacts utilization.',
+      'p06.g1.tabContig': 'Phase 1: Contiguous',
+      'p06.g1.tabPaged': 'Phase 2: Paged',
+      'p06.g1.tokensUsed': 'Tokens Used',
+      'p06.g1.slotsReserved': 'Slots Reserved',
+      'p06.g1.waste': 'Waste',
+      'p06.g1.slotsAlloc': 'Slots Allocated',
+      'p06.g1.efficiency': 'Efficiency',
+      'p06.g2.heading': '<span class="badge badge-orange">Game</span> Block Table Puzzle',
+      'p06.g2.desc': 'Match logical blocks to their physical memory locations. Click a logical block label, then click the correct physical slot containing those tokens.',
+      'p06.g2.round': 'Round',
+      'p06.g2.points': 'Points',
+      'p06.g2.maxPoints': 'Max Points',
+      'p06.g2.logicalBlocks': 'Logical Blocks',
+      'p06.g2.physMem': 'Physical Memory (Scrambled)',
+    },
+    'zh-CN': {
+      'p06.title': '06. PagedAttention — 大语言模型算法可视化',
+      'p06.header': 'PagedAttention / vLLM',
+      'p06.subtitle': '受操作系统启发的 KV Cache 内存管理 — 消除碎片化',
+      'p06.breadcrumb': 'PagedAttention',
+      'p06.s1.heading': '<span class="badge badge-red">问题</span> KV Cache 内存浪费',
+      'p06.s1.desc': '在传统 LLM 服务系统中，KV cache 内存为每个请求<strong>预分配连续空间</strong>，直到最大序列长度。由于实际生成长度不可预测，这导致大量内存浪费 — 通常 <strong>60-80%</strong> 的已分配 GPU 内存未被使用。',
+      'p06.s1.wasteTitle': '三种浪费类型',
+      'p06.s1.reservation.title': '预留浪费',
+      'p06.s1.reservation.desc': '为 max_seq_len（例如 2048）预分配，但请求只生成 128 个 token。<strong>93%</strong> 的预留内存从未被使用。',
+      'p06.s1.internal.title': '内部碎片',
+      'p06.s1.internal.desc': '最后分配的块仅部分填充了 KV 条目。该块的剩余部分为浪费空间。',
+      'p06.s1.external.title': '外部碎片',
+      'p06.s1.external.desc': 'GPU 上存在空闲内存，但分散在小块中 — 没有足够的连续空间容纳新请求。',
+      'p06.s1.contigTitle': '传统连续分配',
+      'p06.s1.contigDesc': 'GPU KV cache 内存快照 — 每个请求为最大序列长度预留完整的连续块：',
+      'p06.s2.heading': '<span class="badge badge-purple">类比</span> 操作系统虚拟内存映射',
+      'p06.s2.desc': 'PagedAttention 借鉴了操作系统虚拟内存的核心思想：使用<strong>页表</strong>（块表）将逻辑地址映射到非连续的物理位置。KV cache 不再需要连续内存。',
+      'p06.s2.os.title': '操作系统虚拟内存',
+      'p06.s2.os.desc': '页表将虚拟页映射到 RAM 中的物理页帧',
+      'p06.s2.os.note': '物理帧不需要连续。页表提供间接寻址层。',
+      'p06.s2.pa.title': 'PagedAttention',
+      'p06.s2.pa.desc': '块表将逻辑 KV 块映射到物理 GPU 内存块',
+      'p06.s2.pa.note': '物理 GPU 块不需要连续。块表为 KV cache 提供间接寻址。',
+      'p06.s2.keyPoint': '相同概念，不同领域 — 虚拟内存分页在两种情况下都消除了碎片化。',
+      'p06.s3.heading': '<span class="badge badge-green">交互</span> 块表演示',
+      'p06.s3.desc': 'Token 被分组为固定大小的块（block_size = 4）。物理 GPU 内存块按需分配，可以分散在任何位置。点击按钮添加或删除 token，观察块表的更新。',
+      'p06.s3.tokens': 'Token 数',
+      'p06.s3.logicalBlocks': '逻辑块',
+      'p06.s3.physicalBlocks': '物理块',
+      'p06.s3.utilization': '利用率',
+      'p06.s3.addToken': '添加 Token',
+      'p06.s3.removeToken': '移除 Token',
+      'p06.s3.note': '物理块仅在需要时分配。浪费仅限于最后一个块的内部碎片。',
+      'p06.s4.heading': '<span class="badge badge-orange">对比</span> 内存利用率',
+      'p06.s4.desc': 'PagedAttention 完全消除了预留浪费和外部碎片。唯一剩余的浪费是每个序列最后一个块的内部碎片 — 通常只有几个 token。',
+      'p06.s4.contig.title': '连续分配',
+      'p06.s4.contig.li1': '每个请求预分配 max_seq_len',
+      'p06.s4.contig.li2': '预留浪费：<strong>60%+</strong>',
+      'p06.s4.contig.li3': '外部碎片阻碍新请求',
+      'p06.s4.contig.li4': '无法在序列间共享内存',
+      'p06.s4.paged.title': 'PagedAttention',
+      'p06.s4.paged.li1': '随着 token 生成按需分配块',
+      'p06.s4.paged.li2': '浪费：<strong>&lt;4%</strong>（仅最后一个块）',
+      'p06.s4.paged.li3': '无外部碎片 — 任何空闲块均可使用',
+      'p06.s4.paged.li4': '用于 beam search 的写时复制共享',
+      'p06.s5.heading': '<span class="badge badge-purple">进阶</span> 带写时复制的 Beam Search',
+      'p06.s5.desc': '在 beam search 中，多个 beam 共享相同的前缀。PagedAttention 使用<strong>写时复制（CoW）</strong>：beam 通过引用计数共享物理块。仅当 beam 需要写入不同 token 时才复制块。',
+      'p06.s5.physUsed': '已用物理块',
+      'p06.s5.withoutCoW': '无 CoW 时',
+      'p06.s5.blocksSaved': '节省的块',
+      'p06.s5.prevStep': '上一步',
+      'p06.s5.nextStep': '下一步',
+      'p06.g1.heading': '<span class="badge badge-green">游戏</span> 内存分配器游戏',
+      'p06.g1.desc': '体验连续分配和分页内存分配的区别。为请求分配 GPU 内存，查看碎片化如何影响利用率。',
+      'p06.g1.tabContig': '阶段 1：连续分配',
+      'p06.g1.tabPaged': '阶段 2：分页分配',
+      'p06.g1.tokensUsed': '已用 Token',
+      'p06.g1.slotsReserved': '已预留槽位',
+      'p06.g1.waste': '浪费',
+      'p06.g1.slotsAlloc': '已分配槽位',
+      'p06.g1.efficiency': '效率',
+      'p06.g2.heading': '<span class="badge badge-orange">游戏</span> 块表拼图',
+      'p06.g2.desc': '将逻辑块匹配到它们的物理内存位置。点击逻辑块标签，然后点击包含这些 token 的正确物理槽位。',
+      'p06.g2.round': '轮次',
+      'p06.g2.points': '分数',
+      'p06.g2.maxPoints': '最高分',
+      'p06.g2.logicalBlocks': '逻辑块',
+      'p06.g2.physMem': '物理内存（打乱）',
+    },
+    'zh-TW': {
+      'p06.title': '06. PagedAttention — 大語言模型演算法視覺化',
+      'p06.header': 'PagedAttention / vLLM',
+      'p06.subtitle': '受作業系統啟發的 KV Cache 記憶體管理 — 消除碎片化',
+      'p06.breadcrumb': 'PagedAttention',
+      'p06.s1.heading': '<span class="badge badge-red">問題</span> KV Cache 記憶體浪費',
+      'p06.s1.desc': '在傳統 LLM 服務系統中，KV cache 記憶體為每個請求<strong>預分配連續空間</strong>，直到最大序列長度。由於實際生成長度不可預測，這導致大量記憶體浪費 — 通常 <strong>60-80%</strong> 的已分配 GPU 記憶體未被使用。',
+      'p06.s1.wasteTitle': '三種浪費類型',
+      'p06.s1.reservation.title': '預留浪費',
+      'p06.s1.reservation.desc': '為 max_seq_len（例如 2048）預分配，但請求只產生 128 個 token。<strong>93%</strong> 的預留記憶體從未被使用。',
+      'p06.s1.internal.title': '內部碎片',
+      'p06.s1.internal.desc': '最後分配的區塊僅部分填充了 KV 條目。該區塊的剩餘部分為浪費空間。',
+      'p06.s1.external.title': '外部碎片',
+      'p06.s1.external.desc': 'GPU 上存在閒置記憶體，但分散在小塊中 — 沒有足夠的連續空間容納新請求。',
+      'p06.s1.contigTitle': '傳統連續分配',
+      'p06.s1.contigDesc': 'GPU KV cache 記憶體快照 — 每個請求為最大序列長度預留完整的連續區塊：',
+      'p06.s2.heading': '<span class="badge badge-purple">類比</span> 作業系統虛擬記憶體映射',
+      'p06.s2.desc': 'PagedAttention 借鑒了作業系統虛擬記憶體的核心思想：使用<strong>分頁表</strong>（區塊表）將邏輯位址映射到非連續的實體位置。KV cache 不再需要連續記憶體。',
+      'p06.s2.os.title': '作業系統虛擬記憶體',
+      'p06.s2.os.desc': '分頁表將虛擬頁面映射到 RAM 中的實體頁框',
+      'p06.s2.os.note': '實體頁框不需要連續。分頁表提供間接定址層。',
+      'p06.s2.pa.title': 'PagedAttention',
+      'p06.s2.pa.desc': '區塊表將邏輯 KV 區塊映射到實體 GPU 記憶體區塊',
+      'p06.s2.pa.note': '實體 GPU 區塊不需要連續。區塊表為 KV cache 提供間接定址。',
+      'p06.s2.keyPoint': '相同概念，不同領域 — 虛擬記憶體分頁在兩種情況下都消除了碎片化。',
+      'p06.s3.heading': '<span class="badge badge-green">互動</span> 區塊表展示',
+      'p06.s3.desc': 'Token 被分組為固定大小的區塊（block_size = 4）。實體 GPU 記憶體區塊按需分配，可以分散在任何位置。點擊按鈕新增或移除 token，觀察區塊表的更新。',
+      'p06.s3.tokens': 'Token 數',
+      'p06.s3.logicalBlocks': '邏輯區塊',
+      'p06.s3.physicalBlocks': '實體區塊',
+      'p06.s3.utilization': '利用率',
+      'p06.s3.addToken': '新增 Token',
+      'p06.s3.removeToken': '移除 Token',
+      'p06.s3.note': '實體區塊僅在需要時分配。浪費僅限於最後一個區塊的內部碎片。',
+      'p06.s4.heading': '<span class="badge badge-orange">對比</span> 記憶體利用率',
+      'p06.s4.desc': 'PagedAttention 完全消除了預留浪費和外部碎片。唯一剩餘的浪費是每個序列最後一個區塊的內部碎片 — 通常只有幾個 token。',
+      'p06.s4.contig.title': '連續分配',
+      'p06.s4.contig.li1': '每個請求預分配 max_seq_len',
+      'p06.s4.contig.li2': '預留浪費：<strong>60%+</strong>',
+      'p06.s4.contig.li3': '外部碎片阻礙新請求',
+      'p06.s4.contig.li4': '無法在序列間共享記憶體',
+      'p06.s4.paged.title': 'PagedAttention',
+      'p06.s4.paged.li1': '隨著 token 產生按需分配區塊',
+      'p06.s4.paged.li2': '浪費：<strong>&lt;4%</strong>（僅最後一個區塊）',
+      'p06.s4.paged.li3': '無外部碎片 — 任何閒置區塊均可使用',
+      'p06.s4.paged.li4': '用於 beam search 的寫入時複製共享',
+      'p06.s5.heading': '<span class="badge badge-purple">進階</span> 帶寫入時複製的 Beam Search',
+      'p06.s5.desc': '在 beam search 中，多個 beam 共享相同的前綴。PagedAttention 使用<strong>寫入時複製（CoW）</strong>：beam 透過參考計數共享實體區塊。僅當 beam 需要寫入不同 token 時才複製區塊。',
+      'p06.s5.physUsed': '已用實體區塊',
+      'p06.s5.withoutCoW': '無 CoW 時',
+      'p06.s5.blocksSaved': '節省的區塊',
+      'p06.s5.prevStep': '上一步',
+      'p06.s5.nextStep': '下一步',
+      'p06.g1.heading': '<span class="badge badge-green">遊戲</span> 記憶體分配器遊戲',
+      'p06.g1.desc': '體驗連續分配和分頁記憶體分配的區別。為請求分配 GPU 記憶體，查看碎片化如何影響利用率。',
+      'p06.g1.tabContig': '階段 1：連續分配',
+      'p06.g1.tabPaged': '階段 2：分頁分配',
+      'p06.g1.tokensUsed': '已用 Token',
+      'p06.g1.slotsReserved': '已預留槽位',
+      'p06.g1.waste': '浪費',
+      'p06.g1.slotsAlloc': '已分配槽位',
+      'p06.g1.efficiency': '效率',
+      'p06.g2.heading': '<span class="badge badge-orange">遊戲</span> 區塊表拼圖',
+      'p06.g2.desc': '將邏輯區塊配對到它們的實體記憶體位置。點擊邏輯區塊標籤，然後點擊包含這些 token 的正確實體槽位。',
+      'p06.g2.round': '輪次',
+      'p06.g2.points': '分數',
+      'p06.g2.maxPoints': '最高分',
+      'p06.g2.logicalBlocks': '邏輯區塊',
+      'p06.g2.physMem': '實體記憶體（打亂）',
+    }
+  });
   </script>
 </body>
 </html>

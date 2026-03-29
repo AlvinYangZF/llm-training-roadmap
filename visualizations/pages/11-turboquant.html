@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>11. TurboQuant — LLM Algorithm Visualizations</title>
+  <title data-i18n="p11.title">11. TurboQuant — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
   <style>
     /* ===== Pipeline Flow Diagram ===== */
@@ -170,10 +170,10 @@
 <body>
 
 <header>
-  <h1>TurboQuant</h1>
-  <p>Training-Free KV Cache Quantization — 6x Compression, Zero Accuracy Loss</p>
+  <h1 data-i18n="p11.heading">TurboQuant</h1>
+  <p data-i18n="p11.subtitle">Training-Free KV Cache Quantization — 6x Compression, Zero Accuracy Loss</p>
   <div class="breadcrumb">
-    <a href="../index.html">Home</a> / Topic 11
+    <a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p11.breadcrumb">Topic 11</span>
     <span class="badge badge-purple" style="margin-left:10px;">ICLR 2026</span>
     <span class="badge badge-green">Google Research / DeepMind</span>
   </div>
@@ -183,29 +183,29 @@
 
   <!-- ==================== Section 1: Two-Stage Pipeline ==================== -->
   <div class="card">
-    <h2>The Two-Stage Pipeline</h2>
-    <p>TurboQuant compresses the KV cache in two complementary stages: <strong style="color:var(--accent)">PolarQuant</strong> makes scalar quantization MSE-optimal via random rotation, then <strong style="color:var(--accent2)">QJL</strong> corrects residual inner-product error with a 1-bit sketch.</p>
+    <h2 data-i18n="p11.s1.heading">The Two-Stage Pipeline</h2>
+    <p data-i18n="p11.s1.desc" data-i18n-html>TurboQuant compresses the KV cache in two complementary stages: <strong style="color:var(--accent)">PolarQuant</strong> makes scalar quantization MSE-optimal via random rotation, then <strong style="color:var(--accent2)">QJL</strong> corrects residual inner-product error with a 1-bit sketch.</p>
 
     <div class="pipeline-flow">
-      <div class="pipeline-stage stage-input">
+      <div class="pipeline-stage stage-input" data-i18n="p11.s1.stage1" data-i18n-html>
         FP16 KV Cache
         <div class="stage-sub">Full-precision key/value vectors</div>
         <div class="stage-bits">16 bits/ch</div>
       </div>
       <div class="pipeline-arrow">&rarr;</div>
-      <div class="pipeline-stage stage-polar">
+      <div class="pipeline-stage stage-polar" data-i18n="p11.s1.stage2" data-i18n-html>
         Stage 1: PolarQuant
         <div class="stage-sub">Random orthogonal rotation R<br>then scalar quantization</div>
         <div class="stage-bits">3.5 bits/ch</div>
       </div>
       <div class="pipeline-arrow">&rarr;</div>
-      <div class="pipeline-stage stage-qjl">
+      <div class="pipeline-stage stage-qjl" data-i18n="p11.s1.stage3" data-i18n-html>
         Stage 2: QJL Correction
         <div class="stage-sub">1-bit Johnson-Lindenstrauss<br>sketch of quantization error</div>
         <div class="stage-bits">+1 bit correction</div>
       </div>
       <div class="pipeline-arrow">&rarr;</div>
-      <div class="pipeline-stage stage-output">
+      <div class="pipeline-stage stage-output" data-i18n="p11.s1.stage4" data-i18n-html>
         Compressed KV Cache
         <div class="stage-sub">Training-free, data-agnostic</div>
         <div class="stage-bits">3.5 + 1 = 4.5 effective</div>
@@ -219,36 +219,36 @@
       &nbsp;&nbsp;where&nbsp;&nbsp;
       <span class="o">e</span> = <span class="v">v</span> <span class="op">-</span> <span class="k">R</span><sup>T</sup><span class="q">q</span>
     </div>
-    <p class="dim-note">R = random orthogonal matrix, S = JL random projection, e = quantization error, s = 1-bit sketch</p>
+    <p class="dim-note" data-i18n="p11.s1.formulaNote">R = random orthogonal matrix, S = JL random projection, e = quantization error, s = 1-bit sketch</p>
   </div>
 
   <!-- ==================== Section 2: Random Rotation Intuition ==================== -->
   <div class="card">
-    <h2>Random Rotation Intuition</h2>
-    <p>Real KV cache vectors are <strong>non-isotropic</strong> — energy concentrates along certain axes, making per-coordinate quantization suboptimal. A random orthogonal rotation spreads the energy uniformly, letting each coordinate be quantized independently with a known optimal grid.</p>
+    <h2 data-i18n="p11.s2.heading">Random Rotation Intuition</h2>
+    <p data-i18n="p11.s2.desc" data-i18n-html>Real KV cache vectors are <strong>non-isotropic</strong> — energy concentrates along certain axes, making per-coordinate quantization suboptimal. A random orthogonal rotation spreads the energy uniformly, letting each coordinate be quantized independently with a known optimal grid.</p>
 
     <div class="scatter-wrap">
       <div class="scatter-panel">
-        <h3 style="color:var(--accent3)">Before Rotation</h3>
+        <h3 style="color:var(--accent3)" data-i18n="p11.s2.before">Before Rotation</h3>
         <canvas class="scatter-canvas" id="scatterBefore"></canvas>
       </div>
       <div class="scatter-panel">
-        <h3 style="color:var(--accent2)">After Rotation</h3>
+        <h3 style="color:var(--accent2)" data-i18n="p11.s2.after">After Rotation</h3>
         <canvas class="scatter-canvas" id="scatterAfter"></canvas>
       </div>
     </div>
 
     <div class="anim-controls">
-      <button class="btn btn-accent" id="btnRotate">Rotate</button>
-      <button class="btn btn-surface" id="btnResetRotation" style="margin-left:8px;">Reset</button>
+      <button class="btn btn-accent" id="btnRotate" data-i18n="p11.s2.rotateBtn">Rotate</button>
+      <button class="btn btn-surface" id="btnResetRotation" style="margin-left:8px;" data-i18n="btn.reset">Reset</button>
     </div>
-    <p class="dim-note">Points colored by distance from origin. After rotation, the distribution becomes near-isotropic (circular).</p>
+    <p class="dim-note" data-i18n="p11.s2.note">Points colored by distance from origin. After rotation, the distribution becomes near-isotropic (circular).</p>
   </div>
 
   <!-- ==================== Section 3: Bit-Width vs Quality Tradeoff ==================== -->
   <div class="card">
-    <h2>Bit-Width vs Quality Tradeoff</h2>
-    <p>Lower bits save memory but increase distortion. PolarQuant shifts the Pareto frontier down, and QJL correction pushes it even further — achieving near-zero distortion at just 3.5 bits.</p>
+    <h2 data-i18n="p11.s3.heading">Bit-Width vs Quality Tradeoff</h2>
+    <p data-i18n="p11.s3.desc">Lower bits save memory but increase distortion. PolarQuant shifts the Pareto frontier down, and QJL correction pushes it even further — achieving near-zero distortion at just 3.5 bits.</p>
 
     <div style="position:relative;">
       <canvas class="chart-canvas" id="tradeoffChart"></canvas>
@@ -256,19 +256,19 @@
     </div>
 
     <div style="display:flex; justify-content:center; gap:24px; margin-top:12px; flex-wrap:wrap;">
-      <div class="tile-legend-item"><div class="tile-legend-swatch" style="background:var(--accent3)"></div>Scalar Quantization</div>
-      <div class="tile-legend-item"><div class="tile-legend-swatch" style="background:var(--accent)"></div>PolarQuant Only</div>
-      <div class="tile-legend-item"><div class="tile-legend-swatch" style="background:var(--accent2)"></div>PolarQuant + QJL</div>
+      <div class="tile-legend-item"><div class="tile-legend-swatch" style="background:var(--accent3)"></div><span data-i18n="p11.s3.legend1">Scalar Quantization</span></div>
+      <div class="tile-legend-item"><div class="tile-legend-swatch" style="background:var(--accent)"></div><span data-i18n="p11.s3.legend2">PolarQuant Only</span></div>
+      <div class="tile-legend-item"><div class="tile-legend-swatch" style="background:var(--accent2)"></div><span data-i18n="p11.s3.legend3">PolarQuant + QJL</span></div>
     </div>
-    <p class="dim-note">Hover over chart to see exact values at each bit-width. Key thresholds marked at 2.5, 3.5, and 4 bits.</p>
+    <p class="dim-note" data-i18n="p11.s3.note">Hover over chart to see exact values at each bit-width. Key thresholds marked at 2.5, 3.5, and 4 bits.</p>
   </div>
 
   <!-- ==================== Section 4: KV Cache Compression Comparison ==================== -->
   <div class="card">
-    <h2>KV Cache Compression Comparison</h2>
-    <p>Memory footprint for a <strong>70B parameter model</strong> with 4K context length. TurboQuant achieves up to 8.4x compression.</p>
+    <h2 data-i18n="p11.s4.heading">KV Cache Compression Comparison</h2>
+    <p data-i18n="p11.s4.desc" data-i18n-html>Memory footprint for a <strong>70B parameter model</strong> with 4K context length. TurboQuant achieves up to 8.4x compression.</p>
 
-    <h3>Memory Usage</h3>
+    <h3 data-i18n="p11.s4.memUsage">Memory Usage</h3>
     <div class="speedup-bar-wrap" id="memoryBars">
       <div class="speedup-row">
         <div class="speedup-label">FP16</div>
@@ -296,7 +296,7 @@
       </div>
     </div>
 
-    <h3>Attention Computation Speedup</h3>
+    <h3 data-i18n="p11.s4.attnSpeedup">Attention Computation Speedup</h3>
     <div class="speedup-bar-wrap" id="speedupBars">
       <div class="speedup-row">
         <div class="speedup-label">FP16</div>
@@ -325,24 +325,24 @@
     </div>
 
     <div class="anim-controls">
-      <button class="btn btn-accent" id="btnAnimateBars">Animate</button>
+      <button class="btn btn-accent" id="btnAnimateBars" data-i18n="btn.animate">Animate</button>
     </div>
   </div>
 
   <!-- ==================== Section 5: Comparison with Other Methods ==================== -->
   <div class="card">
-    <h2>Comparison with Other Methods</h2>
-    <p>TurboQuant dominates the Pareto frontier: better quality at the same bit-width, or fewer bits at the same quality level.</p>
+    <h2 data-i18n="p11.s5.heading">Comparison with Other Methods</h2>
+    <p data-i18n="p11.s5.desc">TurboQuant dominates the Pareto frontier: better quality at the same bit-width, or fewer bits at the same quality level.</p>
 
     <table class="compare-table">
       <thead>
         <tr>
-          <th>Method</th>
-          <th>Bits/Channel</th>
-          <th>Norm. MSE</th>
-          <th>Perplexity (WikiText-2)</th>
-          <th>Memory (70B, 4K)</th>
-          <th>Attn Speedup</th>
+          <th data-i18n="p11.s5.th.method">Method</th>
+          <th data-i18n="p11.s5.th.bits">Bits/Channel</th>
+          <th data-i18n="p11.s5.th.mse">Norm. MSE</th>
+          <th data-i18n="p11.s5.th.ppl">Perplexity (WikiText-2)</th>
+          <th data-i18n="p11.s5.th.mem">Memory (70B, 4K)</th>
+          <th data-i18n="p11.s5.th.speedup">Attn Speedup</th>
         </tr>
       </thead>
       <tbody>
@@ -389,73 +389,73 @@
       </tbody>
     </table>
 
-    <h3>Pareto Frontier: Bits vs Perplexity</h3>
+    <h3 data-i18n="p11.s5.pareto">Pareto Frontier: Bits vs Perplexity</h3>
     <div style="position:relative;">
       <canvas class="pareto-canvas" id="paretoChart"></canvas>
       <div class="canvas-tooltip" id="paretoTooltip"></div>
     </div>
-    <p class="dim-note">TurboQuant methods (purple/teal) sit strictly below and left of alternatives — the Pareto-optimal frontier.</p>
+    <p class="dim-note" data-i18n="p11.s5.paretoNote">TurboQuant methods (purple/teal) sit strictly below and left of alternatives — the Pareto-optimal frontier.</p>
   </div>
 
   <!-- ==================== Section 6: Compression Calculator Challenge ==================== -->
   <div class="card">
-    <h2>Compression Calculator Challenge</h2>
-    <p>Test your understanding of KV cache memory! Given model parameters, estimate the KV cache size at FP16. Then see how TurboQuant (4.5 bits effective) compresses it.</p>
-    <p class="dim-note">Formula: KV Cache = 2 &times; layers &times; kv_heads &times; head_dim &times; seq_len &times; bytes_per_element</p>
+    <h2 data-i18n="p11.s6.heading">Compression Calculator Challenge</h2>
+    <p data-i18n="p11.s6.desc">Test your understanding of KV cache memory! Given model parameters, estimate the KV cache size at FP16. Then see how TurboQuant (4.5 bits effective) compresses it.</p>
+    <p class="dim-note" data-i18n="p11.s6.formula" data-i18n-html>Formula: KV Cache = 2 &times; layers &times; kv_heads &times; head_dim &times; seq_len &times; bytes_per_element</p>
 
     <div class="game-score" id="cccScore">
       <div class="game-score-item">
         <div class="score-val" id="cccRound">1</div>
-        <div class="score-label">Round</div>
+        <div class="score-label" data-i18n="p11.s6.round">Round</div>
       </div>
       <div class="game-score-item">
         <div class="score-val" id="cccPoints">0</div>
-        <div class="score-label">Points</div>
+        <div class="score-label" data-i18n="p11.s6.points">Points</div>
       </div>
       <div class="game-score-item">
         <div class="score-val" id="cccMaxPoints">15</div>
-        <div class="score-label">Max Points</div>
+        <div class="score-label" data-i18n="p11.s6.maxPoints">Max Points</div>
       </div>
     </div>
 
     <div class="game-scenario" id="cccScenario">
       <div class="scenario-label" id="cccModelName"></div>
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-top:10px;">
-        <div><span class="scenario-label">Layers</span><div class="scenario-value" id="cccLayers"></div></div>
-        <div><span class="scenario-label">KV Heads</span><div class="scenario-value" id="cccKVHeads"></div></div>
-        <div><span class="scenario-label">Head Dim</span><div class="scenario-value" id="cccHeadDim"></div></div>
-        <div><span class="scenario-label">Seq Length</span><div class="scenario-value" id="cccSeqLen"></div></div>
-        <div><span class="scenario-label">Precision</span><div class="scenario-value">FP16 (2 bytes)</div></div>
+        <div><span class="scenario-label" data-i18n="p11.s6.layers">Layers</span><div class="scenario-value" id="cccLayers"></div></div>
+        <div><span class="scenario-label" data-i18n="p11.s6.kvHeads">KV Heads</span><div class="scenario-value" id="cccKVHeads"></div></div>
+        <div><span class="scenario-label" data-i18n="p11.s6.headDim">Head Dim</span><div class="scenario-value" id="cccHeadDim"></div></div>
+        <div><span class="scenario-label" data-i18n="p11.s6.seqLen">Seq Length</span><div class="scenario-value" id="cccSeqLen"></div></div>
+        <div><span class="scenario-label" data-i18n="p11.s6.precision">Precision</span><div class="scenario-value">FP16 (2 bytes)</div></div>
       </div>
     </div>
 
     <div class="game-input-group" id="cccInputGroup">
       <div style="text-align:center;">
-        <div style="font-size:0.78rem;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;">Your FP16 Estimate (MB)</div>
+        <div style="font-size:0.78rem;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;" data-i18n="p11.s6.estimateLabel">Your FP16 Estimate (MB)</div>
         <input class="game-input" type="number" id="cccGuessInput" placeholder="e.g. 512" step="any">
       </div>
-      <button class="btn btn-accent" id="cccCheckBtn">Check</button>
+      <button class="btn btn-accent" id="cccCheckBtn" data-i18n="p11.s6.checkBtn">Check</button>
     </div>
 
     <div id="cccResultArea" style="display:none;">
       <div style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin:16px 0;">
         <div>
-          <div style="font-size:0.82rem;font-weight:600;text-align:center;margin-bottom:8px;">KV Cache Size Comparison</div>
+          <div style="font-size:0.82rem;font-weight:600;text-align:center;margin-bottom:8px;" data-i18n="p11.s6.sizeCompare">KV Cache Size Comparison</div>
           <div class="game-bar-compare" id="cccBars"></div>
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0;text-align:center;">
         <div style="padding:12px;border-radius:var(--radius);background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);">
-          <div style="font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;">FP16 Actual</div>
+          <div style="font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;" data-i18n="p11.s6.fp16Actual">FP16 Actual</div>
           <div style="font-size:1.3rem;font-weight:700;color:var(--accent);" id="cccFP16Actual"></div>
         </div>
         <div style="padding:12px;border-radius:var(--radius);background:rgba(0,201,167,.08);border:1px solid rgba(0,201,167,.2);">
-          <div style="font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;">TurboQuant (4.5-bit)</div>
+          <div style="font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;" data-i18n="p11.s6.tqActual">TurboQuant (4.5-bit)</div>
           <div style="font-size:1.3rem;font-weight:700;color:var(--accent2);" id="cccTQActual"></div>
         </div>
         <div style="padding:12px;border-radius:var(--radius);background:rgba(255,158,100,.08);border:1px solid rgba(255,158,100,.2);">
-          <div style="font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;">Compression Ratio</div>
+          <div style="font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;" data-i18n="p11.s6.compRatio">Compression Ratio</div>
           <div style="font-size:1.3rem;font-weight:700;color:var(--accent4);" id="cccRatio"></div>
         </div>
       </div>
@@ -464,17 +464,18 @@
     <div class="game-feedback" id="cccFeedback"></div>
 
     <div class="anim-controls" id="cccControls">
-      <button class="btn btn-accent" id="cccNextBtn" style="display:none;">Next Round</button>
-      <button class="btn btn-surface" id="cccResetBtn" style="display:none;">Play Again</button>
+      <button class="btn btn-accent" id="cccNextBtn" style="display:none;" data-i18n="p11.s6.nextRound">Next Round</button>
+      <button class="btn btn-surface" id="cccResetBtn" style="display:none;" data-i18n="btn.playAgain">Play Again</button>
     </div>
   </div>
 
 </div>
 
 <footer>
-  <p>LLM Algorithm Visualizations &mdash; Topic 11: TurboQuant (ICLR 2026, Google Research / DeepMind)</p>
+  <p data-i18n="p11.footer" data-i18n-html>LLM Algorithm Visualizations &mdash; Topic 11: TurboQuant (ICLR 2026, Google Research / DeepMind)</p>
 </footer>
 
+<script src="../shared/i18n.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
@@ -1052,6 +1053,185 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 });
+</script>
+<script>
+i18nRegister({
+  'en': {
+    'p11.title': '11. TurboQuant — LLM Algorithm Visualizations',
+    'p11.heading': 'TurboQuant',
+    'p11.subtitle': 'Training-Free KV Cache Quantization — 6x Compression, Zero Accuracy Loss',
+    'p11.breadcrumb': 'Topic 11',
+    'p11.s1.heading': 'The Two-Stage Pipeline',
+    'p11.s1.desc': 'TurboQuant compresses the KV cache in two complementary stages: <strong style="color:var(--accent)">PolarQuant</strong> makes scalar quantization MSE-optimal via random rotation, then <strong style="color:var(--accent2)">QJL</strong> corrects residual inner-product error with a 1-bit sketch.',
+    'p11.s1.stage1': 'FP16 KV Cache<div class="stage-sub">Full-precision key/value vectors</div><div class="stage-bits">16 bits/ch</div>',
+    'p11.s1.stage2': 'Stage 1: PolarQuant<div class="stage-sub">Random orthogonal rotation R<br>then scalar quantization</div><div class="stage-bits">3.5 bits/ch</div>',
+    'p11.s1.stage3': 'Stage 2: QJL Correction<div class="stage-sub">1-bit Johnson-Lindenstrauss<br>sketch of quantization error</div><div class="stage-bits">+1 bit correction</div>',
+    'p11.s1.stage4': 'Compressed KV Cache<div class="stage-sub">Training-free, data-agnostic</div><div class="stage-bits">3.5 + 1 = 4.5 effective</div>',
+    'p11.s1.formulaNote': 'R = random orthogonal matrix, S = JL random projection, e = quantization error, s = 1-bit sketch',
+    'p11.s2.heading': 'Random Rotation Intuition',
+    'p11.s2.desc': 'Real KV cache vectors are <strong>non-isotropic</strong> \u2014 energy concentrates along certain axes, making per-coordinate quantization suboptimal. A random orthogonal rotation spreads the energy uniformly, letting each coordinate be quantized independently with a known optimal grid.',
+    'p11.s2.before': 'Before Rotation',
+    'p11.s2.after': 'After Rotation',
+    'p11.s2.rotateBtn': 'Rotate',
+    'p11.s2.note': 'Points colored by distance from origin. After rotation, the distribution becomes near-isotropic (circular).',
+    'p11.s3.heading': 'Bit-Width vs Quality Tradeoff',
+    'p11.s3.desc': 'Lower bits save memory but increase distortion. PolarQuant shifts the Pareto frontier down, and QJL correction pushes it even further \u2014 achieving near-zero distortion at just 3.5 bits.',
+    'p11.s3.legend1': 'Scalar Quantization',
+    'p11.s3.legend2': 'PolarQuant Only',
+    'p11.s3.legend3': 'PolarQuant + QJL',
+    'p11.s3.note': 'Hover over chart to see exact values at each bit-width. Key thresholds marked at 2.5, 3.5, and 4 bits.',
+    'p11.s4.heading': 'KV Cache Compression Comparison',
+    'p11.s4.desc': 'Memory footprint for a <strong>70B parameter model</strong> with 4K context length. TurboQuant achieves up to 8.4x compression.',
+    'p11.s4.memUsage': 'Memory Usage',
+    'p11.s4.attnSpeedup': 'Attention Computation Speedup',
+    'p11.s5.heading': 'Comparison with Other Methods',
+    'p11.s5.desc': 'TurboQuant dominates the Pareto frontier: better quality at the same bit-width, or fewer bits at the same quality level.',
+    'p11.s5.th.method': 'Method',
+    'p11.s5.th.bits': 'Bits/Channel',
+    'p11.s5.th.mse': 'Norm. MSE',
+    'p11.s5.th.ppl': 'Perplexity (WikiText-2)',
+    'p11.s5.th.mem': 'Memory (70B, 4K)',
+    'p11.s5.th.speedup': 'Attn Speedup',
+    'p11.s5.pareto': 'Pareto Frontier: Bits vs Perplexity',
+    'p11.s5.paretoNote': 'TurboQuant methods (purple/teal) sit strictly below and left of alternatives \u2014 the Pareto-optimal frontier.',
+    'p11.s6.heading': 'Compression Calculator Challenge',
+    'p11.s6.desc': 'Test your understanding of KV cache memory! Given model parameters, estimate the KV cache size at FP16. Then see how TurboQuant (4.5 bits effective) compresses it.',
+    'p11.s6.formula': 'Formula: KV Cache = 2 &times; layers &times; kv_heads &times; head_dim &times; seq_len &times; bytes_per_element',
+    'p11.s6.round': 'Round',
+    'p11.s6.points': 'Points',
+    'p11.s6.maxPoints': 'Max Points',
+    'p11.s6.layers': 'Layers',
+    'p11.s6.kvHeads': 'KV Heads',
+    'p11.s6.headDim': 'Head Dim',
+    'p11.s6.seqLen': 'Seq Length',
+    'p11.s6.precision': 'Precision',
+    'p11.s6.estimateLabel': 'Your FP16 Estimate (MB)',
+    'p11.s6.checkBtn': 'Check',
+    'p11.s6.nextRound': 'Next Round',
+    'p11.s6.sizeCompare': 'KV Cache Size Comparison',
+    'p11.s6.fp16Actual': 'FP16 Actual',
+    'p11.s6.tqActual': 'TurboQuant (4.5-bit)',
+    'p11.s6.compRatio': 'Compression Ratio',
+    'p11.footer': 'LLM Algorithm Visualizations &mdash; Topic 11: TurboQuant (ICLR 2026, Google Research / DeepMind)',
+  },
+  'zh-CN': {
+    'p11.title': '11. TurboQuant — 大语言模型算法可视化',
+    'p11.heading': 'TurboQuant',
+    'p11.subtitle': '免训练 KV 缓存量化 — 6 倍压缩，零精度损失',
+    'p11.breadcrumb': '主题 11',
+    'p11.s1.heading': '两阶段管线',
+    'p11.s1.desc': 'TurboQuant 通过两个互补阶段压缩 KV 缓存：<strong style="color:var(--accent)">PolarQuant</strong> 通过随机旋转使标量量化达到 MSE 最优，然后 <strong style="color:var(--accent2)">QJL</strong> 用 1-bit 草图校正残余内积误差。',
+    'p11.s1.stage1': 'FP16 KV 缓存<div class="stage-sub">全精度 key/value 向量</div><div class="stage-bits">16 bits/ch</div>',
+    'p11.s1.stage2': '阶段 1：PolarQuant<div class="stage-sub">随机正交旋转 R<br>然后标量量化</div><div class="stage-bits">3.5 bits/ch</div>',
+    'p11.s1.stage3': '阶段 2：QJL 校正<div class="stage-sub">1-bit Johnson-Lindenstrauss<br>量化误差草图</div><div class="stage-bits">+1 bit 校正</div>',
+    'p11.s1.stage4': '压缩后 KV 缓存<div class="stage-sub">免训练，数据无关</div><div class="stage-bits">3.5 + 1 = 4.5 有效位</div>',
+    'p11.s1.formulaNote': 'R = 随机正交矩阵，S = JL 随机投影，e = 量化误差，s = 1-bit 草图',
+    'p11.s2.heading': '随机旋转直觉',
+    'p11.s2.desc': '真实的 KV 缓存向量是<strong>非各向同性的</strong>——能量集中在某些轴上，使逐坐标量化效果不佳。随机正交旋转将能量均匀分散，使每个坐标可以用已知的最优网格独立量化。',
+    'p11.s2.before': '旋转前',
+    'p11.s2.after': '旋转后',
+    'p11.s2.rotateBtn': '旋转',
+    'p11.s2.note': '点的颜色根据到原点的距离着色。旋转后，分布变得近似各向同性（圆形）。',
+    'p11.s3.heading': '位宽 vs 质量权衡',
+    'p11.s3.desc': '更低的位宽节省内存但增加失真。PolarQuant 将 Pareto 前沿向下移动，QJL 校正进一步推进——在仅 3.5 bits 时实现接近零失真。',
+    'p11.s3.legend1': '标量量化',
+    'p11.s3.legend2': '仅 PolarQuant',
+    'p11.s3.legend3': 'PolarQuant + QJL',
+    'p11.s3.note': '将鼠标悬停在图表上查看每个位宽的精确值。关键阈值标记在 2.5、3.5 和 4 bits。',
+    'p11.s4.heading': 'KV 缓存压缩对比',
+    'p11.s4.desc': '<strong>70B 参数模型</strong>在 4K 上下文长度下的内存占用。TurboQuant 实现高达 8.4 倍压缩。',
+    'p11.s4.memUsage': '内存使用量',
+    'p11.s4.attnSpeedup': 'Attention 计算加速',
+    'p11.s5.heading': '与其他方法的对比',
+    'p11.s5.desc': 'TurboQuant 主导 Pareto 前沿：在相同位宽下质量更好，或在相同质量下使用更少位宽。',
+    'p11.s5.th.method': '方法',
+    'p11.s5.th.bits': 'Bits/Channel',
+    'p11.s5.th.mse': '归一化 MSE',
+    'p11.s5.th.ppl': '困惑度 (WikiText-2)',
+    'p11.s5.th.mem': '内存 (70B, 4K)',
+    'p11.s5.th.speedup': 'Attn 加速',
+    'p11.s5.pareto': 'Pareto 前沿：位宽 vs 困惑度',
+    'p11.s5.paretoNote': 'TurboQuant 方法（紫色/青色）严格位于其他方法的左下方——即 Pareto 最优前沿。',
+    'p11.s6.heading': '压缩计算挑战',
+    'p11.s6.desc': '测试你对 KV 缓存内存的理解！给定模型参数，估算 FP16 下的 KV 缓存大小。然后看看 TurboQuant（有效 4.5 bits）如何压缩它。',
+    'p11.s6.formula': '公式：KV Cache = 2 &times; layers &times; kv_heads &times; head_dim &times; seq_len &times; bytes_per_element',
+    'p11.s6.round': '轮次',
+    'p11.s6.points': '得分',
+    'p11.s6.maxPoints': '满分',
+    'p11.s6.layers': '层数',
+    'p11.s6.kvHeads': 'KV 头数',
+    'p11.s6.headDim': '头维度',
+    'p11.s6.seqLen': '序列长度',
+    'p11.s6.precision': '精度',
+    'p11.s6.estimateLabel': '你的 FP16 估算值（MB）',
+    'p11.s6.checkBtn': '检查',
+    'p11.s6.nextRound': '下一轮',
+    'p11.s6.sizeCompare': 'KV 缓存大小对比',
+    'p11.s6.fp16Actual': 'FP16 实际值',
+    'p11.s6.tqActual': 'TurboQuant (4.5-bit)',
+    'p11.s6.compRatio': '压缩比',
+    'p11.footer': '大语言模型算法可视化系列 &mdash; 主题 11：TurboQuant（ICLR 2026，Google Research / DeepMind）',
+  },
+  'zh-TW': {
+    'p11.title': '11. TurboQuant — 大語言模型演算法視覺化',
+    'p11.heading': 'TurboQuant',
+    'p11.subtitle': '免訓練 KV 快取量化 — 6 倍壓縮，零精度損失',
+    'p11.breadcrumb': '主題 11',
+    'p11.s1.heading': '兩階段管線',
+    'p11.s1.desc': 'TurboQuant 透過兩個互補階段壓縮 KV 快取：<strong style="color:var(--accent)">PolarQuant</strong> 透過隨機旋轉使純量量化達到 MSE 最優，然後 <strong style="color:var(--accent2)">QJL</strong> 用 1-bit 草圖校正殘餘內積誤差。',
+    'p11.s1.stage1': 'FP16 KV 快取<div class="stage-sub">全精度 key/value 向量</div><div class="stage-bits">16 bits/ch</div>',
+    'p11.s1.stage2': '階段 1：PolarQuant<div class="stage-sub">隨機正交旋轉 R<br>然後純量量化</div><div class="stage-bits">3.5 bits/ch</div>',
+    'p11.s1.stage3': '階段 2：QJL 校正<div class="stage-sub">1-bit Johnson-Lindenstrauss<br>量化誤差草圖</div><div class="stage-bits">+1 bit 校正</div>',
+    'p11.s1.stage4': '壓縮後 KV 快取<div class="stage-sub">免訓練，資料無關</div><div class="stage-bits">3.5 + 1 = 4.5 有效位元</div>',
+    'p11.s1.formulaNote': 'R = 隨機正交矩陣，S = JL 隨機投影，e = 量化誤差，s = 1-bit 草圖',
+    'p11.s2.heading': '隨機旋轉直覺',
+    'p11.s2.desc': '真實的 KV 快取向量是<strong>非各向同性的</strong>——能量集中在某些軸上，使逐座標量化效果不佳。隨機正交旋轉將能量均勻分散，使每個座標可以用已知的最優網格獨立量化。',
+    'p11.s2.before': '旋轉前',
+    'p11.s2.after': '旋轉後',
+    'p11.s2.rotateBtn': '旋轉',
+    'p11.s2.note': '點的顏色根據到原點的距離著色。旋轉後，分佈變得近似各向同性（圓形）。',
+    'p11.s3.heading': '位元寬度 vs 品質權衡',
+    'p11.s3.desc': '更低的位元寬度節省記憶體但增加失真。PolarQuant 將 Pareto 前沿向下移動，QJL 校正進一步推進——在僅 3.5 bits 時實現接近零失真。',
+    'p11.s3.legend1': '純量量化',
+    'p11.s3.legend2': '僅 PolarQuant',
+    'p11.s3.legend3': 'PolarQuant + QJL',
+    'p11.s3.note': '將滑鼠懸停在圖表上檢視每個位元寬度的精確值。關鍵閾值標記在 2.5、3.5 和 4 bits。',
+    'p11.s4.heading': 'KV 快取壓縮對比',
+    'p11.s4.desc': '<strong>70B 參數模型</strong>在 4K 上下文長度下的記憶體佔用。TurboQuant 實現高達 8.4 倍壓縮。',
+    'p11.s4.memUsage': '記憶體使用量',
+    'p11.s4.attnSpeedup': 'Attention 計算加速',
+    'p11.s5.heading': '與其他方法的對比',
+    'p11.s5.desc': 'TurboQuant 主導 Pareto 前沿：在相同位元寬度下品質更好，或在相同品質下使用更少位元寬度。',
+    'p11.s5.th.method': '方法',
+    'p11.s5.th.bits': 'Bits/Channel',
+    'p11.s5.th.mse': '歸一化 MSE',
+    'p11.s5.th.ppl': '困惑度 (WikiText-2)',
+    'p11.s5.th.mem': '記憶體 (70B, 4K)',
+    'p11.s5.th.speedup': 'Attn 加速',
+    'p11.s5.pareto': 'Pareto 前沿：位元寬度 vs 困惑度',
+    'p11.s5.paretoNote': 'TurboQuant 方法（紫色/青色）嚴格位於其他方法的左下方——即 Pareto 最優前沿。',
+    'p11.s6.heading': '壓縮計算挑戰',
+    'p11.s6.desc': '測試你對 KV 快取記憶體的理解！給定模型參數，估算 FP16 下的 KV 快取大小。然後看看 TurboQuant（有效 4.5 bits）如何壓縮它。',
+    'p11.s6.formula': '公式：KV Cache = 2 &times; layers &times; kv_heads &times; head_dim &times; seq_len &times; bytes_per_element',
+    'p11.s6.round': '輪次',
+    'p11.s6.points': '得分',
+    'p11.s6.maxPoints': '滿分',
+    'p11.s6.layers': '層數',
+    'p11.s6.kvHeads': 'KV 頭數',
+    'p11.s6.headDim': '頭維度',
+    'p11.s6.seqLen': '序列長度',
+    'p11.s6.precision': '精度',
+    'p11.s6.estimateLabel': '你的 FP16 估算值（MB）',
+    'p11.s6.checkBtn': '檢查',
+    'p11.s6.nextRound': '下一輪',
+    'p11.s6.sizeCompare': 'KV 快取大小對比',
+    'p11.s6.fp16Actual': 'FP16 實際值',
+    'p11.s6.tqActual': 'TurboQuant (4.5-bit)',
+    'p11.s6.compRatio': '壓縮比',
+    'p11.footer': '大語言模型演算法視覺化系列 &mdash; 主題 11：TurboQuant（ICLR 2026，Google Research / DeepMind）',
+  }
+});
+if (typeof applyI18n === 'function') applyI18n();
 </script>
 </body>
 </html>

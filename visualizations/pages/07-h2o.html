@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>07. H2O — LLM Algorithm Visualizations</title>
+  <title data-i18n="p07.title">07. H2O — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
   <style>
     /* ===== Attention Heatmap ===== */
@@ -247,43 +247,43 @@
 </head>
 <body>
   <header>
-    <h1>H2O &mdash; Heavy-Hitter Oracle</h1>
-    <p>Exploiting Attention Sparsity for Efficient KV Cache Compression</p>
-    <div class="breadcrumb"><a href="../index.html">Home</a> / H2O</div>
+    <h1 data-i18n="p07.heading">H2O &mdash; Heavy-Hitter Oracle</h1>
+    <p data-i18n="p07.subtitle">Exploiting Attention Sparsity for Efficient KV Cache Compression</p>
+    <div class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p07.breadcrumb">H2O</span></div>
   </header>
 
   <div class="container">
 
     <!-- ==================== Section 1: Attention Sparsity Discovery ==================== -->
     <div class="card">
-      <h2><span class="badge badge-purple">Discovery</span> Attention Sparsity</h2>
-      <p>Attention matrices in LLMs are extremely sparse. Most query-key interactions produce near-zero attention weights, while a tiny fraction of tokens dominate the total attention mass.</p>
+      <h2 data-i18n="p07.s1.heading" data-i18n-html><span class="badge badge-purple">Discovery</span> Attention Sparsity</h2>
+      <p data-i18n="p07.s1.desc">Attention matrices in LLMs are extremely sparse. Most query-key interactions produce near-zero attention weights, while a tiny fraction of tokens dominate the total attention mass.</p>
 
       <div class="heatmap-canvas-wrap">
         <canvas id="heatmapCanvas" class="heatmap-canvas"></canvas>
       </div>
 
-      <p class="dim-note">95%+ of attention weight concentrated in &lt;5% of tokens</p>
+      <p class="dim-note" data-i18n="p07.s1.note" data-i18n-html>95%+ of attention weight concentrated in &lt;5% of tokens</p>
     </div>
 
     <!-- ==================== Section 2: Power-Law Distribution ==================== -->
     <div class="card">
-      <h2><span class="badge badge-red">Analysis</span> Power-Law Distribution</h2>
-      <p>When tokens are sorted by their cumulative attention score, the distribution follows a steep power law. A handful of heavy hitters capture the vast majority of attention weight.</p>
+      <h2 data-i18n="p07.s2.heading" data-i18n-html><span class="badge badge-red">Analysis</span> Power-Law Distribution</h2>
+      <p data-i18n="p07.s2.desc">When tokens are sorted by their cumulative attention score, the distribution follows a steep power law. A handful of heavy hitters capture the vast majority of attention weight.</p>
 
       <div class="powerlaw-canvas-wrap">
         <canvas id="powerlawCanvas" class="powerlaw-canvas"></canvas>
       </div>
 
       <div class="anim-controls">
-        <button class="btn btn-accent" onclick="animatePowerLaw()">Animate Chart</button>
+        <button class="btn btn-accent" onclick="animatePowerLaw()" data-i18n="p07.s2.btn">Animate Chart</button>
       </div>
     </div>
 
     <!-- ==================== Section 3: KV Eviction Animation ==================== -->
     <div class="card">
-      <h2><span class="badge badge-green">Interactive</span> KV Cache Eviction</h2>
-      <p>H2O classifies tokens into Heavy Hitters, Recent tokens, and non-important tokens. Non-important tokens are evicted from the KV cache to dramatically reduce memory.</p>
+      <h2 data-i18n="p07.s3.heading" data-i18n-html><span class="badge badge-green">Interactive</span> KV Cache Eviction</h2>
+      <p data-i18n="p07.s3.desc">H2O classifies tokens into Heavy Hitters, Recent tokens, and non-important tokens. Non-important tokens are evicted from the KV cache to dramatically reduce memory.</p>
 
       <div class="eviction-canvas-wrap">
         <canvas id="evictionCanvas" class="eviction-canvas"></canvas>
@@ -295,22 +295,22 @@
         <div class="step-dot" onclick="goEvictionStep(2)">3</div>
         <div class="step-dot" onclick="goEvictionStep(3)">4</div>
       </div>
-      <div class="step-desc" id="evictionDesc">Full KV Cache: all 16 token slots occupied.</div>
-      <div class="eviction-memory" id="evictionMemory">Memory: 16 KV pairs</div>
+      <div class="step-desc" id="evictionDesc" data-i18n="p07.s3.step1">Full KV Cache: all 16 token slots occupied.</div>
+      <div class="eviction-memory" id="evictionMemory" data-i18n="p07.s3.memory">Memory: 16 KV pairs</div>
 
       <div class="anim-controls">
-        <button class="btn btn-accent" id="btnEviction" onclick="runEviction()">Run Eviction</button>
+        <button class="btn btn-accent" id="btnEviction" onclick="runEviction()" data-i18n="p07.s3.btn">Run Eviction</button>
       </div>
     </div>
 
     <!-- ==================== Section 4: Interactive Budget Slider ==================== -->
     <div class="card">
-      <h2><span class="badge badge-orange">Explore</span> KV Cache Budget</h2>
-      <p>Adjust the KV cache budget to see how H2O trades memory for quality. Even at 20% budget, perplexity barely degrades thanks to attention sparsity.</p>
+      <h2 data-i18n="p07.s4.heading" data-i18n-html><span class="badge badge-orange">Explore</span> KV Cache Budget</h2>
+      <p data-i18n="p07.s4.desc">Adjust the KV cache budget to see how H2O trades memory for quality. Even at 20% budget, perplexity barely degrades thanks to attention sparsity.</p>
 
       <div class="budget-section">
         <div class="budget-slider-row">
-          <label>Cache Budget:</label>
+          <label data-i18n="p07.s4.label">Cache Budget:</label>
           <input type="range" id="budgetSlider" min="5" max="100" value="100" oninput="updateBudget(this.value)">
           <span class="budget-value" id="budgetValue">100%</span>
         </div>
@@ -322,15 +322,15 @@
 
         <div class="budget-stats">
           <div class="budget-stat">
-            <div class="budget-stat-label">Perplexity</div>
+            <div class="budget-stat-label" data-i18n="p07.s4.perplexity">Perplexity</div>
             <div class="budget-stat-value stat-perplexity" id="budgetPerplexity">5.20</div>
           </div>
           <div class="budget-stat">
-            <div class="budget-stat-label">Memory</div>
+            <div class="budget-stat-label" data-i18n="p07.s4.memory">Memory</div>
             <div class="budget-stat-value stat-memory" id="budgetMemory">16.0 GB</div>
           </div>
           <div class="budget-stat">
-            <div class="budget-stat-label">Compression</div>
+            <div class="budget-stat-label" data-i18n="p07.s4.compression">Compression</div>
             <div class="budget-stat-value stat-compression" id="budgetCompression">1.0x</div>
           </div>
         </div>
@@ -339,8 +339,8 @@
 
     <!-- ==================== Section 5: H2O Eviction Policy ==================== -->
     <div class="card">
-      <h2><span class="badge badge-purple">Policy</span> H2O Eviction Strategy</h2>
-      <p>H2O uses a hybrid eviction policy that combines three categories of tokens to maintain generation quality while minimizing cache size.</p>
+      <h2 data-i18n="p07.s5.heading" data-i18n-html><span class="badge badge-purple">Policy</span> H2O Eviction Strategy</h2>
+      <p data-i18n="p07.s5.desc">H2O uses a hybrid eviction policy that combines three categories of tokens to maintain generation quality while minimizing cache size.</p>
 
       <div class="token-sequence-wrap">
         <div class="token-sequence" id="policyTokens"></div>
@@ -349,28 +349,28 @@
       <div class="policy-legend">
         <div class="policy-legend-item">
           <div class="policy-legend-swatch" style="background: rgba(247,118,142,.4); border: 1px solid var(--accent3);"></div>
-          <span style="color: var(--accent3); font-weight: 600;">Attention Sinks</span>
+          <span style="color: var(--accent3); font-weight: 600;" data-i18n="p07.s5.legendSinks">Attention Sinks</span>
         </div>
         <div class="policy-legend-item">
           <div class="policy-legend-swatch" style="background: rgba(108,99,255,.4); border: 1px solid var(--accent);"></div>
-          <span style="color: var(--accent); font-weight: 600;">Heavy Hitters</span>
+          <span style="color: var(--accent); font-weight: 600;" data-i18n="p07.s5.legendHeavy">Heavy Hitters</span>
         </div>
         <div class="policy-legend-item">
           <div class="policy-legend-swatch" style="background: rgba(0,201,167,.4); border: 1px solid var(--accent2);"></div>
-          <span style="color: var(--accent2); font-weight: 600;">Recent Window</span>
+          <span style="color: var(--accent2); font-weight: 600;" data-i18n="p07.s5.legendRecent">Recent Window</span>
         </div>
         <div class="policy-legend-item">
           <div class="policy-legend-swatch" style="background: rgba(255,255,255,.06); border: 1px solid var(--border);"></div>
-          <span style="color: var(--text-dim);">Evicted</span>
+          <span style="color: var(--text-dim);" data-i18n="p07.s5.legendEvicted">Evicted</span>
         </div>
       </div>
 
       <div class="policy-desc">
         <ul>
-          <li><strong style="color: var(--accent3);">Attention Sinks (first 4 tokens):</strong> The initial tokens consistently receive high attention across all layers and heads, regardless of content. Always retained.</li>
-          <li><strong style="color: var(--accent);">Heavy Hitters (top-k by cumulative score):</strong> Tokens that accumulate the highest total attention weight across decoding steps. Dynamically identified and updated.</li>
-          <li><strong style="color: var(--accent2);">Recent Window (last W tokens):</strong> The most recently generated tokens provide essential local context. Always retained with a sliding window.</li>
-          <li><strong style="color: var(--text-dim);">Evicted:</strong> All remaining tokens are removed from the KV cache. Their attention contribution is negligible.</li>
+          <li data-i18n="p07.s5.li1" data-i18n-html><strong style="color: var(--accent3);">Attention Sinks (first 4 tokens):</strong> The initial tokens consistently receive high attention across all layers and heads, regardless of content. Always retained.</li>
+          <li data-i18n="p07.s5.li2" data-i18n-html><strong style="color: var(--accent);">Heavy Hitters (top-k by cumulative score):</strong> Tokens that accumulate the highest total attention weight across decoding steps. Dynamically identified and updated.</li>
+          <li data-i18n="p07.s5.li3" data-i18n-html><strong style="color: var(--accent2);">Recent Window (last W tokens):</strong> The most recently generated tokens provide essential local context. Always retained with a sliding window.</li>
+          <li data-i18n="p07.s5.li4" data-i18n-html><strong style="color: var(--text-dim);">Evicted:</strong> All remaining tokens are removed from the KV cache. Their attention contribution is negligible.</li>
         </ul>
       </div>
 
@@ -381,27 +381,27 @@
 
     <!-- ==================== Section 6: KV Eviction Challenge Game ==================== -->
     <div class="card">
-      <h2><span class="badge badge-red">Game</span> KV Eviction Challenge</h2>
-      <p>You are the H2O eviction policy! Given 8 tokens with attention scores, select which 4 to <strong>keep</strong> in the KV cache. H2O keeps the first token (attention sink) plus the top Heavy Hitters.</p>
+      <h2 data-i18n="p07.s6.heading" data-i18n-html><span class="badge badge-red">Game</span> KV Eviction Challenge</h2>
+      <p data-i18n="p07.s6.desc" data-i18n-html>You are the H2O eviction policy! Given 8 tokens with attention scores, select which 4 to <strong>keep</strong> in the KV cache. H2O keeps the first token (attention sink) plus the top Heavy Hitters.</p>
 
       <div class="game-score" id="evictGameScore">
         <div class="game-score-item">
           <div class="score-val" id="evictRound">1</div>
-          <div class="score-label">Round</div>
+          <div class="score-label" data-i18n="p07.s6.round">Round</div>
         </div>
         <div class="game-score-item">
           <div class="score-val" id="evictCorrect">0</div>
-          <div class="score-label">Score</div>
+          <div class="score-label" data-i18n="p07.s6.score">Score</div>
         </div>
         <div class="game-score-item">
           <div class="score-val" id="evictTotal">4</div>
-          <div class="score-label">Rounds</div>
+          <div class="score-label" data-i18n="p07.s6.rounds">Rounds</div>
         </div>
       </div>
 
       <div class="game-scenario" id="evictScenario">
-        <div class="scenario-label">KV Cache Budget: Keep 4 of 8 tokens</div>
-        <div class="scenario-value" id="evictInstruction">Click 4 tokens to keep in the cache</div>
+        <div class="scenario-label" data-i18n="p07.s6.scenarioLabel">KV Cache Budget: Keep 4 of 8 tokens</div>
+        <div class="scenario-value" id="evictInstruction" data-i18n="p07.s6.instruction">Click 4 tokens to keep in the cache</div>
       </div>
 
       <div id="evictTokens" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin:20px 0;"></div>
@@ -409,16 +409,17 @@
       <div class="game-feedback" id="evictFeedback"></div>
 
       <div style="text-align:center;margin-top:16px;">
-        <button class="btn btn-accent" id="evictSubmitBtn" onclick="evictSubmit()" style="display:none;">Submit Selection</button>
-        <button class="btn btn-accent" id="evictNextBtn" onclick="evictNextRound()" style="display:none;">Next Round</button>
-        <button class="btn btn-surface" id="evictResetBtn" onclick="evictReset()" style="display:none;">Play Again</button>
+        <button class="btn btn-accent" id="evictSubmitBtn" onclick="evictSubmit()" style="display:none;" data-i18n="p07.s6.submit">Submit Selection</button>
+        <button class="btn btn-accent" id="evictNextBtn" onclick="evictNextRound()" style="display:none;" data-i18n="btn.nextRound">Next Round</button>
+        <button class="btn btn-surface" id="evictResetBtn" onclick="evictReset()" style="display:none;" data-i18n="btn.playAgain">Play Again</button>
       </div>
     </div>
 
   </div>
 
-  <footer><p>LLM Algorithm Visualization Series</p></footer>
+  <footer><p data-i18n="footer.text">LLM Algorithm Visualization Series</p></footer>
 
+  <script src="../shared/i18n.js"></script>
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
   <script src="../shared/progress.js"></script>
@@ -1173,5 +1174,132 @@
       if (!evictionAnimating) drawEvictionFrame();
     });
   </script>
+<script>
+i18nRegister({
+  'en': {
+    'p07.title': '07. H2O — LLM Algorithm Visualizations',
+    'p07.heading': 'H2O — Heavy-Hitter Oracle',
+    'p07.subtitle': 'Exploiting Attention Sparsity for Efficient KV Cache Compression',
+    'p07.breadcrumb': 'H2O',
+    'p07.s1.heading': '<span class="badge badge-purple">Discovery</span> Attention Sparsity',
+    'p07.s1.desc': 'Attention matrices in LLMs are extremely sparse. Most query-key interactions produce near-zero attention weights, while a tiny fraction of tokens dominate the total attention mass.',
+    'p07.s1.note': '95%+ of attention weight concentrated in &lt;5% of tokens',
+    'p07.s2.heading': '<span class="badge badge-red">Analysis</span> Power-Law Distribution',
+    'p07.s2.desc': 'When tokens are sorted by their cumulative attention score, the distribution follows a steep power law. A handful of heavy hitters capture the vast majority of attention weight.',
+    'p07.s2.btn': 'Animate Chart',
+    'p07.s3.heading': '<span class="badge badge-green">Interactive</span> KV Cache Eviction',
+    'p07.s3.desc': 'H2O classifies tokens into Heavy Hitters, Recent tokens, and non-important tokens. Non-important tokens are evicted from the KV cache to dramatically reduce memory.',
+    'p07.s3.step1': 'Full KV Cache: all 16 token slots occupied.',
+    'p07.s3.memory': 'Memory: 16 KV pairs',
+    'p07.s3.btn': 'Run Eviction',
+    'p07.s4.heading': '<span class="badge badge-orange">Explore</span> KV Cache Budget',
+    'p07.s4.desc': 'Adjust the KV cache budget to see how H2O trades memory for quality. Even at 20% budget, perplexity barely degrades thanks to attention sparsity.',
+    'p07.s4.label': 'Cache Budget:',
+    'p07.s4.perplexity': 'Perplexity',
+    'p07.s4.memory': 'Memory',
+    'p07.s4.compression': 'Compression',
+    'p07.s5.heading': '<span class="badge badge-purple">Policy</span> H2O Eviction Strategy',
+    'p07.s5.desc': 'H2O uses a hybrid eviction policy that combines three categories of tokens to maintain generation quality while minimizing cache size.',
+    'p07.s5.legendSinks': 'Attention Sinks',
+    'p07.s5.legendHeavy': 'Heavy Hitters',
+    'p07.s5.legendRecent': 'Recent Window',
+    'p07.s5.legendEvicted': 'Evicted',
+    'p07.s5.li1': '<strong style="color: var(--accent3);">Attention Sinks (first 4 tokens):</strong> The initial tokens consistently receive high attention across all layers and heads, regardless of content. Always retained.',
+    'p07.s5.li2': '<strong style="color: var(--accent);">Heavy Hitters (top-k by cumulative score):</strong> Tokens that accumulate the highest total attention weight across decoding steps. Dynamically identified and updated.',
+    'p07.s5.li3': '<strong style="color: var(--accent2);">Recent Window (last W tokens):</strong> The most recently generated tokens provide essential local context. Always retained with a sliding window.',
+    'p07.s5.li4': '<strong style="color: var(--text-dim);">Evicted:</strong> All remaining tokens are removed from the KV cache. Their attention contribution is negligible.',
+    'p07.s6.heading': '<span class="badge badge-red">Game</span> KV Eviction Challenge',
+    'p07.s6.desc': 'You are the H2O eviction policy! Given 8 tokens with attention scores, select which 4 to <strong>keep</strong> in the KV cache. H2O keeps the first token (attention sink) plus the top Heavy Hitters.',
+    'p07.s6.round': 'Round',
+    'p07.s6.score': 'Score',
+    'p07.s6.rounds': 'Rounds',
+    'p07.s6.scenarioLabel': 'KV Cache Budget: Keep 4 of 8 tokens',
+    'p07.s6.instruction': 'Click 4 tokens to keep in the cache',
+    'p07.s6.submit': 'Submit Selection',
+  },
+  'zh-CN': {
+    'p07.title': '07. H2O — 大语言模型算法可视化',
+    'p07.heading': 'H2O — 重击者预言机',
+    'p07.subtitle': '利用 Attention 稀疏性实现高效 KV Cache 压缩',
+    'p07.breadcrumb': 'H2O',
+    'p07.s1.heading': '<span class="badge badge-purple">发现</span> Attention 稀疏性',
+    'p07.s1.desc': 'LLM 中的 Attention 矩阵极其稀疏。绝大多数 query-key 交互产生接近零的注意力权重，只有极少数 token 占据了总注意力的绝大部分。',
+    'p07.s1.note': '95%+ 的注意力权重集中在 &lt;5% 的 token 上',
+    'p07.s2.heading': '<span class="badge badge-red">分析</span> 幂律分布',
+    'p07.s2.desc': '当 token 按累积注意力分数排序时，分布呈陡峭的幂律形态。少数重击者捕获了绝大部分注意力权重。',
+    'p07.s2.btn': '播放图表动画',
+    'p07.s3.heading': '<span class="badge badge-green">交互</span> KV Cache 淘汰',
+    'p07.s3.desc': 'H2O 将 token 分为重击者、近期 token 和非重要 token。非重要 token 从 KV cache 中被淘汰，从而大幅减少内存使用。',
+    'p07.s3.step1': '完整 KV Cache：全部 16 个 token 槽位已占用。',
+    'p07.s3.memory': '内存：16 个 KV 对',
+    'p07.s3.btn': '执行淘汰',
+    'p07.s4.heading': '<span class="badge badge-orange">探索</span> KV Cache 预算',
+    'p07.s4.desc': '调整 KV cache 预算，观察 H2O 如何在内存与质量之间权衡。即使在 20% 预算下，由于注意力稀疏性，困惑度几乎不会下降。',
+    'p07.s4.label': '缓存预算：',
+    'p07.s4.perplexity': '困惑度',
+    'p07.s4.memory': '内存',
+    'p07.s4.compression': '压缩比',
+    'p07.s5.heading': '<span class="badge badge-purple">策略</span> H2O 淘汰策略',
+    'p07.s5.desc': 'H2O 使用混合淘汰策略，结合三类 token 来维持生成质量并最小化缓存大小。',
+    'p07.s5.legendSinks': '注意力汇聚点',
+    'p07.s5.legendHeavy': '重击者',
+    'p07.s5.legendRecent': '近期窗口',
+    'p07.s5.legendEvicted': '已淘汰',
+    'p07.s5.li1': '<strong style="color: var(--accent3);">注意力汇聚点（前 4 个 token）：</strong>初始 token 在所有层和注意力头中始终获得高注意力，与内容无关。始终保留。',
+    'p07.s5.li2': '<strong style="color: var(--accent);">重击者（按累积分数取 top-k）：</strong>在解码步骤中累积最高总注意力权重的 token。动态识别和更新。',
+    'p07.s5.li3': '<strong style="color: var(--accent2);">近期窗口（最后 W 个 token）：</strong>最近生成的 token 提供必要的局部上下文。始终以滑动窗口方式保留。',
+    'p07.s5.li4': '<strong style="color: var(--text-dim);">已淘汰：</strong>所有剩余 token 从 KV cache 中移除。它们的注意力贡献可忽略不计。',
+    'p07.s6.heading': '<span class="badge badge-red">游戏</span> KV 淘汰挑战',
+    'p07.s6.desc': '你就是 H2O 淘汰策略！给定 8 个带注意力分数的 token，选择其中 4 个<strong>保留</strong>在 KV cache 中。H2O 保留第一个 token（注意力汇聚点）加上得分最高的重击者。',
+    'p07.s6.round': '轮次',
+    'p07.s6.score': '得分',
+    'p07.s6.rounds': '总轮数',
+    'p07.s6.scenarioLabel': 'KV Cache 预算：保留 8 个中的 4 个 token',
+    'p07.s6.instruction': '点击 4 个要保留在缓存中的 token',
+    'p07.s6.submit': '提交选择',
+  },
+  'zh-TW': {
+    'p07.title': '07. H2O — 大語言模型演算法視覺化',
+    'p07.heading': 'H2O — 重擊者預言機',
+    'p07.subtitle': '利用 Attention 稀疏性實現高效 KV Cache 壓縮',
+    'p07.breadcrumb': 'H2O',
+    'p07.s1.heading': '<span class="badge badge-purple">發現</span> Attention 稀疏性',
+    'p07.s1.desc': 'LLM 中的 Attention 矩陣極其稀疏。絕大多數 query-key 互動產生接近零的注意力權重，只有極少數 token 佔據了總注意力的絕大部分。',
+    'p07.s1.note': '95%+ 的注意力權重集中在 &lt;5% 的 token 上',
+    'p07.s2.heading': '<span class="badge badge-red">分析</span> 冪律分佈',
+    'p07.s2.desc': '當 token 按累積注意力分數排序時，分佈呈陡峭的冪律型態。少數重擊者捕獲了絕大部分注意力權重。',
+    'p07.s2.btn': '播放圖表動畫',
+    'p07.s3.heading': '<span class="badge badge-green">互動</span> KV Cache 淘汰',
+    'p07.s3.desc': 'H2O 將 token 分為重擊者、近期 token 和非重要 token。非重要 token 從 KV cache 中被淘汰，從而大幅減少記憶體使用。',
+    'p07.s3.step1': '完整 KV Cache：全部 16 個 token 槽位已佔用。',
+    'p07.s3.memory': '記憶體：16 個 KV 對',
+    'p07.s3.btn': '執行淘汰',
+    'p07.s4.heading': '<span class="badge badge-orange">探索</span> KV Cache 預算',
+    'p07.s4.desc': '調整 KV cache 預算，觀察 H2O 如何在記憶體與品質之間權衡。即使在 20% 預算下，由於注意力稀疏性，困惑度幾乎不會下降。',
+    'p07.s4.label': '快取預算：',
+    'p07.s4.perplexity': '困惑度',
+    'p07.s4.memory': '記憶體',
+    'p07.s4.compression': '壓縮比',
+    'p07.s5.heading': '<span class="badge badge-purple">策略</span> H2O 淘汰策略',
+    'p07.s5.desc': 'H2O 使用混合淘汰策略，結合三類 token 來維持生成品質並最小化快取大小。',
+    'p07.s5.legendSinks': '注意力匯聚點',
+    'p07.s5.legendHeavy': '重擊者',
+    'p07.s5.legendRecent': '近期視窗',
+    'p07.s5.legendEvicted': '已淘汰',
+    'p07.s5.li1': '<strong style="color: var(--accent3);">注意力匯聚點（前 4 個 token）：</strong>初始 token 在所有層和注意力頭中始終獲得高注意力，與內容無關。始終保留。',
+    'p07.s5.li2': '<strong style="color: var(--accent);">重擊者（按累積分數取 top-k）：</strong>在解碼步驟中累積最高總注意力權重的 token。動態識別和更新。',
+    'p07.s5.li3': '<strong style="color: var(--accent2);">近期視窗（最後 W 個 token）：</strong>最近生成的 token 提供必要的區域上下文。始終以滑動視窗方式保留。',
+    'p07.s5.li4': '<strong style="color: var(--text-dim);">已淘汰：</strong>所有剩餘 token 從 KV cache 中移除。它們的注意力貢獻可忽略不計。',
+    'p07.s6.heading': '<span class="badge badge-red">遊戲</span> KV 淘汰挑戰',
+    'p07.s6.desc': '你就是 H2O 淘汰策略！給定 8 個帶注意力分數的 token，選擇其中 4 個<strong>保留</strong>在 KV cache 中。H2O 保留第一個 token（注意力匯聚點）加上得分最高的重擊者。',
+    'p07.s6.round': '輪次',
+    'p07.s6.score': '得分',
+    'p07.s6.rounds': '總輪數',
+    'p07.s6.scenarioLabel': 'KV Cache 預算：保留 8 個中的 4 個 token',
+    'p07.s6.instruction': '點擊 4 個要保留在快取中的 token',
+    'p07.s6.submit': '提交選擇',
+  }
+});
+</script>
 </body>
 </html>

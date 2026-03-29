@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>03. Sparse Transformers — LLM Algorithm Visualizations</title>
+  <title data-i18n="p03.title">03. Sparse Transformers — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
   <style>
     /* ===== Grid Canvases ===== */
@@ -171,10 +171,10 @@
 <body>
 
 <header>
-  <h1>Sparse Transformers</h1>
-  <p>O(N&radic;N) Attention via Factorized Local + Strided Patterns</p>
+  <h1 data-i18n="p03.heading">Sparse Transformers</h1>
+  <p data-i18n="p03.subtitle" data-i18n-html>O(N&radic;N) Attention via Factorized Local + Strided Patterns</p>
   <div class="breadcrumb">
-    <a href="../index.html">Home</a> &rsaquo; Topic 10
+    <a href="../index.html" data-i18n="breadcrumb.home">Home</a> &rsaquo; <span data-i18n="p03.breadcrumb">Topic 10</span>
   </div>
 </header>
 
@@ -182,8 +182,8 @@
 
   <!-- ==================== Section 1: Dense vs Sparse ==================== -->
   <div class="card">
-    <h2><span class="badge badge-purple">Section 1</span> Dense vs Sparse Attention Patterns</h2>
-    <p>Dense attention connects every token to every other token, producing N&sup2; attention weights. Sparse Transformers factorize this into local + strided patterns, reducing computation to O(N&radic;N).</p>
+    <h2 data-i18n="p03.s1.heading" data-i18n-html><span class="badge badge-purple">Section 1</span> Dense vs Sparse Attention Patterns</h2>
+    <p data-i18n="p03.s1.desc" data-i18n-html>Dense attention connects every token to every other token, producing N&sup2; attention weights. Sparse Transformers factorize this into local + strided patterns, reducing computation to O(N&radic;N).</p>
 
     <div class="dual-grid">
       <div class="dual-grid-item">
@@ -207,8 +207,8 @@
 
   <!-- ==================== Section 2: Local Attention ==================== -->
   <div class="card">
-    <h2><span class="badge badge-green">Section 2</span> Local Attention Pattern</h2>
-    <p>Each token attends to itself and its &radic;N nearest neighbors, forming a diagonal band across the attention matrix. This captures short-range dependencies efficiently.</p>
+    <h2 data-i18n="p03.s2.heading" data-i18n-html><span class="badge badge-green">Section 2</span> Local Attention Pattern</h2>
+    <p data-i18n="p03.s2.desc" data-i18n-html>Each token attends to itself and its &radic;N nearest neighbors, forming a diagonal band across the attention matrix. This captures short-range dependencies efficiently.</p>
 
     <canvas id="localCanvas" class="grid-canvas"></canvas>
 
@@ -225,8 +225,8 @@
 
   <!-- ==================== Section 3: Strided Attention ==================== -->
   <div class="card">
-    <h2><span class="badge badge-orange">Section 3</span> Strided Attention Pattern</h2>
-    <p>Every &radic;N-th position acts as a "summary" token that connects to all other tokens. These strided positions aggregate information from across the sequence, enabling long-range communication.</p>
+    <h2 data-i18n="p03.s3.heading" data-i18n-html><span class="badge badge-orange">Section 3</span> Strided Attention Pattern</h2>
+    <p data-i18n="p03.s3.desc" data-i18n-html>Every &radic;N-th position acts as a "summary" token that connects to all other tokens. These strided positions aggregate information from across the sequence, enabling long-range communication.</p>
 
     <canvas id="stridedCanvas" class="grid-canvas"></canvas>
 
@@ -243,23 +243,23 @@
 
   <!-- ==================== Section 4: Combined Coverage ==================== -->
   <div class="card">
-    <h2><span class="badge badge-red">Section 4</span> Combined Coverage Animation</h2>
-    <p>Neither local nor strided alone provides full coverage. But in a 2-hop path (local then strided, across two attention layers), any token can reach any other token indirectly. Watch the path from token 1 to token 14.</p>
+    <h2 data-i18n="p03.s4.heading" data-i18n-html><span class="badge badge-red">Section 4</span> Combined Coverage Animation</h2>
+    <p data-i18n="p03.s4.desc">Neither local nor strided alone provides full coverage. But in a 2-hop path (local then strided, across two attention layers), any token can reach any other token indirectly. Watch the path from token 1 to token 14.</p>
 
     <canvas id="coverageCanvas" class="grid-canvas tall"></canvas>
 
-    <div class="coverage-status" id="coverageStatus">Press "Animate Coverage" to see how 2-hop attention achieves full indirect coverage.</div>
+    <div class="coverage-status" id="coverageStatus" data-i18n="p03.s4.status">Press "Animate Coverage" to see how 2-hop attention achieves full indirect coverage.</div>
 
     <div class="anim-controls">
-      <button class="btn btn-accent" id="coverageBtn" onclick="animateCoverage()">Animate Coverage</button>
-      <button class="btn btn-surface" onclick="resetCoverage()" style="margin-left:8px;">Reset</button>
+      <button class="btn btn-accent" id="coverageBtn" onclick="animateCoverage()" data-i18n="p03.s4.animBtn">Animate Coverage</button>
+      <button class="btn btn-surface" onclick="resetCoverage()" style="margin-left:8px;" data-i18n="btn.reset">Reset</button>
     </div>
   </div>
 
   <!-- ==================== Section 5: Complexity Comparison ==================== -->
   <div class="card">
-    <h2><span class="badge badge-purple">Section 5</span> Complexity Comparison</h2>
-    <p>Drag the slider to see how sparse attention scales compared to dense attention as sequence length grows.</p>
+    <h2 data-i18n="p03.s5.heading" data-i18n-html><span class="badge badge-purple">Section 5</span> Complexity Comparison</h2>
+    <p data-i18n="p03.s5.desc">Drag the slider to see how sparse attention scales compared to dense attention as sequence length grows.</p>
 
     <div class="slider-group">
       <label>Sequence N:</label>
@@ -296,12 +296,12 @@
 
   <!-- ==================== Section 6: Results ==================== -->
   <div class="card">
-    <h2><span class="badge badge-green">Section 6</span> Results: Sequence Lengths Achieved</h2>
-    <p>Sparse Transformers enabled modeling sequences far beyond what standard transformers could handle at the time (~512-1024 tokens). OpenAI demonstrated this across images, text, and audio.</p>
+    <h2 data-i18n="p03.s6.heading" data-i18n-html><span class="badge badge-green">Section 6</span> Results: Sequence Lengths Achieved</h2>
+    <p data-i18n="p03.s6.desc">Sparse Transformers enabled modeling sequences far beyond what standard transformers could handle at the time (~512-1024 tokens). OpenAI demonstrated this across images, text, and audio.</p>
 
     <canvas id="resultsCanvas" class="results-canvas"></canvas>
 
-    <div class="dim-note" style="margin-top:12px;">Standard transformer limit at the time: ~512-1024 tokens. Sparse Transformers pushed this by 3-65x.</div>
+    <div class="dim-note" style="margin-top:12px;" data-i18n="p03.s6.note">Standard transformer limit at the time: ~512-1024 tokens. Sparse Transformers pushed this by 3-65x.</div>
 
     <div class="formula-box">
       <span class="q">CIFAR-10</span>: 3,072 tokens (2.80 bits/dim) &nbsp;|&nbsp;
@@ -312,8 +312,8 @@
 
   <!-- ==================== Game 1: Coverage Path Finder ==================== -->
   <div class="card">
-    <h2><span class="badge badge-red">Game</span> Coverage Path Finder</h2>
-    <p>Can you find a valid 2-hop path between distant tokens? Click an intermediate token so that source&rarr;intermediate is local OR strided, AND intermediate&rarr;destination is local OR strided.</p>
+    <h2 data-i18n="p03.g1.heading" data-i18n-html><span class="badge badge-red">Game</span> Coverage Path Finder</h2>
+    <p data-i18n="p03.g1.desc" data-i18n-html>Can you find a valid 2-hop path between distant tokens? Click an intermediate token so that source&rarr;intermediate is local OR strided, AND intermediate&rarr;destination is local OR strided.</p>
 
     <div class="game-score" id="pathGameScore">
       <div class="game-score-item"><div class="score-val" id="pathScore">0</div><div class="score-label">Score</div></div>
@@ -321,19 +321,19 @@
       <div class="game-score-item"><div class="score-val" id="pathTimer">15</div><div class="score-label">Timer</div></div>
     </div>
 
-    <div class="game-feedback" id="pathFeedback">Press Start to begin!</div>
+    <div class="game-feedback" id="pathFeedback" data-i18n="p03.g1.startMsg">Press Start to begin!</div>
 
     <div id="pathTokenRow" style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap;margin:16px 0;"></div>
 
     <div class="anim-controls">
-      <button class="btn btn-accent" id="pathStartBtn" onclick="startPathGame()">Start Game</button>
+      <button class="btn btn-accent" id="pathStartBtn" onclick="startPathGame()" data-i18n="p03.g1.startBtn">Start Game</button>
     </div>
   </div>
 
   <!-- ==================== Game 2: Attention Budget ==================== -->
   <div class="card">
-    <h2><span class="badge badge-orange">Game</span> Attention Budget Explorer</h2>
-    <p>Adjust the sequence length, local window, and stride to explore the tradeoff between attention connections and the sparse budget. Can you achieve full 2-hop coverage while staying under budget?</p>
+    <h2 data-i18n="p03.g2.heading" data-i18n-html><span class="badge badge-orange">Game</span> Attention Budget Explorer</h2>
+    <p data-i18n="p03.g2.desc">Adjust the sequence length, local window, and stride to explore the tradeoff between attention connections and the sparse budget. Can you achieve full 2-hop coverage while staying under budget?</p>
 
     <div class="slider-group">
       <label>Sequence N:</label>
@@ -385,7 +385,7 @@
     </div>
 
     <div class="anim-controls">
-      <button class="btn btn-accent" onclick="checkBudgetCoverage()">Check Full Coverage</button>
+      <button class="btn btn-accent" onclick="checkBudgetCoverage()" data-i18n="p03.g2.checkBtn">Check Full Coverage</button>
     </div>
     <div class="game-feedback" id="budgetFeedback"></div>
   </div>
@@ -393,9 +393,10 @@
 </div>
 
 <footer>
-  <p>Sparse Transformers &mdash; Rewon Child, Scott Gray, Alec Radford (OpenAI, 2019)</p>
+  <p data-i18n="p03.footer">Sparse Transformers &mdash; Rewon Child, Scott Gray, Alec Radford (OpenAI, 2019)</p>
 </footer>
 
+<script src="../shared/i18n.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
@@ -1151,6 +1152,121 @@ function checkBudgetCoverage() {
 document.getElementById('budgetN').addEventListener('change', updateBudget);
 document.getElementById('budgetLocalW').addEventListener('input', updateBudget);
 document.getElementById('budgetStride').addEventListener('input', updateBudget);
+</script>
+<script>
+i18nRegister({
+  'en': {
+    'p03.title': '03. Sparse Transformers — LLM Algorithm Visualizations',
+    'p03.heading': 'Sparse Transformers',
+    'p03.subtitle': 'O(N&radic;N) Attention via Factorized Local + Strided Patterns',
+    'p03.breadcrumb': 'Topic 10',
+    'p03.footer': 'Sparse Transformers — Rewon Child, Scott Gray, Alec Radford (OpenAI, 2019)',
+    // Section 1
+    'p03.s1.heading': '<span class="badge badge-purple">Section 1</span> Dense vs Sparse Attention Patterns',
+    'p03.s1.desc': 'Dense attention connects every token to every other token, producing N&sup2; attention weights. Sparse Transformers factorize this into local + strided patterns, reducing computation to O(N&radic;N).',
+    // Section 2
+    'p03.s2.heading': '<span class="badge badge-green">Section 2</span> Local Attention Pattern',
+    'p03.s2.desc': 'Each token attends to itself and its &radic;N nearest neighbors, forming a diagonal band across the attention matrix. This captures short-range dependencies efficiently.',
+    // Section 3
+    'p03.s3.heading': '<span class="badge badge-orange">Section 3</span> Strided Attention Pattern',
+    'p03.s3.desc': 'Every &radic;N-th position acts as a "summary" token that connects to all other tokens. These strided positions aggregate information from across the sequence, enabling long-range communication.',
+    // Section 4
+    'p03.s4.heading': '<span class="badge badge-red">Section 4</span> Combined Coverage Animation',
+    'p03.s4.desc': 'Neither local nor strided alone provides full coverage. But in a 2-hop path (local then strided, across two attention layers), any token can reach any other token indirectly. Watch the path from token 1 to token 14.',
+    'p03.s4.status': 'Press "Animate Coverage" to see how 2-hop attention achieves full indirect coverage.',
+    'p03.s4.animBtn': 'Animate Coverage',
+    // Section 5
+    'p03.s5.heading': '<span class="badge badge-purple">Section 5</span> Complexity Comparison',
+    'p03.s5.desc': 'Drag the slider to see how sparse attention scales compared to dense attention as sequence length grows.',
+    // Section 6
+    'p03.s6.heading': '<span class="badge badge-green">Section 6</span> Results: Sequence Lengths Achieved',
+    'p03.s6.desc': 'Sparse Transformers enabled modeling sequences far beyond what standard transformers could handle at the time (~512-1024 tokens). OpenAI demonstrated this across images, text, and audio.',
+    'p03.s6.note': 'Standard transformer limit at the time: ~512-1024 tokens. Sparse Transformers pushed this by 3-65x.',
+    // Game 1
+    'p03.g1.heading': '<span class="badge badge-red">Game</span> Coverage Path Finder',
+    'p03.g1.desc': 'Can you find a valid 2-hop path between distant tokens? Click an intermediate token so that source&rarr;intermediate is local OR strided, AND intermediate&rarr;destination is local OR strided.',
+    'p03.g1.startMsg': 'Press Start to begin!',
+    'p03.g1.startBtn': 'Start Game',
+    // Game 2
+    'p03.g2.heading': '<span class="badge badge-orange">Game</span> Attention Budget Explorer',
+    'p03.g2.desc': 'Adjust the sequence length, local window, and stride to explore the tradeoff between attention connections and the sparse budget. Can you achieve full 2-hop coverage while staying under budget?',
+    'p03.g2.checkBtn': 'Check Full Coverage',
+  },
+  'zh-CN': {
+    'p03.title': '03. 稀疏 Transformer — 大语言模型算法可视化',
+    'p03.heading': '稀疏 Transformer',
+    'p03.subtitle': '通过分解的局部 + 跨步模式实现 O(N&radic;N) 注意力',
+    'p03.breadcrumb': '主题 10',
+    'p03.footer': '稀疏 Transformer — Rewon Child, Scott Gray, Alec Radford (OpenAI, 2019)',
+    // Section 1
+    'p03.s1.heading': '<span class="badge badge-purple">第 1 节</span> 稠密 vs 稀疏注意力模式',
+    'p03.s1.desc': '稠密注意力将每个 token 连接到所有其他 token，产生 N&sup2; 个注意力权重。稀疏 Transformer 将其分解为局部 + 跨步模式，将计算复杂度降低到 O(N&radic;N)。',
+    // Section 2
+    'p03.s2.heading': '<span class="badge badge-green">第 2 节</span> 局部注意力模式',
+    'p03.s2.desc': '每个 token 关注自身及其最近的 &radic;N 个邻居，在注意力矩阵上形成对角带状区域。这能高效地捕获短程依赖关系。',
+    // Section 3
+    'p03.s3.heading': '<span class="badge badge-orange">第 3 节</span> 跨步注意力模式',
+    'p03.s3.desc': '每隔 &radic;N 个位置充当"汇总" token，连接到所有其他 token。这些跨步位置从整个序列中聚合信息，实现长程通信。',
+    // Section 4
+    'p03.s4.heading': '<span class="badge badge-red">第 4 节</span> 组合覆盖动画',
+    'p03.s4.desc': '局部或跨步模式单独使用都无法提供完全覆盖。但通过 2 跳路径（跨两个注意力层的局部加跨步），任何 token 都可以间接到达任何其他 token。观察从 token 1 到 token 14 的路径。',
+    'p03.s4.status': '点击"播放覆盖动画"查看 2 跳注意力如何实现完全间接覆盖。',
+    'p03.s4.animBtn': '播放覆盖动画',
+    // Section 5
+    'p03.s5.heading': '<span class="badge badge-purple">第 5 节</span> 复杂度对比',
+    'p03.s5.desc': '拖动滑块查看随着序列长度增长，稀疏注意力与稠密注意力的扩展对比。',
+    // Section 6
+    'p03.s6.heading': '<span class="badge badge-green">第 6 节</span> 结果：已实现的序列长度',
+    'p03.s6.desc': '稀疏 Transformer 使得建模远超当时标准 Transformer 处理能力（约 512-1024 个 token）的序列成为可能。OpenAI 在图像、文本和音频上都展示了这一成果。',
+    'p03.s6.note': '当时标准 Transformer 的限制：约 512-1024 个 token。稀疏 Transformer 将其提升了 3-65 倍。',
+    // Game 1
+    'p03.g1.heading': '<span class="badge badge-red">游戏</span> 覆盖路径查找器',
+    'p03.g1.desc': '你能找到远距离 token 之间的有效 2 跳路径吗？点击一个中间 token，使得源&rarr;中间是局部或跨步连接，且中间&rarr;目标也是局部或跨步连接。',
+    'p03.g1.startMsg': '点击开始按钮开始！',
+    'p03.g1.startBtn': '开始游戏',
+    // Game 2
+    'p03.g2.heading': '<span class="badge badge-orange">游戏</span> 注意力预算探索器',
+    'p03.g2.desc': '调整序列长度、局部窗口和步幅，探索注意力连接与稀疏预算之间的权衡。你能在不超预算的情况下实现完全 2 跳覆盖吗？',
+    'p03.g2.checkBtn': '检查完全覆盖',
+  },
+  'zh-TW': {
+    'p03.title': '03. 稀疏 Transformer — 大語言模型演算法視覺化',
+    'p03.heading': '稀疏 Transformer',
+    'p03.subtitle': '透過分解的局部 + 跨步模式實現 O(N&radic;N) 注意力',
+    'p03.breadcrumb': '主題 10',
+    'p03.footer': '稀疏 Transformer — Rewon Child, Scott Gray, Alec Radford (OpenAI, 2019)',
+    // Section 1
+    'p03.s1.heading': '<span class="badge badge-purple">第 1 節</span> 稠密 vs 稀疏注意力模式',
+    'p03.s1.desc': '稠密注意力將每個 token 連接到所有其他 token，產生 N&sup2; 個注意力權重。稀疏 Transformer 將其分解為局部 + 跨步模式，將計算複雜度降低到 O(N&radic;N)。',
+    // Section 2
+    'p03.s2.heading': '<span class="badge badge-green">第 2 節</span> 局部注意力模式',
+    'p03.s2.desc': '每個 token 關注自身及其最近的 &radic;N 個鄰居，在注意力矩陣上形成對角帶狀區域。這能高效地捕捉短程相依關係。',
+    // Section 3
+    'p03.s3.heading': '<span class="badge badge-orange">第 3 節</span> 跨步注意力模式',
+    'p03.s3.desc': '每隔 &radic;N 個位置充當「彙總」token，連接到所有其他 token。這些跨步位置從整個序列中聚合資訊，實現長程通訊。',
+    // Section 4
+    'p03.s4.heading': '<span class="badge badge-red">第 4 節</span> 組合覆蓋動畫',
+    'p03.s4.desc': '局部或跨步模式單獨使用都無法提供完全覆蓋。但透過 2 跳路徑（跨兩個注意力層的局部加跨步），任何 token 都可以間接到達任何其他 token。觀察從 token 1 到 token 14 的路徑。',
+    'p03.s4.status': '點擊「播放覆蓋動畫」查看 2 跳注意力如何實現完全間接覆蓋。',
+    'p03.s4.animBtn': '播放覆蓋動畫',
+    // Section 5
+    'p03.s5.heading': '<span class="badge badge-purple">第 5 節</span> 複雜度對比',
+    'p03.s5.desc': '拖動滑桿查看隨著序列長度增長，稀疏注意力與稠密注意力的擴展對比。',
+    // Section 6
+    'p03.s6.heading': '<span class="badge badge-green">第 6 節</span> 結果：已實現的序列長度',
+    'p03.s6.desc': '稀疏 Transformer 使得建模遠超當時標準 Transformer 處理能力（約 512-1024 個 token）的序列成為可能。OpenAI 在影像、文字和音訊上都展示了這一成果。',
+    'p03.s6.note': '當時標準 Transformer 的限制：約 512-1024 個 token。稀疏 Transformer 將其提升了 3-65 倍。',
+    // Game 1
+    'p03.g1.heading': '<span class="badge badge-red">遊戲</span> 覆蓋路徑查找器',
+    'p03.g1.desc': '你能找到遠距離 token 之間的有效 2 跳路徑嗎？點擊一個中間 token，使得來源&rarr;中間是局部或跨步連接，且中間&rarr;目標也是局部或跨步連接。',
+    'p03.g1.startMsg': '點擊開始按鈕開始！',
+    'p03.g1.startBtn': '開始遊戲',
+    // Game 2
+    'p03.g2.heading': '<span class="badge badge-orange">遊戲</span> 注意力預算探索器',
+    'p03.g2.desc': '調整序列長度、局部視窗和步幅，探索注意力連接與稀疏預算之間的權衡。你能在不超預算的情況下實現完全 2 跳覆蓋嗎？',
+    'p03.g2.checkBtn': '檢查完全覆蓋',
+  }
+});
 </script>
 
 </body>
