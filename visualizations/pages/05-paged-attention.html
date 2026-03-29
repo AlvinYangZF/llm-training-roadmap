@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>05. PagedAttention — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    /* ===== Memory Bar ===== */
+    .mem-bar-container { margin: 24px 0; }
+    .mem-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .mem-bar {
+      height: 48px;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      border: 1px solid var(--border);
+    }
+    .mem-bar .seg {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #fff;
+      transition: width 0.8s ease;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .seg-used { background: linear-gradient(135deg, var(--accent), #4a42cc); }
+    .seg-reserved { background: repeating-linear-gradient(45deg, #3a2a1a, #3a2a1a 4px, #2b1e12 4px, #2b1e12 8px); color: var(--accent4); border-left: 1px solid rgba(255,158,100,.3); }
+    .seg-internal { background: repeating-linear-gradient(-45deg, #3a1a2a, #3a1a2a 4px, #2b121e 4px, #2b121e 8px); color: var(--accent3); border-left: 1px solid rgba(247,118,142,.3); }
+    .seg-external { background: rgba(0,0,0,.4); color: var(--text-dim); border-left: 1px solid var(--border); }
+    .seg-free-usable { background: rgba(0,201,167,.15); color: var(--accent2); border-left: 1px solid rgba(0,201,167,.3); }
+
+    .waste-legend {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .waste-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .waste-legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+    .waste-stat {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent3);
+      margin: 16px 0 4px;
+    }
+    .waste-stat span { font-size: 0.9rem; color: var(--text-dim); font-weight: 400; }
+
+    /* ===== Analogy Diagram ===== */
+    .analogy-side { min-height: 340px; }
+    .analogy-side h3 { margin-top: 0 !important; }
+    .block-map {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 12px 0;
+    }
+    .block-map-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .block-map-label {
+      width: 90px;
+      text-align: right;
+      font-size: 0.78rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .block-map-slot {
+      width: 48px;
+      height: 36px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.3);
+    }
+    .block-map-arrow {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+    }
+    .block-map-phys {
+      width: 48px;
+      height: 36px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .phys-os { background: rgba(108,99,255,.25); border: 1px solid var(--accent); color: var(--accent); }
+    .phys-pa { background: rgba(0,201,167,.25); border: 1px solid var(--accent2); color: var(--accent2); }
+
+    .analogy-key-point {
+      background: rgba(108,99,255,.08);
+      border: 1px solid rgba(108,99,255,.3);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 0.88rem;
+      margin-top: 16px;
+      text-align: center;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* ===== Interactive Demo ===== */
+    .demo-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .demo-canvas-wrap {
+      position: relative;
+      width: 100%;
+    }
+    .demo-canvas {
+      width: 100%;
+      height: 420px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+    .demo-controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .demo-stats {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .demo-stat {
+      text-align: center;
+    }
+    .demo-stat .val {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+    .demo-stat .label {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    /* ===== Beam Search Canvas ===== */
+    .beam-canvas {
+      width: 100%;
+      height: 380px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+    .beam-info {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .beam-info-box {
+      background: rgba(0,0,0,.3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 18px;
+      text-align: center;
+    }
+    .beam-info-box .val {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .beam-info-box .label {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+    .step-indicator { margin: 16px 0 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PagedAttention / vLLM</h1>
+    <p>OS-Inspired KV Cache Memory Management — Eliminating Fragmentation</p>
+    <div class="breadcrumb"><a href="../index.html">Home</a> / PagedAttention</div>
+  </header>
+
+  <div class="container">
+
+    <!-- ==================== Section 1: The Problem ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-red">Problem</span> KV Cache Memory Waste</h2>
+      <p>In traditional LLM serving systems, KV cache memory is <strong>pre-allocated contiguously</strong> for each request up to the maximum sequence length. Since actual generation lengths are unpredictable, this leads to massive memory waste — often <strong>60-80%</strong> of allocated GPU memory is unused.</p>
+
+      <h3>Three Types of Waste</h3>
+
+      <div class="phase-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+        <div class="phase-card" style="background: rgba(255,158,100,.08); border-color: rgba(255,158,100,.3);">
+          <h3 style="color: var(--accent4); margin-top: 0;">Reservation Waste</h3>
+          <p style="font-size: 0.9rem;">Pre-allocate for max_seq_len (e.g., 2048) but the request only generates 128 tokens. <strong>93%</strong> of reserved memory is never used.</p>
+        </div>
+        <div class="phase-card" style="background: rgba(247,118,142,.08); border-color: rgba(247,118,142,.3);">
+          <h3 style="color: var(--accent3); margin-top: 0;">Internal Fragmentation</h3>
+          <p style="font-size: 0.9rem;">Last allocated block is only partially filled with KV entries. The remainder of that block is wasted space.</p>
+        </div>
+        <div class="phase-card" style="background: rgba(108,99,255,.08); border-color: rgba(108,99,255,.3);">
+          <h3 style="color: var(--accent); margin-top: 0;">External Fragmentation</h3>
+          <p style="font-size: 0.9rem;">Free memory exists across GPU but in small scattered chunks — not enough contiguous space for a new request.</p>
+        </div>
+      </div>
+
+      <h3>Traditional Contiguous Allocation</h3>
+      <p style="font-size: 0.9rem; margin-bottom: 12px;">A snapshot of GPU KV cache memory — each request reserves a full contiguous block for max sequence length:</p>
+
+      <div class="mem-bar-container">
+        <div class="mem-bar-label">
+          <span>0%</span>
+          <span>GPU KV Cache Memory</span>
+          <span>100%</span>
+        </div>
+        <div class="mem-bar" id="wasteBar">
+          <div class="seg seg-used" style="width: 12%;">Req A used</div>
+          <div class="seg seg-reserved" style="width: 18%;">Req A reserved</div>
+          <div class="seg seg-used" style="width: 8%;">Req B used</div>
+          <div class="seg seg-reserved" style="width: 12%;">Req B reserved</div>
+          <div class="seg seg-external" style="width: 6%;">gap</div>
+          <div class="seg seg-used" style="width: 6%;">Req C used</div>
+          <div class="seg seg-reserved" style="width: 14%;">Req C reserved</div>
+          <div class="seg seg-external" style="width: 24%;">free (fragmented)</div>
+        </div>
+
+        <div class="waste-legend">
+          <div class="waste-legend-item"><div class="waste-legend-swatch" style="background: var(--accent);"></div> Actually used</div>
+          <div class="waste-legend-item"><div class="waste-legend-swatch" style="background: repeating-linear-gradient(45deg, #3a2a1a, #3a2a1a 2px, #2b1e12 2px, #2b1e12 4px);"></div> Reserved (wasted)</div>
+          <div class="waste-legend-item"><div class="waste-legend-swatch" style="background: rgba(0,0,0,.4); border: 1px solid var(--border);"></div> Free but fragmented</div>
+        </div>
+      </div>
+
+      <div class="waste-stat">
+        ~60-80% waste <span>— only 20-38% of KV cache memory is actually storing useful data</span>
+      </div>
+    </div>
+
+    <!-- ==================== Section 2: OS Virtual Memory Analogy ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-purple">Analogy</span> OS Virtual Memory Mapping</h2>
+      <p>PagedAttention borrows the core idea from operating system virtual memory: use a <strong>page table</strong> (block table) to map logical addresses to non-contiguous physical locations. The KV cache no longer needs contiguous memory.</p>
+
+      <div class="compare-grid">
+        <div class="compare-card analogy-side" style="background: rgba(108,99,255,.06); border-color: rgba(108,99,255,.3);">
+          <h3 style="color: var(--accent);">OS Virtual Memory</h3>
+          <p style="font-size: 0.88rem; margin-bottom: 12px;">Page Table maps virtual pages to physical page frames in RAM</p>
+          <div class="block-map">
+            <div class="block-map-row">
+              <div class="block-map-label" style="color: var(--accent);">V.Page 0</div>
+              <div class="block-map-slot" style="border-color: var(--accent); color: var(--accent);">0</div>
+              <div class="block-map-arrow">&#10230;</div>
+              <div class="block-map-phys phys-os">P.F 3</div>
+            </div>
+            <div class="block-map-row">
+              <div class="block-map-label" style="color: var(--accent);">V.Page 1</div>
+              <div class="block-map-slot" style="border-color: var(--accent); color: var(--accent);">1</div>
+              <div class="block-map-arrow">&#10230;</div>
+              <div class="block-map-phys phys-os">P.F 7</div>
+            </div>
+            <div class="block-map-row">
+              <div class="block-map-label" style="color: var(--accent);">V.Page 2</div>
+              <div class="block-map-slot" style="border-color: var(--accent); color: var(--accent);">2</div>
+              <div class="block-map-arrow">&#10230;</div>
+              <div class="block-map-phys phys-os">P.F 1</div>
+            </div>
+            <div class="block-map-row">
+              <div class="block-map-label" style="color: var(--accent);">V.Page 3</div>
+              <div class="block-map-slot" style="border-color: var(--accent); color: var(--accent);">3</div>
+              <div class="block-map-arrow">&#10230;</div>
+              <div class="block-map-phys phys-os">P.F 5</div>
+            </div>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 10px;">Physical frames need NOT be contiguous. The page table provides the indirection layer.</p>
+        </div>
+
+        <div class="compare-card analogy-side" style="background: rgba(0,201,167,.06); border-color: rgba(0,201,167,.3);">
+          <h3 style="color: var(--accent2);">PagedAttention</h3>
+          <p style="font-size: 0.88rem; margin-bottom: 12px;">Block Table maps logical KV blocks to physical GPU memory blocks</p>
+          <div class="block-map">
+            <div class="block-map-row">
+              <div class="block-map-label" style="color: var(--accent2);">KV Block 0</div>
+              <div class="block-map-slot" style="border-color: var(--accent2); color: var(--accent2);">0</div>
+              <div class="block-map-arrow">&#10230;</div>
+              <div class="block-map-phys phys-pa">GPU 5</div>
+            </div>
+            <div class="block-map-row">
+              <div class="block-map-label" style="color: var(--accent2);">KV Block 1</div>
+              <div class="block-map-slot" style="border-color: var(--accent2); color: var(--accent2);">1</div>
+              <div class="block-map-arrow">&#10230;</div>
+              <div class="block-map-phys phys-pa">GPU 2</div>
+            </div>
+            <div class="block-map-row">
+              <div class="block-map-label" style="color: var(--accent2);">KV Block 2</div>
+              <div class="block-map-slot" style="border-color: var(--accent2); color: var(--accent2);">2</div>
+              <div class="block-map-arrow">&#10230;</div>
+              <div class="block-map-phys phys-pa">GPU 9</div>
+            </div>
+            <div class="block-map-row">
+              <div class="block-map-label" style="color: var(--accent2);">KV Block 3</div>
+              <div class="block-map-slot" style="border-color: var(--accent2); color: var(--accent2);">3</div>
+              <div class="block-map-arrow">&#10230;</div>
+              <div class="block-map-phys phys-pa">GPU 0</div>
+            </div>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 10px;">Physical GPU blocks need NOT be contiguous. Block table provides indirection for KV cache.</p>
+        </div>
+      </div>
+
+      <div class="analogy-key-point">
+        Same concept, different domain — virtual memory paging eliminates fragmentation in both cases.
+      </div>
+    </div>
+
+    <!-- ==================== Section 3: Interactive Block Table Demo ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-green">Interactive</span> Block Table Demo</h2>
+      <p>Tokens are grouped into fixed-size blocks (block_size = 4). Physical GPU memory blocks are allocated on demand and can be scattered anywhere. Click the buttons to add or remove tokens and watch the block table update.</p>
+
+      <div class="demo-layout">
+        <div class="demo-canvas-wrap">
+          <canvas id="blockTableCanvas" class="demo-canvas"></canvas>
+        </div>
+      </div>
+
+      <div class="demo-stats">
+        <div class="demo-stat"><div class="val" id="statTokens" style="color: var(--accent);">7</div><div class="label">Tokens</div></div>
+        <div class="demo-stat"><div class="val" id="statLogical" style="color: var(--accent2);">2</div><div class="label">Logical Blocks</div></div>
+        <div class="demo-stat"><div class="val" id="statPhysical" style="color: var(--accent4);">2</div><div class="label">Physical Blocks</div></div>
+        <div class="demo-stat"><div class="val" id="statUtil" style="color: var(--accent3);">87%</div><div class="label">Utilization</div></div>
+      </div>
+
+      <div class="demo-controls">
+        <button class="btn btn-accent" id="btnAddToken" onclick="addToken()">Add Token</button>
+        <button class="btn btn-surface" id="btnRemoveToken" onclick="removeToken()">Remove Token</button>
+        <button class="btn btn-surface" onclick="resetDemo()">Reset</button>
+      </div>
+
+      <p class="dim-note">Physical blocks are allocated only when needed. Waste is limited to internal fragmentation in the last block.</p>
+    </div>
+
+    <!-- ==================== Section 4: Memory Utilization Comparison ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-orange">Comparison</span> Memory Utilization</h2>
+      <p>PagedAttention eliminates reservation waste and external fragmentation entirely. The only remaining waste is internal fragmentation in the last block of each sequence — typically just a few tokens.</p>
+
+      <div class="speedup-bar-wrap" id="utilBars">
+        <div class="speedup-row">
+          <div class="speedup-label" style="color: var(--accent3);">Contiguous</div>
+          <div class="speedup-track">
+            <div class="speedup-fill fill-standard" data-width="38" id="barContig">38% utilization</div>
+          </div>
+        </div>
+        <div class="speedup-row">
+          <div class="speedup-label" style="color: var(--accent2);">PagedAttention</div>
+          <div class="speedup-track">
+            <div class="speedup-fill fill-flash2" data-width="96" id="barPaged">96% utilization</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="formula-box">
+        Waste<sub>paged</sub> = <span class="s">block_size - 1</span> <span class="op">tokens per sequence (last block only)</span>
+      </div>
+
+      <div class="compare-grid" style="margin-top: 20px;">
+        <div class="compare-card compare-standard">
+          <h3 style="color: var(--accent3);">Contiguous Allocation</h3>
+          <ul>
+            <li>Pre-allocate for max_seq_len per request</li>
+            <li>Reservation waste: <strong>60%+</strong></li>
+            <li>External fragmentation blocks new requests</li>
+            <li>Cannot share memory between sequences</li>
+          </ul>
+        </div>
+        <div class="compare-card" style="background: rgba(0,201,167,.06); border-color: rgba(0,201,167,.3);">
+          <h3 style="color: var(--accent2);">PagedAttention</h3>
+          <ul>
+            <li>Allocate blocks on demand as tokens generated</li>
+            <li>Waste: <strong>&lt;4%</strong> (last block only)</li>
+            <li>No external fragmentation — any free block works</li>
+            <li>Copy-on-Write sharing for beam search</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="anim-controls">
+        <button class="btn btn-accent" onclick="animateUtilBars()">Animate</button>
+      </div>
+
+      <div class="formula-box" style="margin-top: 20px;">
+        Throughput improvement: <span class="q">2-4x</span> <span class="op">via higher batch sizes from memory savings</span>
+      </div>
+    </div>
+
+    <!-- ==================== Section 5: Beam Search with Copy-on-Write ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-purple">Advanced</span> Beam Search with Copy-on-Write</h2>
+      <p>In beam search, multiple beams share the same prefix. PagedAttention uses <strong>Copy-on-Write (CoW)</strong>: beams share physical blocks via reference counting. A block is only copied when a beam needs to write different tokens to it.</p>
+
+      <div class="step-indicator" id="beamSteps">
+        <div class="step-dot active" onclick="goBeamStep(0)">1</div>
+        <div class="step-dot" onclick="goBeamStep(1)">2</div>
+        <div class="step-dot" onclick="goBeamStep(2)">3</div>
+        <div class="step-dot" onclick="goBeamStep(3)">4</div>
+      </div>
+      <div class="step-desc" id="beamDesc">Step 1: Initial sequence with 3 KV blocks (shared prefix)</div>
+
+      <canvas id="beamCanvas" class="beam-canvas"></canvas>
+
+      <div class="beam-info">
+        <div class="beam-info-box">
+          <div class="val" id="beamBlocksUsed" style="color: var(--accent);">3</div>
+          <div class="label">Physical Blocks Used</div>
+        </div>
+        <div class="beam-info-box">
+          <div class="val" id="beamWithoutCoW" style="color: var(--accent3);">3</div>
+          <div class="label">Without CoW</div>
+        </div>
+        <div class="beam-info-box">
+          <div class="val" id="beamSaved" style="color: var(--accent2);">0</div>
+          <div class="label">Blocks Saved</div>
+        </div>
+      </div>
+
+      <div class="anim-controls" style="margin-top: 12px;">
+        <button class="btn btn-surface" onclick="goBeamStep(Math.max(0, beamStep - 1))">Prev Step</button>
+        <button class="btn btn-accent" onclick="goBeamStep(Math.min(3, beamStep + 1))">Next Step</button>
+      </div>
+    </div>
+
+  </div>
+
+  <footer><p>LLM Algorithm Visualization Series</p></footer>
+
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/animations.js"></script>
+  <script>
+    // ============================================================
+    //  Section 3: Interactive Block Table Demo
+    // ============================================================
+    const BLOCK_SIZE = 4;
+    const TOTAL_PHYS_BLOCKS = 16;
+    const PHYS_COLS = 4;
+    const PHYS_ROWS = 4;
+    const INITIAL_TOKENS = ['The', 'cat', 'sat', 'on', 'the', 'warm', 'mat'];
+
+    let tokens = [...INITIAL_TOKENS];
+    let physAllocated = []; // indices of physical blocks allocated, in logical order
+    let physFreeList = [];
+    let animatingBlock = -1;
+    let animProgress = 0;
+    let animRAF = null;
+
+    function initPhysFreeList() {
+      // Shuffle physical block indices to simulate scattered allocation
+      const all = Array.from({length: TOTAL_PHYS_BLOCKS}, (_, i) => i);
+      // Fisher-Yates shuffle
+      for (let i = all.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [all[i], all[j]] = [all[j], all[i]];
+      }
+      physFreeList = all;
+      physAllocated = [];
+    }
+
+    function allocateBlocksForTokens() {
+      const needed = Math.ceil(tokens.length / BLOCK_SIZE);
+      while (physAllocated.length < needed && physFreeList.length > 0) {
+        physAllocated.push(physFreeList.pop());
+      }
+      while (physAllocated.length > needed && physAllocated.length > 0) {
+        physFreeList.push(physAllocated.pop());
+      }
+    }
+
+    function updateStats() {
+      const needed = Math.ceil(tokens.length / BLOCK_SIZE);
+      const totalSlots = needed * BLOCK_SIZE;
+      const util = totalSlots > 0 ? Math.round((tokens.length / totalSlots) * 100) : 0;
+      document.getElementById('statTokens').textContent = tokens.length;
+      document.getElementById('statLogical').textContent = needed;
+      document.getElementById('statPhysical').textContent = physAllocated.length;
+      document.getElementById('statUtil').textContent = util + '%';
+    }
+
+    function drawBlockTableDemo() {
+      const canvas = document.getElementById('blockTableCanvas');
+      if (!canvas) return;
+      const { ctx, W, H } = setupCanvas(canvas);
+      ctx.clearRect(0, 0, W, H);
+
+      const numLogical = Math.ceil(tokens.length / BLOCK_SIZE);
+
+      // Layout constants
+      const leftX = 20;
+      const midX = W * 0.38;
+      const rightX = W * 0.62;
+      const blockW = 52;
+      const blockH = 30;
+      const tokenH = 22;
+      const gap = 6;
+
+      // --- LEFT: Logical sequence view ---
+      ctx.fillStyle = 'rgba(108,99,255,0.15)';
+      ctx.font = 'bold 13px system-ui';
+      ctx.fillStyle = '#6c63ff';
+      ctx.fillText('Logical Sequence', leftX, 28);
+
+      for (let b = 0; b < numLogical; b++) {
+        const by = 48 + b * (BLOCK_SIZE * (tokenH + 3) + 18);
+        // Block label
+        ctx.fillStyle = 'rgba(0,201,167,0.9)';
+        ctx.font = 'bold 11px system-ui';
+        ctx.fillText('Block ' + b, leftX, by);
+
+        for (let t = 0; t < BLOCK_SIZE; t++) {
+          const idx = b * BLOCK_SIZE + t;
+          const ty = by + 6 + t * (tokenH + 3);
+          const filled = idx < tokens.length;
+
+          roundRect(ctx, leftX, ty, W * 0.3 - 10, tokenH, 4);
+          if (filled) {
+            ctx.fillStyle = 'rgba(108,99,255,0.2)';
+          } else {
+            ctx.fillStyle = 'rgba(255,255,255,0.03)';
+          }
+          ctx.fill();
+          ctx.strokeStyle = filled ? 'rgba(108,99,255,0.5)' : 'rgba(255,255,255,0.1)';
+          ctx.stroke();
+
+          ctx.fillStyle = filled ? '#cdd6f4' : '#3a3d4e';
+          ctx.font = '12px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText(filled ? tokens[idx] : '(empty)', leftX + (W * 0.3 - 10) / 2, ty + 15);
+          ctx.textAlign = 'left';
+        }
+      }
+
+      // --- MIDDLE: Block Table ---
+      const tableX = midX - 10;
+      ctx.fillStyle = '#cdd6f4';
+      ctx.font = 'bold 13px system-ui';
+      ctx.fillText('Block Table', tableX, 28);
+
+      ctx.font = '10px system-ui';
+      ctx.fillStyle = '#6c7086';
+      ctx.fillText('Logical', tableX + 2, 42);
+      ctx.fillText('Phys', tableX + 58, 42);
+
+      for (let b = 0; b < numLogical; b++) {
+        const rowY = 50 + b * (blockH + gap);
+        // Logical index
+        roundRect(ctx, tableX, rowY, 48, blockH, 4);
+        ctx.fillStyle = 'rgba(0,201,167,0.15)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,201,167,0.4)';
+        ctx.stroke();
+        ctx.fillStyle = '#00c9a7';
+        ctx.font = 'bold 12px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText('' + b, tableX + 24, rowY + 20);
+
+        // Arrow
+        ctx.fillStyle = '#6c7086';
+        ctx.fillText('\u2192', tableX + 55, rowY + 20);
+
+        // Physical index
+        const physIdx = b < physAllocated.length ? physAllocated[b] : -1;
+        roundRect(ctx, tableX + 64, rowY, 48, blockH, 4);
+
+        const isAnimating = animatingBlock === b && animProgress < 1;
+        if (isAnimating) {
+          ctx.fillStyle = `rgba(0,201,167,${0.15 + 0.3 * Math.sin(animProgress * Math.PI * 4)})`;
+        } else {
+          ctx.fillStyle = 'rgba(108,99,255,0.15)';
+        }
+        ctx.fill();
+        ctx.strokeStyle = isAnimating ? 'rgba(0,201,167,0.8)' : 'rgba(108,99,255,0.4)';
+        ctx.stroke();
+        ctx.fillStyle = isAnimating ? '#00c9a7' : '#6c63ff';
+        ctx.font = 'bold 12px system-ui';
+        ctx.fillText(physIdx >= 0 ? '' + physIdx : '-', tableX + 88, rowY + 20);
+        ctx.textAlign = 'left';
+      }
+
+      // --- RIGHT: Physical GPU Memory Grid ---
+      const gridStartX = rightX + 20;
+      const gridStartY = 48;
+      const cellW = 56;
+      const cellH = 40;
+      const cellGap = 5;
+
+      ctx.fillStyle = '#ff9e64';
+      ctx.font = 'bold 13px system-ui';
+      ctx.fillText('Physical GPU Memory', gridStartX, 28);
+
+      const allocSet = new Set(physAllocated);
+      for (let r = 0; r < PHYS_ROWS; r++) {
+        for (let c = 0; c < PHYS_COLS; c++) {
+          const idx = r * PHYS_COLS + c;
+          const cx = gridStartX + c * (cellW + cellGap);
+          const cy = gridStartY + r * (cellH + cellGap);
+
+          roundRect(ctx, cx, cy, cellW, cellH, 6);
+
+          const logicalIdx = physAllocated.indexOf(idx);
+          const isAlloc = allocSet.has(idx);
+          const isNew = isAlloc && logicalIdx === animatingBlock && animProgress < 1;
+
+          if (isNew) {
+            ctx.fillStyle = `rgba(0,201,167,${0.2 + 0.3 * easeOutCubic(animProgress)})`;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(0,201,167,${0.5 + 0.5 * easeOutCubic(animProgress)})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.lineWidth = 1;
+          } else if (isAlloc) {
+            ctx.fillStyle = 'rgba(108,99,255,0.25)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(108,99,255,0.6)';
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = 'rgba(255,255,255,0.03)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.stroke();
+          }
+
+          ctx.textAlign = 'center';
+          if (isAlloc) {
+            ctx.fillStyle = '#6c63ff';
+            ctx.font = 'bold 11px system-ui';
+            ctx.fillText('B' + logicalIdx, cx + cellW / 2, cy + 17);
+            ctx.fillStyle = '#6c7086';
+            ctx.font = '9px system-ui';
+            ctx.fillText('phys ' + idx, cx + cellW / 2, cy + 32);
+          } else {
+            ctx.fillStyle = '#3a3d4e';
+            ctx.font = '10px system-ui';
+            ctx.fillText('free', cx + cellW / 2, cy + 17);
+            ctx.font = '9px system-ui';
+            ctx.fillText('' + idx, cx + cellW / 2, cy + 32);
+          }
+          ctx.textAlign = 'left';
+        }
+      }
+
+      // --- Draw connection lines from block table to physical blocks ---
+      for (let b = 0; b < numLogical; b++) {
+        if (b >= physAllocated.length) continue;
+        const physIdx = physAllocated[b];
+        const physR = Math.floor(physIdx / PHYS_COLS);
+        const physC = physIdx % PHYS_COLS;
+
+        const fromX = tableX + 112;
+        const fromY = 50 + b * (blockH + gap) + blockH / 2;
+        const toX = gridStartX + physC * (cellW + cellGap);
+        const toY = gridStartY + physR * (cellH + cellGap) + cellH / 2;
+
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        const cpx = fromX + (toX - fromX) * 0.5;
+        ctx.bezierCurveTo(cpx, fromY, cpx, toY, toX, toY);
+        ctx.strokeStyle = `rgba(108,99,255,0.25)`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.lineWidth = 1;
+      }
+
+      if (animatingBlock >= 0 && animProgress < 1) {
+        animRAF = requestAnimationFrame(() => {
+          animProgress += 0.025;
+          if (animProgress >= 1) {
+            animatingBlock = -1;
+            animProgress = 0;
+          }
+          drawBlockTableDemo();
+        });
+      }
+    }
+
+    const TOKEN_POOL = ['is', 'very', 'nice', 'today', 'and', 'we', 'can', 'see', 'how', 'it', 'works', 'well', 'for', 'long', 'text', 'input'];
+    let tokenPoolIdx = 0;
+
+    function addToken() {
+      if (tokens.length >= TOTAL_PHYS_BLOCKS * BLOCK_SIZE) return;
+      const oldBlocks = Math.ceil(tokens.length / BLOCK_SIZE);
+      tokens.push(TOKEN_POOL[tokenPoolIdx % TOKEN_POOL.length]);
+      tokenPoolIdx++;
+      const newBlocks = Math.ceil(tokens.length / BLOCK_SIZE);
+      allocateBlocksForTokens();
+      if (newBlocks > oldBlocks) {
+        animatingBlock = newBlocks - 1;
+        animProgress = 0;
+      }
+      updateStats();
+      drawBlockTableDemo();
+    }
+
+    function removeToken() {
+      if (tokens.length <= 1) return;
+      tokens.pop();
+      allocateBlocksForTokens();
+      updateStats();
+      drawBlockTableDemo();
+    }
+
+    function resetDemo() {
+      if (animRAF) cancelAnimationFrame(animRAF);
+      tokens = [...INITIAL_TOKENS];
+      tokenPoolIdx = 0;
+      animatingBlock = -1;
+      animProgress = 0;
+      initPhysFreeList();
+      allocateBlocksForTokens();
+      updateStats();
+      drawBlockTableDemo();
+    }
+
+    // ============================================================
+    //  Section 4: Animated Utilization Bars
+    // ============================================================
+    function animateUtilBars() {
+      const fills = document.querySelectorAll('#utilBars .speedup-fill');
+      fills.forEach(f => {
+        f.style.width = '0';
+        setTimeout(() => {
+          f.style.width = f.dataset.width + '%';
+        }, 80);
+      });
+    }
+
+    // ============================================================
+    //  Section 5: Beam Search with Copy-on-Write
+    // ============================================================
+    let beamStep = 0;
+
+    const beamStepData = [
+      {
+        desc: 'Step 1: Initial sequence with 3 KV blocks [A, B, C] — shared prefix',
+        physUsed: 3, withoutCoW: 3, saved: 0
+      },
+      {
+        desc: 'Step 2: Beam split into 3 beams — all share the same physical blocks (ref count = 3)',
+        physUsed: 3, withoutCoW: 9, saved: 6
+      },
+      {
+        desc: 'Step 3: Beams generate different tokens into block D — new blocks allocated per beam',
+        physUsed: 6, withoutCoW: 12, saved: 6
+      },
+      {
+        desc: 'Step 4: Beam 2 diverges at block C — CoW copies only that block. Shared prefix stays shared.',
+        physUsed: 7, withoutCoW: 12, saved: 5
+      }
+    ];
+
+    function goBeamStep(step) {
+      beamStep = step;
+      const data = beamStepData[step];
+
+      // Update step dots
+      document.querySelectorAll('#beamSteps .step-dot').forEach((dot, i) => {
+        dot.className = 'step-dot' + (i === step ? ' active' : i < step ? ' done' : '');
+      });
+
+      document.getElementById('beamDesc').textContent = data.desc;
+      document.getElementById('beamBlocksUsed').textContent = data.physUsed;
+      document.getElementById('beamWithoutCoW').textContent = data.withoutCoW;
+      document.getElementById('beamSaved').textContent = data.saved;
+
+      drawBeamSearch();
+    }
+
+    function drawBeamSearch() {
+      const canvas = document.getElementById('beamCanvas');
+      if (!canvas) return;
+      const { ctx, W, H } = setupCanvas(canvas);
+      ctx.clearRect(0, 0, W, H);
+
+      const colors = {
+        A: { bg: 'rgba(108,99,255,0.3)', border: '#6c63ff', text: '#6c63ff' },
+        B: { bg: 'rgba(0,201,167,0.3)', border: '#00c9a7', text: '#00c9a7' },
+        C: { bg: 'rgba(255,158,100,0.3)', border: '#ff9e64', text: '#ff9e64' },
+        D: { bg: 'rgba(247,118,142,0.3)', border: '#f7768e', text: '#f7768e' },
+        "C'": { bg: 'rgba(255,158,100,0.15)', border: '#ff9e64', text: '#ff9e64' }
+      };
+
+      const bw = 56, bh = 36, bgap = 8;
+
+      function drawBlock(x, y, label, refCount, highlight) {
+        const c = colors[label] || colors.A;
+        roundRect(ctx, x, y, bw, bh, 6);
+        ctx.fillStyle = highlight ? c.bg.replace('0.3', '0.5') : c.bg;
+        ctx.fill();
+        ctx.strokeStyle = c.border;
+        ctx.lineWidth = highlight ? 2 : 1;
+        ctx.stroke();
+        ctx.lineWidth = 1;
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = c.text;
+        ctx.font = 'bold 14px system-ui';
+        ctx.fillText(label, x + bw / 2, y + 23);
+
+        if (refCount > 1) {
+          // Draw ref count badge
+          const rx = x + bw - 6, ry = y - 4;
+          ctx.beginPath();
+          ctx.arc(rx, ry, 10, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(108,99,255,0.9)';
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 10px system-ui';
+          ctx.fillText('' + refCount, rx, ry + 3.5);
+        }
+        ctx.textAlign = 'left';
+      }
+
+      function drawLabel(x, y, text, color) {
+        ctx.fillStyle = color || '#cdd6f4';
+        ctx.font = 'bold 12px system-ui';
+        ctx.fillText(text, x, y);
+      }
+
+      function drawArrow(x1, y1, x2, y2, col) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = col || 'rgba(108,99,255,0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.lineWidth = 1;
+        // arrowhead
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 8 * Math.cos(angle - 0.4), y2 - 8 * Math.sin(angle - 0.4));
+        ctx.lineTo(x2 - 8 * Math.cos(angle + 0.4), y2 - 8 * Math.sin(angle + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = col || 'rgba(108,99,255,0.4)';
+        ctx.fill();
+      }
+
+      const centerX = W / 2;
+      const physY = H - 80;
+
+      if (beamStep === 0) {
+        // Single sequence with 3 blocks
+        drawLabel(centerX - 100, 30, 'Sequence 1', '#cdd6f4');
+        const startX = centerX - (3 * bw + 2 * bgap) / 2;
+        drawBlock(startX, 44, 'A', 1, false);
+        drawBlock(startX + bw + bgap, 44, 'B', 1, false);
+        drawBlock(startX + 2 * (bw + bgap), 44, 'C', 1, false);
+
+        // Physical blocks label
+        drawLabel(20, physY - 10, 'Physical GPU Blocks:', '#6c7086');
+        drawBlock(20, physY, 'A', 0, false);
+        drawBlock(20 + bw + bgap, physY, 'B', 0, false);
+        drawBlock(20 + 2 * (bw + bgap), physY, 'C', 0, false);
+
+        // Arrows
+        for (let i = 0; i < 3; i++) {
+          drawArrow(startX + i * (bw + bgap) + bw / 2, 44 + bh + 4,
+                    20 + i * (bw + bgap) + bw / 2, physY - 4, 'rgba(108,99,255,0.3)');
+        }
+
+      } else if (beamStep === 1) {
+        // 3 beams all sharing same blocks
+        const beamLabels = ['Beam 1', 'Beam 2', 'Beam 3'];
+        const beamColors = ['#6c63ff', '#00c9a7', '#f7768e'];
+        const beamYStart = 44;
+        const beamSpacing = bh + 30;
+
+        for (let b = 0; b < 3; b++) {
+          const by = beamYStart + b * beamSpacing;
+          drawLabel(20, by + 6, beamLabels[b], beamColors[b]);
+          const sx = 100;
+          for (let i = 0; i < 3; i++) {
+            roundRect(ctx, sx + i * (bw + bgap), by - 8, bw, bh, 6);
+            ctx.fillStyle = 'rgba(108,99,255,0.1)';
+            ctx.fill();
+            ctx.strokeStyle = beamColors[b];
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#6c7086';
+            ctx.font = '11px system-ui';
+            ctx.fillText(['A', 'B', 'C'][i], sx + i * (bw + bgap) + bw / 2, by + 12);
+            ctx.textAlign = 'left';
+          }
+        }
+
+        // Physical blocks with ref counts
+        drawLabel(20, physY - 10, 'Physical GPU Blocks (shared):', '#6c7086');
+        drawBlock(20, physY, 'A', 3, true);
+        drawBlock(20 + bw + bgap, physY, 'B', 3, true);
+        drawBlock(20 + 2 * (bw + bgap), physY, 'C', 3, true);
+
+        // Arrows from each beam to shared physical
+        for (let b = 0; b < 3; b++) {
+          const by = beamYStart + b * beamSpacing - 8 + bh + 4;
+          const bColors = ['rgba(108,99,255,0.2)', 'rgba(0,201,167,0.2)', 'rgba(247,118,142,0.2)'];
+          for (let i = 0; i < 3; i++) {
+            drawArrow(100 + i * (bw + bgap) + bw / 2, by,
+                      20 + i * (bw + bgap) + bw / 2, physY - 4, bColors[b]);
+          }
+        }
+
+        // Savings note
+        ctx.fillStyle = '#00c9a7';
+        ctx.font = 'bold 13px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText('3 beams x 3 blocks = 9 needed, but only 3 physical blocks allocated!', W / 2, physY + bh + 30);
+        ctx.textAlign = 'left';
+
+      } else if (beamStep === 2) {
+        // Beams diverge — new block D for each
+        const beamLabels = ['Beam 1', 'Beam 2', 'Beam 3'];
+        const beamColors = ['#6c63ff', '#00c9a7', '#f7768e'];
+        const beamYStart = 44;
+        const beamSpacing = bh + 30;
+
+        for (let b = 0; b < 3; b++) {
+          const by = beamYStart + b * beamSpacing;
+          drawLabel(20, by + 6, beamLabels[b], beamColors[b]);
+          const sx = 100;
+          for (let i = 0; i < 3; i++) {
+            roundRect(ctx, sx + i * (bw + bgap), by - 8, bw, bh, 6);
+            ctx.fillStyle = 'rgba(108,99,255,0.1)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(108,99,255,0.2)';
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#6c7086';
+            ctx.font = '11px system-ui';
+            ctx.fillText(['A', 'B', 'C'][i], sx + i * (bw + bgap) + bw / 2, by + 12);
+            ctx.textAlign = 'left';
+          }
+          // New block D
+          roundRect(ctx, sx + 3 * (bw + bgap), by - 8, bw, bh, 6);
+          ctx.fillStyle = 'rgba(247,118,142,0.25)';
+          ctx.fill();
+          ctx.strokeStyle = beamColors[b];
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.lineWidth = 1;
+          ctx.textAlign = 'center';
+          ctx.fillStyle = beamColors[b];
+          ctx.font = 'bold 12px system-ui';
+          ctx.fillText('D' + (b + 1), sx + 3 * (bw + bgap) + bw / 2, by + 12);
+          ctx.textAlign = 'left';
+        }
+
+        // Physical blocks
+        drawLabel(20, physY - 10, 'Physical GPU Blocks:', '#6c7086');
+        drawBlock(20, physY, 'A', 3, false);
+        drawBlock(20 + 1 * (bw + bgap), physY, 'B', 3, false);
+        drawBlock(20 + 2 * (bw + bgap), physY, 'C', 3, false);
+        drawBlock(20 + 3 * (bw + bgap), physY, 'D', 0, true);
+
+        // D1, D2, D3 separate
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#6c63ff';
+        ctx.font = '9px system-ui';
+        ctx.fillText('D1', 20 + 3 * (bw + bgap) + bw / 2 - 16, physY + bh + 14);
+        ctx.fillStyle = '#00c9a7';
+        ctx.fillText('D2', 20 + 3 * (bw + bgap) + bw / 2, physY + bh + 14);
+        ctx.fillStyle = '#f7768e';
+        ctx.fillText('D3', 20 + 3 * (bw + bgap) + bw / 2 + 16, physY + bh + 14);
+        ctx.textAlign = 'left';
+
+        // Actually draw 3 D blocks
+        drawBlock(20 + 4 * (bw + bgap), physY, 'D', 0, true);
+        drawBlock(20 + 5 * (bw + bgap), physY, 'D', 0, true);
+        // Relabel
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#6c63ff';
+        ctx.font = 'bold 10px system-ui';
+        ctx.fillText('D1', 20 + 3 * (bw + bgap) + bw / 2, physY + 23);
+        ctx.fillStyle = '#00c9a7';
+        ctx.fillText('D2', 20 + 4 * (bw + bgap) + bw / 2, physY + 23);
+        ctx.fillStyle = '#f7768e';
+        ctx.fillText('D3', 20 + 5 * (bw + bgap) + bw / 2, physY + 23);
+        ctx.textAlign = 'left';
+
+        ctx.fillStyle = '#00c9a7';
+        ctx.font = 'bold 13px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText('Shared prefix (A,B,C) + 3 new blocks = 6 physical blocks (vs 12 without CoW)', W / 2, physY + bh + 34);
+        ctx.textAlign = 'left';
+
+      } else if (beamStep === 3) {
+        // Beam 2 diverges at C — CoW copies C
+        const beamLabels = ['Beam 1', 'Beam 2', 'Beam 3'];
+        const beamColors = ['#6c63ff', '#00c9a7', '#f7768e'];
+        const beamYStart = 44;
+        const beamSpacing = bh + 30;
+
+        for (let b = 0; b < 3; b++) {
+          const by = beamYStart + b * beamSpacing;
+          drawLabel(20, by + 6, beamLabels[b], beamColors[b]);
+          const sx = 100;
+          // A, B shared
+          for (let i = 0; i < 2; i++) {
+            roundRect(ctx, sx + i * (bw + bgap), by - 8, bw, bh, 6);
+            ctx.fillStyle = 'rgba(108,99,255,0.1)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(108,99,255,0.2)';
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#6c7086';
+            ctx.font = '11px system-ui';
+            ctx.fillText(['A', 'B'][i], sx + i * (bw + bgap) + bw / 2, by + 12);
+            ctx.textAlign = 'left';
+          }
+          // C — beam 2 has C' (copied)
+          const cLabel = b === 1 ? "C'" : 'C';
+          roundRect(ctx, sx + 2 * (bw + bgap), by - 8, bw, bh, 6);
+          ctx.fillStyle = b === 1 ? 'rgba(255,158,100,0.2)' : 'rgba(108,99,255,0.1)';
+          ctx.fill();
+          ctx.strokeStyle = b === 1 ? '#ff9e64' : 'rgba(108,99,255,0.2)';
+          if (b === 1) { ctx.lineWidth = 2; } else { ctx.setLineDash([4, 4]); }
+          ctx.stroke();
+          ctx.lineWidth = 1;
+          ctx.setLineDash([]);
+          ctx.textAlign = 'center';
+          ctx.fillStyle = b === 1 ? '#ff9e64' : '#6c7086';
+          ctx.font = b === 1 ? 'bold 12px system-ui' : '11px system-ui';
+          ctx.fillText(cLabel, sx + 2 * (bw + bgap) + bw / 2, by + 12);
+          ctx.textAlign = 'left';
+
+          // D block
+          roundRect(ctx, sx + 3 * (bw + bgap), by - 8, bw, bh, 6);
+          ctx.fillStyle = 'rgba(247,118,142,0.15)';
+          ctx.fill();
+          ctx.strokeStyle = beamColors[b];
+          ctx.stroke();
+          ctx.textAlign = 'center';
+          ctx.fillStyle = beamColors[b];
+          ctx.font = 'bold 11px system-ui';
+          ctx.fillText('D' + (b + 1), sx + 3 * (bw + bgap) + bw / 2, by + 12);
+          ctx.textAlign = 'left';
+        }
+
+        // Physical blocks
+        drawLabel(20, physY - 10, 'Physical GPU Blocks:', '#6c7086');
+        drawBlock(20, physY, 'A', 3, false);
+        drawBlock(20 + 1 * (bw + bgap), physY, 'B', 3, false);
+        drawBlock(20 + 2 * (bw + bgap), physY, 'C', 2, false); // ref count drops to 2
+
+        // C' — the copy
+        const cpX = 20 + 3 * (bw + bgap);
+        roundRect(ctx, cpX, physY, bw, bh, 6);
+        ctx.fillStyle = 'rgba(255,158,100,0.35)';
+        ctx.fill();
+        ctx.strokeStyle = '#ff9e64';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ff9e64';
+        ctx.font = 'bold 14px system-ui';
+        ctx.fillText("C'", cpX + bw / 2, physY + 23);
+
+        // CoW label
+        ctx.font = 'bold 10px system-ui';
+        ctx.fillStyle = '#ff9e64';
+        ctx.fillText('CoW copy', cpX + bw / 2, physY - 6);
+        ctx.textAlign = 'left';
+
+        // D blocks
+        drawBlock(20 + 4 * (bw + bgap), physY, 'D', 0, false);
+        drawBlock(20 + 5 * (bw + bgap), physY, 'D', 0, false);
+        drawBlock(20 + 6 * (bw + bgap), physY, 'D', 0, false);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#6c63ff';
+        ctx.font = 'bold 10px system-ui';
+        ctx.fillText('D1', 20 + 4 * (bw + bgap) + bw / 2, physY + 23);
+        ctx.fillStyle = '#00c9a7';
+        ctx.fillText('D2', 20 + 5 * (bw + bgap) + bw / 2, physY + 23);
+        ctx.fillStyle = '#f7768e';
+        ctx.fillText('D3', 20 + 6 * (bw + bgap) + bw / 2, physY + 23);
+        ctx.textAlign = 'left';
+
+        ctx.fillStyle = '#ff9e64';
+        ctx.font = 'bold 13px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText('CoW: only block C copied for Beam 2. 7 physical blocks (vs 12 without CoW, saving 5)', W / 2, physY + bh + 34);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    // ============================================================
+    //  Initialization
+    // ============================================================
+    function init() {
+      initPhysFreeList();
+      allocateBlocksForTokens();
+      updateStats();
+      drawBlockTableDemo();
+      goBeamStep(0);
+      animateUtilBars();
+
+      // Redraw on resize
+      window.addEventListener('resize', () => {
+        drawBlockTableDemo();
+        drawBeamSearch();
+      });
+    }
+
+    // Wait for DOM
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>

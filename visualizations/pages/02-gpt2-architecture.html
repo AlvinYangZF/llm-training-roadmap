@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>02 — GPT-2 Architecture | LLM Algorithm Visualizations</title>
+<link rel="stylesheet" href="../shared/style.css">
+<style>
+/* ==================== Section 1: Encoder-Decoder vs Decoder-Only ==================== */
+.arch-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin: 24px 0;
+}
+.arch-compare-col {
+  text-align: center;
+}
+.arch-compare-col h3 {
+  font-size: 1rem;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+.arch-compare-col h3 span {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  display: block;
+  font-weight: 400;
+  margin-top: 4px;
+}
+.arch-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+.arch-unit {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  width: 200px;
+  text-align: center;
+  position: relative;
+  transition: transform 0.3s;
+}
+.arch-unit:hover { transform: scale(1.05); }
+.unit-encoder {
+  background: rgba(108, 99, 255, 0.15);
+  border: 1px solid rgba(108, 99, 255, 0.4);
+  color: var(--accent);
+}
+.unit-decoder {
+  background: rgba(187, 154, 247, 0.15);
+  border: 1px solid rgba(187, 154, 247, 0.4);
+  color: #bb9af7;
+}
+.unit-cross-attn {
+  background: rgba(255, 158, 100, 0.15);
+  border: 1px solid rgba(255, 158, 100, 0.4);
+  color: var(--accent4);
+}
+.unit-removed {
+  background: rgba(247, 118, 142, 0.06);
+  border: 2px dashed rgba(247, 118, 142, 0.4);
+  color: var(--accent3);
+  opacity: 0.5;
+  position: relative;
+}
+.removed-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  background: rgba(247, 118, 142, 0.25);
+  color: var(--accent3);
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+.arch-small-arrow {
+  color: var(--text-dim);
+  font-size: 1rem;
+}
+.cross-arrows {
+  position: absolute;
+  left: -36px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent4);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.kept-label {
+  display: inline-block;
+  background: rgba(0, 201, 167, 0.2);
+  color: var(--accent2);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+/* ==================== Section 2: Pre-LN vs Post-LN ==================== */
+.ln-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin: 24px 0;
+}
+.ln-col {
+  text-align: center;
+}
+.ln-col h3 {
+  margin-bottom: 16px;
+}
+.flow-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.flow-node {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-width: 180px;
+  text-align: center;
+  position: relative;
+}
+.flow-arrow {
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 2px 0;
+}
+.flow-input {
+  background: rgba(108, 99, 255, 0.15);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+}
+.flow-sublayer {
+  background: rgba(255, 158, 100, 0.15);
+  border: 1px solid rgba(255, 158, 100, 0.3);
+  color: var(--accent4);
+}
+.flow-add {
+  background: rgba(187, 154, 247, 0.15);
+  border: 1px solid rgba(187, 154, 247, 0.3);
+  color: #bb9af7;
+}
+.flow-norm {
+  background: rgba(0, 201, 167, 0.15);
+  border: 1px solid rgba(0, 201, 167, 0.3);
+  color: var(--accent2);
+}
+.flow-output {
+  background: rgba(247, 118, 142, 0.15);
+  border: 1px solid rgba(247, 118, 142, 0.3);
+  color: var(--accent3);
+}
+.flow-node.active-flow {
+  box-shadow: 0 0 16px rgba(108, 99, 255, 0.4);
+  transform: scale(1.06);
+}
+.flow-node {
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+/* ==================== Section 3: BPE Tokenizer ==================== */
+.bpe-input {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.bpe-input:focus {
+  border-color: var(--accent);
+}
+.token-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+  min-height: 48px;
+  padding: 16px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+}
+.tok {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  transition: transform 0.2s;
+  cursor: default;
+  animation: tokAppear 0.3s ease backwards;
+}
+.tok:hover { transform: scale(1.1); }
+@keyframes tokAppear {
+  from { opacity: 0; transform: scale(0.7) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.tok-word {
+  background: rgba(108, 99, 255, 0.2);
+  border: 1px solid rgba(108, 99, 255, 0.4);
+  color: var(--accent);
+}
+.tok-subword {
+  background: rgba(0, 201, 167, 0.2);
+  border: 1px solid rgba(0, 201, 167, 0.4);
+  color: var(--accent2);
+}
+.tok-punct {
+  background: rgba(247, 118, 142, 0.2);
+  border: 1px solid rgba(247, 118, 142, 0.4);
+  color: var(--accent3);
+}
+.tok-space {
+  background: rgba(255, 158, 100, 0.12);
+  border: 1px solid rgba(255, 158, 100, 0.3);
+  color: var(--accent4);
+  font-size: 0.75rem;
+}
+.tok-special {
+  background: rgba(187, 154, 247, 0.2);
+  border: 1px solid rgba(187, 154, 247, 0.4);
+  color: #bb9af7;
+}
+.token-stats {
+  display: flex;
+  gap: 24px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.token-stats strong {
+  color: var(--text);
+}
+.token-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+}
+.token-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+.token-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* ==================== Section 4: Weight Tying ==================== */
+.weight-tie-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  margin: 24px 0;
+  flex-wrap: wrap;
+  position: relative;
+}
+.weight-matrix {
+  text-align: center;
+  position: relative;
+}
+.weight-matrix .matrix-label {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.matrix-visual {
+  display: grid;
+  gap: 2px;
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+}
+.matrix-cell {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  transition: all 0.5s;
+}
+.matrix-dim {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+.tie-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.tie-arrow-line {
+  font-size: 1.6rem;
+  color: var(--accent2);
+  animation: tieGlow 2s ease-in-out infinite;
+}
+@keyframes tieGlow {
+  0%, 100% { opacity: 0.6; text-shadow: none; }
+  50% { opacity: 1; text-shadow: 0 0 12px rgba(0, 201, 167, 0.5); }
+}
+.tie-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent2);
+  white-space: nowrap;
+}
+.benefit-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+.benefit-item {
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(0, 201, 167, 0.06);
+  border: 1px solid rgba(0, 201, 167, 0.2);
+  font-size: 0.88rem;
+}
+.benefit-item strong {
+  color: var(--accent2);
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* ==================== Section 5: Model Size Explorer ==================== */
+.model-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.model-tab {
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.model-tab:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.model-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.model-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.model-stat {
+  padding: 16px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  text-align: center;
+  transition: all 0.4s;
+}
+.model-stat .stat-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: all 0.4s;
+}
+.model-stat .stat-label {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.size-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+.size-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.size-bar-label {
+  width: 80px;
+  text-align: right;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.size-bar-label.active-bar-label {
+  color: var(--accent);
+}
+.size-bar-track {
+  flex: 1;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+.size-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.8s ease, background 0.4s;
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+}
+.fill-inactive {
+  background: linear-gradient(90deg, #2a2d3e, #3a3d5e);
+}
+.fill-active {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+
+/* ==================== Section 6: Full Architecture ==================== */
+.gpt2-arch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 24px 0;
+}
+.gpt2-block {
+  padding: 12px 28px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.88rem;
+  min-width: 300px;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: default;
+}
+.gpt2-block:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 20px rgba(108, 99, 255, 0.25);
+}
+.gpt2-block .block-note {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.gpt2-block .highlight-tag {
+  display: inline-block;
+  font-size: 0.62rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.tag-pre-ln {
+  background: rgba(0, 201, 167, 0.25);
+  color: var(--accent2);
+}
+.tag-no-cross {
+  background: rgba(247, 118, 142, 0.25);
+  color: var(--accent3);
+}
+.tag-gelu {
+  background: rgba(255, 158, 100, 0.25);
+  color: var(--accent4);
+}
+.tag-tied {
+  background: rgba(0, 201, 167, 0.25);
+  color: var(--accent2);
+}
+.gpt2-arrow {
+  color: var(--text-dim);
+  font-size: 1.2rem;
+}
+.decoder-block-group {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 16px 12px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.decoder-block-label {
+  position: absolute;
+  top: -12px;
+  left: 16px;
+  background: var(--surface);
+  padding: 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.residual-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.residual-line {
+  position: absolute;
+  right: -30px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(187, 154, 247, 0.3);
+}
+.residual-line::before,
+.residual-line::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  width: 10px;
+  height: 2px;
+  background: rgba(187, 154, 247, 0.3);
+}
+.residual-line::before { top: 0; }
+.residual-line::after { bottom: 0; }
+
+/* ==================== Responsive ==================== */
+@media (max-width: 700px) {
+  .arch-compare { grid-template-columns: 1fr; gap: 24px; }
+  .ln-compare { grid-template-columns: 1fr; gap: 24px; }
+  .benefit-list { grid-template-columns: 1fr; }
+  .weight-tie-diagram { flex-direction: column; gap: 20px; }
+  .arch-unit { width: 160px; font-size: 0.75rem; padding: 8px 10px; }
+  .gpt2-block { min-width: 220px; font-size: 0.8rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== Header ==================== -->
+<header>
+  <h1>GPT-2 Architecture</h1>
+  <p>Decoder-Only Transformer &mdash; The Foundation of Modern LLMs</p>
+  <div class="breadcrumb">
+    <a href="../index.html">Home</a> &rsaquo; <strong>02 &mdash; GPT-2 Architecture</strong>
+  </div>
+</header>
+
+<!-- ==================== Content ==================== -->
+<div class="container">
+
+  <!-- ========== Section 1: Encoder-Decoder vs Decoder-Only ========== -->
+  <div class="card">
+    <h2><span class="badge badge-purple">1</span> Encoder-Decoder vs Decoder-Only</h2>
+    <p>The original Transformer (Vaswani et al., 2017) uses both an encoder and a decoder with cross-attention connecting them. GPT-2 simplifies this by keeping <strong>only the decoder stack</strong>, removing the encoder entirely and the cross-attention layers that connected them.</p>
+
+    <div class="arch-compare">
+      <!-- LEFT: Original Transformer -->
+      <div class="arch-compare-col">
+        <h3>Original Transformer <span>Vaswani et al., 2017</span></h3>
+        <div class="arch-stack">
+          <div class="arch-unit unit-encoder">Input Embedding</div>
+          <div class="arch-small-arrow">&darr;</div>
+          <div class="arch-unit unit-encoder">Encoder Self-Attention</div>
+          <div class="arch-small-arrow">&darr;</div>
+          <div class="arch-unit unit-encoder">Encoder FFN</div>
+          <div class="arch-small-arrow">&darr;</div>
+          <div class="arch-unit unit-encoder" style="font-size:0.75rem;">x N Encoder Layers</div>
+          <div class="arch-small-arrow" style="font-size:1.4rem;">&DoubleDownArrow;</div>
+          <div class="arch-unit unit-decoder">Output Embedding</div>
+          <div class="arch-small-arrow">&darr;</div>
+          <div class="arch-unit unit-decoder">Masked Self-Attention</div>
+          <div class="arch-small-arrow">&darr;</div>
+          <div class="arch-unit unit-cross-attn">Cross-Attention</div>
+          <div class="arch-small-arrow">&darr;</div>
+          <div class="arch-unit unit-decoder">Decoder FFN</div>
+          <div class="arch-small-arrow">&darr;</div>
+          <div class="arch-unit unit-decoder">Linear + Softmax</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: GPT-2 -->
+      <div class="arch-compare-col">
+        <h3>GPT-2 <span>Radford et al., 2019</span></h3>
+        <div class="arch-stack">
+          <div class="arch-unit unit-removed" style="height:140px;display:flex;align-items:center;justify-content:center;">
+            Encoder Stack
+            <span class="removed-label">REMOVED</span>
+          </div>
+          <div class="arch-small-arrow" style="opacity:0.3">&darr;</div>
+          <div class="arch-unit unit-decoder">Token + Position Embedding</div>
+          <div class="arch-small-arrow">&darr;</div>
+          <div class="arch-unit unit-decoder">Masked Self-Attention <span class="kept-label">KEPT</span></div>
+          <div class="arch-small-arrow">&darr;</div>
+          <div class="arch-unit unit-removed">
+            Cross-Attention
+            <span class="removed-label">REMOVED</span>
+          </div>
+          <div class="arch-small-arrow">&darr;</div>
+          <div class="arch-unit unit-decoder">Feed-Forward Network <span class="kept-label">KEPT</span></div>
+          <div class="arch-small-arrow">&darr;</div>
+          <div class="arch-unit unit-decoder">Output Projection</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="dim-note">GPT-2 processes input and output in a single pass through the decoder stack. No encoder needed for language modeling.</p>
+  </div>
+
+  <!-- ========== Section 2: Pre-LayerNorm vs Post-LayerNorm ========== -->
+  <div class="card">
+    <h2><span class="badge badge-green">2</span> Pre-LayerNorm vs Post-LayerNorm</h2>
+    <p>The original Transformer applies LayerNorm <em>after</em> the residual addition (Post-LN). GPT-2 moves LayerNorm <em>before</em> each sublayer (Pre-LN), which produces more stable gradients and enables training of much deeper networks.</p>
+
+    <div class="ln-compare">
+      <!-- Post-LN -->
+      <div class="ln-col">
+        <h3 style="color:var(--accent3)">Post-LayerNorm <span class="badge badge-red">Original</span></h3>
+        <div class="flow-diagram" id="postLnFlow">
+          <div class="flow-node flow-input" data-step="0">Input (x)</div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-node flow-sublayer" data-step="1">Sublayer(x)</div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-node flow-add" data-step="2">Add (x + Sublayer(x))</div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-node flow-norm" data-step="3">LayerNorm</div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-node flow-output" data-step="4">Output</div>
+        </div>
+      </div>
+
+      <!-- Pre-LN -->
+      <div class="ln-col">
+        <h3 style="color:var(--accent2)">Pre-LayerNorm <span class="badge badge-green">GPT-2</span></h3>
+        <div class="flow-diagram" id="preLnFlow">
+          <div class="flow-node flow-input" data-step="0">Input (x)</div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-node flow-norm" data-step="1">LayerNorm(x)</div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-node flow-sublayer" data-step="2">Sublayer(LN(x))</div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-node flow-add" data-step="3">Add (x + Sublayer(...))</div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-node flow-output" data-step="4">Output</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anim-controls">
+      <button class="btn btn-accent" id="lnAnimBtn" onclick="animateLayerNorm()">Animate Data Flow</button>
+    </div>
+
+    <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div style="padding:14px; border-radius:8px; background:rgba(247,118,142,0.06); border:1px solid rgba(247,118,142,0.2); font-size:0.88rem;">
+        <strong style="color:var(--accent3);">Post-LN issues:</strong><br>
+        Gradient magnitudes vary wildly across layers, making deep networks hard to train without careful warmup.
+      </div>
+      <div style="padding:14px; border-radius:8px; background:rgba(0,201,167,0.06); border:1px solid rgba(0,201,167,0.2); font-size:0.88rem;">
+        <strong style="color:var(--accent2);">Pre-LN benefits:</strong><br>
+        Gradients stay well-behaved through many layers. Enables stable training of 48+ layer models without warmup.
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Section 3: Interactive BPE Tokenizer Demo ========== -->
+  <div class="card">
+    <h2><span class="badge badge-orange">3</span> Interactive BPE Tokenizer Demo</h2>
+    <p>GPT-2 uses Byte-Pair Encoding (BPE) at the byte level, meaning it can tokenize <em>any</em> text without unknown tokens. Common words stay whole; rare words get split into subword pieces.</p>
+
+    <input type="text" class="bpe-input" id="bpeInput" value="Hello, world! This is GPT-2 tokenization." placeholder="Type any text to see tokenization...">
+
+    <div class="token-display" id="tokenDisplay"></div>
+
+    <div class="token-stats" id="tokenStats"></div>
+
+    <div class="token-legend">
+      <div class="token-legend-item">
+        <span class="token-legend-swatch" style="background:rgba(108,99,255,0.4)"></span> Whole word
+      </div>
+      <div class="token-legend-item">
+        <span class="token-legend-swatch" style="background:rgba(0,201,167,0.4)"></span> Subword piece
+      </div>
+      <div class="token-legend-item">
+        <span class="token-legend-swatch" style="background:rgba(247,118,142,0.4)"></span> Punctuation
+      </div>
+      <div class="token-legend-item">
+        <span class="token-legend-swatch" style="background:rgba(255,158,100,0.3)"></span> Space
+      </div>
+      <div class="token-legend-item">
+        <span class="token-legend-swatch" style="background:rgba(187,154,247,0.4)"></span> Special / byte
+      </div>
+    </div>
+
+    <p class="dim-note" style="margin-top:12px;">This is a simplified simulation. Real BPE uses a learned merge table of ~50,257 tokens built from training data.</p>
+  </div>
+
+  <!-- ========== Section 4: Weight Tying ========== -->
+  <div class="card">
+    <h2><span class="badge badge-green">4</span> Weight Tying Visualization</h2>
+    <p>GPT-2 shares the same weight matrix between the input token embedding and the output projection layer. The output projection is simply the <em>transpose</em> of the embedding matrix.</p>
+
+    <div class="weight-tie-diagram" id="weightTieDiagram">
+      <!-- Input Embedding -->
+      <div class="weight-matrix">
+        <div class="matrix-label" style="color:var(--accent)">W<sub>e</sub> (Embedding)</div>
+        <div class="matrix-visual" id="embedMatrix" style="grid-template-columns: repeat(6, 28px);"></div>
+        <div class="matrix-dim">vocab_size &times; d_model</div>
+        <div class="matrix-dim" style="color:var(--accent)">50,257 &times; 768</div>
+      </div>
+
+      <!-- Connector -->
+      <div class="tie-connector">
+        <div class="tie-arrow-line">&harr;</div>
+        <div class="tie-label">W<sub>o</sub> = W<sub>e</sub><sup>T</sup></div>
+        <div style="font-size:0.75rem;color:var(--text-dim)">Same weights!</div>
+      </div>
+
+      <!-- Output Projection -->
+      <div class="weight-matrix">
+        <div class="matrix-label" style="color:var(--accent4)">W<sub>o</sub> (Output Projection)</div>
+        <div class="matrix-visual" id="outputMatrix" style="grid-template-columns: repeat(8, 28px);"></div>
+        <div class="matrix-dim">d_model &times; vocab_size</div>
+        <div class="matrix-dim" style="color:var(--accent4)">768 &times; 50,257</div>
+      </div>
+    </div>
+
+    <div class="benefit-list">
+      <div class="benefit-item">
+        <strong>~30% fewer parameters</strong>
+        Eliminates a separate 50,257 &times; 768 output matrix (~38.5M parameters saved in GPT-2 Small).
+      </div>
+      <div class="benefit-item">
+        <strong>Acts as regularization</strong>
+        Forces the model to learn embeddings that work well for both understanding input and predicting output.
+      </div>
+      <div class="benefit-item">
+        <strong>Better generalization</strong>
+        Shared representations create a more coherent semantic space where input and output meanings align.
+      </div>
+      <div class="benefit-item">
+        <strong>Faster convergence</strong>
+        Fewer parameters to learn means the model can converge more quickly during training.
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Section 5: Model Size Explorer ========== -->
+  <div class="card">
+    <h2><span class="badge badge-purple">5</span> Model Size Explorer</h2>
+    <p>GPT-2 was released in 4 sizes, all sharing the same architecture but differing in depth and width. Select a model to explore its configuration.</p>
+
+    <div class="model-tabs" id="modelTabs">
+      <button class="model-tab active" data-model="0">Small (117M)</button>
+      <button class="model-tab" data-model="1">Medium (345M)</button>
+      <button class="model-tab" data-model="2">Large (762M)</button>
+      <button class="model-tab" data-model="3">XL (1542M)</button>
+    </div>
+
+    <div class="model-details" id="modelDetails"></div>
+
+    <h3>Relative Parameter Counts</h3>
+    <div class="size-bars" id="sizeBars"></div>
+  </div>
+
+  <!-- ========== Section 6: Full Architecture Diagram ========== -->
+  <div class="card">
+    <h2><span class="badge badge-red">6</span> GPT-2 Full Architecture Diagram</h2>
+    <p>The complete GPT-2 architecture from input tokens to output probabilities. Note the Pre-LayerNorm placement, absence of cross-attention, GELU activation, and tied output weights.</p>
+
+    <div class="gpt2-arch">
+      <!-- Input -->
+      <div class="gpt2-block blk-embed">
+        Token Embedding + Positional Embedding
+        <span class="block-note">Vocab: 50,257 | Context: 1024 positions</span>
+        <span class="highlight-tag tag-tied">TIED WEIGHTS</span>
+      </div>
+      <div class="gpt2-arrow">&darr;</div>
+
+      <!-- Decoder Block Group -->
+      <div class="decoder-block-group">
+        <div class="decoder-block-label">&times; N Decoder Blocks (12 / 24 / 36 / 48)</div>
+
+        <!-- Sub-block 1: Attention -->
+        <div class="residual-wrap">
+          <div class="gpt2-block blk-norm">
+            LayerNorm
+            <span class="highlight-tag tag-pre-ln">PRE-LN</span>
+          </div>
+          <div class="gpt2-arrow">&darr;</div>
+          <div class="gpt2-block blk-attn">
+            Masked Multi-Head Self-Attention
+            <span class="highlight-tag tag-no-cross">NO CROSS-ATTN</span>
+            <span class="block-note">Causal mask prevents attending to future tokens</span>
+          </div>
+          <div class="gpt2-arrow">&darr;</div>
+          <div class="gpt2-block flow-add" style="min-width:300px;padding:10px 28px;border-radius:10px;font-weight:600;font-size:0.88rem;cursor:default;transition:transform 0.2s;">
+            Residual Add (x + Attention(LN(x)))
+          </div>
+          <div class="residual-line"></div>
+        </div>
+
+        <div class="gpt2-arrow">&darr;</div>
+
+        <!-- Sub-block 2: FFN -->
+        <div class="residual-wrap">
+          <div class="gpt2-block blk-norm">
+            LayerNorm
+            <span class="highlight-tag tag-pre-ln">PRE-LN</span>
+          </div>
+          <div class="gpt2-arrow">&darr;</div>
+          <div class="gpt2-block blk-ffn">
+            Feed-Forward Network
+            <span class="highlight-tag tag-gelu">GELU</span>
+            <span class="block-note">Linear(d_model, 4&times;d_model) &rarr; GELU &rarr; Linear(4&times;d_model, d_model)</span>
+          </div>
+          <div class="gpt2-arrow">&darr;</div>
+          <div class="gpt2-block flow-add" style="min-width:300px;padding:10px 28px;border-radius:10px;font-weight:600;font-size:0.88rem;cursor:default;transition:transform 0.2s;">
+            Residual Add (x + FFN(LN(x)))
+          </div>
+          <div class="residual-line"></div>
+        </div>
+      </div>
+
+      <div class="gpt2-arrow">&darr;</div>
+
+      <!-- Final LayerNorm -->
+      <div class="gpt2-block blk-norm">
+        Final LayerNorm
+        <span class="highlight-tag tag-pre-ln">PRE-LN</span>
+      </div>
+      <div class="gpt2-arrow">&darr;</div>
+
+      <!-- Output -->
+      <div class="gpt2-block blk-output">
+        Output Projection &rarr; Softmax
+        <span class="highlight-tag tag-tied">TIED WITH EMBEDDING</span>
+        <span class="block-note">Produces probability distribution over 50,257 tokens</span>
+      </div>
+    </div>
+
+    <div class="formula-box">
+      <span class="op">P(</span>token<span class="op">) = </span>
+      <span class="s">Softmax</span><span class="op">(</span>
+      <span class="q">LN</span><span class="op">(</span>
+      <span class="v">DecoderStack</span><span class="op">(</span>
+      <span class="k">E</span><sub>tok</sub> <span class="op">+</span> <span class="k">E</span><sub>pos</sub>
+      <span class="op">)) &middot; </span>
+      <span class="k">W<sub>e</sub></span><sup>T</sup>
+      <span class="op">)</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==================== Footer ==================== -->
+<footer>
+  <p>LLM Algorithm Visualization Series &mdash; Topic 02: GPT-2 Architecture</p>
+</footer>
+
+<!-- ==================== Scripts ==================== -->
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script>
+// ==================== Section 2: LayerNorm Animation ==================== //
+let lnAnimRunning = false;
+
+function animateLayerNorm() {
+  if (lnAnimRunning) return;
+  lnAnimRunning = true;
+  const btn = document.getElementById('lnAnimBtn');
+  btn.textContent = 'Animating...';
+  btn.disabled = true;
+
+  const postNodes = document.querySelectorAll('#postLnFlow .flow-node');
+  const preNodes = document.querySelectorAll('#preLnFlow .flow-node');
+
+  // Reset
+  postNodes.forEach(n => n.classList.remove('active-flow'));
+  preNodes.forEach(n => n.classList.remove('active-flow'));
+
+  let step = 0;
+  const maxSteps = 5;
+  const interval = setInterval(() => {
+    // Remove previous highlights
+    postNodes.forEach(n => n.classList.remove('active-flow'));
+    preNodes.forEach(n => n.classList.remove('active-flow'));
+
+    if (step >= maxSteps) {
+      clearInterval(interval);
+      lnAnimRunning = false;
+      btn.textContent = 'Animate Data Flow';
+      btn.disabled = false;
+      return;
+    }
+
+    // Highlight current step
+    postNodes.forEach(n => {
+      if (parseInt(n.dataset.step) === step) n.classList.add('active-flow');
+    });
+    preNodes.forEach(n => {
+      if (parseInt(n.dataset.step) === step) n.classList.add('active-flow');
+    });
+
+    step++;
+  }, 700);
+}
+
+// ==================== Section 3: BPE Tokenizer ==================== //
+const SUBWORD_SPLITS = {
+  'tokenization': ['token', 'ization'],
+  'tokenizer': ['token', 'izer'],
+  'understanding': ['under', 'standing'],
+  'transformers': ['transform', 'ers'],
+  'transformer': ['transform', 'er'],
+  'attention': ['at', 'tention'],
+  'embedding': ['embed', 'ding'],
+  'embeddings': ['embed', 'dings'],
+  'architecture': ['archit', 'ecture'],
+  'generation': ['gener', 'ation'],
+  'processing': ['process', 'ing'],
+  'language': ['lang', 'uage'],
+  'beautiful': ['beaut', 'iful'],
+  'incredible': ['in', 'credible'],
+  'unfortunately': ['un', 'fortunately'],
+  'information': ['inform', 'ation'],
+  'communication': ['commun', 'ication'],
+  'implementation': ['implement', 'ation'],
+  'representation': ['represent', 'ation'],
+  'classification': ['class', 'ific', 'ation'],
+  'optimization': ['optim', 'ization'],
+  'visualization': ['visual', 'ization'],
+  'recognition': ['recogn', 'ition'],
+  'performance': ['perform', 'ance'],
+  'computational': ['comput', 'ational'],
+  'intelligence': ['intelli', 'gence'],
+  'artificial': ['art', 'ificial'],
+  'parameters': ['param', 'eters'],
+  'probabilities': ['prob', 'abilities'],
+  'probability': ['prob', 'ability'],
+  'distribution': ['distribut', 'ion'],
+  'autoregressive': ['auto', 'regress', 'ive'],
+  'multilingual': ['multi', 'lingual'],
+  'pretraining': ['pre', 'training'],
+  'finetuning': ['fine', 'tuning'],
+  'backpropagation': ['back', 'propag', 'ation'],
+  'normalization': ['normal', 'ization'],
+  'regularization': ['regular', 'ization'],
+};
+
+const COMMON_WORDS = new Set([
+  'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+  'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+  'should', 'may', 'might', 'shall', 'can', 'need', 'dare', 'ought',
+  'used', 'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from',
+  'up', 'about', 'into', 'through', 'during', 'before', 'after',
+  'above', 'below', 'between', 'out', 'off', 'over', 'under',
+  'again', 'further', 'then', 'once', 'here', 'there', 'when',
+  'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few',
+  'more', 'most', 'other', 'some', 'such', 'no', 'not', 'only',
+  'own', 'same', 'so', 'than', 'too', 'very', 'just', 'because',
+  'but', 'and', 'or', 'if', 'while', 'that', 'this', 'it', 'its',
+  'my', 'your', 'his', 'her', 'our', 'their', 'what', 'which',
+  'who', 'whom', 'these', 'those', 'am', 'he', 'she', 'we', 'they',
+  'me', 'him', 'us', 'them', 'i', 'you',
+  'hello', 'world', 'hi', 'yes', 'no', 'ok', 'okay',
+  'good', 'bad', 'new', 'old', 'big', 'small', 'long', 'short',
+  'high', 'low', 'left', 'right', 'first', 'last', 'next',
+  'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+  'model', 'data', 'text', 'word', 'code', 'test', 'type',
+  'like', 'get', 'make', 'go', 'see', 'know', 'take', 'come',
+  'think', 'look', 'want', 'give', 'use', 'find', 'tell',
+  'ask', 'work', 'seem', 'feel', 'try', 'leave', 'call',
+]);
+
+function tokenizeBPE(text) {
+  if (!text) return [];
+  const tokens = [];
+  let i = 0;
+
+  while (i < text.length) {
+    // Check for spaces
+    if (text[i] === ' ' || text[i] === '\t') {
+      let spaces = '';
+      while (i < text.length && (text[i] === ' ' || text[i] === '\t')) {
+        spaces += text[i];
+        i++;
+      }
+      tokens.push({ text: spaces === ' ' ? '\u0120' : spaces.replace(/ /g, '\u0120'), type: 'space' });
+      continue;
+    }
+
+    // Check for punctuation
+    if (/[^\w]/.test(text[i]) && text[i] !== "'") {
+      tokens.push({ text: text[i], type: 'punct' });
+      i++;
+      continue;
+    }
+
+    // Extract word
+    let word = '';
+    while (i < text.length && (/\w/.test(text[i]) || text[i] === "'")) {
+      word += text[i];
+      i++;
+    }
+
+    if (!word) {
+      tokens.push({ text: text[i] || '', type: 'special' });
+      i++;
+      continue;
+    }
+
+    const lower = word.toLowerCase();
+
+    // Check for subword splits
+    if (SUBWORD_SPLITS[lower]) {
+      const parts = SUBWORD_SPLITS[lower];
+      // Preserve original casing for first part
+      let pos = 0;
+      parts.forEach((part, idx) => {
+        const orig = word.substring(pos, pos + part.length);
+        tokens.push({ text: orig || part, type: idx === 0 ? 'word' : 'subword' });
+        pos += part.length;
+      });
+      continue;
+    }
+
+    // Common words stay whole
+    if (COMMON_WORDS.has(lower) || word.length <= 4) {
+      tokens.push({ text: word, type: 'word' });
+      continue;
+    }
+
+    // Check for numbers
+    if (/^\d+$/.test(word)) {
+      if (word.length <= 3) {
+        tokens.push({ text: word, type: 'word' });
+      } else {
+        // Split long numbers
+        for (let j = 0; j < word.length; j += 3) {
+          tokens.push({ text: word.substring(j, Math.min(j + 3, word.length)), type: j === 0 ? 'word' : 'subword' });
+        }
+      }
+      continue;
+    }
+
+    // Longer unknown words get split heuristically
+    if (word.length > 6) {
+      // Try common suffixes
+      const suffixes = ['tion', 'sion', 'ment', 'ness', 'able', 'ible', 'ful', 'less', 'ous', 'ive', 'ing', 'ize', 'ise', 'ity', 'ent', 'ant', 'ure', 'age', 'ery', 'ary', 'ory', 'ally', 'ly', 'ed', 'er', 'est', 'es', 's'];
+      let matched = false;
+      for (const suf of suffixes) {
+        if (lower.endsWith(suf) && word.length - suf.length >= 3) {
+          tokens.push({ text: word.substring(0, word.length - suf.length), type: 'word' });
+          tokens.push({ text: word.substring(word.length - suf.length), type: 'subword' });
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        tokens.push({ text: word, type: 'word' });
+      }
+    } else {
+      tokens.push({ text: word, type: 'word' });
+    }
+  }
+
+  return tokens;
+}
+
+function renderTokens() {
+  const input = document.getElementById('bpeInput');
+  const display = document.getElementById('tokenDisplay');
+  const stats = document.getElementById('tokenStats');
+  const text = input.value;
+  const tokens = tokenizeBPE(text);
+
+  display.innerHTML = '';
+  tokens.forEach((tok, idx) => {
+    const el = document.createElement('span');
+    el.className = `tok tok-${tok.type}`;
+    el.textContent = tok.text;
+    el.style.animationDelay = `${idx * 0.04}s`;
+    el.title = `Type: ${tok.type}`;
+    display.appendChild(el);
+  });
+
+  const charCount = text.length;
+  const tokCount = tokens.length;
+  const ratio = charCount > 0 ? (charCount / tokCount).toFixed(1) : '0';
+  stats.innerHTML = `
+    <span><strong>${tokCount}</strong> tokens</span>
+    <span><strong>${charCount}</strong> characters</span>
+    <span><strong>${ratio}</strong> chars/token</span>
+  `;
+}
+
+document.getElementById('bpeInput').addEventListener('input', renderTokens);
+
+// ==================== Section 4: Weight Tying Matrices ==================== //
+function buildWeightMatrices() {
+  const embedEl = document.getElementById('embedMatrix');
+  const outputEl = document.getElementById('outputMatrix');
+
+  // Generate random colors for embedding (8 rows x 6 cols)
+  const rows = 8, cols = 6;
+  const colors = [];
+  for (let r = 0; r < rows; r++) {
+    colors[r] = [];
+    for (let c = 0; c < cols; c++) {
+      const hue = (r * 45 + c * 30) % 360;
+      colors[r][c] = `hsla(${hue}, 60%, 45%, 0.6)`;
+    }
+  }
+
+  // Build embedding matrix (rows x cols)
+  embedEl.innerHTML = '';
+  embedEl.style.gridTemplateColumns = `repeat(${cols}, 28px)`;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'matrix-cell';
+      cell.style.background = colors[r][c];
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      embedEl.appendChild(cell);
+    }
+  }
+
+  // Build output matrix (cols x rows) — the transpose
+  outputEl.innerHTML = '';
+  outputEl.style.gridTemplateColumns = `repeat(${rows}, 28px)`;
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows; r++) {
+      const cell = document.createElement('div');
+      cell.className = 'matrix-cell';
+      cell.style.background = colors[r][c];
+      cell.dataset.row = c;
+      cell.dataset.col = r;
+      outputEl.appendChild(cell);
+    }
+  }
+
+  // Hover highlighting
+  function highlightPair(r, c, highlight) {
+    const embedCells = embedEl.querySelectorAll('.matrix-cell');
+    const outputCells = outputEl.querySelectorAll('.matrix-cell');
+
+    embedCells.forEach(cell => {
+      if (parseInt(cell.dataset.row) === r && parseInt(cell.dataset.col) === c) {
+        cell.style.transform = highlight ? 'scale(1.3)' : '';
+        cell.style.boxShadow = highlight ? '0 0 12px rgba(0,201,167,0.6)' : '';
+        cell.style.zIndex = highlight ? '10' : '';
+      }
+    });
+    outputCells.forEach(cell => {
+      if (parseInt(cell.dataset.row) === c && parseInt(cell.dataset.col) === r) {
+        cell.style.transform = highlight ? 'scale(1.3)' : '';
+        cell.style.boxShadow = highlight ? '0 0 12px rgba(0,201,167,0.6)' : '';
+        cell.style.zIndex = highlight ? '10' : '';
+      }
+    });
+  }
+
+  embedEl.addEventListener('mouseover', (e) => {
+    const cell = e.target.closest('.matrix-cell');
+    if (cell) highlightPair(parseInt(cell.dataset.row), parseInt(cell.dataset.col), true);
+  });
+  embedEl.addEventListener('mouseout', (e) => {
+    const cell = e.target.closest('.matrix-cell');
+    if (cell) highlightPair(parseInt(cell.dataset.row), parseInt(cell.dataset.col), false);
+  });
+  outputEl.addEventListener('mouseover', (e) => {
+    const cell = e.target.closest('.matrix-cell');
+    if (cell) highlightPair(parseInt(cell.dataset.col), parseInt(cell.dataset.row), true);
+  });
+  outputEl.addEventListener('mouseout', (e) => {
+    const cell = e.target.closest('.matrix-cell');
+    if (cell) highlightPair(parseInt(cell.dataset.col), parseInt(cell.dataset.row), false);
+  });
+}
+
+// ==================== Section 5: Model Size Explorer ==================== //
+const MODELS = [
+  { name: 'Small',  params: '117M',  layers: 12, dModel: 768,  heads: 12, ctx: 1024, paramNum: 117, memFP16: '~234 MB' },
+  { name: 'Medium', params: '345M',  layers: 24, dModel: 1024, heads: 16, ctx: 1024, paramNum: 345, memFP16: '~690 MB' },
+  { name: 'Large',  params: '762M',  layers: 36, dModel: 1280, heads: 20, ctx: 1024, paramNum: 762, memFP16: '~1.5 GB' },
+  { name: 'XL',     params: '1542M', layers: 48, dModel: 1600, heads: 25, ctx: 1024, paramNum: 1542, memFP16: '~3.1 GB' },
+];
+
+let currentModel = 0;
+
+function renderModelExplorer(idx) {
+  currentModel = idx;
+  const m = MODELS[idx];
+  const dHead = m.dModel / m.heads;
+
+  // Update tabs
+  document.querySelectorAll('.model-tab').forEach((tab, i) => {
+    tab.classList.toggle('active', i === idx);
+  });
+
+  // Update details
+  const details = document.getElementById('modelDetails');
+  details.innerHTML = `
+    <div class="model-stat"><div class="stat-value">${m.layers}</div><div class="stat-label">Layers</div></div>
+    <div class="model-stat"><div class="stat-value">${m.dModel}</div><div class="stat-label">d_model</div></div>
+    <div class="model-stat"><div class="stat-value">${m.heads}</div><div class="stat-label">Attention Heads</div></div>
+    <div class="model-stat"><div class="stat-value">${dHead}</div><div class="stat-label">d_head</div></div>
+    <div class="model-stat"><div class="stat-value">${m.ctx}</div><div class="stat-label">Context Length</div></div>
+    <div class="model-stat"><div class="stat-value">${m.params}</div><div class="stat-label">Total Parameters</div></div>
+    <div class="model-stat"><div class="stat-value">${m.memFP16}</div><div class="stat-label">Memory (FP16)</div></div>
+  `;
+
+  // Update size bars
+  const bars = document.getElementById('sizeBars');
+  const maxParam = MODELS[MODELS.length - 1].paramNum;
+  bars.innerHTML = MODELS.map((model, i) => {
+    const pct = (model.paramNum / maxParam * 100).toFixed(1);
+    const isActive = i === idx;
+    return `
+      <div class="size-bar-row">
+        <div class="size-bar-label ${isActive ? 'active-bar-label' : ''}">${model.name}</div>
+        <div class="size-bar-track">
+          <div class="size-bar-fill ${isActive ? 'fill-active' : 'fill-inactive'}" style="width:${pct}%">
+            ${model.params}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Tab click handlers
+document.getElementById('modelTabs').addEventListener('click', (e) => {
+  const tab = e.target.closest('.model-tab');
+  if (tab) {
+    renderModelExplorer(parseInt(tab.dataset.model));
+  }
+});
+
+// ==================== Initialize ==================== //
+document.addEventListener('DOMContentLoaded', () => {
+  renderTokens();
+  buildWeightMatrices();
+  renderModelExplorer(0);
+});
+</script>
+</body>
+</html>

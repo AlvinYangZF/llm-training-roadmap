@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>10. Sparse Transformers — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    /* ===== Grid Canvases ===== */
+    .grid-canvas {
+      width: 100%;
+      height: 380px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+    .grid-canvas.tall {
+      height: 440px;
+    }
+    .dual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin: 20px 0;
+    }
+    .dual-grid-item {
+      text-align: center;
+    }
+    .dual-grid-item canvas {
+      width: 100%;
+      height: 340px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+    .dual-grid-item .grid-label {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .dual-grid-item .grid-sublabel {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* ===== Slider ===== */
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .slider-group label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      min-width: 80px;
+    }
+    .slider-group input[type="range"] {
+      flex: 1;
+      min-width: 200px;
+      accent-color: var(--accent);
+    }
+    .slider-group .slider-val {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+      min-width: 80px;
+    }
+
+    /* ===== Complexity Display ===== */
+    .complexity-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .complexity-label {
+      width: 100px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .complexity-bar-track {
+      flex: 1;
+      height: 36px;
+      background: rgba(0,0,0,.3);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    .complexity-bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      padding-left: 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #fff;
+      transition: width 0.4s ease;
+      white-space: nowrap;
+    }
+    .fill-dense { background: linear-gradient(90deg, var(--accent3), #c44a6a); }
+    .fill-sparse { background: linear-gradient(90deg, var(--accent2), #00916e); }
+    .complexity-value {
+      width: 140px;
+      text-align: right;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    /* ===== Results bars ===== */
+    .results-canvas {
+      width: 100%;
+      height: 320px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+
+    /* ===== Coverage step indicator ===== */
+    .coverage-status {
+      text-align: center;
+      font-size: 0.95rem;
+      margin: 12px 0;
+      min-height: 48px;
+      line-height: 1.6;
+    }
+
+    /* ===== Legend ===== */
+    .legend-row {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin: 12px 0;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+
+    @media (max-width: 700px) {
+      .dual-grid { grid-template-columns: 1fr; }
+      .dual-grid-item canvas { height: 300px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Sparse Transformers</h1>
+  <p>O(N&radic;N) Attention via Factorized Local + Strided Patterns</p>
+  <div class="breadcrumb">
+    <a href="../index.html">Home</a> &rsaquo; Topic 10
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ==================== Section 1: Dense vs Sparse ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-purple">Section 1</span> Dense vs Sparse Attention Patterns</h2>
+    <p>Dense attention connects every token to every other token, producing N&sup2; attention weights. Sparse Transformers factorize this into local + strided patterns, reducing computation to O(N&radic;N).</p>
+
+    <div class="dual-grid">
+      <div class="dual-grid-item">
+        <canvas id="denseCanvas"></canvas>
+        <div class="grid-label" style="color: var(--accent);">Dense Attention</div>
+        <div class="grid-sublabel">O(N&sup2;) = <span id="denseCount">256</span> connections</div>
+      </div>
+      <div class="dual-grid-item">
+        <canvas id="sparseCanvas"></canvas>
+        <div class="grid-label" style="color: var(--accent2);">Sparse Attention</div>
+        <div class="grid-sublabel">O(N&radic;N) &asymp; <span id="sparseCount">64</span> connections</div>
+      </div>
+    </div>
+
+    <div class="legend-row">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--accent);"></div> Dense (all pairs)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--accent2);"></div> Local band</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--accent4);"></div> Strided columns</div>
+    </div>
+  </div>
+
+  <!-- ==================== Section 2: Local Attention ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-green">Section 2</span> Local Attention Pattern</h2>
+    <p>Each token attends to itself and its &radic;N nearest neighbors, forming a diagonal band across the attention matrix. This captures short-range dependencies efficiently.</p>
+
+    <canvas id="localCanvas" class="grid-canvas"></canvas>
+
+    <div class="legend-row">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--accent2);"></div> Local attention band (&radic;N = 4 wide)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(0,201,167,0.15);"></div> No attention</div>
+    </div>
+
+    <div class="formula-box">
+      <span class="k">Local pattern</span>: each token sees <span class="q">&radic;N</span> nearest neighbors
+      <br>Connectivity per token: <span class="q">&radic;N = 4</span>
+    </div>
+  </div>
+
+  <!-- ==================== Section 3: Strided Attention ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-orange">Section 3</span> Strided Attention Pattern</h2>
+    <p>Every &radic;N-th position acts as a "summary" token that connects to all other tokens. These strided positions aggregate information from across the sequence, enabling long-range communication.</p>
+
+    <canvas id="stridedCanvas" class="grid-canvas"></canvas>
+
+    <div class="legend-row">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--accent4);"></div> Strided attention columns (stride = &radic;N = 4)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,158,100,0.1);"></div> No attention</div>
+    </div>
+
+    <div class="formula-box">
+      <span class="v">Strided pattern</span>: attend to every <span class="q">&radic;N</span>-th position
+      <br>"Summary" positions: <span class="v">0, 4, 8, 12</span> aggregate global info
+    </div>
+  </div>
+
+  <!-- ==================== Section 4: Combined Coverage ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-red">Section 4</span> Combined Coverage Animation</h2>
+    <p>Neither local nor strided alone provides full coverage. But in a 2-hop path (local then strided, across two attention layers), any token can reach any other token indirectly. Watch the path from token 1 to token 14.</p>
+
+    <canvas id="coverageCanvas" class="grid-canvas tall"></canvas>
+
+    <div class="coverage-status" id="coverageStatus">Press "Animate Coverage" to see how 2-hop attention achieves full indirect coverage.</div>
+
+    <div class="anim-controls">
+      <button class="btn btn-accent" id="coverageBtn" onclick="animateCoverage()">Animate Coverage</button>
+      <button class="btn btn-surface" onclick="resetCoverage()" style="margin-left:8px;">Reset</button>
+    </div>
+  </div>
+
+  <!-- ==================== Section 5: Complexity Comparison ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-purple">Section 5</span> Complexity Comparison</h2>
+    <p>Drag the slider to see how sparse attention scales compared to dense attention as sequence length grows.</p>
+
+    <div class="slider-group">
+      <label>Sequence N:</label>
+      <input type="range" id="nSlider" min="6" max="16" step="1" value="10">
+      <span class="slider-val" id="nValue">1024</span>
+    </div>
+
+    <div id="complexityBars">
+      <div class="complexity-row">
+        <div class="complexity-label" style="color:var(--accent3);">Dense</div>
+        <div class="complexity-bar-track">
+          <div class="complexity-bar-fill fill-dense" id="denseBar"></div>
+        </div>
+        <div class="complexity-value" id="denseValue" style="color:var(--accent3);"></div>
+      </div>
+      <div class="complexity-row">
+        <div class="complexity-label" style="color:var(--accent2);">Sparse</div>
+        <div class="complexity-bar-track">
+          <div class="complexity-bar-fill fill-sparse" id="sparseBar"></div>
+        </div>
+        <div class="complexity-value" id="sparseValue" style="color:var(--accent2);"></div>
+      </div>
+    </div>
+
+    <div id="savingsDisplay" style="text-align:center; margin:16px 0; font-size:1.05rem;"></div>
+
+    <div class="formula-box">
+      <span class="s">Dense</span>: O(N&sup2;) &nbsp;|&nbsp;
+      <span class="k">Sparse</span>: O(N &middot; N<sup>1/p</sup>) &nbsp;|&nbsp;
+      p=2 &rarr; O(N&radic;N)
+      <br><span class="op">Savings factor = &radic;N</span>
+    </div>
+  </div>
+
+  <!-- ==================== Section 6: Results ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-green">Section 6</span> Results: Sequence Lengths Achieved</h2>
+    <p>Sparse Transformers enabled modeling sequences far beyond what standard transformers could handle at the time (~512-1024 tokens). OpenAI demonstrated this across images, text, and audio.</p>
+
+    <canvas id="resultsCanvas" class="results-canvas"></canvas>
+
+    <div class="dim-note" style="margin-top:12px;">Standard transformer limit at the time: ~512-1024 tokens. Sparse Transformers pushed this by 3-65x.</div>
+
+    <div class="formula-box">
+      <span class="q">CIFAR-10</span>: 3,072 tokens (2.80 bits/dim) &nbsp;|&nbsp;
+      <span class="k">Enwik8</span>: 12,288 tokens &nbsp;|&nbsp;
+      <span class="v">Music</span>: ~65,000 tokens
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>Sparse Transformers &mdash; Rewon Child, Scott Gray, Alec Radford (OpenAI, 2019)</p>
+</footer>
+
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script>
+// ==================== Constants ==================== //
+const N = 16;
+const SQRT_N = 4;
+const COLORS = {
+  accent: '#6c63ff',
+  accent2: '#00c9a7',
+  accent3: '#f7768e',
+  accent4: '#ff9e64',
+  text: '#cdd6f4',
+  textDim: '#6c7086',
+  border: '#2a2d3e',
+  surface: '#1a1d2e',
+  bg: '#0f1117',
+};
+
+// ==================== Utility: draw NxN grid ==================== //
+function drawGrid(canvas, cellColorFn, opts = {}) {
+  const { ctx, W, H } = setupCanvas(canvas);
+  const pad = opts.pad || 40;
+  const gridSize = Math.min(W - pad * 2, H - pad * 2);
+  const cellSize = gridSize / N;
+  const ox = (W - gridSize) / 2;
+  const oy = (H - gridSize) / 2;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Labels
+  ctx.fillStyle = COLORS.textDim;
+  ctx.font = '11px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  for (let i = 0; i < N; i++) {
+    ctx.fillText(i, ox + i * cellSize + cellSize / 2, oy - 4);
+  }
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i < N; i++) {
+    ctx.fillText(i, ox - 6, oy + i * cellSize + cellSize / 2);
+  }
+
+  // Axis labels
+  ctx.fillStyle = COLORS.textDim;
+  ctx.font = '12px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(opts.xLabel || 'Key position', ox + gridSize / 2, oy + gridSize + 6);
+  ctx.save();
+  ctx.translate(ox - 28, oy + gridSize / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textBaseline = 'middle';
+  ctx.fillText(opts.yLabel || 'Query position', 0, 0);
+  ctx.restore();
+
+  // Cells
+  for (let row = 0; row < N; row++) {
+    for (let col = 0; col < N; col++) {
+      const color = cellColorFn(row, col);
+      const x = ox + col * cellSize;
+      const y = oy + row * cellSize;
+      ctx.fillStyle = color;
+      ctx.fillRect(x + 0.5, y + 0.5, cellSize - 1, cellSize - 1);
+    }
+  }
+
+  // Grid lines
+  ctx.strokeStyle = COLORS.border;
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= N; i++) {
+    ctx.beginPath();
+    ctx.moveTo(ox + i * cellSize, oy);
+    ctx.lineTo(ox + i * cellSize, oy + gridSize);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ox, oy + i * cellSize);
+    ctx.lineTo(ox + gridSize, oy + i * cellSize);
+    ctx.stroke();
+  }
+
+  return { ctx, ox, oy, cellSize, gridSize, W, H };
+}
+
+// ==================== Helper: is local? ==================== //
+function isLocal(row, col) {
+  return Math.abs(row - col) < SQRT_N;
+}
+
+// ==================== Helper: is strided? ==================== //
+function isStrided(row, col) {
+  return col % SQRT_N === 0;
+}
+
+// ==================== Section 1: Dense vs Sparse ==================== //
+function drawDenseGrid() {
+  drawGrid(document.getElementById('denseCanvas'), (row, col) => {
+    return 'rgba(108,99,255,0.7)';
+  });
+}
+
+function drawSparseGrid() {
+  let count = 0;
+  const colorFn = (row, col) => {
+    const local = isLocal(row, col);
+    const strided = isStrided(row, col);
+    if (local && strided) { count++; return 'rgba(108,200,180,0.8)'; }
+    if (local) { count++; return 'rgba(0,201,167,0.6)'; }
+    if (strided) { count++; return 'rgba(255,158,100,0.6)'; }
+    return 'rgba(42,45,62,0.3)';
+  };
+  drawGrid(document.getElementById('sparseCanvas'), colorFn);
+  document.getElementById('sparseCount').textContent = count;
+  document.getElementById('denseCount').textContent = N * N;
+}
+
+// ==================== Section 2: Local ==================== //
+function drawLocalGrid() {
+  drawGrid(document.getElementById('localCanvas'), (row, col) => {
+    if (isLocal(row, col)) return 'rgba(0,201,167,0.7)';
+    return 'rgba(0,201,167,0.05)';
+  });
+}
+
+// ==================== Section 3: Strided ==================== //
+function drawStridedGrid() {
+  drawGrid(document.getElementById('stridedCanvas'), (row, col) => {
+    if (isStrided(row, col)) return 'rgba(255,158,100,0.7)';
+    return 'rgba(255,158,100,0.04)';
+  });
+}
+
+// ==================== Section 4: Coverage Animation ==================== //
+let coverageStep = 0;
+let coverageAnimId = null;
+
+function drawCoverageGrid(step, progress) {
+  const canvas = document.getElementById('coverageCanvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+  const pad = 50;
+  const gridSize = Math.min(W - pad * 2, H - pad * 2 - 30);
+  const cellSize = gridSize / N;
+  const ox = (W - gridSize) / 2;
+  const oy = pad;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Source and target tokens
+  const src = 1;
+  const dst = 14;
+  // Intermediate: local neighbors of src that are strided summary tokens
+  // src=1 local neighbors: 0,1,2,3 ; strided summaries at col%4==0: 0,4,8,12
+  // So intermediate = token 0 (local neighbor of 1, and strided summary)
+  // From token 0 via strided, can reach all tokens including 14
+  const intermediate = 0;
+
+  // Labels
+  ctx.fillStyle = COLORS.textDim;
+  ctx.font = '10px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  for (let i = 0; i < N; i++) {
+    ctx.fillText(i, ox + i * cellSize + cellSize / 2, oy - 4);
+  }
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i < N; i++) {
+    ctx.fillText(i, ox - 6, oy + i * cellSize + cellSize / 2);
+  }
+
+  // Draw cells
+  for (let row = 0; row < N; row++) {
+    for (let col = 0; col < N; col++) {
+      const x = ox + col * cellSize;
+      const y = oy + row * cellSize;
+      const local = isLocal(row, col);
+      const strided = isStrided(row, col);
+
+      let color = 'rgba(42,45,62,0.2)';
+
+      if (step >= 1) {
+        // Step 1: local pattern
+        const localAlpha = step === 1 ? easeOutCubic(Math.min(progress, 1)) : 1;
+        if (local) color = `rgba(0,201,167,${0.4 * localAlpha})`;
+      }
+      if (step >= 2) {
+        // Step 2: strided pattern
+        const stridedAlpha = step === 2 ? easeOutCubic(Math.min(progress, 1)) : 1;
+        if (strided) color = `rgba(255,158,100,${0.4 * stridedAlpha})`;
+        if (local && strided) color = `rgba(108,200,180,${0.5 * stridedAlpha})`;
+      }
+      if (step >= 3) {
+        // Step 3: highlight the 2-hop path
+        if (local) color = 'rgba(0,201,167,0.25)';
+        if (strided) color = 'rgba(255,158,100,0.25)';
+        if (local && strided) color = 'rgba(108,200,180,0.3)';
+      }
+
+      ctx.fillStyle = color;
+      ctx.fillRect(x + 0.5, y + 0.5, cellSize - 1, cellSize - 1);
+    }
+  }
+
+  // Step 3: Highlight the specific 2-hop path
+  if (step >= 3) {
+    const pathAlpha = step === 3 ? easeOutCubic(Math.min(progress, 1)) : 1;
+
+    // Hop 1: src -> intermediate (local)
+    const hop1x = ox + intermediate * cellSize;
+    const hop1y = oy + src * cellSize;
+    ctx.fillStyle = `rgba(0,201,167,${0.9 * pathAlpha})`;
+    ctx.fillRect(hop1x + 1, hop1y + 1, cellSize - 2, cellSize - 2);
+
+    // Hop 2: intermediate -> dst (strided, col dst is reached via row=intermediate)
+    // Actually in strided pattern, token intermediate=0 is at stride position
+    // So from row=intermediate (query=0), col=dst (key=14) is NOT directly strided unless col%4==0
+    // The strided pattern: columns 0,4,8,12 are fully connected
+    // So from 0, via strided we reach all rows for columns 0,4,8,12
+    // Then from col 12 (nearest strided to 14), via local we reach 14
+    // Let's show: 1 -> 0 (local), 0 -> 12 (strided), 12 -> 14 (local in next layer)
+    const mid2 = 12;
+
+    const hop2x = ox + mid2 * cellSize;
+    const hop2y = oy + intermediate * cellSize;
+    ctx.fillStyle = `rgba(255,158,100,${0.9 * pathAlpha})`;
+    ctx.fillRect(hop2x + 1, hop2y + 1, cellSize - 2, cellSize - 2);
+
+    // Hop 3: mid2 -> dst (local)
+    const hop3x = ox + dst * cellSize;
+    const hop3y = oy + mid2 * cellSize;
+    ctx.fillStyle = `rgba(0,201,167,${0.9 * pathAlpha})`;
+    ctx.fillRect(hop3x + 1, hop3y + 1, cellSize - 2, cellSize - 2);
+
+    // Highlight source and destination tokens
+    ctx.fillStyle = `rgba(108,99,255,${0.9 * pathAlpha})`;
+    ctx.fillRect(ox + src * cellSize + 1, oy + src * cellSize + 1, cellSize - 2, cellSize - 2);
+    ctx.fillRect(ox + dst * cellSize + 1, oy + dst * cellSize + 1, cellSize - 2, cellSize - 2);
+
+    // Draw path arrows below the grid
+    if (pathAlpha > 0.5) {
+      const arrowY = oy + gridSize + 20;
+      ctx.font = 'bold 13px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
+      ctx.fillStyle = COLORS.accent;
+      ctx.fillText('Token 1', ox + src * cellSize + cellSize / 2, arrowY);
+
+      ctx.fillStyle = COLORS.textDim;
+      ctx.fillText('\u2192', ox + (src + intermediate) / 2 * cellSize + cellSize, arrowY);
+      ctx.fillStyle = COLORS.accent2;
+      ctx.fillText('Token 0', ox + intermediate * cellSize + cellSize / 2, arrowY);
+      ctx.fillStyle = COLORS.textDim;
+      const midPt1 = (intermediate + mid2) / 2;
+      ctx.fillText('\u2192', ox + midPt1 * cellSize + cellSize / 2, arrowY);
+
+      ctx.fillStyle = COLORS.accent4;
+      ctx.fillText('Token 12', ox + mid2 * cellSize + cellSize / 2, arrowY);
+      ctx.fillStyle = COLORS.textDim;
+      ctx.fillText('\u2192', ox + (mid2 + dst) / 2 * cellSize + cellSize / 2, arrowY);
+
+      ctx.fillStyle = COLORS.accent;
+      ctx.fillText('Token 14', ox + dst * cellSize + cellSize / 2, arrowY);
+
+      // Labels for hop types
+      ctx.font = '10px system-ui, sans-serif';
+      ctx.fillStyle = COLORS.accent2;
+      ctx.fillText('local', ox + (src + intermediate) / 2 * cellSize + cellSize, arrowY + 18);
+      ctx.fillStyle = COLORS.accent4;
+      ctx.fillText('strided', ox + midPt1 * cellSize + cellSize / 2, arrowY + 18);
+      ctx.fillStyle = COLORS.accent2;
+      ctx.fillText('local', ox + (mid2 + dst) / 2 * cellSize + cellSize / 2, arrowY + 18);
+    }
+  }
+
+  // Grid lines
+  ctx.strokeStyle = COLORS.border;
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= N; i++) {
+    ctx.beginPath();
+    ctx.moveTo(ox + i * cellSize, oy);
+    ctx.lineTo(ox + i * cellSize, oy + gridSize);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ox, oy + i * cellSize);
+    ctx.lineTo(ox + gridSize, oy + i * cellSize);
+    ctx.stroke();
+  }
+}
+
+function animateCoverage() {
+  const btn = document.getElementById('coverageBtn');
+  btn.disabled = true;
+  coverageStep = 0;
+
+  const statusEl = document.getElementById('coverageStatus');
+  const messages = [
+    '',
+    'Step 1: Local pattern — Token 1 reaches nearby tokens (0, 1, 2, 3) via local attention.',
+    'Step 2: Strided pattern — Summary tokens (0, 4, 8, 12) connect to distant positions.',
+    'Step 3: Combined 2-hop path: Token 1 \u2192 Token 0 (local) \u2192 Token 12 (strided) \u2192 Token 14 (local). Full indirect coverage!',
+  ];
+
+  function runStep(step) {
+    coverageStep = step;
+    statusEl.textContent = messages[step];
+    animate((p) => {
+      drawCoverageGrid(step, p);
+    }, 1000, () => {
+      if (step < 3) {
+        setTimeout(() => runStep(step + 1), 600);
+      } else {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  runStep(1);
+}
+
+function resetCoverage() {
+  coverageStep = 0;
+  document.getElementById('coverageStatus').textContent = 'Press "Animate Coverage" to see how 2-hop attention achieves full indirect coverage.';
+  document.getElementById('coverageBtn').disabled = false;
+  drawCoverageGrid(0, 0);
+}
+
+// ==================== Section 5: Complexity Slider ==================== //
+function formatNumber(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return n.toString();
+}
+
+function updateComplexity() {
+  const slider = document.getElementById('nSlider');
+  const exp = parseInt(slider.value);
+  const n = Math.pow(2, exp);
+
+  document.getElementById('nValue').textContent = n.toLocaleString();
+
+  const dense = n * n;
+  const sparse = Math.round(n * Math.sqrt(n));
+  const ratio = Math.sqrt(n);
+
+  document.getElementById('denseValue').textContent = formatNumber(dense);
+  document.getElementById('sparseValue').textContent = formatNumber(sparse);
+
+  // Bar widths: dense is always 100%, sparse is relative
+  const sparsePercent = Math.max((sparse / dense) * 100, 2);
+  document.getElementById('denseBar').style.width = '100%';
+  document.getElementById('denseBar').textContent = formatNumber(dense);
+  document.getElementById('sparseBar').style.width = sparsePercent + '%';
+  document.getElementById('sparseBar').textContent = sparsePercent > 8 ? formatNumber(sparse) : '';
+
+  const savingsEl = document.getElementById('savingsDisplay');
+  savingsEl.innerHTML = `<span style="color:var(--accent);">N = ${n.toLocaleString()}</span> &rarr; ` +
+    `Dense: <span style="color:var(--accent3);">${formatNumber(dense)}</span> vs ` +
+    `Sparse: <span style="color:var(--accent2);">${formatNumber(sparse)}</span> &mdash; ` +
+    `<strong style="color:var(--accent4);">${ratio.toFixed(0)}&times; savings</strong>`;
+}
+
+// ==================== Section 6: Results ==================== //
+function drawResults() {
+  const canvas = document.getElementById('resultsCanvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+
+  const data = [
+    { label: 'Standard\nTransformer', tokens: 1024, color: COLORS.accent3, sub: '~512-1024 tokens' },
+    { label: 'CIFAR-10\n(images)', tokens: 3072, color: COLORS.accent, sub: '2.80 bits/dim' },
+    { label: 'Enwik8\n(text)', tokens: 12288, color: COLORS.accent2, sub: '12,288 tokens' },
+    { label: 'Raw Audio\n(music)', tokens: 65000, color: COLORS.accent4, sub: '~65,000 tokens' },
+  ];
+
+  const maxTokens = 65000;
+  const barAreaLeft = 160;
+  const barAreaRight = W - 40;
+  const barAreaWidth = barAreaRight - barAreaLeft;
+  const barHeight = 36;
+  const gapY = 20;
+  const totalH = data.length * (barHeight + gapY) - gapY;
+  const startY = (H - totalH) / 2;
+
+  // Title
+  ctx.fillStyle = COLORS.textDim;
+  ctx.font = '12px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('Sequence Length (tokens)', W / 2, 10);
+
+  data.forEach((d, i) => {
+    const y = startY + i * (barHeight + gapY);
+
+    // Label
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 12px system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    const lines = d.label.split('\n');
+    lines.forEach((line, li) => {
+      ctx.fillText(line, barAreaLeft - 14, y + li * 15 + (barHeight - lines.length * 15) / 2);
+    });
+
+    // Bar background
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    roundRect(ctx, barAreaLeft, y, barAreaWidth, barHeight, 6);
+    ctx.fill();
+
+    // Bar fill (log scale for visibility)
+    const logMax = Math.log(maxTokens);
+    const logVal = Math.log(d.tokens);
+    const fillWidth = Math.max((logVal / logMax) * barAreaWidth, 20);
+    ctx.fillStyle = d.color;
+    ctx.globalAlpha = 0.8;
+    roundRect(ctx, barAreaLeft, y, fillWidth, barHeight, 6);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Token count on bar
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px Courier New, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(d.tokens.toLocaleString(), barAreaLeft + fillWidth + 8, y + barHeight / 2);
+
+    // Subtitle
+    ctx.fillStyle = COLORS.textDim;
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    const subX = barAreaLeft + fillWidth + 8 + ctx.measureText(d.tokens.toLocaleString()).width + 12;
+    if (subX < W - 20) {
+      ctx.fillText(d.sub, subX, y + barHeight / 2);
+    }
+  });
+
+  // Baseline marker at standard transformer limit
+  const logBaseline = (Math.log(1024) / Math.log(maxTokens)) * barAreaWidth;
+  ctx.strokeStyle = COLORS.accent3;
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(barAreaLeft + logBaseline, startY - 16);
+  ctx.lineTo(barAreaLeft + logBaseline, startY + totalH + 10);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = COLORS.accent3;
+  ctx.font = '10px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('Standard limit', barAreaLeft + logBaseline, startY - 18);
+}
+
+// ==================== Initialize ==================== //
+function init() {
+  drawDenseGrid();
+  drawSparseGrid();
+  drawLocalGrid();
+  drawStridedGrid();
+  drawCoverageGrid(0, 0);
+  updateComplexity();
+  drawResults();
+
+  // Slider event
+  document.getElementById('nSlider').addEventListener('input', updateComplexity);
+
+  // Redraw on resize
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      drawDenseGrid();
+      drawSparseGrid();
+      drawLocalGrid();
+      drawStridedGrid();
+      drawCoverageGrid(coverageStep, 1);
+      updateComplexity();
+      drawResults();
+    }, 200);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>

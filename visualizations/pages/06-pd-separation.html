@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>06. PD Separation — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    /* ===== Canvas containers ===== */
+    .viz-canvas {
+      width: 100%;
+      height: 340px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.3);
+    }
+    .viz-canvas.tall { height: 420px; }
+    .viz-canvas.short { height: 280px; }
+
+    /* ===== Legend ===== */
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+
+    /* ===== Transfer steps ===== */
+    .transfer-steps {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 16px 0;
+      flex-wrap: wrap;
+    }
+    .transfer-step {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-dim);
+      transition: all 0.4s;
+    }
+    .transfer-step.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(108,99,255,.12);
+    }
+    .transfer-step.done {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: rgba(0,201,167,.12);
+    }
+    .transfer-arrow {
+      display: flex;
+      align-items: center;
+      color: var(--text-dim);
+      font-size: 1.2rem;
+    }
+
+    /* ===== SLO bars ===== */
+    .slo-group { margin-bottom: 28px; }
+    .slo-group h3 { margin-top: 0; }
+    .slo-bar-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 12px;
+    }
+    .slo-label {
+      width: 120px;
+      text-align: right;
+      font-size: 0.85rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .slo-track {
+      flex: 1;
+      height: 36px;
+      background: rgba(0,0,0,.3);
+      border-radius: 6px;
+      overflow: visible;
+      position: relative;
+    }
+    .slo-fill {
+      height: 100%;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #fff;
+      transition: width 1.2s ease;
+      position: relative;
+    }
+    .slo-fill.coupled {
+      background: linear-gradient(90deg, var(--accent3), rgba(247,118,142,.5));
+    }
+    .slo-fill.separated {
+      background: linear-gradient(90deg, var(--accent2), rgba(0,201,167,.5));
+    }
+    .slo-range {
+      position: absolute;
+      right: -4px;
+      top: -3px;
+      bottom: -3px;
+      width: 0;
+      border-right: 3px solid rgba(247,118,142,.6);
+      border-radius: 0 3px 3px 0;
+      transition: width 1.2s ease;
+    }
+    .slo-target {
+      position: absolute;
+      top: -4px;
+      bottom: -4px;
+      width: 2px;
+      background: var(--accent4);
+      z-index: 2;
+    }
+    .slo-target::after {
+      content: attr(data-label);
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.68rem;
+      color: var(--accent4);
+      white-space: nowrap;
+      font-weight: 600;
+    }
+    .slo-value {
+      width: 80px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    /* ===== Key metric boxes ===== */
+    .metric-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .metric-box {
+      flex: 1;
+      min-width: 160px;
+      background: rgba(0,0,0,.25);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+    .metric-box .val {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+    .metric-box .lbl {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .metric-box.good .val { color: var(--accent2); }
+    .metric-box.warn .val { color: var(--accent4); }
+    .metric-box.bad .val { color: var(--accent3); }
+  </style>
+</head>
+<body>
+
+<div class="main-content">
+  <header>
+    <h1>PD Separation</h1>
+    <p>Disaggregating Prefill and Decode for Optimal GPU Utilization</p>
+    <div class="breadcrumb">
+      <a href="../index.html">Home</a> / Topic 06
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- ========== Section 1: The Interference Problem ========== -->
+    <div class="card">
+      <h2><span class="badge badge-red">Problem</span> The Interference Problem</h2>
+      <p>When prefill (compute-bound) and decode (memory-bound) share the same GPU, they interfere with each other. Long prefill jobs block decode responses, causing unpredictable latency spikes.</p>
+      <canvas id="interferenceCanvas" class="viz-canvas" style="height:240px;"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent);"></div>Prefill (compute-heavy)</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent2);"></div>Decode (memory-heavy)</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent3);"></div>Waiting / blocked</div>
+      </div>
+      <p class="dim-note">Coupled: Prefill blocks Decode &rarr; unpredictable latency</p>
+    </div>
+
+    <!-- ========== Section 2: Disaggregated Architecture ========== -->
+    <div class="card">
+      <h2><span class="badge badge-purple">Solution</span> Disaggregated Architecture</h2>
+      <p>Separate GPU pools are dedicated to each phase. Prefill nodes crunch prompts in parallel; decode nodes generate tokens at steady throughput. KV cache is transferred between pools.</p>
+      <canvas id="archCanvas" class="viz-canvas tall"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent);"></div>Prefill GPU Pool</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent2);"></div>Decode GPU Pool</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent4);"></div>KV Cache Transfer</div>
+      </div>
+      <p class="dim-note">Disaggregated: Each pool optimized for its workload</p>
+    </div>
+
+    <!-- ========== Section 3: Resource Utilization Comparison ========== -->
+    <div class="card">
+      <h2><span class="badge badge-green">Efficiency</span> Resource Utilization Comparison</h2>
+      <p>In coupled mode, compute and memory bandwidth oscillate wildly. With disaggregation, each pool maintains near-peak utilization of its bottleneck resource.</p>
+      <canvas id="utilizationCanvas" class="viz-canvas tall"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent);"></div>Compute utilization</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent2);"></div>Memory bandwidth</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,255,255,.08);"></div>Idle</div>
+      </div>
+      <div class="anim-controls">
+        <button class="btn btn-accent" id="btnAnimate" onclick="playUtilization()">Animate</button>
+      </div>
+    </div>
+
+    <!-- ========== Section 4: KV Cache Transfer ========== -->
+    <div class="card">
+      <h2><span class="badge badge-orange">Transfer</span> KV Cache Transfer</h2>
+      <p>After prefill completes, the KV cache must be transferred to a decode node. With RDMA, this is fast enough to be negligible relative to total latency.</p>
+      <div class="transfer-steps" id="transferSteps">
+        <div class="transfer-step" id="ts1">1. Prefill processes prompt</div>
+        <div class="transfer-arrow">&rarr;</div>
+        <div class="transfer-step" id="ts2">2. KV cache transfers</div>
+        <div class="transfer-arrow">&rarr;</div>
+        <div class="transfer-step" id="ts3">3. Decode generates tokens</div>
+      </div>
+      <canvas id="transferCanvas" class="viz-canvas" style="height:300px;"></canvas>
+      <div class="formula-box">
+        KV Cache for <span class="q">2K prompt</span> &asymp; <span class="v">800 MB</span> &rarr; Transfer time: <span class="s">&sim;5 ms</span> via RDMA
+      </div>
+      <div class="anim-controls">
+        <button class="btn btn-accent" id="btnTransfer" onclick="playTransfer()">Play Transfer</button>
+      </div>
+    </div>
+
+    <!-- ========== Section 5: SLO Impact ========== -->
+    <div class="card">
+      <h2><span class="badge badge-green">Impact</span> SLO (Service Level Objective) Impact</h2>
+      <p>Disaggregation dramatically reduces latency variance. Coupled systems frequently violate SLO targets, while separated architectures deliver consistent performance.</p>
+
+      <div class="slo-group">
+        <h3 style="color:var(--accent);">TTFT (Time To First Token)</h3>
+        <div class="slo-bar-row">
+          <div class="slo-label" style="color:var(--accent3);">Coupled</div>
+          <div class="slo-track" id="ttftCoupledTrack">
+            <div class="slo-target" style="left:40%;" data-label="SLO: 200ms"></div>
+            <div class="slo-fill coupled" id="ttftCoupledFill" style="width:0;">
+              <div class="slo-range" id="ttftCoupledRange"></div>
+            </div>
+          </div>
+          <div class="slo-value" id="ttftCoupledVal">—</div>
+        </div>
+        <div class="slo-bar-row">
+          <div class="slo-label" style="color:var(--accent2);">Separated</div>
+          <div class="slo-track" id="ttftSepTrack">
+            <div class="slo-target" style="left:40%;" data-label=""></div>
+            <div class="slo-fill separated" id="ttftSepFill" style="width:0;"></div>
+          </div>
+          <div class="slo-value" id="ttftSepVal">—</div>
+        </div>
+      </div>
+
+      <div class="slo-group">
+        <h3 style="color:var(--accent2);">TBT (Time Between Tokens)</h3>
+        <div class="slo-bar-row">
+          <div class="slo-label" style="color:var(--accent3);">Coupled</div>
+          <div class="slo-track" id="tbtCoupledTrack">
+            <div class="slo-target" style="left:50%;" data-label="SLO: 50ms"></div>
+            <div class="slo-fill coupled" id="tbtCoupledFill" style="width:0;">
+              <div class="slo-range" id="tbtCoupledRange"></div>
+            </div>
+          </div>
+          <div class="slo-value" id="tbtCoupledVal">—</div>
+        </div>
+        <div class="slo-bar-row">
+          <div class="slo-label" style="color:var(--accent2);">Separated</div>
+          <div class="slo-track" id="tbtSepTrack">
+            <div class="slo-target" style="left:50%;" data-label=""></div>
+            <div class="slo-fill separated" id="tbtSepFill" style="width:0;"></div>
+          </div>
+          <div class="slo-value" id="tbtSepVal">—</div>
+        </div>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric-box bad">
+          <div class="val">~35%</div>
+          <div class="lbl">Coupled SLO violation rate</div>
+        </div>
+        <div class="metric-box good">
+          <div class="val">&lt;2%</div>
+          <div class="lbl">Separated SLO violation rate</div>
+        </div>
+        <div class="metric-box good">
+          <div class="val">~1.6x</div>
+          <div class="lbl">Throughput improvement</div>
+        </div>
+      </div>
+
+      <div class="anim-controls" style="margin-top:16px;">
+        <button class="btn btn-accent" id="btnSLO" onclick="playSLO()">Animate SLO</button>
+      </div>
+    </div>
+
+  </div><!-- container -->
+
+  <nav class="page-nav">
+    <a class="prev-link" href="05-paged-attention.html">&larr; 05. PagedAttention</a>
+    <a class="next-link" href="08-h2o.html">08. H2O &rarr;</a>
+  </nav>
+
+  <footer>LLM Algorithm Visualizations &mdash; PD Separation (Mooncake, USENIX FAST 2025)</footer>
+</div>
+
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script>
+// ==================== Section 1: Interference Problem ====================
+(function() {
+  const canvas = document.getElementById('interferenceCanvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+
+  const timelineY = H / 2;
+  const barH = 50;
+  const startX = 40;
+  const totalW = W - 80;
+
+  // Timeline blocks: type, width fraction, label
+  const blocks = [
+    { type: 'prefill', w: 0.18, label: 'Prefill A' },
+    { type: 'decode',  w: 0.06, label: 'Dec' },
+    { type: 'prefill', w: 0.30, label: 'Prefill B (long)' },
+    { type: 'wait',    w: 0.04, label: '' },
+    { type: 'decode',  w: 0.06, label: 'Dec' },
+    { type: 'wait',    w: 0.04, label: '' },
+    { type: 'decode',  w: 0.06, label: 'Dec' },
+    { type: 'prefill', w: 0.12, label: 'Prefill C' },
+    { type: 'decode',  w: 0.06, label: 'Dec' },
+    { type: 'wait',    w: 0.03, label: '' },
+    { type: 'decode',  w: 0.05, label: 'Dec' },
+  ];
+
+  let animProgress = 0;
+  function draw(progress) {
+    animProgress = progress;
+    ctx.clearRect(0, 0, W, H);
+
+    // Label
+    ctx.fillStyle = '#6c7086';
+    ctx.font = '600 12px system-ui';
+    ctx.textAlign = 'left';
+    ctx.fillText('Single GPU Timeline', startX, timelineY - barH / 2 - 14);
+
+    // Track background
+    roundRect(ctx, startX, timelineY - barH / 2, totalW, barH, 6);
+    ctx.fillStyle = 'rgba(255,255,255,.04)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    ctx.stroke();
+
+    // Draw blocks
+    let x = startX;
+    blocks.forEach((b, i) => {
+      const bw = b.w * totalW;
+      const drawW = bw * Math.min(progress * blocks.length / (i + 1), 1);
+
+      let color;
+      if (b.type === 'prefill') color = '#6c63ff';
+      else if (b.type === 'decode') color = '#00c9a7';
+      else color = 'rgba(247,118,142,.5)';
+
+      if (drawW > 0) {
+        roundRect(ctx, x, timelineY - barH / 2 + 2, Math.max(drawW, 2), barH - 4, 4);
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        if (b.type === 'wait' && drawW > 8) {
+          // Draw waiting markers
+          ctx.fillStyle = '#f7768e';
+          ctx.font = 'bold 16px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText('!', x + drawW / 2, timelineY + 5);
+        }
+
+        if (b.label && bw > 30 && progress > 0.3) {
+          ctx.fillStyle = '#fff';
+          ctx.font = '600 10px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText(b.label, x + bw / 2, timelineY + 4);
+        }
+      }
+      x += bw;
+    });
+
+    // Draw latency spike annotations
+    if (progress > 0.6) {
+      const alpha = Math.min((progress - 0.6) / 0.3, 1);
+      ctx.globalAlpha = alpha;
+
+      // Arrow pointing to the long prefill blocking decode
+      const longPrefillStart = startX + 0.24 * totalW;
+      const longPrefillEnd = startX + 0.54 * totalW;
+      const arrY = timelineY + barH / 2 + 20;
+
+      ctx.strokeStyle = '#f7768e';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(longPrefillStart, arrY);
+      ctx.lineTo(longPrefillEnd + 0.10 * totalW, arrY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Bracket ends
+      ctx.beginPath();
+      ctx.moveTo(longPrefillStart, arrY - 6);
+      ctx.lineTo(longPrefillStart, arrY + 6);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(longPrefillEnd + 0.10 * totalW, arrY - 6);
+      ctx.lineTo(longPrefillEnd + 0.10 * totalW, arrY + 6);
+      ctx.stroke();
+
+      ctx.fillStyle = '#f7768e';
+      ctx.font = '600 11px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('Decode blocked — latency spike!', (longPrefillStart + longPrefillEnd + 0.10 * totalW) / 2, arrY + 22);
+
+      ctx.globalAlpha = 1;
+    }
+
+    // Time arrow
+    ctx.strokeStyle = '#6c7086';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(startX, timelineY + barH / 2 + 44);
+    ctx.lineTo(startX + totalW, timelineY + barH / 2 + 44);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(startX + totalW - 6, timelineY + barH / 2 + 40);
+    ctx.lineTo(startX + totalW, timelineY + barH / 2 + 44);
+    ctx.lineTo(startX + totalW - 6, timelineY + barH / 2 + 48);
+    ctx.stroke();
+    ctx.fillStyle = '#6c7086';
+    ctx.font = '11px system-ui';
+    ctx.textAlign = 'right';
+    ctx.fillText('time →', startX + totalW, timelineY + barH / 2 + 58);
+  }
+
+  animate(draw, 2500);
+})();
+
+// ==================== Section 2: Disaggregated Architecture ====================
+(function() {
+  const canvas = document.getElementById('archCanvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+
+  let t = 0;
+  let rafId;
+
+  function drawGPUBox(x, y, w, h, color, label, utilBars) {
+    roundRect(ctx, x, y, w, h, 8);
+    ctx.fillStyle = color + '18';
+    ctx.fill();
+    ctx.strokeStyle = color + '60';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    ctx.font = 'bold 11px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x + w / 2, y + 18);
+
+    // Animated utilization bars inside
+    if (utilBars) {
+      const barW = w - 20;
+      const barH = 8;
+      const barY = y + 28;
+      for (let i = 0; i < 3; i++) {
+        roundRect(ctx, x + 10, barY + i * 12, barW, barH, 3);
+        ctx.fillStyle = 'rgba(0,0,0,.3)';
+        ctx.fill();
+        const fill = (0.6 + 0.35 * Math.sin(t * 3 + i * 1.2)) * barW;
+        roundRect(ctx, x + 10, barY + i * 12, fill, barH, 3);
+        ctx.fillStyle = color + '80';
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawArrow(x1, y1, x2, y2, color, dashed) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    if (dashed) ctx.setLineDash([6, 4]);
+    else ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Arrowhead
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - 8 * Math.cos(angle - 0.4), y2 - 8 * Math.sin(angle - 0.4));
+    ctx.lineTo(x2 - 8 * Math.cos(angle + 0.4), y2 - 8 * Math.sin(angle + 0.4));
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  function drawPacket(x, y, progress) {
+    const size = 8;
+    ctx.fillStyle = '#ff9e64';
+    ctx.globalAlpha = 0.8;
+    roundRect(ctx, x - size / 2, y - size / 2, size, size, 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  function draw() {
+    t += 0.016;
+    ctx.clearRect(0, 0, W, H);
+
+    const cx = W / 2;
+    const gpuW = 110;
+    const gpuH = 72;
+    const poolGap = 30;
+
+    // ---- Client ----
+    const clientX = cx - 30;
+    const clientY = 20;
+    roundRect(ctx, clientX, clientY, 60, 30, 6);
+    ctx.fillStyle = 'rgba(255,255,255,.1)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#cdd6f4';
+    ctx.font = 'bold 12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Client', cx, clientY + 20);
+
+    // ---- Prefill Pool ----
+    const prefillY = 90;
+    const prefillPoolW = 3 * gpuW + 2 * poolGap;
+    const prefillPoolX = cx - prefillPoolW / 2;
+
+    // Pool border
+    roundRect(ctx, prefillPoolX - 16, prefillY - 26, prefillPoolW + 32, gpuH + 46, 12);
+    ctx.fillStyle = 'rgba(108,99,255,.05)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(108,99,255,.25)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#6c63ff';
+    ctx.font = 'bold 13px system-ui';
+    ctx.textAlign = 'left';
+    ctx.fillText('Prefill GPU Pool', prefillPoolX - 10, prefillY - 8);
+
+    for (let i = 0; i < 3; i++) {
+      const gx = prefillPoolX + i * (gpuW + poolGap);
+      drawGPUBox(gx, prefillY, gpuW, gpuH, '#6c63ff', `GPU ${i}`, true);
+    }
+
+    // ---- KV Cache Transfer zone ----
+    const transferY = prefillY + gpuH + 36;
+    const transferH = 44;
+    roundRect(ctx, prefillPoolX + 20, transferY, prefillPoolW - 40, transferH, 8);
+    ctx.fillStyle = 'rgba(255,158,100,.08)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,158,100,.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ff9e64';
+    ctx.font = 'bold 12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('KV Cache Transfer (RDMA)', cx, transferY + transferH / 2 + 4);
+
+    // Animated packets
+    for (let i = 0; i < 5; i++) {
+      const packetProgress = (t * 0.5 + i * 0.2) % 1;
+      const px = prefillPoolX + 40 + packetProgress * (prefillPoolW - 80);
+      const py = transferY + transferH / 2;
+      drawPacket(px, py, packetProgress);
+    }
+
+    // ---- Decode Pool ----
+    const decodeY = transferY + transferH + 30;
+    const decodePoolW = prefillPoolW;
+    const decodePoolX = cx - decodePoolW / 2;
+
+    roundRect(ctx, decodePoolX - 16, decodeY - 26, decodePoolW + 32, gpuH + 46, 12);
+    ctx.fillStyle = 'rgba(0,201,167,.05)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,201,167,.25)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#00c9a7';
+    ctx.font = 'bold 13px system-ui';
+    ctx.textAlign = 'left';
+    ctx.fillText('Decode GPU Pool', decodePoolX - 10, decodeY - 8);
+
+    for (let i = 0; i < 3; i++) {
+      const gx = decodePoolX + i * (gpuW + poolGap);
+      drawGPUBox(gx, decodeY, gpuW, gpuH, '#00c9a7', `GPU ${i}`, true);
+    }
+
+    // ---- Response ----
+    const respY = decodeY + gpuH + 30;
+    roundRect(ctx, cx - 40, respY, 80, 30, 6);
+    ctx.fillStyle = 'rgba(0,201,167,.15)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,201,167,.4)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#00c9a7';
+    ctx.font = 'bold 12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Response', cx, respY + 20);
+
+    // ---- Arrows ----
+    drawArrow(cx, clientY + 30, cx, prefillY - 26, '#6c63ff', false);
+    drawArrow(cx, prefillY + gpuH + 20, cx, transferY, '#ff9e64', true);
+    drawArrow(cx, transferY + transferH, cx, decodeY - 26, '#ff9e64', true);
+    drawArrow(cx, decodeY + gpuH + 20, cx, respY, '#00c9a7', false);
+
+    rafId = requestAnimationFrame(draw);
+  }
+
+  draw();
+
+  // Stop when out of view
+  const observer = new IntersectionObserver(entries => {
+    if (!entries[0].isIntersecting) cancelAnimationFrame(rafId);
+    else draw();
+  }, { threshold: 0 });
+  observer.observe(canvas);
+})();
+
+// ==================== Section 3: Resource Utilization ====================
+let utilAnimId = null;
+function playUtilization() {
+  const canvas = document.getElementById('utilizationCanvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+  const btn = document.getElementById('btnAnimate');
+  btn.disabled = true;
+  btn.textContent = 'Playing...';
+
+  if (utilAnimId) cancelAnimationFrame(utilAnimId);
+
+  const duration = 4000;
+  const startTime = performance.now();
+
+  const timeSlots = 20;
+  // Coupled: compute oscillates, memory oscillates
+  const coupledCompute = [];
+  const coupledMem = [];
+  for (let i = 0; i < timeSlots; i++) {
+    const isPrefill = (i % 5 < 3); // 3 prefill, 2 decode
+    coupledCompute.push(isPrefill ? 0.85 + Math.random() * 0.1 : 0.15 + Math.random() * 0.1);
+    coupledMem.push(isPrefill ? 0.2 + Math.random() * 0.1 : 0.8 + Math.random() * 0.1);
+  }
+  // Separated: prefill GPU steady compute, decode GPU steady memory
+  const sepPrefillCompute = Array.from({length: timeSlots}, () => 0.88 + Math.random() * 0.06);
+  const sepDecodeMem = Array.from({length: timeSlots}, () => 0.87 + Math.random() * 0.06);
+
+  function drawBars(x, y, w, h, values, color, label, progress, maxSlots) {
+    const visibleSlots = Math.floor(progress * maxSlots);
+    const slotW = w / maxSlots;
+
+    // Background
+    roundRect(ctx, x, y, w, h, 6);
+    ctx.fillStyle = 'rgba(255,255,255,.03)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Bars
+    for (let i = 0; i < visibleSlots && i < values.length; i++) {
+      const barH = values[i] * h;
+      const bx = x + i * slotW + 1;
+      const by = y + h - barH;
+      roundRect(ctx, bx, by, slotW - 2, barH, 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
+    // Label
+    ctx.fillStyle = '#6c7086';
+    ctx.font = '600 11px system-ui';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, x, y - 6);
+  }
+
+  function tick(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    ctx.clearRect(0, 0, W, H);
+
+    const margin = 40;
+    const colW = (W - margin * 3) / 2;
+    const rowH = (H - 100) / 2;
+
+    // Titles
+    ctx.fillStyle = '#f7768e';
+    ctx.font = 'bold 14px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Coupled (Single GPU)', margin + colW / 2, 28);
+
+    ctx.fillStyle = '#00c9a7';
+    ctx.fillText('Separated (Dedicated Pools)', margin * 2 + colW + colW / 2, 28);
+
+    // Coupled compute
+    drawBars(margin, 50, colW, rowH, coupledCompute, 'rgba(108,99,255,.6)', 'Compute Utilization', progress, timeSlots);
+    // Coupled memory
+    drawBars(margin, 50 + rowH + 30, colW, rowH, coupledMem, 'rgba(0,201,167,.6)', 'Memory Bandwidth', progress, timeSlots);
+
+    // Separated prefill compute
+    drawBars(margin * 2 + colW, 50, colW, rowH, sepPrefillCompute, 'rgba(108,99,255,.6)', 'Prefill GPU — Compute', progress, timeSlots);
+    // Separated decode memory
+    drawBars(margin * 2 + colW, 50 + rowH + 30, colW, rowH, sepDecodeMem, 'rgba(0,201,167,.6)', 'Decode GPU — Memory BW', progress, timeSlots);
+
+    // Average lines at ~90%
+    if (progress > 0.5) {
+      const lineAlpha = Math.min((progress - 0.5) * 2, 1);
+      ctx.globalAlpha = lineAlpha;
+
+      // Coupled: draw oscillation warning
+      ctx.strokeStyle = '#f7768e';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      const avgCoupledY = 50 + rowH * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(margin, avgCoupledY);
+      ctx.lineTo(margin + colW, avgCoupledY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#f7768e';
+      ctx.font = '600 10px system-ui';
+      ctx.textAlign = 'right';
+      ctx.fillText('~50% avg', margin + colW - 4, avgCoupledY - 4);
+
+      // Separated: draw steady line
+      ctx.strokeStyle = '#00c9a7';
+      ctx.setLineDash([4, 3]);
+      const avgSepY = 50 + rowH * 0.1;
+      ctx.beginPath();
+      ctx.moveTo(margin * 2 + colW, avgSepY);
+      ctx.lineTo(margin * 2 + colW * 2, avgSepY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#00c9a7';
+      ctx.font = '600 10px system-ui';
+      ctx.textAlign = 'right';
+      ctx.fillText('~90% avg', margin * 2 + colW * 2 - 4, avgSepY - 4);
+
+      ctx.globalAlpha = 1;
+    }
+
+    if (progress < 1) {
+      utilAnimId = requestAnimationFrame(tick);
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Replay';
+    }
+  }
+
+  utilAnimId = requestAnimationFrame(tick);
+}
+
+// Auto-play on scroll
+const utilObserver = new IntersectionObserver(entries => {
+  if (entries[0].isIntersecting) {
+    playUtilization();
+    utilObserver.disconnect();
+  }
+}, { threshold: 0.3 });
+utilObserver.observe(document.getElementById('utilizationCanvas'));
+
+// ==================== Section 4: KV Cache Transfer ====================
+let transferAnimId = null;
+function playTransfer() {
+  const canvas = document.getElementById('transferCanvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+  const btn = document.getElementById('btnTransfer');
+  btn.disabled = true;
+  btn.textContent = 'Playing...';
+
+  if (transferAnimId) cancelAnimationFrame(transferAnimId);
+
+  // Reset step indicators
+  document.getElementById('ts1').className = 'transfer-step';
+  document.getElementById('ts2').className = 'transfer-step';
+  document.getElementById('ts3').className = 'transfer-step';
+
+  const duration = 5000;
+  const startTime = performance.now();
+
+  function tick(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    ctx.clearRect(0, 0, W, H);
+
+    const margin = 30;
+    const nodeW = 160;
+    const nodeH = 80;
+
+    // Phase thresholds
+    const phase1End = 0.35; // Prefill
+    const phase2End = 0.65; // Transfer
+    // phase3: 0.65-1.0: Decode
+
+    // Update step indicators
+    const ts1 = document.getElementById('ts1');
+    const ts2 = document.getElementById('ts2');
+    const ts3 = document.getElementById('ts3');
+    if (progress < phase1End) {
+      ts1.className = 'transfer-step active';
+    } else if (progress < phase2End) {
+      ts1.className = 'transfer-step done';
+      ts2.className = 'transfer-step active';
+    } else {
+      ts1.className = 'transfer-step done';
+      ts2.className = 'transfer-step done';
+      ts3.className = 'transfer-step active';
+    }
+
+    // ---- Prefill Node ----
+    const pnX = margin;
+    const pnY = H / 2 - nodeH / 2;
+    roundRect(ctx, pnX, pnY, nodeW, nodeH, 10);
+    ctx.fillStyle = progress < phase1End ? 'rgba(108,99,255,.2)' : 'rgba(108,99,255,.08)';
+    ctx.fill();
+    ctx.strokeStyle = progress < phase1End ? '#6c63ff' : 'rgba(108,99,255,.3)';
+    ctx.lineWidth = progress < phase1End ? 2 : 1;
+    ctx.stroke();
+    ctx.fillStyle = '#6c63ff';
+    ctx.font = 'bold 13px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Prefill Node', pnX + nodeW / 2, pnY + 24);
+    ctx.fillStyle = '#cdd6f4';
+    ctx.font = '11px system-ui';
+    ctx.fillText('Process prompt', pnX + nodeW / 2, pnY + 44);
+
+    // Prefill progress bar
+    if (progress < phase1End) {
+      const prefillProg = progress / phase1End;
+      const barW = nodeW - 30;
+      const barX = pnX + 15;
+      const barY = pnY + 55;
+      roundRect(ctx, barX, barY, barW, 10, 4);
+      ctx.fillStyle = 'rgba(0,0,0,.3)';
+      ctx.fill();
+      roundRect(ctx, barX, barY, barW * prefillProg, 10, 4);
+      ctx.fillStyle = '#6c63ff';
+      ctx.fill();
+    }
+
+    // ---- KV Cache blocks near prefill node ----
+    const kvBlockSize = 18;
+    const kvCount = 6;
+    const kvStartX = pnX + nodeW + 20;
+    const kvY = H / 2 - kvBlockSize / 2;
+
+    if (progress >= phase1End * 0.6) {
+      const kvAlpha = Math.min((progress - phase1End * 0.6) / (phase1End * 0.4), 1);
+      ctx.globalAlpha = kvAlpha;
+      ctx.fillStyle = '#6c7086';
+      ctx.font = '600 10px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('KV Cache', pnX + nodeW + 20 + kvBlockSize * 1.5, pnY - 4);
+      ctx.globalAlpha = 1;
+    }
+
+    // ---- Decode Node ----
+    const dnX = W - margin - nodeW;
+    const dnY = H / 2 - nodeH / 2;
+    roundRect(ctx, dnX, dnY, nodeW, nodeH, 10);
+    ctx.fillStyle = progress >= phase2End ? 'rgba(0,201,167,.2)' : 'rgba(0,201,167,.08)';
+    ctx.fill();
+    ctx.strokeStyle = progress >= phase2End ? '#00c9a7' : 'rgba(0,201,167,.3)';
+    ctx.lineWidth = progress >= phase2End ? 2 : 1;
+    ctx.stroke();
+    ctx.fillStyle = '#00c9a7';
+    ctx.font = 'bold 13px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Decode Node', dnX + nodeW / 2, dnY + 24);
+    ctx.fillStyle = '#cdd6f4';
+    ctx.font = '11px system-ui';
+    ctx.fillText('Generate tokens', dnX + nodeW / 2, dnY + 44);
+
+    // Decode progress bar
+    if (progress >= phase2End) {
+      const decodeProg = (progress - phase2End) / (1 - phase2End);
+      const barW = nodeW - 30;
+      const barX = dnX + 15;
+      const barY = dnY + 55;
+      roundRect(ctx, barX, barY, barW, 10, 4);
+      ctx.fillStyle = 'rgba(0,0,0,.3)';
+      ctx.fill();
+      roundRect(ctx, barX, barY, barW * decodeProg, 10, 4);
+      ctx.fillStyle = '#00c9a7';
+      ctx.fill();
+
+      // Generated tokens
+      const tokCount = Math.floor(decodeProg * 8);
+      if (tokCount > 0) {
+        ctx.fillStyle = '#00c9a7';
+        ctx.font = '600 10px system-ui';
+        ctx.textAlign = 'center';
+        const tokens = ['The', ' answer', ' to', ' your', ' question', ' is', ' forty', '-two'];
+        ctx.fillText(tokens.slice(0, tokCount).join(''), dnX + nodeW / 2, dnY + nodeH + 20);
+      }
+    }
+
+    // ---- Transfer animation ----
+    const transferZoneX1 = pnX + nodeW + 10;
+    const transferZoneX2 = dnX - 10;
+    const transferW = transferZoneX2 - transferZoneX1;
+
+    // Connection line
+    ctx.strokeStyle = 'rgba(255,158,100,.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(transferZoneX1, H / 2);
+    ctx.lineTo(transferZoneX2, H / 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // KV Cache blocks transfer
+    if (progress >= phase1End) {
+      const transferProg = Math.min((progress - phase1End) / (phase2End - phase1End), 1);
+
+      for (let i = 0; i < kvCount; i++) {
+        const delay = i * 0.12;
+        const blockProg = Math.max(0, Math.min((transferProg - delay) / (1 - delay * kvCount / (kvCount - 1)), 1));
+        const ep = easeOutCubic(blockProg);
+
+        const bx = transferZoneX1 + ep * transferW;
+        const by = H / 2 - kvBlockSize / 2 + Math.sin(ep * Math.PI) * -20;
+
+        ctx.globalAlpha = blockProg > 0 ? 0.9 : 0;
+        roundRect(ctx, bx, by, kvBlockSize, kvBlockSize, 3);
+        ctx.fillStyle = '#ff9e64';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,158,100,.6)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Network label
+      if (transferProg > 0.1 && transferProg < 1) {
+        ctx.fillStyle = '#ff9e64';
+        ctx.font = '600 10px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText('RDMA Transfer ~5ms', (transferZoneX1 + transferZoneX2) / 2, H / 2 + kvBlockSize + 14);
+      }
+    } else if (progress >= phase1End * 0.6) {
+      // KV cache blocks building
+      const buildProg = (progress - phase1End * 0.6) / (phase1End * 0.4);
+      const builtBlocks = Math.floor(buildProg * kvCount);
+      for (let i = 0; i < builtBlocks; i++) {
+        const bx = transferZoneX1 + i * (kvBlockSize + 4);
+        roundRect(ctx, bx, kvY, kvBlockSize, kvBlockSize, 3);
+        ctx.fillStyle = '#ff9e64';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,158,100,.6)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    if (progress < 1) {
+      transferAnimId = requestAnimationFrame(tick);
+    } else {
+      ts3.className = 'transfer-step done';
+      btn.disabled = false;
+      btn.textContent = 'Replay';
+    }
+  }
+
+  transferAnimId = requestAnimationFrame(tick);
+}
+
+// ==================== Section 5: SLO Impact ====================
+function playSLO() {
+  const btn = document.getElementById('btnSLO');
+  btn.disabled = true;
+  btn.textContent = 'Playing...';
+
+  // Reset
+  document.getElementById('ttftCoupledFill').style.width = '0';
+  document.getElementById('ttftSepFill').style.width = '0';
+  document.getElementById('tbtCoupledFill').style.width = '0';
+  document.getElementById('tbtSepFill').style.width = '0';
+  document.getElementById('ttftCoupledRange').style.width = '0';
+  document.getElementById('tbtCoupledRange').style.width = '0';
+
+  setTimeout(() => {
+    // TTFT: max 500ms scale
+    // Coupled: 50-500ms (10%-100%), show bar to median ~275ms (55%), range extends to 100%
+    document.getElementById('ttftCoupledFill').style.width = '55%';
+    document.getElementById('ttftCoupledRange').style.width = '45%'; // extends from 55% to 100%
+    document.getElementById('ttftCoupledVal').textContent = '50–500ms';
+
+    // Separated: ~80ms consistent (16%)
+    document.getElementById('ttftSepFill').style.width = '16%';
+    document.getElementById('ttftSepVal').textContent = '~80ms';
+
+    // TBT: max 100ms scale
+    // Coupled: 20-100ms (20%-100%), median ~60ms (60%)
+    document.getElementById('tbtCoupledFill').style.width = '60%';
+    document.getElementById('tbtCoupledRange').style.width = '40%';
+    document.getElementById('tbtCoupledVal').textContent = '20–100ms';
+
+    // Separated: ~25ms (25%)
+    document.getElementById('tbtSepFill').style.width = '25%';
+    document.getElementById('tbtSepVal').textContent = '~25ms';
+
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = 'Replay';
+    }, 1500);
+  }, 100);
+}
+
+// Auto-trigger SLO on scroll
+const sloObserver = new IntersectionObserver(entries => {
+  if (entries[0].isIntersecting) {
+    playSLO();
+    sloObserver.disconnect();
+  }
+}, { threshold: 0.3 });
+sloObserver.observe(document.getElementById('ttftCoupledTrack'));
+</script>
+
+</body>
+</html>
