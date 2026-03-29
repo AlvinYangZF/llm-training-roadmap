@@ -271,6 +271,51 @@
       </div>
     </div>
 
+    <!-- ==================== Section 6: Attention Pattern Prediction Game ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-red">Game</span> Attention Pattern Prediction</h2>
+      <p>Given a highlighted <strong>Query</strong> word, predict which word the query attends to most strongly. Click the word you think has the highest attention weight.</p>
+
+      <div class="game-score" id="attnScore">
+        <div class="game-score-item"><span class="score-val" id="attnRound">1</span><span class="score-label">Round</span></div>
+        <div class="game-score-item"><span class="score-val" id="attnPts">0</span><span class="score-label">Score</span></div>
+      </div>
+
+      <div class="game-options" id="attnWords" style="justify-content:center;gap:10px;flex-wrap:wrap;"></div>
+
+      <div class="game-feedback" id="attnFeedback"></div>
+
+      <div style="text-align:center;margin-top:16px;">
+        <button class="btn btn-accent" id="attnNextBtn" onclick="attnNext()" style="display:none;">Next Round &rarr;</button>
+        <button class="btn btn-surface" id="attnRestart" onclick="attnRestart()" style="display:none;">Play Again</button>
+      </div>
+    </div>
+
+    <!-- ==================== Section 7: PE Dimension Explorer ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-green">Explorer</span> PE Dimension Explorer</h2>
+      <p>Adjust the model dimension and maximum position to see how the sinusoidal positional encoding pattern changes.</p>
+
+      <div class="pe-canvas-wrap">
+        <canvas class="pe-canvas" id="peCanvasExplorer" style="height:280px;"></canvas>
+        <div class="pe-axis-label" id="peExplorerAxisLabel">X: Position (0&ndash;49) &nbsp;&nbsp; | &nbsp;&nbsp; Y: Dimension (0&ndash;31)</div>
+        <div class="pe-legend">
+          <span>-1.0</span>
+          <div class="pe-legend-bar"></div>
+          <span>+1.0</span>
+        </div>
+      </div>
+
+      <div class="slider-group">
+        <label>d_model: <span class="slider-val" id="peSliderDModelVal">32</span></label>
+        <input type="range" id="peSliderDModel" min="0" max="4" value="0" step="1">
+      </div>
+      <div class="slider-group">
+        <label>max_position: <span class="slider-val" id="peSliderPosVal">50</span></label>
+        <input type="range" id="peSliderPos" min="0" max="3" value="1" step="1">
+      </div>
+    </div>
+
   </div>
 
   <footer><p>LLM Algorithm Visualization Series</p></footer>
@@ -419,13 +464,14 @@
 
     // ==================== Section 5: Positional Encoding Heatmap ==================== //
 
-    function drawPEHeatmap() {
-      const canvas = document.getElementById('peCanvas');
+    function drawPEHeatmap(canvasId, paramDModel, paramMaxPos) {
+      canvasId = canvasId || 'peCanvas';
+      const canvas = document.getElementById(canvasId);
       const { ctx, W, H } = setupCanvas(canvas);
 
-      const maxPos = 50;
-      const maxDim = 32;
-      const d_model = 64;
+      const d_model = paramDModel || 64;
+      const maxPos = paramMaxPos || 50;
+      const maxDim = Math.min(d_model, 32);
 
       const padLeft = 40;
       const padTop = 10;
@@ -498,6 +544,126 @@
     // Redraw on resize
     window.addEventListener('resize', function() {
       drawPEHeatmap();
+      drawPEExplorer();
+    });
+
+    // ==================== Section 6: Attention Pattern Prediction Game ==================== //
+
+    const ATTN_ROUNDS = [
+      { words: ['The', 'cat', 'sat', 'on', 'the', 'mat'], queryIdx: 2,
+        weights: [0.08, 0.35, 0.12, 0.15, 0.05, 0.25], bestIdx: 1,
+        explain: '"sat" attends most to "cat" \u2014 the subject performing the action' },
+      { words: ['She', 'gave', 'him', 'the', 'red', 'book'], queryIdx: 1,
+        weights: [0.30, 0.10, 0.25, 0.05, 0.05, 0.25], bestIdx: 0,
+        explain: '"gave" attends to "She" \u2014 who is performing the giving' },
+      { words: ['The', 'dog', 'chased', 'the', 'small', 'cat'], queryIdx: 5,
+        weights: [0.05, 0.08, 0.10, 0.07, 0.45, 0.25], bestIdx: 4,
+        explain: '"cat" attends most to "small" \u2014 its direct modifier' },
+      { words: ['I', 'think', 'therefore', 'I', 'am'], queryIdx: 4,
+        weights: [0.15, 0.30, 0.20, 0.25, 0.10], bestIdx: 1,
+        explain: '"am" attends to "think" \u2014 the main verb establishing the reasoning' },
+      { words: ['Paris', 'is', 'the', 'capital', 'of', 'France'], queryIdx: 3,
+        weights: [0.25, 0.05, 0.05, 0.10, 0.15, 0.40], bestIdx: 5,
+        explain: '"capital" attends to "France" \u2014 the entity it describes' },
+    ];
+
+    let attnRoundIdx = 0;
+    let attnPoints = 0;
+    let attnAnswered = false;
+
+    function attnRenderRound() {
+      const round = ATTN_ROUNDS[attnRoundIdx];
+      const container = document.getElementById('attnWords');
+      document.getElementById('attnRound').textContent = (attnRoundIdx + 1) + ' / ' + ATTN_ROUNDS.length;
+      document.getElementById('attnPts').textContent = attnPoints;
+      document.getElementById('attnFeedback').textContent = '';
+      document.getElementById('attnFeedback').className = 'game-feedback';
+      document.getElementById('attnNextBtn').style.display = 'none';
+      document.getElementById('attnRestart').style.display = 'none';
+      attnAnswered = false;
+
+      let html = '';
+      round.words.forEach(function(word, i) {
+        const isQuery = i === round.queryIdx;
+        const queryStyle = isQuery ? 'border-color:#bb9af7;box-shadow:0 0 10px rgba(187,154,247,0.4);' : '';
+        html += '<div class="game-option" data-idx="' + i + '" onclick="attnGuess(' + i + ')" style="position:relative;min-width:60px;text-align:center;' + queryStyle + '">';
+        if (isQuery) html += '<div style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:0.65rem;color:#bb9af7;font-weight:700;">QUERY</div>';
+        html += word;
+        html += '<div class="attn-bar" id="attnBar' + i + '" style="height:4px;margin-top:8px;border-radius:2px;background:transparent;transition:all 0.4s;"></div>';
+        html += '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    function attnGuess(idx) {
+      if (attnAnswered) return;
+      attnAnswered = true;
+      const round = ATTN_ROUNDS[attnRoundIdx];
+      const correct = idx === round.bestIdx;
+      if (correct) attnPoints++;
+      document.getElementById('attnPts').textContent = attnPoints;
+
+      // Reveal attention weights as bars
+      round.words.forEach(function(word, i) {
+        const bar = document.getElementById('attnBar' + i);
+        const w = round.weights[i];
+        const green = Math.round(w * 255);
+        bar.style.height = Math.max(4, w * 40) + 'px';
+        bar.style.background = 'rgba(0,' + Math.round(150 + w * 105) + ',0,' + Math.max(0.15, w) + ')';
+
+        const opt = bar.parentElement;
+        if (i === round.bestIdx) opt.classList.add('correct-answer');
+        if (i === idx && !correct) opt.classList.add('wrong-answer');
+        if (i !== idx) opt.classList.add('disabled');
+      });
+
+      const fb = document.getElementById('attnFeedback');
+      fb.textContent = (correct ? 'Correct! ' : 'Not quite. ') + round.explain;
+      fb.className = 'game-feedback ' + (correct ? 'correct' : 'wrong');
+
+      if (attnRoundIdx < ATTN_ROUNDS.length - 1) {
+        document.getElementById('attnNextBtn').style.display = 'inline-block';
+      } else {
+        fb.textContent += ' | Final score: ' + attnPoints + '/' + ATTN_ROUNDS.length;
+        document.getElementById('attnRestart').style.display = 'inline-block';
+      }
+    }
+
+    function attnNext() {
+      attnRoundIdx++;
+      attnRenderRound();
+    }
+
+    function attnRestart() {
+      attnRoundIdx = 0;
+      attnPoints = 0;
+      attnRenderRound();
+    }
+
+    attnRenderRound();
+
+    // ==================== Section 7: PE Dimension Explorer ==================== //
+
+    const PE_DMODEL_VALUES = [32, 64, 128, 256, 512];
+    const PE_POS_VALUES = [25, 50, 100, 200];
+
+    function drawPEExplorer() {
+      const dIdx = parseInt(document.getElementById('peSliderDModel').value);
+      const pIdx = parseInt(document.getElementById('peSliderPos').value);
+      const dm = PE_DMODEL_VALUES[dIdx];
+      const mp = PE_POS_VALUES[pIdx];
+      document.getElementById('peSliderDModelVal').textContent = dm;
+      document.getElementById('peSliderPosVal').textContent = mp;
+      var maxDimLabel = Math.min(dm, 32) - 1;
+      document.getElementById('peExplorerAxisLabel').innerHTML = 'X: Position (0&ndash;' + (mp - 1) + ') &nbsp;&nbsp; | &nbsp;&nbsp; Y: Dimension (0&ndash;' + maxDimLabel + ')';
+      drawPEHeatmap('peCanvasExplorer', dm, mp);
+    }
+
+    document.getElementById('peSliderDModel').addEventListener('input', drawPEExplorer);
+    document.getElementById('peSliderPos').addEventListener('input', drawPEExplorer);
+
+    window.addEventListener('load', function() {
+      drawPEExplorer();
     });
   </script>
 </body>

@@ -233,6 +233,94 @@
       </div>
     </div>
 
+    <!-- ==================== Section 6: Memory Hierarchy Quiz ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-green">Game</span> Memory Hierarchy Quiz</h2>
+      <p>Test your understanding of GPU memory hierarchy and FlashAttention concepts. Answer 5 multiple-choice questions.</p>
+
+      <div class="game-score" id="memQuizScore">
+        <div class="game-score-item">
+          <div class="score-val" id="memQuizCurrent">1</div>
+          <div class="score-label">Question</div>
+        </div>
+        <div class="game-score-item">
+          <div class="score-val" id="memQuizCorrect">0</div>
+          <div class="score-label">Correct</div>
+        </div>
+        <div class="game-score-item">
+          <div class="score-val" id="memQuizTotal">5</div>
+          <div class="score-label">Total</div>
+        </div>
+      </div>
+
+      <div class="game-scenario" id="memQuizQuestion">
+        <div class="scenario-label">Question 1 of 5</div>
+        <div class="scenario-value" id="memQuizQText"></div>
+      </div>
+
+      <div class="game-options" id="memQuizOptions" style="display:grid; grid-template-columns:1fr 1fr; max-width:500px; margin:16px auto;"></div>
+
+      <div class="game-feedback" id="memQuizFeedback"></div>
+
+      <div class="anim-controls">
+        <button class="btn btn-accent" id="memQuizNextBtn" style="display:none;" onclick="memQuizNext()">Next Question</button>
+        <button class="btn btn-surface" id="memQuizResetBtn" style="display:none;" onclick="memQuizReset()">Play Again</button>
+      </div>
+    </div>
+
+    <!-- ==================== Section 7: IO Cost Comparison Game ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-orange">Game</span> IO Cost Comparison</h2>
+      <p>Compare Standard vs Flash attention IO costs by processing tiles. Click each tile in both modes to see how IO adds up.</p>
+
+      <div class="game-score" id="ioCostScore">
+        <div class="game-score-item">
+          <div class="score-val" id="ioStdCounter" style="color:var(--accent3);">0</div>
+          <div class="score-label">Standard IO</div>
+        </div>
+        <div class="game-score-item">
+          <div class="score-val" id="ioFlashCounter" style="color:var(--accent2);">0</div>
+          <div class="score-label">Flash IO</div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin:20px 0;">
+        <!-- Standard Mode -->
+        <div style="text-align:center;">
+          <h3 style="color:var(--accent3); margin-top:0;">Standard Mode</h3>
+          <p style="font-size:0.82rem; color:var(--text-dim); margin-bottom:12px;">Each tile: 6 IO ops (read Q, K, write S, read S, read V, write O)</p>
+          <div id="ioStdGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; max-width:200px; margin:0 auto;"></div>
+          <div class="game-feedback" id="ioStdStatus" style="font-size:0.85rem;"></div>
+        </div>
+        <!-- Flash Mode -->
+        <div style="text-align:center;">
+          <h3 style="color:var(--accent2); margin-top:0;">Flash Mode</h3>
+          <p style="font-size:0.82rem; color:var(--text-dim); margin-bottom:12px;">Each tile: 3 IO ops (read Q,K,V; compute in SRAM; write O)</p>
+          <div id="ioFlashGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; max-width:200px; margin:0 auto;"></div>
+          <div class="game-feedback" id="ioFlashStatus" style="font-size:0.85rem;"></div>
+        </div>
+      </div>
+
+      <div class="game-feedback" id="ioCompareResult" style="font-size:1.1rem;"></div>
+
+      <div class="game-bar-compare" id="ioBarCompare" style="display:none;">
+        <div class="game-bar">
+          <div class="bar-fill" id="ioBarStd" style="width:60px; height:0; background:linear-gradient(180deg, var(--accent3), #f43f5e);"></div>
+          <div class="bar-label">Standard</div>
+          <div class="bar-value" id="ioBarStdVal" style="color:var(--accent3);">0</div>
+        </div>
+        <div class="game-bar">
+          <div class="bar-fill" id="ioBarFlash" style="width:60px; height:0; background:linear-gradient(180deg, var(--accent2), #14b8a6);"></div>
+          <div class="bar-label">Flash</div>
+          <div class="bar-value" id="ioBarFlashVal" style="color:var(--accent2);">0</div>
+        </div>
+      </div>
+
+      <div class="anim-controls">
+        <button class="btn btn-surface" onclick="ioGameReset()">Reset</button>
+      </div>
+    </div>
+
   </div>
 
   <footer><p>LLM Algorithm Visualization Series</p></footer>
@@ -240,6 +328,202 @@
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
   <script>
+    // ==================== Memory Hierarchy Quiz ==================== //
+    const MEM_QUIZ = [
+      { q: 'How much on-chip SRAM does an A100 GPU have?',
+        options: ['192 KB', '20 MB', '512 MB', '2 GB'], answer: 1,
+        explain: 'A100 has ~20 MB of shared memory (SRAM) across all SMs.' },
+      { q: 'What is the approximate HBM bandwidth of an A100?',
+        options: ['100 GB/s', '500 GB/s', '1.5 TB/s', '10 TB/s'], answer: 2,
+        explain: 'A100 HBM2e provides ~1.5-2.0 TB/s bandwidth.' },
+      { q: 'What is the SRAM-to-HBM bandwidth ratio?',
+        options: ['2x', '5x', '13x', '100x'], answer: 2,
+        explain: 'SRAM (19 TB/s) vs HBM (1.5 TB/s) = ~13x faster.' },
+      { q: 'What bottleneck does FlashAttention primarily address?',
+        options: ['Compute (FLOPs)', 'Memory bandwidth (IO)', 'Network latency', 'CPU overhead'], answer: 1,
+        explain: 'Standard attention is IO-bound, not compute-bound. FlashAttention reduces HBM reads/writes.' },
+      { q: 'FlashAttention achieves speedup by never materializing which matrix in HBM?',
+        options: ['Q matrix', 'K matrix', 'N x N attention matrix', 'Output matrix'], answer: 2,
+        explain: 'The N x N attention score matrix S=QK^T is computed tile-by-tile in SRAM, never stored in HBM.' },
+    ];
+
+    let memQuizIdx = 0;
+    let memQuizScore = 0;
+    let memQuizAnswered = false;
+
+    function memQuizRender() {
+      const q = MEM_QUIZ[memQuizIdx];
+      document.getElementById('memQuizCurrent').textContent = memQuizIdx + 1;
+      document.getElementById('memQuizCorrect').textContent = memQuizScore;
+      document.getElementById('memQuizQuestion').querySelector('.scenario-label').textContent = 'Question ' + (memQuizIdx + 1) + ' of 5';
+      document.getElementById('memQuizQText').textContent = q.q;
+      document.getElementById('memQuizFeedback').textContent = '';
+      document.getElementById('memQuizFeedback').className = 'game-feedback';
+      document.getElementById('memQuizNextBtn').style.display = 'none';
+      document.getElementById('memQuizResetBtn').style.display = 'none';
+      memQuizAnswered = false;
+
+      const optionsEl = document.getElementById('memQuizOptions');
+      optionsEl.innerHTML = '';
+      q.options.forEach(function(opt, i) {
+        var btn = document.createElement('button');
+        btn.className = 'game-option';
+        btn.textContent = opt;
+        btn.onclick = function() { memQuizAnswer(i); };
+        optionsEl.appendChild(btn);
+      });
+    }
+
+    function memQuizAnswer(idx) {
+      if (memQuizAnswered) return;
+      memQuizAnswered = true;
+      var q = MEM_QUIZ[memQuizIdx];
+      var btns = document.getElementById('memQuizOptions').querySelectorAll('.game-option');
+      btns.forEach(function(btn, i) {
+        btn.classList.add('disabled');
+        if (i === q.answer) btn.classList.add('correct-answer');
+        if (i === idx && idx !== q.answer) btn.classList.add('wrong-answer');
+      });
+
+      var fb = document.getElementById('memQuizFeedback');
+      if (idx === q.answer) {
+        memQuizScore++;
+        document.getElementById('memQuizCorrect').textContent = memQuizScore;
+        fb.textContent = 'Correct! ' + q.explain;
+        fb.className = 'game-feedback correct';
+      } else {
+        fb.textContent = 'Wrong. ' + q.explain;
+        fb.className = 'game-feedback wrong';
+      }
+
+      if (memQuizIdx < MEM_QUIZ.length - 1) {
+        document.getElementById('memQuizNextBtn').style.display = 'inline-block';
+      } else {
+        // Final
+        setTimeout(function() {
+          var msg = memQuizScore === 5 ? 'Perfect score! You are a GPU memory expert!' :
+                    memQuizScore >= 3 ? 'Great job! You have a solid understanding.' :
+                    'Keep studying — GPU memory hierarchy is tricky!';
+          fb.textContent = 'Final Score: ' + memQuizScore + '/5 — ' + msg;
+          fb.className = 'game-feedback ' + (memQuizScore >= 3 ? 'correct' : 'wrong');
+          document.getElementById('memQuizResetBtn').style.display = 'inline-block';
+        }, 600);
+      }
+    }
+
+    function memQuizNext() {
+      memQuizIdx++;
+      memQuizRender();
+    }
+
+    function memQuizReset() {
+      memQuizIdx = 0;
+      memQuizScore = 0;
+      memQuizRender();
+    }
+
+    // Initialize quiz on load
+    document.addEventListener('DOMContentLoaded', function() { memQuizRender(); });
+
+    // ==================== IO Cost Comparison Game ==================== //
+    var ioStdDone = [false, false, false, false];
+    var ioFlashDone = [false, false, false, false];
+    var ioStdCount = 0;
+    var ioFlashCount = 0;
+    var tileLabels = ['T(0,0)', 'T(0,1)', 'T(1,0)', 'T(1,1)'];
+
+    function ioGameBuildGrids() {
+      var stdGrid = document.getElementById('ioStdGrid');
+      var flashGrid = document.getElementById('ioFlashGrid');
+      stdGrid.innerHTML = '';
+      flashGrid.innerHTML = '';
+
+      for (var i = 0; i < 4; i++) {
+        (function(idx) {
+          var stdTile = document.createElement('div');
+          stdTile.className = 'game-option';
+          stdTile.id = 'ioStdTile' + idx;
+          stdTile.style.cssText = 'padding:20px 10px; text-align:center; cursor:pointer; border-color:var(--accent3);';
+          stdTile.innerHTML = '<div style="font-size:0.82rem;color:var(--text-dim);">' + tileLabels[idx] + '</div><div style="font-size:0.72rem;margin-top:4px;">Click to process</div>';
+          stdTile.onclick = function() { ioStdClick(idx); };
+          stdGrid.appendChild(stdTile);
+
+          var flashTile = document.createElement('div');
+          flashTile.className = 'game-option';
+          flashTile.id = 'ioFlashTile' + idx;
+          flashTile.style.cssText = 'padding:20px 10px; text-align:center; cursor:pointer; border-color:var(--accent2);';
+          flashTile.innerHTML = '<div style="font-size:0.82rem;color:var(--text-dim);">' + tileLabels[idx] + '</div><div style="font-size:0.72rem;margin-top:4px;">Click to process</div>';
+          flashTile.onclick = function() { ioFlashClick(idx); };
+          flashGrid.appendChild(flashTile);
+        })(i);
+      }
+    }
+
+    function ioStdClick(idx) {
+      if (ioStdDone[idx]) return;
+      ioStdDone[idx] = true;
+      ioStdCount += 6;
+      document.getElementById('ioStdCounter').textContent = ioStdCount;
+      var tile = document.getElementById('ioStdTile' + idx);
+      tile.classList.add('correct-answer', 'disabled');
+      tile.style.borderColor = 'var(--accent2)';
+      tile.innerHTML = '<div style="font-size:0.82rem;font-weight:700;color:var(--accent2);">' + tileLabels[idx] + '</div><div style="font-size:0.72rem;color:var(--accent2);margin-top:4px;">+6 IO</div>';
+      document.getElementById('ioStdStatus').textContent = ioStdDone.filter(Boolean).length + '/4 tiles processed';
+      ioCheckComplete();
+    }
+
+    function ioFlashClick(idx) {
+      if (ioFlashDone[idx]) return;
+      ioFlashDone[idx] = true;
+      ioFlashCount += 3;
+      document.getElementById('ioFlashCounter').textContent = ioFlashCount;
+      var tile = document.getElementById('ioFlashTile' + idx);
+      tile.classList.add('correct-answer', 'disabled');
+      tile.style.borderColor = 'var(--accent2)';
+      tile.innerHTML = '<div style="font-size:0.82rem;font-weight:700;color:var(--accent2);">' + tileLabels[idx] + '</div><div style="font-size:0.72rem;color:var(--accent2);margin-top:4px;">+3 IO</div>';
+      document.getElementById('ioFlashStatus').textContent = ioFlashDone.filter(Boolean).length + '/4 tiles processed';
+      ioCheckComplete();
+    }
+
+    function ioCheckComplete() {
+      var stdAll = ioStdDone.every(Boolean);
+      var flashAll = ioFlashDone.every(Boolean);
+      if (stdAll && flashAll) {
+        var result = document.getElementById('ioCompareResult');
+        result.textContent = 'Standard: ' + ioStdCount + ' units vs Flash: ' + ioFlashCount + ' units — 2x reduction!';
+        result.className = 'game-feedback correct';
+
+        // Show bar comparison
+        var barWrap = document.getElementById('ioBarCompare');
+        barWrap.style.display = 'flex';
+        document.getElementById('ioBarStdVal').textContent = ioStdCount;
+        document.getElementById('ioBarFlashVal').textContent = ioFlashCount;
+        setTimeout(function() {
+          document.getElementById('ioBarStd').style.height = '120px';
+          document.getElementById('ioBarFlash').style.height = '60px';
+        }, 100);
+      }
+    }
+
+    function ioGameReset() {
+      ioStdDone = [false, false, false, false];
+      ioFlashDone = [false, false, false, false];
+      ioStdCount = 0;
+      ioFlashCount = 0;
+      document.getElementById('ioStdCounter').textContent = '0';
+      document.getElementById('ioFlashCounter').textContent = '0';
+      document.getElementById('ioStdStatus').textContent = '';
+      document.getElementById('ioFlashStatus').textContent = '';
+      document.getElementById('ioCompareResult').textContent = '';
+      document.getElementById('ioCompareResult').className = 'game-feedback';
+      document.getElementById('ioBarCompare').style.display = 'none';
+      document.getElementById('ioBarStd').style.height = '0';
+      document.getElementById('ioBarFlash').style.height = '0';
+      ioGameBuildGrids();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() { ioGameBuildGrids(); });
+
     // ==================== Tiling Animation ==================== //
 
     const GRID = 8;          // 8x8 attention matrix

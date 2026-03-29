@@ -153,6 +153,15 @@
       border-radius: 3px;
     }
 
+    @keyframes pulse-src {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(91,91,214,0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(91,91,214,0); }
+    }
+    @keyframes pulse-dst {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(225,29,72,0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(225,29,72,0); }
+    }
+
     @media (max-width: 700px) {
       .dual-grid { grid-template-columns: 1fr; }
       .dual-grid-item canvas { height: 300px; }
@@ -299,6 +308,86 @@
       <span class="k">Enwik8</span>: 12,288 tokens &nbsp;|&nbsp;
       <span class="v">Music</span>: ~65,000 tokens
     </div>
+  </div>
+
+  <!-- ==================== Game 1: Coverage Path Finder ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-red">Game</span> Coverage Path Finder</h2>
+    <p>Can you find a valid 2-hop path between distant tokens? Click an intermediate token so that source&rarr;intermediate is local OR strided, AND intermediate&rarr;destination is local OR strided.</p>
+
+    <div class="game-score" id="pathGameScore">
+      <div class="game-score-item"><div class="score-val" id="pathScore">0</div><div class="score-label">Score</div></div>
+      <div class="game-score-item"><div class="score-val" id="pathRound">0 / 5</div><div class="score-label">Round</div></div>
+      <div class="game-score-item"><div class="score-val" id="pathTimer">15</div><div class="score-label">Timer</div></div>
+    </div>
+
+    <div class="game-feedback" id="pathFeedback">Press Start to begin!</div>
+
+    <div id="pathTokenRow" style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap;margin:16px 0;"></div>
+
+    <div class="anim-controls">
+      <button class="btn btn-accent" id="pathStartBtn" onclick="startPathGame()">Start Game</button>
+    </div>
+  </div>
+
+  <!-- ==================== Game 2: Attention Budget ==================== -->
+  <div class="card">
+    <h2><span class="badge badge-orange">Game</span> Attention Budget Explorer</h2>
+    <p>Adjust the sequence length, local window, and stride to explore the tradeoff between attention connections and the sparse budget. Can you achieve full 2-hop coverage while staying under budget?</p>
+
+    <div class="slider-group">
+      <label>Sequence N:</label>
+      <select id="budgetN" style="padding:6px 12px;border-radius:8px;border:2px solid var(--border);font-weight:600;font-size:0.95rem;">
+        <option value="16">16</option>
+        <option value="64">64</option>
+        <option value="256">256</option>
+        <option value="1024">1024</option>
+      </select>
+      <span class="slider-val" id="budgetNDisplay">16</span>
+    </div>
+
+    <div class="game-scenario" id="budgetDisplay">
+      <div style="display:flex;justify-content:center;gap:32px;flex-wrap:wrap;">
+        <div><div class="scenario-label">Dense Budget (N&sup2;)</div><div class="scenario-value" id="budgetDense">256</div></div>
+        <div><div class="scenario-label">Sparse Budget (&approx;2N&radic;N)</div><div class="scenario-value" id="budgetSparse">128</div></div>
+      </div>
+    </div>
+
+    <div class="slider-group">
+      <label>Local Window:</label>
+      <input type="range" id="budgetLocalW" min="1" max="8" value="4">
+      <span class="slider-val" id="budgetLocalWVal">4</span>
+    </div>
+    <div class="slider-group">
+      <label>Stride:</label>
+      <input type="range" id="budgetStride" min="2" max="16" value="4">
+      <span class="slider-val" id="budgetStrideVal">4</span>
+    </div>
+
+    <div style="margin:16px 0;">
+      <div class="scenario-label" style="text-align:center;font-size:0.78rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Connections Used</div>
+      <div style="text-align:center;font-size:1.3rem;font-weight:700;" id="budgetUsedDisplay">0</div>
+    </div>
+
+    <div style="margin:12px 0;">
+      <div style="height:28px;background:#e2e8f0;border-radius:6px;overflow:hidden;position:relative;">
+        <div id="budgetMeterFill" style="height:100%;border-radius:6px;transition:width 0.4s,background 0.4s;width:0;display:flex;align-items:center;padding-left:10px;font-size:0.8rem;font-weight:700;color:#fff;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dim);margin-top:4px;">
+        <span>0</span>
+        <span id="budgetMeterMax">128 (sparse budget)</span>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin:16px 0;">
+      <canvas id="budgetMiniGrid" width="160" height="160" style="border:1px solid var(--border);border-radius:8px;background:#f8fafc;"></canvas>
+      <div class="dim-note" style="margin-top:6px;">8&times;8 scaled pattern preview</div>
+    </div>
+
+    <div class="anim-controls">
+      <button class="btn btn-accent" onclick="checkBudgetCoverage()">Check Full Coverage</button>
+    </div>
+    <div class="game-feedback" id="budgetFeedback"></div>
   </div>
 
 </div>
@@ -774,6 +863,9 @@ function init() {
   // Slider event
   document.getElementById('nSlider').addEventListener('input', updateComplexity);
 
+  // Init budget game
+  updateBudget();
+
   // Redraw on resize
   let resizeTimer;
   window.addEventListener('resize', () => {
@@ -790,7 +882,273 @@ function init() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', init);
+// ==================== Game 1: Coverage Path Finder ==================== //
+let pathGameState = { round: 0, score: 0, src: 0, dst: 0, timer: 15, intervalId: null, active: false };
+
+function startPathGame() {
+  pathGameState = { round: 0, score: 0, src: 0, dst: 0, timer: 15, intervalId: null, active: false };
+  document.getElementById('pathScore').textContent = '0';
+  document.getElementById('pathRound').textContent = '0 / 5';
+  document.getElementById('pathStartBtn').disabled = true;
+  nextPathRound();
+}
+
+function nextPathRound() {
+  pathGameState.round++;
+  if (pathGameState.round > 5) {
+    document.getElementById('pathFeedback').textContent = 'Game over! Final score: ' + pathGameState.score;
+    document.getElementById('pathFeedback').className = 'game-feedback';
+    document.getElementById('pathStartBtn').disabled = false;
+    document.getElementById('pathTimer').textContent = '-';
+    pathGameState.active = false;
+    return;
+  }
+  document.getElementById('pathRound').textContent = pathGameState.round + ' / 5';
+
+  // Pick source and destination with distance > 6
+  let src, dst;
+  do {
+    src = Math.floor(Math.random() * 10);
+    dst = src + 7 + Math.floor(Math.random() * (16 - src - 7));
+  } while (dst >= 16);
+  pathGameState.src = src;
+  pathGameState.dst = dst;
+  pathGameState.timer = 15;
+  pathGameState.active = true;
+
+  document.getElementById('pathTimer').textContent = '15';
+  document.getElementById('pathFeedback').textContent = 'Click an intermediate token to build a 2-hop path!';
+  document.getElementById('pathFeedback').className = 'game-feedback';
+
+  renderPathTokens();
+
+  // Start timer
+  if (pathGameState.intervalId) clearInterval(pathGameState.intervalId);
+  pathGameState.intervalId = setInterval(() => {
+    pathGameState.timer--;
+    document.getElementById('pathTimer').textContent = pathGameState.timer;
+    if (pathGameState.timer <= 0) {
+      clearInterval(pathGameState.intervalId);
+      pathGameState.active = false;
+      document.getElementById('pathFeedback').textContent = 'Time up! No points this round.';
+      document.getElementById('pathFeedback').className = 'game-feedback wrong';
+      disablePathTokens();
+      setTimeout(nextPathRound, 1500);
+    }
+  }, 1000);
+}
+
+function renderPathTokens() {
+  const row = document.getElementById('pathTokenRow');
+  row.innerHTML = '';
+  for (let i = 0; i < 16; i++) {
+    const el = document.createElement('div');
+    el.className = 'game-option';
+    el.style.cssText = 'border-radius:50%;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-size:0.75rem;min-width:36px;';
+    el.textContent = i;
+    if (i === pathGameState.src) {
+      el.style.background = 'rgba(91,91,214,0.2)';
+      el.style.borderColor = 'var(--accent)';
+      el.style.color = 'var(--accent)';
+      el.style.animation = 'pulse-src 1.2s infinite';
+      el.style.pointerEvents = 'none';
+    } else if (i === pathGameState.dst) {
+      el.style.background = 'rgba(225,29,72,0.15)';
+      el.style.borderColor = 'var(--accent3)';
+      el.style.color = 'var(--accent3)';
+      el.style.animation = 'pulse-dst 1.2s infinite';
+      el.style.pointerEvents = 'none';
+    } else {
+      el.onclick = () => selectPathIntermediate(i);
+    }
+    row.appendChild(el);
+  }
+}
+
+function disablePathTokens() {
+  const tokens = document.querySelectorAll('#pathTokenRow .game-option');
+  tokens.forEach(t => { t.classList.add('disabled'); });
+}
+
+function canReach(a, b) {
+  // Can a reach b via local or strided?
+  return isLocal(a, b) || isStrided(a, b);
+}
+
+function selectPathIntermediate(mid) {
+  if (!pathGameState.active) return;
+  clearInterval(pathGameState.intervalId);
+  pathGameState.active = false;
+
+  const src = pathGameState.src;
+  const dst = pathGameState.dst;
+  const hop1 = canReach(src, mid);
+  const hop2 = canReach(mid, dst);
+
+  const tokens = document.querySelectorAll('#pathTokenRow .game-option');
+  tokens.forEach(t => t.classList.add('disabled'));
+
+  if (hop1 && hop2) {
+    const elapsed = 15 - pathGameState.timer;
+    let pts = 1;
+    if (elapsed < 5) pts = 3;
+    else if (elapsed < 10) pts = 2;
+    pathGameState.score += pts;
+    document.getElementById('pathScore').textContent = pathGameState.score;
+    tokens[mid].classList.add('correct-answer');
+    document.getElementById('pathFeedback').textContent = 'Correct! +' + pts + ' points (' + elapsed + 's)';
+    document.getElementById('pathFeedback').className = 'game-feedback correct';
+  } else {
+    tokens[mid].classList.add('wrong-answer');
+    let reason = '';
+    if (!hop1) reason += src + ' cannot reach ' + mid + ' (not local or strided). ';
+    if (!hop2) reason += mid + ' cannot reach ' + dst + ' (not local or strided).';
+    document.getElementById('pathFeedback').textContent = 'Wrong! ' + reason;
+    document.getElementById('pathFeedback').className = 'game-feedback wrong';
+  }
+
+  setTimeout(nextPathRound, 2000);
+}
+
+// ==================== Game 2: Attention Budget Explorer ==================== //
+function updateBudget() {
+  const nVal = parseInt(document.getElementById('budgetN').value);
+  document.getElementById('budgetNDisplay').textContent = nVal;
+
+  const sqrtN = Math.round(Math.sqrt(nVal));
+  const localSlider = document.getElementById('budgetLocalW');
+  localSlider.max = Math.floor(nVal / 2);
+  const strideSlider = document.getElementById('budgetStride');
+  strideSlider.max = nVal;
+
+  const localW = parseInt(localSlider.value);
+  const stride = parseInt(strideSlider.value);
+
+  document.getElementById('budgetLocalWVal').textContent = localW;
+  document.getElementById('budgetStrideVal').textContent = stride;
+
+  const dense = nVal * nVal;
+  const sparse = Math.round(2 * nVal * Math.sqrt(nVal));
+  document.getElementById('budgetDense').textContent = dense.toLocaleString();
+  document.getElementById('budgetSparse').textContent = sparse.toLocaleString();
+  document.getElementById('budgetMeterMax').textContent = sparse.toLocaleString() + ' (sparse budget)';
+
+  const connectionsUsed = nVal * localW + nVal * Math.floor(nVal / stride);
+  document.getElementById('budgetUsedDisplay').textContent = connectionsUsed.toLocaleString();
+
+  const pct = Math.min((connectionsUsed / sparse) * 100, 100);
+  const meterFill = document.getElementById('budgetMeterFill');
+  meterFill.style.width = pct + '%';
+  meterFill.textContent = Math.round(pct) + '%';
+  if (connectionsUsed <= sparse) {
+    meterFill.style.background = 'linear-gradient(90deg, var(--accent2), #14b8a6)';
+  } else {
+    meterFill.style.background = 'linear-gradient(90deg, var(--accent3), #f43f5e)';
+  }
+
+  // Draw mini 8x8 grid
+  drawBudgetMiniGrid(nVal, localW, stride);
+}
+
+function drawBudgetMiniGrid(nVal, localW, stride) {
+  const canvas = document.getElementById('budgetMiniGrid');
+  const ctx = canvas.getContext('2d');
+  const size = 160;
+  canvas.width = size;
+  canvas.height = size;
+  const cellSize = size / 8;
+
+  ctx.clearRect(0, 0, size, size);
+
+  // Scale: map 8 cells to N tokens
+  const scale = nVal / 8;
+
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const r = Math.floor(row * scale);
+      const c = Math.floor(col * scale);
+      const isLoc = Math.abs(r - c) < localW;
+      const isStr = c % stride === 0 || (Math.floor(col * scale) % stride === 0);
+
+      let color = '#f1f5f9';
+      if (isLoc && isStr) color = 'rgba(13,148,136,0.5)';
+      else if (isLoc) color = 'rgba(13,148,136,0.35)';
+      else if (isStr) color = 'rgba(234,88,12,0.35)';
+
+      ctx.fillStyle = color;
+      ctx.fillRect(col * cellSize, row * cellSize, cellSize - 1, cellSize - 1);
+    }
+  }
+
+  // Grid lines
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 8; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * cellSize, 0);
+    ctx.lineTo(i * cellSize, size);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, i * cellSize);
+    ctx.lineTo(size, i * cellSize);
+    ctx.stroke();
+  }
+}
+
+function checkBudgetCoverage() {
+  const nVal = parseInt(document.getElementById('budgetN').value);
+  const localW = parseInt(document.getElementById('budgetLocalW').value);
+  const stride = parseInt(document.getElementById('budgetStride').value);
+
+  // BFS-like: check if all pairs reachable in 2 hops
+  // For each token, compute its neighbors (local or strided)
+  function neighbors(t) {
+    const nb = new Set();
+    for (let j = 0; j < nVal; j++) {
+      if (Math.abs(t - j) < localW || j % stride === 0) {
+        nb.add(j);
+      }
+    }
+    return nb;
+  }
+
+  // Check a sample of pairs for large N
+  let allCovered = true;
+  const sampleSize = nVal <= 64 ? nVal : 32;
+  const step = Math.max(1, Math.floor(nVal / sampleSize));
+
+  for (let src = 0; src < nVal && allCovered; src += step) {
+    const srcNeighbors = neighbors(src);
+    // Collect 2-hop reachable
+    const reachable = new Set(srcNeighbors);
+    for (const mid of srcNeighbors) {
+      const midNeighbors = neighbors(mid);
+      for (const dest of midNeighbors) {
+        reachable.add(dest);
+      }
+    }
+    for (let dst = 0; dst < nVal; dst += step) {
+      if (!reachable.has(dst)) {
+        allCovered = false;
+        break;
+      }
+    }
+  }
+
+  const fb = document.getElementById('budgetFeedback');
+  if (allCovered) {
+    fb.textContent = 'Full 2-hop coverage achieved! All sampled token pairs are reachable.';
+    fb.className = 'game-feedback correct';
+  } else {
+    fb.textContent = 'Incomplete coverage! Some token pairs cannot reach each other in 2 hops. Try adjusting window or stride.';
+    fb.className = 'game-feedback wrong';
+  }
+}
+
+// Budget event listeners
+document.getElementById('budgetN').addEventListener('change', updateBudget);
+document.getElementById('budgetLocalW').addEventListener('input', updateBudget);
+document.getElementById('budgetStride').addEventListener('input', updateBudget);
 </script>
 
 </body>
