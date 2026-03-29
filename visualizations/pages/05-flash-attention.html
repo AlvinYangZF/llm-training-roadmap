@@ -327,6 +327,7 @@
 
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
+  <script src="../shared/progress.js"></script>
   <script>
     // ==================== Memory Hierarchy Quiz ==================== //
     const MEM_QUIZ = [
@@ -406,6 +407,7 @@
                     'Keep studying — GPU memory hierarchy is tricky!';
           fb.textContent = 'Final Score: ' + memQuizScore + '/5 — ' + msg;
           fb.className = 'game-feedback ' + (memQuizScore >= 3 ? 'correct' : 'wrong');
+          markGameCompleted('05');
           document.getElementById('memQuizResetBtn').style.display = 'inline-block';
         }, 600);
       }

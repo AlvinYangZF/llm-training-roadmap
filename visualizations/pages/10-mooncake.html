@@ -292,6 +292,31 @@
     </div>
   </div>
 
+    <!-- ==================== Cache Tier Sorter Game ==================== -->
+    <div class="card">
+      <h2><span class="badge badge-red">Game</span> Cache Tier Sorter</h2>
+      <p>Mooncake uses a three-tier KV cache: <strong>GPU VRAM</strong> (hot, fast, small), <strong>CPU DRAM</strong> (warm, medium), and <strong>NVMe SSD</strong> (cold, large, slow). Assign each cache entry to the correct tier based on its access pattern.</p>
+
+      <div class="game-score" id="cacheGameScore">
+        <div class="game-score-item"><div class="score-val" id="cacheScore">0</div><div class="score-label">Score</div></div>
+        <div class="game-score-item"><div class="score-val" id="cacheRound">0 / 3</div><div class="score-label">Round</div></div>
+      </div>
+
+      <div id="cacheEntries" style="display:none;margin:16px 0;"></div>
+
+      <div class="anim-controls" id="cacheSubmitArea" style="display:none;">
+        <button class="btn btn-accent" onclick="checkCacheAssignments()" id="cacheCheckBtn">Check Assignments</button>
+      </div>
+
+      <div class="game-feedback" id="cacheFeedback">Press Start to begin!</div>
+
+      <div id="cacheExplanation" style="display:none;margin:16px 0;padding:16px;background:rgba(108,99,255,.06);border:1px solid rgba(108,99,255,.2);border-radius:var(--radius);font-size:0.88rem;line-height:1.6;"></div>
+
+      <div class="anim-controls">
+        <button class="btn btn-accent" onclick="startCacheGame()" id="cacheStartBtn">Start Game</button>
+      </div>
+    </div>
+
 </div><!-- .container -->
 
 <footer>
@@ -1196,6 +1221,152 @@ window.addEventListener('resize', () => {
     drawScheduling(-1, 0);
   }, 200);
 });
+
+// ==================== Cache Tier Sorter Game ====================
+const TIERS = ['GPU VRAM', 'CPU DRAM', 'NVMe SSD'];
+const TIER_COLORS = ['#6c63ff', '#00c9a7', '#ff9e64'];
+
+const allCacheEntries = [
+  // Round 1
+  [
+    { desc: 'Active generation, 50 accesses/sec, 2MB', answer: 0, explain: 'Extremely hot access pattern needs fastest tier (GPU VRAM).' },
+    { desc: 'Completed request, prefix reusable, last used 30s ago, 8MB', answer: 1, explain: 'Warm data with reuse potential belongs in CPU DRAM for quick promotion.' },
+    { desc: 'Historical KV, last used 10min ago, rarely accessed, 64MB', answer: 2, explain: 'Cold data with rare access goes to NVMe SSD for cost-effective storage.' },
+    { desc: 'Shared system prompt, 200 accesses/sec, 4MB', answer: 0, explain: 'Very high frequency shared prefix should stay in GPU VRAM.' },
+    { desc: 'Batch job KV, completed 2min ago, 32MB', answer: 1, explain: 'Recently completed but not active - CPU DRAM is the right middle ground.' },
+    { desc: 'Archived conversation, last used 1hr ago, 128MB', answer: 2, explain: 'Very old, large data is perfect for NVMe SSD cold storage.' }
+  ],
+  // Round 2
+  [
+    { desc: 'Streaming response in progress, 80 accesses/sec, 6MB', answer: 0, explain: 'Active streaming needs the lowest latency of GPU VRAM.' },
+    { desc: 'Popular few-shot template, accessed every 5s, 1MB', answer: 0, explain: 'Frequently reused small template benefits from GPU VRAM speed.' },
+    { desc: 'User session paused 45s ago, may resume, 16MB', answer: 1, explain: 'Paused but likely to resume - CPU DRAM keeps it ready for quick reload.' },
+    { desc: 'Nightly analytics prompt, last used 8hrs ago, 256MB', answer: 2, explain: 'Very stale and very large - NVMe SSD is the only sensible tier.' },
+    { desc: 'Prefill just completed, awaiting decode handoff, 12MB', answer: 0, explain: 'About to be consumed by decode - must be in GPU VRAM for transfer.' },
+    { desc: 'Cached RAG context, reused every 2min, 24MB', answer: 1, explain: 'Moderate reuse frequency and medium size fits CPU DRAM well.' }
+  ],
+  // Round 3
+  [
+    { desc: 'Multi-turn chat, user typing next message, last 10s, 8MB', answer: 0, explain: 'User is actively engaged - keep in GPU VRAM for instant response.' },
+    { desc: 'Common code completion prefix, 120 accesses/sec, 3MB', answer: 0, explain: 'Extremely hot shared prefix demands GPU VRAM speed.' },
+    { desc: 'Conversation from 5min ago, user browsing other tabs, 20MB', answer: 1, explain: 'User may return but is idle - CPU DRAM balances readiness and cost.' },
+    { desc: 'Weekly report template, last used 3 days ago, 48MB', answer: 2, explain: 'Very infrequent access pattern, large size - NVMe SSD.' },
+    { desc: 'A/B test variant KV, used 1 min ago, 10MB', answer: 1, explain: 'Recent but not actively streaming - CPU DRAM is appropriate.' },
+    { desc: 'Debug session logs, last accessed yesterday, 512MB', answer: 2, explain: 'Stale and very large - clearly NVMe SSD territory.' }
+  ]
+];
+
+let cacheState = { round: 0, score: 0, roundOrder: [] };
+
+function startCacheGame() {
+  cacheState = { round: 0, score: 0, roundOrder: [0, 1, 2] };
+  // Shuffle round order
+  for (let i = cacheState.roundOrder.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cacheState.roundOrder[i], cacheState.roundOrder[j]] = [cacheState.roundOrder[j], cacheState.roundOrder[i]];
+  }
+  document.getElementById('cacheScore').textContent = '0';
+  document.getElementById('cacheStartBtn').style.display = 'none';
+  document.getElementById('cacheExplanation').style.display = 'none';
+  nextCacheRound();
+}
+
+function nextCacheRound() {
+  cacheState.round++;
+  if (cacheState.round > 3) {
+    document.getElementById('cacheEntries').style.display = 'none';
+    document.getElementById('cacheSubmitArea').style.display = 'none';
+    document.getElementById('cacheExplanation').style.display = 'none';
+    document.getElementById('cacheFeedback').innerHTML = 'Final score: <strong>' + cacheState.score + ' / 18</strong>! ' +
+      (cacheState.score >= 16 ? 'Cache management expert!' : cacheState.score >= 10 ? 'Good understanding of tiered caching!' : 'Review the three-tier access patterns above!');
+    document.getElementById('cacheFeedback').className = 'game-feedback ' + (cacheState.score >= 16 ? 'correct' : '');
+    document.getElementById('cacheStartBtn').textContent = 'Play Again';
+    document.getElementById('cacheStartBtn').style.display = '';
+    if (typeof markGameCompleted === 'function') markGameCompleted('10');
+    return;
+  }
+
+  document.getElementById('cacheRound').textContent = cacheState.round + ' / 3';
+  document.getElementById('cacheFeedback').textContent = 'Assign each entry to a tier, then check your answers.';
+  document.getElementById('cacheFeedback').className = 'game-feedback';
+  document.getElementById('cacheExplanation').style.display = 'none';
+
+  const entries = allCacheEntries[cacheState.roundOrder[cacheState.round - 1]];
+  const container = document.getElementById('cacheEntries');
+  container.innerHTML = '';
+  container.style.display = '';
+
+  entries.forEach(function(entry, idx) {
+    const div = document.createElement('div');
+    div.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:10px;';
+    div.innerHTML =
+      '<div style="font-size:0.92rem;font-weight:600;margin-bottom:8px;color:var(--text);">' + entry.desc + '</div>' +
+      '<div class="game-options" style="justify-content:flex-start;margin:0;">' +
+        '<button class="btn btn-surface cache-tier-btn" data-entry="' + idx + '" data-tier="0" onclick="selectCacheTier(this)" style="font-size:0.82rem;padding:6px 14px;border:2px solid rgba(108,99,255,.3);color:#6c63ff;">GPU VRAM</button>' +
+        '<button class="btn btn-surface cache-tier-btn" data-entry="' + idx + '" data-tier="1" onclick="selectCacheTier(this)" style="font-size:0.82rem;padding:6px 14px;border:2px solid rgba(0,201,167,.3);color:#00c9a7;">CPU DRAM</button>' +
+        '<button class="btn btn-surface cache-tier-btn" data-entry="' + idx + '" data-tier="2" onclick="selectCacheTier(this)" style="font-size:0.82rem;padding:6px 14px;border:2px solid rgba(255,158,100,.3);color:#ff9e64;">NVMe SSD</button>' +
+      '</div>';
+    container.appendChild(div);
+  });
+
+  document.getElementById('cacheSubmitArea').style.display = '';
+  document.getElementById('cacheCheckBtn').disabled = false;
+}
+
+function selectCacheTier(btn) {
+  const entryIdx = btn.dataset.entry;
+  // Deselect siblings
+  document.querySelectorAll('.cache-tier-btn[data-entry="' + entryIdx + '"]').forEach(function(b) {
+    b.style.background = '';
+    b.style.fontWeight = '';
+  });
+  // Select this one
+  const tierIdx = parseInt(btn.dataset.tier);
+  const bgColors = ['rgba(108,99,255,.2)', 'rgba(0,201,167,.2)', 'rgba(255,158,100,.2)'];
+  btn.style.background = bgColors[tierIdx];
+  btn.style.fontWeight = '700';
+}
+
+function checkCacheAssignments() {
+  const entries = allCacheEntries[cacheState.roundOrder[cacheState.round - 1]];
+  let roundScore = 0;
+  let explanations = [];
+
+  entries.forEach(function(entry, idx) {
+    const selected = document.querySelector('.cache-tier-btn[data-entry="' + idx + '"][style*="font-weight: 700"], .cache-tier-btn[data-entry="' + idx + '"][style*="font-weight:700"]');
+    const chosenTier = selected ? parseInt(selected.dataset.tier) : -1;
+    const correct = chosenTier === entry.answer;
+    if (correct) roundScore++;
+
+    const icon = correct ? '<span style="color:var(--accent2);">Correct</span>' : '<span style="color:var(--accent3);">Wrong (should be ' + TIERS[entry.answer] + ')</span>';
+    explanations.push('<div style="margin-bottom:8px;"><strong>' + entry.desc + '</strong> ' + icon + '<br><span style="color:var(--text-dim);">' + entry.explain + '</span></div>');
+
+    // Visual feedback on buttons
+    document.querySelectorAll('.cache-tier-btn[data-entry="' + idx + '"]').forEach(function(b) {
+      b.disabled = true;
+      if (parseInt(b.dataset.tier) === entry.answer) {
+        b.style.background = 'rgba(0,201,167,.25)';
+        b.style.borderColor = 'var(--accent2)';
+      } else if (b === selected && !correct) {
+        b.style.background = 'rgba(247,118,142,.2)';
+        b.style.borderColor = 'var(--accent3)';
+      }
+    });
+  });
+
+  cacheState.score += roundScore;
+  document.getElementById('cacheScore').textContent = cacheState.score;
+  document.getElementById('cacheCheckBtn').disabled = true;
+  document.getElementById('cacheFeedback').textContent = 'Round ' + cacheState.round + ': ' + roundScore + ' / 6 correct!';
+  document.getElementById('cacheFeedback').className = 'game-feedback ' + (roundScore >= 5 ? 'correct' : roundScore >= 3 ? '' : 'wrong');
+
+  const explDiv = document.getElementById('cacheExplanation');
+  explDiv.innerHTML = '<strong style="color:var(--accent);">Explanations:</strong><br><br>' + explanations.join('');
+  explDiv.style.display = '';
+
+  setTimeout(nextCacheRound, 4000);
+}
 </script>
+<script src="../shared/progress.js"></script>
 </body>
 </html>

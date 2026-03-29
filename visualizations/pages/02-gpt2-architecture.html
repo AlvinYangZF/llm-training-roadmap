@@ -965,6 +965,7 @@
 <!-- ==================== Scripts ==================== -->
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
 <script>
 // ==================== Section 2: LayerNorm Animation ==================== //
 let lnAnimRunning = false;
@@ -1423,6 +1424,7 @@ function tokCheck() {
     document.getElementById('tokNextBtn').style.display = 'inline-block';
   } else {
     fb.textContent += ' | Final score: ' + tokPoints + '/15';
+    markGameCompleted('02');
     document.getElementById('tokRestartBtn').style.display = 'inline-block';
   }
 }

@@ -398,6 +398,7 @@
 
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
 <script>
 // ==================== Constants ==================== //
 const N = 16;
@@ -898,6 +899,7 @@ function nextPathRound() {
   if (pathGameState.round > 5) {
     document.getElementById('pathFeedback').textContent = 'Game over! Final score: ' + pathGameState.score;
     document.getElementById('pathFeedback').className = 'game-feedback';
+    markGameCompleted('03');
     document.getElementById('pathStartBtn').disabled = false;
     document.getElementById('pathTimer').textContent = '-';
     pathGameState.active = false;

@@ -413,6 +413,7 @@
 
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
+  <script src="../shared/progress.js"></script>
   <script>
     // ==================== Section 2: Token Stream Animation ==================== //
     const promptTokens = ['The', 'cat', 'sat', 'on'];
@@ -697,6 +698,7 @@
       if (latState.round > 4) {
         document.getElementById('latFeedback').textContent = 'Game over! Final score: ' + latState.score + ' / 24';
         document.getElementById('latFeedback').className = 'game-feedback';
+        markGameCompleted('04');
         document.getElementById('latStartBtn').disabled = false;
         document.getElementById('latScenario').style.display = 'none';
         document.getElementById('latInputs').style.display = 'none';
