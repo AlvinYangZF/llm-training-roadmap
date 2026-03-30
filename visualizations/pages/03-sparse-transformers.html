@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="p03.title">03. Sparse Transformers — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
   <style>
     /* ===== Grid Canvases ===== */
     .grid-canvas {
@@ -12,7 +13,7 @@
       height: 380px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .grid-canvas.tall {
       height: 440px;
@@ -31,7 +32,7 @@
       height: 340px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .dual-grid-item .grid-label {
       margin-top: 10px;
@@ -86,7 +87,7 @@
     .complexity-bar-track {
       flex: 1;
       height: 36px;
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       border-radius: 8px;
       overflow: hidden;
       position: relative;
@@ -120,7 +121,7 @@
       height: 320px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
 
     /* ===== Coverage step indicator ===== */
@@ -370,7 +371,7 @@
     </div>
 
     <div style="margin:12px 0;">
-      <div style="height:28px;background:#e2e8f0;border-radius:6px;overflow:hidden;position:relative;">
+      <div style="height:28px;background:var(--bar-track-bg);border-radius:6px;overflow:hidden;position:relative;">
         <div id="budgetMeterFill" style="height:100%;border-radius:6px;transition:width 0.4s,background 0.4s;width:0;display:flex;align-items:center;padding-left:10px;font-size:0.8rem;font-weight:700;color:#fff;"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dim);margin-top:4px;">
@@ -380,7 +381,7 @@
     </div>
 
     <div style="text-align:center;margin:16px 0;">
-      <canvas id="budgetMiniGrid" width="160" height="160" style="border:1px solid var(--border);border-radius:8px;background:#f8fafc;"></canvas>
+      <canvas id="budgetMiniGrid" width="160" height="160" style="border:1px solid var(--border);border-radius:8px;background:var(--formula-bg);"></canvas>
       <div class="dim-note" style="margin-top:6px;">8&times;8 scaled pattern preview</div>
     </div>
 
@@ -404,17 +405,8 @@
 // ==================== Constants ==================== //
 const N = 16;
 const SQRT_N = 4;
-const COLORS = {
-  accent: '#6c63ff',
-  accent2: '#00c9a7',
-  accent3: '#f7768e',
-  accent4: '#ff9e64',
-  text: '#cdd6f4',
-  textDim: '#6c7086',
-  border: '#2a2d3e',
-  surface: '#1a1d2e',
-  bg: '#0f1117',
-};
+// Use theme-aware colors from theme.js
+const COLORS = getColors();
 
 // ==================== Utility: draw NxN grid ==================== //
 function drawGrid(canvas, cellColorFn, opts = {}) {
@@ -884,6 +876,19 @@ function init() {
   });
 }
 
+// Re-render canvases on theme change
+window.addEventListener('themechange', function() {
+  Object.assign(COLORS, getColors());
+  drawDenseGrid();
+  drawSparseGrid();
+  drawLocalGrid();
+  drawStridedGrid();
+  drawCoverageGrid(coverageStep, 1);
+  updateComplexity();
+  drawResults();
+  updateBudget();
+});
+
 // ==================== Game 1: Coverage Path Finder ==================== //
 let pathGameState = { round: 0, score: 0, src: 0, dst: 0, timer: 15, intervalId: null, active: false };
 
@@ -1073,7 +1078,7 @@ function drawBudgetMiniGrid(nVal, localW, stride) {
       const isLoc = Math.abs(r - c) < localW;
       const isStr = c % stride === 0 || (Math.floor(col * scale) % stride === 0);
 
-      let color = '#f1f5f9';
+      let color = COLORS.cellBg;
       if (isLoc && isStr) color = 'rgba(13,148,136,0.5)';
       else if (isLoc) color = 'rgba(13,148,136,0.35)';
       else if (isStr) color = 'rgba(234,88,12,0.35)';
@@ -1084,7 +1089,7 @@ function drawBudgetMiniGrid(nVal, localW, stride) {
   }
 
   // Grid lines
-  ctx.strokeStyle = '#e2e8f0';
+  ctx.strokeStyle = COLORS.gridLine;
   ctx.lineWidth = 0.5;
   for (let i = 0; i <= 8; i++) {
     ctx.beginPath();

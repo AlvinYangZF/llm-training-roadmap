@@ -12,7 +12,7 @@
       height: 340px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .viz-canvas.tall { height: 420px; }
     .viz-canvas.short { height: 280px; }
@@ -92,7 +92,7 @@
     .slo-track {
       flex: 1;
       height: 36px;
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       border-radius: 6px;
       overflow: visible;
       position: relative;
@@ -162,7 +162,7 @@
     .metric-box {
       flex: 1;
       min-width: 160px;
-      background: rgba(0,0,0,.25);
+      background: var(--canvas-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 14px;
@@ -393,10 +393,17 @@
   <footer><span data-i18n="p09.footer" data-i18n-html>LLM Algorithm Visualizations &mdash; PD Separation (Mooncake, USENIX FAST 2025)</span></footer>
 </div>
 
+<script src="../shared/theme.js"></script>
 <script src="../shared/i18n.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script>
+// ==================== Theme-aware Colors ==================== //
+var COLORS = getColors();
+window.addEventListener('themechange', function() {
+  Object.assign(COLORS, getColors());
+});
+
 // ==================== Section 1: Interference Problem ====================
 (function() {
   const canvas = document.getElementById('interferenceCanvas');
@@ -428,7 +435,7 @@
     ctx.clearRect(0, 0, W, H);
 
     // Label
-    ctx.fillStyle = '#6c7086';
+    ctx.fillStyle = COLORS.textDim;
     ctx.font = '600 12px system-ui';
     ctx.textAlign = 'left';
     ctx.fillText('Single GPU Timeline', startX, timelineY - barH / 2 - 14);
@@ -447,8 +454,8 @@
       const drawW = bw * Math.min(progress * blocks.length / (i + 1), 1);
 
       let color;
-      if (b.type === 'prefill') color = '#6c63ff';
-      else if (b.type === 'decode') color = '#00c9a7';
+      if (b.type === 'prefill') color = COLORS.accent;
+      else if (b.type === 'decode') color = COLORS.accent2;
       else color = 'rgba(247,118,142,.5)';
 
       if (drawW > 0) {
@@ -458,7 +465,7 @@
 
         if (b.type === 'wait' && drawW > 8) {
           // Draw waiting markers
-          ctx.fillStyle = '#f7768e';
+          ctx.fillStyle = COLORS.accent3;
           ctx.font = 'bold 16px system-ui';
           ctx.textAlign = 'center';
           ctx.fillText('!', x + drawW / 2, timelineY + 5);
@@ -484,7 +491,7 @@
       const longPrefillEnd = startX + 0.54 * totalW;
       const arrY = timelineY + barH / 2 + 20;
 
-      ctx.strokeStyle = '#f7768e';
+      ctx.strokeStyle = COLORS.accent3;
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 3]);
       ctx.beginPath();
@@ -503,7 +510,7 @@
       ctx.lineTo(longPrefillEnd + 0.10 * totalW, arrY + 6);
       ctx.stroke();
 
-      ctx.fillStyle = '#f7768e';
+      ctx.fillStyle = COLORS.accent3;
       ctx.font = '600 11px system-ui';
       ctx.textAlign = 'center';
       ctx.fillText('Decode blocked — latency spike!', (longPrefillStart + longPrefillEnd + 0.10 * totalW) / 2, arrY + 22);
@@ -512,7 +519,7 @@
     }
 
     // Time arrow
-    ctx.strokeStyle = '#6c7086';
+    ctx.strokeStyle = COLORS.textDim;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(startX, timelineY + barH / 2 + 44);
@@ -523,7 +530,7 @@
     ctx.lineTo(startX + totalW, timelineY + barH / 2 + 44);
     ctx.lineTo(startX + totalW - 6, timelineY + barH / 2 + 48);
     ctx.stroke();
-    ctx.fillStyle = '#6c7086';
+    ctx.fillStyle = COLORS.textDim;
     ctx.font = '11px system-ui';
     ctx.textAlign = 'right';
     ctx.fillText('time →', startX + totalW, timelineY + barH / 2 + 58);
@@ -594,7 +601,7 @@
 
   function drawPacket(x, y, progress) {
     const size = 8;
-    ctx.fillStyle = '#ff9e64';
+    ctx.fillStyle = COLORS.accent4;
     ctx.globalAlpha = 0.8;
     roundRect(ctx, x - size / 2, y - size / 2, size, size, 2);
     ctx.fill();
@@ -619,7 +626,7 @@
     ctx.strokeStyle = 'rgba(255,255,255,.3)';
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = '#cdd6f4';
+    ctx.fillStyle = COLORS.text;
     ctx.font = 'bold 12px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('Client', cx, clientY + 20);
@@ -639,14 +646,14 @@
     ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.fillStyle = '#6c63ff';
+    ctx.fillStyle = COLORS.accent;
     ctx.font = 'bold 13px system-ui';
     ctx.textAlign = 'left';
     ctx.fillText('Prefill GPU Pool', prefillPoolX - 10, prefillY - 8);
 
     for (let i = 0; i < 3; i++) {
       const gx = prefillPoolX + i * (gpuW + poolGap);
-      drawGPUBox(gx, prefillY, gpuW, gpuH, '#6c63ff', `GPU ${i}`, true);
+      drawGPUBox(gx, prefillY, gpuW, gpuH, COLORS.accent, `GPU ${i}`, true);
     }
 
     // ---- KV Cache Transfer zone ----
@@ -659,7 +666,7 @@
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    ctx.fillStyle = '#ff9e64';
+    ctx.fillStyle = COLORS.accent4;
     ctx.font = 'bold 12px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('KV Cache Transfer (RDMA)', cx, transferY + transferH / 2 + 4);
@@ -686,14 +693,14 @@
     ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.fillStyle = '#00c9a7';
+    ctx.fillStyle = COLORS.accent2;
     ctx.font = 'bold 13px system-ui';
     ctx.textAlign = 'left';
     ctx.fillText('Decode GPU Pool', decodePoolX - 10, decodeY - 8);
 
     for (let i = 0; i < 3; i++) {
       const gx = decodePoolX + i * (gpuW + poolGap);
-      drawGPUBox(gx, decodeY, gpuW, gpuH, '#00c9a7', `GPU ${i}`, true);
+      drawGPUBox(gx, decodeY, gpuW, gpuH, COLORS.accent2, `GPU ${i}`, true);
     }
 
     // ---- Response ----
@@ -704,16 +711,16 @@
     ctx.strokeStyle = 'rgba(0,201,167,.4)';
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = '#00c9a7';
+    ctx.fillStyle = COLORS.accent2;
     ctx.font = 'bold 12px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('Response', cx, respY + 20);
 
     // ---- Arrows ----
-    drawArrow(cx, clientY + 30, cx, prefillY - 26, '#6c63ff', false);
-    drawArrow(cx, prefillY + gpuH + 20, cx, transferY, '#ff9e64', true);
-    drawArrow(cx, transferY + transferH, cx, decodeY - 26, '#ff9e64', true);
-    drawArrow(cx, decodeY + gpuH + 20, cx, respY, '#00c9a7', false);
+    drawArrow(cx, clientY + 30, cx, prefillY - 26, COLORS.accent, false);
+    drawArrow(cx, prefillY + gpuH + 20, cx, transferY, COLORS.accent4, true);
+    drawArrow(cx, transferY + transferH, cx, decodeY - 26, COLORS.accent4, true);
+    drawArrow(cx, decodeY + gpuH + 20, cx, respY, COLORS.accent2, false);
 
     rafId = requestAnimationFrame(draw);
   }
@@ -778,7 +785,7 @@ function playUtilization() {
     }
 
     // Label
-    ctx.fillStyle = '#6c7086';
+    ctx.fillStyle = COLORS.textDim;
     ctx.font = '600 11px system-ui';
     ctx.textAlign = 'left';
     ctx.fillText(label, x, y - 6);
@@ -794,12 +801,12 @@ function playUtilization() {
     const rowH = (H - 100) / 2;
 
     // Titles
-    ctx.fillStyle = '#f7768e';
+    ctx.fillStyle = COLORS.accent3;
     ctx.font = 'bold 14px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('Coupled (Single GPU)', margin + colW / 2, 28);
 
-    ctx.fillStyle = '#00c9a7';
+    ctx.fillStyle = COLORS.accent2;
     ctx.fillText('Separated (Dedicated Pools)', margin * 2 + colW + colW / 2, 28);
 
     // Coupled compute
@@ -818,7 +825,7 @@ function playUtilization() {
       ctx.globalAlpha = lineAlpha;
 
       // Coupled: draw oscillation warning
-      ctx.strokeStyle = '#f7768e';
+      ctx.strokeStyle = COLORS.accent3;
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 3]);
       const avgCoupledY = 50 + rowH * 0.5;
@@ -827,13 +834,13 @@ function playUtilization() {
       ctx.lineTo(margin + colW, avgCoupledY);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = '#f7768e';
+      ctx.fillStyle = COLORS.accent3;
       ctx.font = '600 10px system-ui';
       ctx.textAlign = 'right';
       ctx.fillText('~50% avg', margin + colW - 4, avgCoupledY - 4);
 
       // Separated: draw steady line
-      ctx.strokeStyle = '#00c9a7';
+      ctx.strokeStyle = COLORS.accent2;
       ctx.setLineDash([4, 3]);
       const avgSepY = 50 + rowH * 0.1;
       ctx.beginPath();
@@ -841,7 +848,7 @@ function playUtilization() {
       ctx.lineTo(margin * 2 + colW * 2, avgSepY);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = '#00c9a7';
+      ctx.fillStyle = COLORS.accent2;
       ctx.font = '600 10px system-ui';
       ctx.textAlign = 'right';
       ctx.fillText('~90% avg', margin * 2 + colW * 2 - 4, avgSepY - 4);
@@ -923,14 +930,14 @@ function playTransfer() {
     roundRect(ctx, pnX, pnY, nodeW, nodeH, 10);
     ctx.fillStyle = progress < phase1End ? 'rgba(108,99,255,.2)' : 'rgba(108,99,255,.08)';
     ctx.fill();
-    ctx.strokeStyle = progress < phase1End ? '#6c63ff' : 'rgba(108,99,255,.3)';
+    ctx.strokeStyle = progress < phase1End ? COLORS.accent : 'rgba(108,99,255,.3)';
     ctx.lineWidth = progress < phase1End ? 2 : 1;
     ctx.stroke();
-    ctx.fillStyle = '#6c63ff';
+    ctx.fillStyle = COLORS.accent;
     ctx.font = 'bold 13px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('Prefill Node', pnX + nodeW / 2, pnY + 24);
-    ctx.fillStyle = '#cdd6f4';
+    ctx.fillStyle = COLORS.text;
     ctx.font = '11px system-ui';
     ctx.fillText('Process prompt', pnX + nodeW / 2, pnY + 44);
 
@@ -944,7 +951,7 @@ function playTransfer() {
       ctx.fillStyle = 'rgba(0,0,0,.3)';
       ctx.fill();
       roundRect(ctx, barX, barY, barW * prefillProg, 10, 4);
-      ctx.fillStyle = '#6c63ff';
+      ctx.fillStyle = COLORS.accent;
       ctx.fill();
     }
 
@@ -957,7 +964,7 @@ function playTransfer() {
     if (progress >= phase1End * 0.6) {
       const kvAlpha = Math.min((progress - phase1End * 0.6) / (phase1End * 0.4), 1);
       ctx.globalAlpha = kvAlpha;
-      ctx.fillStyle = '#6c7086';
+      ctx.fillStyle = COLORS.textDim;
       ctx.font = '600 10px system-ui';
       ctx.textAlign = 'center';
       ctx.fillText('KV Cache', pnX + nodeW + 20 + kvBlockSize * 1.5, pnY - 4);
@@ -970,14 +977,14 @@ function playTransfer() {
     roundRect(ctx, dnX, dnY, nodeW, nodeH, 10);
     ctx.fillStyle = progress >= phase2End ? 'rgba(0,201,167,.2)' : 'rgba(0,201,167,.08)';
     ctx.fill();
-    ctx.strokeStyle = progress >= phase2End ? '#00c9a7' : 'rgba(0,201,167,.3)';
+    ctx.strokeStyle = progress >= phase2End ? COLORS.accent2 : 'rgba(0,201,167,.3)';
     ctx.lineWidth = progress >= phase2End ? 2 : 1;
     ctx.stroke();
-    ctx.fillStyle = '#00c9a7';
+    ctx.fillStyle = COLORS.accent2;
     ctx.font = 'bold 13px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('Decode Node', dnX + nodeW / 2, dnY + 24);
-    ctx.fillStyle = '#cdd6f4';
+    ctx.fillStyle = COLORS.text;
     ctx.font = '11px system-ui';
     ctx.fillText('Generate tokens', dnX + nodeW / 2, dnY + 44);
 
@@ -991,13 +998,13 @@ function playTransfer() {
       ctx.fillStyle = 'rgba(0,0,0,.3)';
       ctx.fill();
       roundRect(ctx, barX, barY, barW * decodeProg, 10, 4);
-      ctx.fillStyle = '#00c9a7';
+      ctx.fillStyle = COLORS.accent2;
       ctx.fill();
 
       // Generated tokens
       const tokCount = Math.floor(decodeProg * 8);
       if (tokCount > 0) {
-        ctx.fillStyle = '#00c9a7';
+        ctx.fillStyle = COLORS.accent2;
         ctx.font = '600 10px system-ui';
         ctx.textAlign = 'center';
         const tokens = ['The', ' answer', ' to', ' your', ' question', ' is', ' forty', '-two'];
@@ -1034,7 +1041,7 @@ function playTransfer() {
 
         ctx.globalAlpha = blockProg > 0 ? 0.9 : 0;
         roundRect(ctx, bx, by, kvBlockSize, kvBlockSize, 3);
-        ctx.fillStyle = '#ff9e64';
+        ctx.fillStyle = COLORS.accent4;
         ctx.fill();
         ctx.strokeStyle = 'rgba(255,158,100,.6)';
         ctx.lineWidth = 1;
@@ -1044,7 +1051,7 @@ function playTransfer() {
 
       // Network label
       if (transferProg > 0.1 && transferProg < 1) {
-        ctx.fillStyle = '#ff9e64';
+        ctx.fillStyle = COLORS.accent4;
         ctx.font = '600 10px system-ui';
         ctx.textAlign = 'center';
         ctx.fillText('RDMA Transfer ~5ms', (transferZoneX1 + transferZoneX2) / 2, H / 2 + kvBlockSize + 14);
@@ -1056,7 +1063,7 @@ function playTransfer() {
       for (let i = 0; i < builtBlocks; i++) {
         const bx = transferZoneX1 + i * (kvBlockSize + 4);
         roundRect(ctx, bx, kvY, kvBlockSize, kvBlockSize, 3);
-        ctx.fillStyle = '#ff9e64';
+        ctx.fillStyle = COLORS.accent4;
         ctx.fill();
         ctx.strokeStyle = 'rgba(255,158,100,.6)';
         ctx.lineWidth = 1;

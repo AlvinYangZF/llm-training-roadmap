@@ -17,7 +17,7 @@
       height: 420px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
 
     /* ===== Power Law Chart ===== */
@@ -31,7 +31,7 @@
       height: 360px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
 
     /* ===== Eviction Animation ===== */
@@ -45,7 +45,7 @@
       height: 320px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .eviction-memory {
       text-align: center;
@@ -85,7 +85,7 @@
     .budget-bar-wrap {
       position: relative;
       height: 40px;
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       border-radius: 8px;
       overflow: hidden;
       margin-bottom: 16px;
@@ -123,7 +123,7 @@
       margin-top: 16px;
     }
     .budget-stat {
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 16px;
@@ -213,7 +213,7 @@
       border-radius: 4px;
     }
     .policy-desc {
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 20px;
@@ -419,11 +419,21 @@
 
   <footer><p data-i18n="footer.text">LLM Algorithm Visualization Series</p></footer>
 
+  <script src="../shared/theme.js"></script>
   <script src="../shared/i18n.js"></script>
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
   <script src="../shared/progress.js"></script>
   <script>
+    // ==================== Theme-aware Colors ==================== //
+    var COLORS = getColors();
+    window.addEventListener('themechange', function() {
+      Object.assign(COLORS, getColors());
+      drawHeatmap();
+      drawPowerLaw(1);
+      drawEvictionFrame(0);
+    });
+
     // ==================== Section 1: Attention Heatmap ==================== //
 
     function generateAttentionData() {
@@ -514,7 +524,7 @@
 
       // Labels
       ctx.font = 'bold 12px Segoe UI, system-ui, sans-serif';
-      ctx.fillStyle = '#6c7086';
+      ctx.fillStyle = COLORS.textDim;
       ctx.textAlign = 'center';
       ctx.fillText('Key Tokens', startX + gridW / 2, startY - 16);
 
@@ -565,7 +575,7 @@
       ctx.lineWidth = 1;
       ctx.strokeRect(scaleX, scaleY, scaleW, scaleH);
 
-      ctx.fillStyle = '#6c7086';
+      ctx.fillStyle = COLORS.textDim;
       ctx.font = '10px Segoe UI, system-ui, sans-serif';
       ctx.textAlign = 'left';
       ctx.fillText('0.0', scaleX, scaleY + scaleH + 14);
@@ -619,7 +629,7 @@
       ctx.stroke();
 
       // Y-axis labels
-      ctx.fillStyle = '#6c7086';
+      ctx.fillStyle = COLORS.textDim;
       ctx.font = '11px Segoe UI, system-ui, sans-serif';
       ctx.textAlign = 'right';
       for (let y = 0; y <= 100; y += 20) {
@@ -633,7 +643,7 @@
       }
 
       // X-axis label
-      ctx.fillStyle = '#6c7086';
+      ctx.fillStyle = COLORS.textDim;
       ctx.font = '11px Segoe UI, system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Tokens (sorted by cumulative attention, descending)', padLeft + chartW / 2, H - 8);
@@ -682,8 +692,7 @@
       ctx.setLineDash([]);
 
       // 80% label
-      ctx.fillStyle = 'var(--accent3)';
-      ctx.fillStyle = '#f7768e';
+      ctx.fillStyle = COLORS.accent3;
       ctx.font = 'bold 11px Segoe UI, system-ui, sans-serif';
       ctx.textAlign = 'left';
       ctx.fillText('Top 5% of tokens capture 80%+ attention', padLeft + 8, lineY - 8);
@@ -730,13 +739,13 @@
     function getCategoryColor(cat, step) {
       if (step === 0) {
         // All same color
-        return { bg: 'rgba(108,99,255,0.3)', border: 'rgba(108,99,255,0.6)', text: '#cdd6f4' };
+        return { bg: COLORS.highlight, border: COLORS.accent, text: COLORS.text };
       }
       switch (cat) {
-        case 0: return { bg: 'rgba(247,118,142,0.35)', border: 'rgba(247,118,142,0.8)', text: '#f7768e', glow: 'rgba(247,118,142,0.3)' };
-        case 1: return { bg: 'rgba(108,99,255,0.35)', border: 'rgba(108,99,255,0.8)', text: '#6c63ff', glow: 'rgba(108,99,255,0.3)' };
-        case 2: return { bg: 'rgba(0,201,167,0.35)', border: 'rgba(0,201,167,0.8)', text: '#00c9a7', glow: 'rgba(0,201,167,0.3)' };
-        default: return { bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.15)', text: '#6c7086' };
+        case 0: return { bg: COLORS.highlight3, border: COLORS.accent3, text: COLORS.accent3, glow: COLORS.highlight3 };
+        case 1: return { bg: COLORS.highlight, border: COLORS.accent, text: COLORS.accent, glow: COLORS.highlight };
+        case 2: return { bg: COLORS.highlight2, border: COLORS.accent2, text: COLORS.accent2, glow: COLORS.highlight2 };
+        default: return { bg: 'rgba(255,255,255,0.06)', border: COLORS.border, text: COLORS.textDim };
       }
     }
 
@@ -794,7 +803,7 @@
         });
 
         // "Kept" label
-        ctx.fillStyle = '#00c9a7';
+        ctx.fillStyle = COLORS.accent2;
         ctx.font = 'bold 12px Segoe UI, system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('Compressed KV Cache', W / 2, centerY - blockH / 2 - 16);
@@ -853,11 +862,11 @@
 
         // Sink label
         const sinkMidX = startX + 0.5 * (blockW + gap);
-        ctx.fillStyle = '#f7768e';
+        ctx.fillStyle = COLORS.accent3;
         ctx.fillText('Sinks', sinkMidX, centerY + blockH / 2 + 18);
 
         // Heavy hitter labels
-        ctx.fillStyle = '#6c63ff';
+        ctx.fillStyle = COLORS.accent;
         [5, 9, 12].forEach(idx => {
           const hx = startX + idx * (blockW + gap) + blockW / 2;
           ctx.fillText('HH', hx, centerY + blockH / 2 + 18);
@@ -865,7 +874,7 @@
 
         // Recent label
         const recentMidX = startX + 14 * (blockW + gap);
-        ctx.fillStyle = '#00c9a7';
+        ctx.fillStyle = COLORS.accent2;
         ctx.fillText('Recent', recentMidX, centerY + blockH / 2 + 18);
       }
     }
@@ -1041,7 +1050,7 @@
         var barColor = tok.index === 0 ? 'var(--accent3)' : 'var(--accent)';
         html += '<div class="game-option" id="evictTok' + tok.index + '" onclick="evictToggle(' + tok.index + ')" style="width:90px;text-align:center;padding:12px 8px;">';
         html += '<div style="font-weight:700;margin-bottom:6px;">' + tok.label + '</div>';
-        html += '<div style="background:rgba(0,0,0,.3);border-radius:4px;height:8px;width:100%;overflow:hidden;">';
+        html += '<div style="background:var(--canvas-bg);border-radius:4px;height:8px;width:100%;overflow:hidden;">';
         html += '<div style="height:100%;width:' + barWidth + '%;background:' + barColor + ';border-radius:4px;"></div>';
         html += '</div>';
         html += '<div style="font-size:0.75rem;color:var(--text-dim);margin-top:4px;">' + tok.score.toFixed(3) + '</div>';

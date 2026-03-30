@@ -9,7 +9,7 @@
   .hero {
     text-align: center;
     padding: 80px 24px 48px;
-    background: linear-gradient(180deg, #eef2ff 0%, var(--bg) 100%);
+    background: linear-gradient(180deg, var(--header-gradient-from) 0%, var(--bg) 100%);
     border-bottom: 1px solid var(--border);
   }
   .hero h1 {
@@ -159,7 +159,7 @@
   .progress-bar-track {
     flex: 1;
     height: 8px;
-    background: #e2e8f0;
+    background: var(--bar-track-bg);
     border-radius: 999px;
     overflow: hidden;
   }
@@ -503,6 +503,7 @@
   <p data-i18n="footer.text">LLM Algorithm Visualization Series &mdash; Built for interactive learning</p>
 </footer>
 
+<script src="shared/theme.js"></script>
 <script src="shared/i18n.js"></script>
 <script src="shared/nav.js"></script>
 <script src="shared/progress.js"></script>

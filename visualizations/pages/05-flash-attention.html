@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="p05.title">05. FlashAttention — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
   <style>
     /* ===== Online Softmax Formula ===== */
     .softmax-steps {
@@ -14,7 +15,7 @@
       margin: 20px 0;
     }
     .softmax-step {
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 14px 20px;
@@ -782,6 +783,13 @@
 
     // Re-init on resize
     window.addEventListener('resize', () => {
+      if (!tileAnimRunning) {
+        initTileCanvas();
+      }
+    });
+
+    // Re-render canvases on theme change
+    window.addEventListener('themechange', function() {
       if (!tileAnimRunning) {
         initTileCanvas();
       }

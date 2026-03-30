@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="p01.title">01. Transformer Basics — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
   <style>
     /* Section 2: Key Components */
     .components-grid {
@@ -14,7 +15,7 @@
       margin-top: 20px;
     }
     .component-item {
-      background: rgba(0,0,0,.2);
+      background: var(--canvas-bg);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 20px;
@@ -103,7 +104,7 @@
       height: 280px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .pe-axis-label {
       text-align: center;
@@ -666,6 +667,12 @@
     document.getElementById('peSliderPos').addEventListener('input', drawPEExplorer);
 
     window.addEventListener('load', function() {
+      drawPEExplorer();
+    });
+
+    // Re-render canvases on theme change
+    window.addEventListener('themechange', function() {
+      drawPEHeatmap('peCanvas', 32, 50);
       drawPEExplorer();
     });
   </script>

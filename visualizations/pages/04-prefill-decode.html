@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="p04.title">04. Prefill & Decode — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
   <style>
     /* ==================== Section 3: KV Cache ==================== */
     .kv-compare {
@@ -30,7 +31,7 @@
     .kv-box ul { padding-left: 18px; margin-top: 8px; }
     .kv-box li { margin-bottom: 6px; font-size: 0.92rem; }
     .kv-example {
-      background: rgba(0,0,0,.25);
+      background: var(--canvas-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 16px 20px;
@@ -52,7 +53,7 @@
       height: 340px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .cache-step-info {
       text-align: center;
@@ -103,7 +104,7 @@
     .gauge-track {
       flex: 1;
       height: 32px;
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       border-radius: 6px;
       overflow: hidden;
       position: relative;
@@ -815,7 +816,7 @@
         barsHTML +=
           '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">' +
             '<div style="width:130px;text-align:right;font-size:0.85rem;font-weight:600;flex-shrink:0;">' + gpu.name + '</div>' +
-            '<div style="flex:1;height:24px;background:#e2e8f0;border-radius:6px;overflow:hidden;position:relative;">' +
+            '<div style="flex:1;height:24px;background:var(--bar-track-bg);border-radius:6px;overflow:hidden;position:relative;">' +
               '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:6px;transition:width 0.4s;"></div>' +
             '</div>' +
             '<div style="min-width:60px;font-size:0.82rem;font-weight:700;color:' + color + ';">' + pct.toFixed(1) + '%</div>' +

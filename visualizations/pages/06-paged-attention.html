@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="p06.title">06. PagedAttention — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
   <style>
     /* ===== Memory Bar ===== */
     .mem-bar-container { margin: 24px 0; }
@@ -99,7 +100,7 @@
       font-size: 0.72rem;
       font-weight: 700;
       border: 1px solid var(--border);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .block-map-arrow {
       color: var(--text-dim);
@@ -146,7 +147,7 @@
       height: 420px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .demo-controls {
       display: flex;
@@ -180,7 +181,7 @@
       height: 380px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .beam-info {
       display: flex;
@@ -190,7 +191,7 @@
       flex-wrap: wrap;
     }
     .beam-info-box {
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 10px 18px;
@@ -1705,6 +1706,12 @@
         drawBeamSearch();
       });
     }
+
+    // Re-render canvases on theme change
+    window.addEventListener('themechange', function() {
+      drawBlockTableDemo();
+      drawBeamSearch();
+    });
 
     // Wait for DOM
     if (document.readyState === 'loading') {

@@ -68,6 +68,7 @@ function buildNav() {
           <option value="zh-TW" ${currentLang === 'zh-TW' ? 'selected' : ''}>繁體中文</option>
         </select>
       </div>
+      <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
       <button class="nav-toggle" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
     </div>
   `;
