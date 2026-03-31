@@ -251,10 +251,19 @@
       <p data-i18n="p04.s4.desc">Each decode step appends one new token's Key and Value vectors to the cache. Watch the memory footprint grow linearly with each generated token.</p>
       <div class="cache-canvas-wrap">
         <canvas class="cache-canvas" id="cacheCanvas"></canvas>
-        <div class="cache-step-info" id="cacheStepInfo">Press play to visualize cache growth</div>
+        <div class="cache-step-info" id="cacheStepInfo" data-i18n="p04.s4.initInfo">Press Step or Play to visualize cache growth</div>
       </div>
-      <div class="anim-controls">
-        <button class="btn btn-accent" id="cachePlayBtn" onclick="startCacheAnimation()" data-i18n="p04.s4.playBtn" data-i18n-html>&#9654; Play Cache Growth</button>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;font-size:0.82rem;color:var(--text-dim)">
+        <span data-i18n="p04.s4.stepLabel">Step:</span>
+        <strong id="cacheStepCounter" style="color:var(--accent2);font-size:1rem;min-width:40px;text-align:center">0 / 20</strong>
+      </div>
+      <div class="anim-controls" style="gap:10px">
+        <button class="btn btn-accent" id="cacheStepBtn" onclick="cacheStepOnce()" data-i18n="p04.s4.stepBtn">+1 Step</button>
+        <button class="btn btn-accent" id="cachePlayBtn" onclick="cacheTogglePlay()" data-i18n="p04.s4.playBtn" data-i18n-html>&#9654; Play</button>
+        <button class="btn btn-surface" id="cacheResetBtn" onclick="cacheReset()" data-i18n="btn.reset">Reset</button>
+      </div>
+      <div style="text-align:center;margin-top:8px">
+        <div id="cacheTokenDetail" style="font-size:0.82rem;color:var(--text-dim);font-family:monospace;min-height:36px"></div>
       </div>
     </div>
 
@@ -494,146 +503,173 @@
     }
 
     // ==================== Section 4: KV Cache Growth Canvas ==================== //
-    let cacheAnimRunning = false;
+    var cacheCurrentStep = 0;
+    var cachePlaying = false;
+    var cachePlayTimer = null;
+    var CACHE_TOTAL_STEPS = 20;
 
-    function startCacheAnimation() {
-      if (cacheAnimRunning) return;
-      cacheAnimRunning = true;
+    // Config: 32 layers, 4096 d_model, FP16 (2 bytes), 2 (K+V)
+    var CACHE_N_LAYERS = 32;
+    var CACHE_D_MODEL = 4096;
+    var CACHE_DTYPE_BYTES = 2;
+    var CACHE_PER_TOKEN_MB = (2 * CACHE_N_LAYERS * CACHE_D_MODEL * CACHE_DTYPE_BYTES) / (1024 * 1024);
+    var CACHE_BASE_SEQ = 512;
+    var CACHE_BASE_MB = CACHE_BASE_SEQ * CACHE_PER_TOKEN_MB;
 
-      const canvas = document.getElementById('cacheCanvas');
-      const { ctx, W, H } = setupCanvas(canvas);
-      const infoEl = document.getElementById('cacheStepInfo');
-      const playBtn = document.getElementById('cachePlayBtn');
-      playBtn.disabled = true;
+    function cacheMB(step) { return CACHE_BASE_MB + step * CACHE_PER_TOKEN_MB; }
 
-      const totalSteps = 20;
-      const padding = { top: 40, right: 30, bottom: 50, left: 70 };
-      const chartW = W - padding.left - padding.right;
-      const chartH = H - padding.top - padding.bottom;
-      const barWidth = (chartW / totalSteps) * 0.7;
-      const barGap = (chartW / totalSteps) * 0.3;
+    function cacheDrawFrame() {
+      var canvas = document.getElementById('cacheCanvas');
+      var { ctx, W, H } = setupCanvas(canvas);
+      var colors = getComputedStyle(document.documentElement);
+      var textCol = colors.getPropertyValue('--text').trim() || '#cdd6f4';
+      var dimCol = colors.getPropertyValue('--text-dim').trim() || '#6c7086';
+      var borderCol = colors.getPropertyValue('--border').trim() || '#2a2d3e';
 
-      // Config: 32 layers, 4096 d_model, FP16 (2 bytes), 2 (K+V)
-      const nLayers = 32;
-      const dModel = 4096;
-      const dtypeBytes = 2;
-      const perTokenMB = (2 * nLayers * dModel * dtypeBytes) / (1024 * 1024);
-      const baseSeqLen = 512; // prompt tokens already in cache
-      const baseMB = baseSeqLen * perTokenMB;
+      var maxMB = cacheMB(CACHE_TOTAL_STEPS);
+      var padding = { top: 40, right: 30, bottom: 50, left: 70 };
+      var chartW = W - padding.left - padding.right;
+      var chartH = H - padding.top - padding.bottom;
+      var barWidth = (chartW / CACHE_TOTAL_STEPS) * 0.7;
+      var barGap = (chartW / CACHE_TOTAL_STEPS) * 0.3;
 
-      function cacheMB(step) {
-        return baseMB + step * perTokenMB;
+      ctx.clearRect(0, 0, W, H);
+
+      // Title
+      ctx.fillStyle = textCol;
+      ctx.font = 'bold 14px Segoe UI, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('KV Cache Size During Decode', W / 2, 22);
+
+      // Axes
+      ctx.strokeStyle = borderCol; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padding.left, padding.top); ctx.lineTo(padding.left, padding.top + chartH); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(padding.left, padding.top + chartH); ctx.lineTo(padding.left + chartW, padding.top + chartH); ctx.stroke();
+
+      // Y axis labels & gridlines
+      ctx.fillStyle = dimCol; ctx.font = '11px Courier New, monospace'; ctx.textAlign = 'right';
+      for (var i = 0; i <= 5; i++) {
+        var val = (maxMB / 5) * i;
+        var y = padding.top + chartH - (chartH * (val / maxMB));
+        ctx.fillText(val.toFixed(0) + ' MB', padding.left - 8, y + 4);
+        if (i > 0) { ctx.strokeStyle = 'rgba(128,128,128,0.15)'; ctx.beginPath(); ctx.moveTo(padding.left + 1, y); ctx.lineTo(padding.left + chartW, y); ctx.stroke(); }
       }
-      const maxMB = cacheMB(totalSteps);
 
-      function drawFrame(visibleSteps) {
-        ctx.clearRect(0, 0, W, H);
+      // Axis titles
+      ctx.save(); ctx.translate(16, padding.top + chartH / 2); ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = dimCol; ctx.font = '11px Segoe UI, system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('Cache Size', 0, 0); ctx.restore();
+      ctx.fillStyle = dimCol; ctx.font = '11px Segoe UI, system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('Decode Step', padding.left + chartW / 2, H - 8);
 
-        // Title
-        ctx.fillStyle = '#cdd6f4';
-        ctx.font = 'bold 14px Segoe UI, system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('KV Cache Size During Decode', W / 2, 22);
-
-        // Y axis
-        ctx.strokeStyle = '#2a2d3e';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(padding.left, padding.top);
-        ctx.lineTo(padding.left, padding.top + chartH);
-        ctx.stroke();
-
-        // X axis
-        ctx.beginPath();
-        ctx.moveTo(padding.left, padding.top + chartH);
-        ctx.lineTo(padding.left + chartW, padding.top + chartH);
-        ctx.stroke();
-
-        // Y axis labels & gridlines
-        ctx.fillStyle = '#6c7086';
-        ctx.font = '11px Courier New, monospace';
-        ctx.textAlign = 'right';
-        const yTicks = 5;
-        for (let i = 0; i <= yTicks; i++) {
-          const val = (maxMB / yTicks) * i;
-          const y = padding.top + chartH - (chartH * (val / maxMB));
-          ctx.fillText(val.toFixed(0) + ' MB', padding.left - 8, y + 4);
-          if (i > 0) {
-            ctx.strokeStyle = 'rgba(42,45,62,0.5)';
-            ctx.beginPath();
-            ctx.moveTo(padding.left + 1, y);
-            ctx.lineTo(padding.left + chartW, y);
-            ctx.stroke();
-          }
+      // Draw all bar slots (ghost)
+      for (var s = 0; s < CACHE_TOTAL_STEPS; s++) {
+        var mb0 = cacheMB(s + 1);
+        var barH0 = (mb0 / maxMB) * chartH;
+        var x0 = padding.left + s * (barWidth + barGap) + barGap / 2;
+        var y0 = padding.top + chartH - barH0;
+        ctx.fillStyle = 'rgba(128,128,128,0.06)';
+        roundRect(ctx, x0, y0, barWidth, barH0, 3); ctx.fill();
+        // X label
+        if ((s + 1) % 2 === 0 || s === 0 || s === CACHE_TOTAL_STEPS - 1) {
+          ctx.fillStyle = dimCol; ctx.font = '10px Courier New, monospace'; ctx.textAlign = 'center';
+          ctx.fillText(String(s + 1), x0 + barWidth / 2, padding.top + chartH + 16);
         }
+      }
 
-        // Y axis title
-        ctx.save();
-        ctx.translate(16, padding.top + chartH / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.fillStyle = '#6c7086';
-        ctx.font = '11px Segoe UI, system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Cache Size', 0, 0);
-        ctx.restore();
+      // Draw filled bars
+      for (var j = 0; j < cacheCurrentStep; j++) {
+        var mb = cacheMB(j + 1);
+        var barH = (mb / maxMB) * chartH;
+        var x = padding.left + j * (barWidth + barGap) + barGap / 2;
+        var yy = padding.top + chartH - barH;
+        var isLatest = (j === cacheCurrentStep - 1);
 
-        // X axis title
-        ctx.fillStyle = '#6c7086';
-        ctx.font = '11px Segoe UI, system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Decode Step', padding.left + chartW / 2, H - 8);
-
-        // Draw bars
-        for (let i = 0; i < visibleSteps; i++) {
-          const mb = cacheMB(i + 1);
-          const barH = (mb / maxMB) * chartH;
-          const x = padding.left + i * (barWidth + barGap) + barGap / 2;
-          const y = padding.top + chartH - barH;
-
-          // Gradient fill
-          const grad = ctx.createLinearGradient(x, y, x, y + barH);
+        var grad = ctx.createLinearGradient(x, yy, x, yy + barH);
+        if (isLatest) {
+          grad.addColorStop(0, 'rgba(247,118,142,0.9)');
+          grad.addColorStop(1, 'rgba(247,118,142,0.4)');
+        } else {
           grad.addColorStop(0, 'rgba(0,201,167,0.8)');
           grad.addColorStop(1, 'rgba(0,201,167,0.3)');
-          ctx.fillStyle = grad;
-
-          roundRect(ctx, x, y, barWidth, barH, 3);
-          ctx.fill();
-
-          // X label
-          if ((i + 1) % 2 === 0 || i === 0 || i === visibleSteps - 1) {
-            ctx.fillStyle = '#6c7086';
-            ctx.font = '10px Courier New, monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText(String(i + 1), x + barWidth / 2, padding.top + chartH + 16);
-          }
         }
+        ctx.fillStyle = grad;
+        roundRect(ctx, x, yy, barWidth, barH, 3); ctx.fill();
 
-        // Update info
-        if (visibleSteps > 0) {
-          const step = visibleSteps;
-          const seqLen = baseSeqLen + step;
-          const mb = cacheMB(step);
-          infoEl.textContent = `Step ${step}: seq_len=${seqLen}  |  2 x 32 x ${seqLen} x 4096 x 2 = ${mb.toFixed(1)} MB`;
+        // Highlight border on latest
+        if (isLatest) {
+          ctx.strokeStyle = '#f7768e'; ctx.lineWidth = 2;
+          roundRect(ctx, x, yy, barWidth, barH, 3); ctx.stroke();
+          // Delta label on top
+          ctx.fillStyle = '#f7768e'; ctx.font = 'bold 10px Courier New, monospace'; ctx.textAlign = 'center';
+          ctx.fillText('+' + CACHE_PER_TOKEN_MB.toFixed(2) + ' MB', x + barWidth / 2, yy - 6);
         }
       }
 
-      // Animate bars appearing one at a time
-      let currentStep = 0;
-      drawFrame(0);
+      // Update info text
+      var infoEl = document.getElementById('cacheStepInfo');
+      var counterEl = document.getElementById('cacheStepCounter');
+      var detailEl = document.getElementById('cacheTokenDetail');
+      counterEl.textContent = cacheCurrentStep + ' / ' + CACHE_TOTAL_STEPS;
 
-      function nextStep() {
-        currentStep++;
-        drawFrame(currentStep);
-        if (currentStep < totalSteps) {
-          setTimeout(nextStep, 200);
-        } else {
-          cacheAnimRunning = false;
-          playBtn.disabled = false;
-        }
+      if (cacheCurrentStep > 0) {
+        var step = cacheCurrentStep;
+        var seqLen = CACHE_BASE_SEQ + step;
+        var totalMB = cacheMB(step);
+        var prevMB = cacheMB(step - 1);
+        infoEl.textContent = 'Step ' + step + ': seq_len=' + seqLen + '  |  Total = ' + totalMB.toFixed(1) + ' MB';
+        detailEl.innerHTML =
+          '<span style="color:var(--accent2)">KV Cache = 2(K+V) x ' + CACHE_N_LAYERS + ' layers x ' + seqLen + ' tokens x ' + CACHE_D_MODEL + ' dims x 2 bytes</span><br>' +
+          '<span style="color:var(--accent3)">+1 token adds: 2 x ' + CACHE_N_LAYERS + ' x 1 x ' + CACHE_D_MODEL + ' x 2 = <strong>+' + CACHE_PER_TOKEN_MB.toFixed(2) + ' MB</strong> per decode step</span>';
+      } else {
+        infoEl.textContent = t('p04.s4.initInfo') || 'Press Step or Play to visualize cache growth';
+        detailEl.innerHTML = '<span style="color:var(--text-dim)">Base prompt: ' + CACHE_BASE_SEQ + ' tokens = ' + CACHE_BASE_MB.toFixed(1) + ' MB already in cache</span>';
       }
-
-      setTimeout(nextStep, 300);
     }
+
+    function cacheStepOnce() {
+      if (cacheCurrentStep >= CACHE_TOTAL_STEPS) return;
+      cacheCurrentStep++;
+      cacheDrawFrame();
+    }
+
+    function cacheTogglePlay() {
+      var btn = document.getElementById('cachePlayBtn');
+      if (cachePlaying) {
+        // Pause
+        clearInterval(cachePlayTimer);
+        cachePlaying = false;
+        btn.innerHTML = '&#9654; ' + (t('p04.s4.playLabel') || 'Play');
+      } else {
+        // Play
+        if (cacheCurrentStep >= CACHE_TOTAL_STEPS) cacheCurrentStep = 0;
+        cachePlaying = true;
+        btn.innerHTML = '&#10074;&#10074; ' + (t('p04.s4.pauseLabel') || 'Pause');
+        cachePlayTimer = setInterval(function() {
+          cacheCurrentStep++;
+          cacheDrawFrame();
+          if (cacheCurrentStep >= CACHE_TOTAL_STEPS) {
+            clearInterval(cachePlayTimer);
+            cachePlaying = false;
+            btn.innerHTML = '&#9654; ' + (t('p04.s4.playLabel') || 'Play');
+          }
+        }, 400);
+      }
+    }
+
+    function cacheReset() {
+      clearInterval(cachePlayTimer);
+      cachePlaying = false;
+      cacheCurrentStep = 0;
+      var btn = document.getElementById('cachePlayBtn');
+      btn.innerHTML = '&#9654; ' + (t('p04.s4.playLabel') || 'Play');
+      cacheDrawFrame();
+    }
+
+    // Initial draw
+    window.addEventListener('load', function() { setTimeout(cacheDrawFrame, 100); });
+    window.addEventListener('themechange', cacheDrawFrame);
+    window.addEventListener('resize', cacheDrawFrame);
 
     // ==================== Section 5: Gauge Animation ==================== //
     let gaugeAnimated = false;
@@ -885,7 +921,12 @@
       'p04.s3.with.li4': 'Trades memory for massive compute savings',
       'p04.s4.heading': '<span class="badge badge-purple">Visualization</span> KV Cache Growth During Decode',
       'p04.s4.desc': 'Each decode step appends one new token\'s Key and Value vectors to the cache. Watch the memory footprint grow linearly with each generated token.',
-      'p04.s4.playBtn': '&#9654; Play Cache Growth',
+      'p04.s4.playBtn': '&#9654; Play',
+      'p04.s4.stepBtn': '+1 Step',
+      'p04.s4.stepLabel': 'Step:',
+      'p04.s4.initInfo': 'Press Step or Play to visualize cache growth',
+      'p04.s4.playLabel': 'Play',
+      'p04.s4.pauseLabel': 'Pause',
       'p04.s5.heading': '<span class="badge badge-red">Analysis</span> Compute vs Memory Bandwidth',
       'p04.s5.desc': 'Prefill and decode have opposite bottlenecks. Prefill saturates GPU compute with large matrix operations. Decode is starved for data, spending most time reading weights and cache from HBM.',
       'p04.s5.prefillLabel': 'Prefill Phase',
@@ -944,7 +985,12 @@
       'p04.s3.with.li4': '用内存换取大量计算节省',
       'p04.s4.heading': '<span class="badge badge-purple">可视化</span> 解码过程中的 KV Cache 增长',
       'p04.s4.desc': '每个解码步骤将一个新 token 的 Key 和 Value 向量追加到缓存。观察内存占用随每个生成的 token 线性增长。',
-      'p04.s4.playBtn': '&#9654; 播放缓存增长',
+      'p04.s4.playBtn': '&#9654; 播放',
+      'p04.s4.stepBtn': '+1 步',
+      'p04.s4.stepLabel': '步骤：',
+      'p04.s4.initInfo': '点击"单步"或"播放"可视化缓存增长',
+      'p04.s4.playLabel': '播放',
+      'p04.s4.pauseLabel': '暂停',
       'p04.s5.heading': '<span class="badge badge-red">分析</span> 计算 vs 内存带宽',
       'p04.s5.desc': '预填充和解码具有相反的瓶颈。预填充以大规模矩阵运算使 GPU 计算饱和。解码则缺少数据，大部分时间用于从 HBM 读取权重和缓存。',
       'p04.s5.prefillLabel': '预填充阶段',
@@ -1003,7 +1049,12 @@
       'p04.s3.with.li4': '用記憶體換取大量計算節省',
       'p04.s4.heading': '<span class="badge badge-purple">視覺化</span> 解碼過程中的 KV Cache 成長',
       'p04.s4.desc': '每個解碼步驟將一個新 token 的 Key 和 Value 向量追加到快取。觀察記憶體佔用隨每個生成的 token 線性成長。',
-      'p04.s4.playBtn': '&#9654; 播放快取成長',
+      'p04.s4.playBtn': '&#9654; 播放',
+      'p04.s4.stepBtn': '+1 步',
+      'p04.s4.stepLabel': '步驟：',
+      'p04.s4.initInfo': '點擊「單步」或「播放」視覺化快取成長',
+      'p04.s4.playLabel': '播放',
+      'p04.s4.pauseLabel': '暫停',
       'p04.s5.heading': '<span class="badge badge-red">分析</span> 計算 vs 記憶體頻寬',
       'p04.s5.desc': '預填充和解碼具有相反的瓶頸。預填充以大規模矩陣運算使 GPU 計算飽和。解碼則缺少資料，大部分時間用於從 HBM 讀取權重和快取。',
       'p04.s5.prefillLabel': '預填充階段',
