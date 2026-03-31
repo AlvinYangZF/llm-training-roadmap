@@ -317,6 +317,71 @@
       </div>
     </div>
 
+    <!-- ==================== TTFT & TBT Explainer ==================== -->
+    <div class="card">
+      <h2 data-i18n="p04.latency.heading" data-i18n-html><span class="badge badge-green">Concepts</span> TTFT & TBT — LLM Latency Metrics</h2>
+      <p data-i18n="p04.latency.desc" data-i18n-html>Two key metrics define the user experience of LLM inference. Understanding <strong>how they are computed</strong> helps you estimate performance and identify bottlenecks.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0">
+        <div style="background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <h3 style="color:var(--accent);margin-top:0" data-i18n="p04.latency.ttft.title">TTFT — Time To First Token</h3>
+          <p style="font-size:0.88rem;color:var(--text-dim)" data-i18n="p04.latency.ttft.desc">The time from sending the request to receiving the first generated token. Dominated by the prefill phase.</p>
+          <div class="formula-box" style="font-size:0.85rem">
+            TTFT &asymp; T<sub>prefill</sub> = <span style="color:var(--accent)">n<sub>prompt</sub></span> &times; <span style="color:var(--accent2)">C<sub>per_token</sub></span> / <span style="color:var(--accent3)">GPU<sub>FLOPS</sub></span>
+          </div>
+          <div style="font-size:0.82rem;margin-top:12px;color:var(--text-dim);line-height:1.7" data-i18n="p04.latency.ttft.factors" data-i18n-html>
+            <strong>Key factors:</strong><br>
+            &bull; <code>n_prompt</code> — Number of input tokens (longer prompt = higher TTFT)<br>
+            &bull; <code>C_per_token</code> — FLOPs per token &asymp; 2 &times; model_params (forward pass)<br>
+            &bull; <code>GPU_FLOPS</code> — GPU throughput (e.g., H100 = ~1000 TFLOPS FP16)<br>
+            &bull; Prefill is <strong>compute-bound</strong> — GPU utilization is high
+          </div>
+          <div style="background:var(--formula-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;font-family:monospace;font-size:0.78rem;line-height:1.7">
+            <div style="color:var(--accent);font-weight:700;margin-bottom:4px" data-i18n="p04.latency.ttft.example">Example: LLaMA-2 7B on A100</div>
+            <span style="color:var(--text-dim)">Prompt = 512 tokens</span><br>
+            C_per_token = 2 &times; 7B = 14 GFLOPS<br>
+            Total FLOPs = 512 &times; 14G = 7.168 TFLOPS<br>
+            A100 FP16 = ~312 TFLOPS<br>
+            <strong style="color:var(--accent2)">TTFT &asymp; 7168G / 312T &asymp; 23 ms</strong><br>
+            <span style="color:var(--text-dim)">(+ overhead: scheduling, KV write &asymp; 40-50 ms real)</span>
+          </div>
+        </div>
+
+        <div style="background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <h3 style="color:var(--accent3);margin-top:0" data-i18n="p04.latency.tbt.title">TBT — Time Between Tokens</h3>
+          <p style="font-size:0.88rem;color:var(--text-dim)" data-i18n="p04.latency.tbt.desc">The time between consecutive generated tokens during the decode phase. Determines the streaming speed perceived by users.</p>
+          <div class="formula-box" style="font-size:0.85rem">
+            TBT &asymp; T<sub>decode</sub> = <span style="color:var(--accent)">W<sub>model</sub></span> / <span style="color:var(--accent3)">BW<sub>memory</sub></span>
+          </div>
+          <div style="font-size:0.82rem;margin-top:12px;color:var(--text-dim);line-height:1.7" data-i18n="p04.latency.tbt.factors" data-i18n-html>
+            <strong>Key factors:</strong><br>
+            &bull; <code>W_model</code> — Model weight size in bytes (must read all weights per token)<br>
+            &bull; <code>BW_memory</code> — GPU HBM bandwidth (e.g., A100 = 2 TB/s)<br>
+            &bull; + KV cache read overhead grows with sequence length<br>
+            &bull; Decode is <strong>memory-bound</strong> — GPU compute is mostly idle
+          </div>
+          <div style="background:var(--formula-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;font-family:monospace;font-size:0.78rem;line-height:1.7">
+            <div style="color:var(--accent3);font-weight:700;margin-bottom:4px" data-i18n="p04.latency.tbt.example">Example: LLaMA-2 7B on A100</div>
+            <span style="color:var(--text-dim)">FP16 weights = 7B &times; 2 bytes = 14 GB</span><br>
+            A100 HBM BW = 2.0 TB/s<br>
+            <strong style="color:var(--accent2)">TBT &asymp; 14 GB / 2.0 TB/s &asymp; 7 ms</strong><br>
+            <span style="color:var(--text-dim)">(+ KV cache read + softmax &asymp; 10-15 ms real)</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:8px">
+        <div style="font-weight:700;margin-bottom:8px" data-i18n="p04.latency.total.title">Total Generation Latency</div>
+        <div class="formula-box" style="font-size:0.9rem;margin:8px 0">
+          T<sub>total</sub> = <span style="color:var(--accent)">TTFT</span> + (<span style="color:var(--accent3)">n<sub>output</sub></span> &minus; 1) &times; <span style="color:var(--accent3)">TBT</span>
+        </div>
+        <div style="font-family:monospace;font-size:0.82rem;color:var(--text-dim);line-height:1.7" data-i18n="p04.latency.total.example" data-i18n-html>
+          <strong>Example:</strong> Generate 200 tokens with TTFT=45ms, TBT=12ms<br>
+          T<sub>total</sub> = 45 + (200 &minus; 1) &times; 12 = 45 + 2388 = <strong style="color:var(--accent2)">2433 ms &asymp; 2.4s</strong> &nbsp; (83 tokens/sec)
+        </div>
+      </div>
+    </div>
+
     <!-- ==================== Game 1: Latency Estimator ==================== -->
     <div class="card">
       <h2 data-i18n="p04.g1.heading" data-i18n-html><span class="badge badge-red">Game</span> Latency Estimator Challenge</h2>
@@ -938,6 +1003,20 @@
       'p04.s5.prefillExplain': 'Large batch of tokens = massive matrix multiplications that keep all GPU cores busy. Memory reads are amortized across many tokens.',
       'p04.s5.decodeExplain': 'Single token per step = tiny matrix-vector products. GPU spends most time waiting to load model weights and KV cache from HBM.',
       'p04.s5.animBtn': '&#9654; Animate Gauges',
+      // Latency Explainer
+      'p04.latency.heading': '<span class="badge badge-green">Concepts</span> TTFT & TBT — LLM Latency Metrics',
+      'p04.latency.desc': 'Two key metrics define the user experience of LLM inference. Understanding <strong>how they are computed</strong> helps you estimate performance and identify bottlenecks.',
+      'p04.latency.ttft.title': 'TTFT — Time To First Token',
+      'p04.latency.ttft.desc': 'The time from sending the request to receiving the first generated token. Dominated by the prefill phase.',
+      'p04.latency.ttft.factors': '<strong>Key factors:</strong><br>&bull; <code>n_prompt</code> — Number of input tokens (longer prompt = higher TTFT)<br>&bull; <code>C_per_token</code> — FLOPs per token ≈ 2 × model_params (forward pass)<br>&bull; <code>GPU_FLOPS</code> — GPU throughput (e.g., H100 ≈ ~1000 TFLOPS FP16)<br>&bull; Prefill is <strong>compute-bound</strong> — GPU utilization is high',
+      'p04.latency.ttft.example': 'Example: LLaMA-2 7B on A100',
+      'p04.latency.tbt.title': 'TBT — Time Between Tokens',
+      'p04.latency.tbt.desc': 'The time between consecutive generated tokens during the decode phase. Determines the streaming speed perceived by users.',
+      'p04.latency.tbt.factors': '<strong>Key factors:</strong><br>&bull; <code>W_model</code> — Model weight size in bytes (must read all weights per token)<br>&bull; <code>BW_memory</code> — GPU HBM bandwidth (e.g., A100 = 2 TB/s)<br>&bull; + KV cache read overhead grows with sequence length<br>&bull; Decode is <strong>memory-bound</strong> — GPU compute is mostly idle',
+      'p04.latency.tbt.example': 'Example: LLaMA-2 7B on A100',
+      'p04.latency.total.title': 'Total Generation Latency',
+      'p04.latency.total.example': '<strong>Example:</strong> Generate 200 tokens with TTFT=45ms, TBT=12ms<br>T<sub>total</sub> = 45 + (200 − 1) × 12 = 45 + 2388 = <strong style="color:var(--accent2)">2433 ms ≈ 2.4s</strong> &nbsp; (83 tokens/sec)',
+      // Game 1
       'p04.g1.heading': '<span class="badge badge-red">Game</span> Latency Estimator Challenge',
       'p04.g1.desc': 'Can you estimate the Time-To-First-Token (TTFT) and Time-Between-Tokens (TBT) for different model+GPU combos? Enter your guesses in milliseconds.',
       'p04.g1.score': 'Score',
@@ -1002,6 +1081,20 @@
       'p04.s5.prefillExplain': '大批量 token = 大规模矩阵乘法，让所有 GPU 核心保持忙碌。内存读取在多个 token 间摊销。',
       'p04.s5.decodeExplain': '每步单个 token = 微小的矩阵向量乘积。GPU 大部分时间在等待从 HBM 加载模型权重和 KV cache。',
       'p04.s5.animBtn': '&#9654; 播放动画',
+      // 延迟概念
+      'p04.latency.heading': '<span class="badge badge-green">概念</span> TTFT 与 TBT — LLM 延迟指标',
+      'p04.latency.desc': '两个关键指标定义了 LLM 推理的用户体验。理解<strong>它们如何计算</strong>能帮助你估算性能并识别瓶颈。',
+      'p04.latency.ttft.title': 'TTFT — 首 Token 时间',
+      'p04.latency.ttft.desc': '从发送请求到收到第一个生成 token 的时间。主要由预填充阶段决定。',
+      'p04.latency.ttft.factors': '<strong>关键因素：</strong><br>&bull; <code>n_prompt</code> — 输入 token 数量（提示越长 = TTFT 越高）<br>&bull; <code>C_per_token</code> — 每 token 浮点运算量 ≈ 2 × 模型参数量（前向传播）<br>&bull; <code>GPU_FLOPS</code> — GPU 吞吐量（如 H100 ≈ ~1000 TFLOPS FP16）<br>&bull; 预填充是<strong>计算密集型</strong> — GPU 利用率高',
+      'p04.latency.ttft.example': '示例：LLaMA-2 7B 在 A100 上',
+      'p04.latency.tbt.title': 'TBT — Token 间隔时间',
+      'p04.latency.tbt.desc': '解码阶段连续生成 token 之间的时间间隔。决定了用户感知的流式速度。',
+      'p04.latency.tbt.factors': '<strong>关键因素：</strong><br>&bull; <code>W_model</code> — 模型权重大小（每个 token 需读取全部权重）<br>&bull; <code>BW_memory</code> — GPU HBM 带宽（如 A100 = 2 TB/s）<br>&bull; + KV cache 读取开销随序列长度增长<br>&bull; 解码是<strong>内存密集型</strong> — GPU 计算大部分闲置',
+      'p04.latency.tbt.example': '示例：LLaMA-2 7B 在 A100 上',
+      'p04.latency.total.title': '总生成延迟',
+      'p04.latency.total.example': '<strong>示例：</strong>生成 200 个 token，TTFT=45ms，TBT=12ms<br>T<sub>total</sub> = 45 + (200 − 1) × 12 = 45 + 2388 = <strong style="color:var(--accent2)">2433 ms ≈ 2.4 秒</strong> &nbsp; (83 tokens/秒)',
+      // 游戏 1
       'p04.g1.heading': '<span class="badge badge-red">游戏</span> 延迟估算挑战',
       'p04.g1.desc': '你能估算不同模型+GPU 组合的首 Token 时间（TTFT）和 Token 间隔时间（TBT）吗？请以毫秒为单位输入你的猜测。',
       'p04.g1.score': '得分',
@@ -1066,6 +1159,20 @@
       'p04.s5.prefillExplain': '大批量 token = 大規模矩陣乘法，讓所有 GPU 核心保持忙碌。記憶體讀取在多個 token 間攤銷。',
       'p04.s5.decodeExplain': '每步單個 token = 微小的矩陣向量乘積。GPU 大部分時間在等待從 HBM 載入模型權重和 KV cache。',
       'p04.s5.animBtn': '&#9654; 播放動畫',
+      // 延遲概念
+      'p04.latency.heading': '<span class="badge badge-green">概念</span> TTFT 與 TBT — LLM 延遲指標',
+      'p04.latency.desc': '兩個關鍵指標定義了 LLM 推理的使用者體驗。理解<strong>它們如何計算</strong>能幫助你估算效能並識別瓶頸。',
+      'p04.latency.ttft.title': 'TTFT — 首 Token 時間',
+      'p04.latency.ttft.desc': '從發送請求到收到第一個生成 token 的時間。主要由預填充階段決定。',
+      'p04.latency.ttft.factors': '<strong>關鍵因素：</strong><br>&bull; <code>n_prompt</code> — 輸入 token 數量（提示越長 = TTFT 越高）<br>&bull; <code>C_per_token</code> — 每 token 浮點運算量 ≈ 2 × 模型參數量（前向傳播）<br>&bull; <code>GPU_FLOPS</code> — GPU 吞吐量（如 H100 ≈ ~1000 TFLOPS FP16）<br>&bull; 預填充是<strong>計算密集型</strong> — GPU 利用率高',
+      'p04.latency.ttft.example': '範例：LLaMA-2 7B 在 A100 上',
+      'p04.latency.tbt.title': 'TBT — Token 間隔時間',
+      'p04.latency.tbt.desc': '解碼階段連續生成 token 之間的時間間隔。決定了使用者感知的串流速度。',
+      'p04.latency.tbt.factors': '<strong>關鍵因素：</strong><br>&bull; <code>W_model</code> — 模型權重大小（每個 token 需讀取全部權重）<br>&bull; <code>BW_memory</code> — GPU HBM 頻寬（如 A100 = 2 TB/s）<br>&bull; + KV cache 讀取開銷隨序列長度成長<br>&bull; 解碼是<strong>記憶體密集型</strong> — GPU 計算大部分閒置',
+      'p04.latency.tbt.example': '範例：LLaMA-2 7B 在 A100 上',
+      'p04.latency.total.title': '總生成延遲',
+      'p04.latency.total.example': '<strong>範例：</strong>生成 200 個 token，TTFT=45ms，TBT=12ms<br>T<sub>total</sub> = 45 + (200 − 1) × 12 = 45 + 2388 = <strong style="color:var(--accent2)">2433 ms ≈ 2.4 秒</strong> &nbsp; (83 tokens/秒)',
+      // 遊戲 1
       'p04.g1.heading': '<span class="badge badge-red">遊戲</span> 延遲估算挑戰',
       'p04.g1.desc': '你能估算不同模型+GPU 組合的首 Token 時間（TTFT）和 Token 間隔時間（TBT）嗎？請以毫秒為單位輸入你的猜測。',
       'p04.g1.score': '得分',
