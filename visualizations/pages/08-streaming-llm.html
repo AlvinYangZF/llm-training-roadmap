@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>08. StreamingLLM — LLM Algorithm Visualizations</title>
+  <title data-i18n="p08.title">08. StreamingLLM — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
   <style>
     /* ===== Four Methods Grid ===== */
@@ -31,7 +31,7 @@
     }
     .method-card .method-stats span {
       display: inline-block;
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       padding: 2px 10px;
       border-radius: 6px;
       margin: 2px 4px 2px 0;
@@ -56,7 +56,7 @@
       height: 320px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
 
     /* ===== Streaming Canvas ===== */
@@ -65,7 +65,7 @@
       height: 260px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
 
     /* ===== Perplexity Chart ===== */
@@ -74,7 +74,7 @@
       height: 340px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
 
     /* ===== Position Re-mapping ===== */
@@ -157,9 +157,9 @@
 </head>
 <body>
   <header>
-    <h1>StreamingLLM</h1>
-    <p>Attention Sinks — Enabling Infinite-Length Streaming with Constant Memory</p>
-    <div class="breadcrumb"><a href="../index.html">Home</a> / StreamingLLM</div>
+    <h1 data-i18n="p08.heading">StreamingLLM</h1>
+    <p data-i18n="p08.subtitle">Attention Sinks — Enabling Infinite-Length Streaming with Constant Memory</p>
+    <div class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p08.breadcrumb">StreamingLLM</span></div>
   </header>
 
   <div class="container">
@@ -168,60 +168,60 @@
     <!-- Section 1: Four Methods Comparison                           -->
     <!-- ============================================================ -->
     <div class="card">
-      <h2><span class="badge badge-purple">Compare</span> Four KV Cache Strategies</h2>
-      <p>StreamingLLM was proposed at ICLR 2024. The key discovery: LLMs allocate anomalously high attention to initial tokens (attention sinks). These aren't semantically important — they are a softmax artifact. By keeping sink tokens plus a recent window, we get O(L) constant memory for infinite streaming.</p>
+      <h2 data-i18n="p08.s1.heading" data-i18n-html><span class="badge badge-purple">Compare</span> Four KV Cache Strategies</h2>
+      <p data-i18n="p08.s1.desc">StreamingLLM was proposed at ICLR 2024. The key discovery: LLMs allocate anomalously high attention to initial tokens (attention sinks). These aren't semantically important — they are a softmax artifact. By keeping sink tokens plus a recent window, we get O(L) constant memory for infinite streaming.</p>
 
       <div class="methods-grid">
         <!-- Dense -->
         <div class="method-card method-dense">
           <div class="method-icon">&#x1F7E3;</div>
-          <h3>Dense Attention</h3>
-          <p style="font-size:0.88rem; color:var(--text-dim);">Full N x N attention over all tokens. Gold-standard quality but memory grows without bound.</p>
+          <h3 data-i18n="p08.s1.dense.title">Dense Attention</h3>
+          <p style="font-size:0.88rem; color:var(--text-dim);" data-i18n="p08.s1.dense.desc">Full N x N attention over all tokens. Gold-standard quality but memory grows without bound.</p>
           <div class="method-stats">
             <span>Memory: O(N<sup>2</sup>)</span>
             <span>Compute: O(N<sup>2</sup>)</span>
             <span>Quality: Perfect</span>
           </div>
-          <div class="method-verdict verdict-fail">&#x2718; OOM on long sequences</div>
+          <div class="method-verdict verdict-fail" data-i18n="p08.s1.dense.verdict" data-i18n-html>&#x2718; OOM on long sequences</div>
         </div>
 
         <!-- Window -->
         <div class="method-card method-window">
           <div class="method-icon">&#x1F7E0;</div>
-          <h3>Window Attention</h3>
-          <p style="font-size:0.88rem; color:var(--text-dim);">Keep only the last W tokens in the KV cache. Fixed memory, but quality collapses when context exceeds window.</p>
+          <h3 data-i18n="p08.s1.window.title">Window Attention</h3>
+          <p style="font-size:0.88rem; color:var(--text-dim);" data-i18n="p08.s1.window.desc">Keep only the last W tokens in the KV cache. Fixed memory, but quality collapses when context exceeds window.</p>
           <div class="method-stats">
             <span>Memory: O(W)</span>
             <span>Compute: O(W)</span>
             <span>Quality: Collapses</span>
           </div>
-          <div class="method-verdict verdict-fail">&#x2718; Perplexity spikes at boundary</div>
+          <div class="method-verdict verdict-fail" data-i18n="p08.s1.window.verdict" data-i18n-html>&#x2718; Perplexity spikes at boundary</div>
         </div>
 
         <!-- Sliding + Recompute -->
         <div class="method-card method-sliding">
           <div class="method-icon">&#x1F534;</div>
-          <h3>Sliding + Recompute</h3>
-          <p style="font-size:0.88rem; color:var(--text-dim);">Re-encode the last W tokens from scratch each step. Correct quality but compute cost is prohibitive.</p>
+          <h3 data-i18n="p08.s1.sliding.title">Sliding + Recompute</h3>
+          <p style="font-size:0.88rem; color:var(--text-dim);" data-i18n="p08.s1.sliding.desc">Re-encode the last W tokens from scratch each step. Correct quality but compute cost is prohibitive.</p>
           <div class="method-stats">
             <span>Memory: O(W)</span>
             <span>Compute: O(T &times; W)</span>
             <span>Quality: Correct</span>
           </div>
-          <div class="method-verdict verdict-fail">&#x2718; Too slow for streaming</div>
+          <div class="method-verdict verdict-fail" data-i18n="p08.s1.sliding.verdict" data-i18n-html>&#x2718; Too slow for streaming</div>
         </div>
 
         <!-- StreamingLLM -->
         <div class="method-card method-streaming">
           <div class="method-icon">&#x1F7E2;</div>
-          <h3>StreamingLLM</h3>
-          <p style="font-size:0.88rem; color:var(--text-dim);">Keep 4 sink tokens + last W tokens. Constant memory, constant per-step compute, stable quality forever.</p>
+          <h3 data-i18n="p08.s1.streaming.title">StreamingLLM</h3>
+          <p style="font-size:0.88rem; color:var(--text-dim);" data-i18n="p08.s1.streaming.desc">Keep 4 sink tokens + last W tokens. Constant memory, constant per-step compute, stable quality forever.</p>
           <div class="method-stats">
             <span>Memory: O(W + 4)</span>
             <span>Compute: O(W + 4)</span>
             <span>Quality: Stable</span>
           </div>
-          <div class="method-verdict verdict-pass">&#x2714; Infinite streaming with constant memory</div>
+          <div class="method-verdict verdict-pass" data-i18n="p08.s1.streaming.verdict" data-i18n-html>&#x2714; Infinite streaming with constant memory</div>
         </div>
       </div>
     </div>
@@ -230,25 +230,25 @@
     <!-- Section 2: Attention Sink Discovery                          -->
     <!-- ============================================================ -->
     <div class="card">
-      <h2><span class="badge badge-red">Discovery</span> Attention Sink Phenomenon</h2>
-      <p>Across all layers, initial tokens receive disproportionately high attention — even though they carry no special semantic meaning. This is a <strong>softmax artifact</strong>: softmax must distribute probability mass somewhere, and initial tokens become default "sinks" for unused attention.</p>
+      <h2 data-i18n="p08.s2.heading" data-i18n-html><span class="badge badge-red">Discovery</span> Attention Sink Phenomenon</h2>
+      <p data-i18n="p08.s2.desc" data-i18n-html>Across all layers, initial tokens receive disproportionately high attention — even though they carry no special semantic meaning. This is a <strong>softmax artifact</strong>: softmax must distribute probability mass somewhere, and initial tokens become default "sinks" for unused attention.</p>
 
       <canvas id="heatmapCanvas" class="heatmap-canvas"></canvas>
-      <p class="dim-note">Attention heatmaps for layers 1, 6, 12, and 24. Column 0 (first token) is consistently bright across ALL layers.</p>
+      <p class="dim-note" data-i18n="p08.s2.note">Attention heatmaps for layers 1, 6, 12, and 24. Column 0 (first token) is consistently bright across ALL layers.</p>
     </div>
 
     <!-- ============================================================ -->
     <!-- Section 3: Streaming Window Animation                        -->
     <!-- ============================================================ -->
     <div class="card">
-      <h2><span class="badge badge-green">Animation</span> Streaming KV Cache Window</h2>
-      <p>The KV cache holds exactly <strong>4 sink tokens</strong> (always the first 4) plus a <strong>sliding window of W recent tokens</strong>. As new tokens arrive, the oldest token in the recent window is evicted — but sinks are never touched.</p>
+      <h2 data-i18n="p08.s3.heading" data-i18n-html><span class="badge badge-green">Animation</span> Streaming KV Cache Window</h2>
+      <p data-i18n="p08.s3.desc" data-i18n-html>The KV cache holds exactly <strong>4 sink tokens</strong> (always the first 4) plus a <strong>sliding window of W recent tokens</strong>. As new tokens arrive, the oldest token in the recent window is evicted — but sinks are never touched.</p>
 
       <canvas id="streamCanvas" class="stream-canvas"></canvas>
       <div class="window-status" id="windowStatus">Sinks [0-3] + Recent [4 ... 11]</div>
       <div class="anim-controls">
-        <button class="btn btn-accent" id="playStreamBtn" onclick="startStream()">Play Stream</button>
-        <button class="btn btn-surface" onclick="resetStream()" style="margin-left:8px;">Reset</button>
+        <button class="btn btn-accent" id="playStreamBtn" onclick="startStream()" data-i18n="p08.s3.btnPlay">Play Stream</button>
+        <button class="btn btn-surface" onclick="resetStream()" style="margin-left:8px;" data-i18n="btn.reset">Reset</button>
       </div>
     </div>
 
@@ -256,12 +256,12 @@
     <!-- Section 4: Perplexity Stability Chart                        -->
     <!-- ============================================================ -->
     <div class="card">
-      <h2><span class="badge badge-orange">Performance</span> Perplexity Across Sequence Length</h2>
-      <p>Dense attention works until it runs out of memory. Window attention holds steady within its window, then <strong>perplexity spikes catastrophically</strong> when context overflows. StreamingLLM remains <strong>flat and stable</strong> throughout.</p>
+      <h2 data-i18n="p08.s4.heading" data-i18n-html><span class="badge badge-orange">Performance</span> Perplexity Across Sequence Length</h2>
+      <p data-i18n="p08.s4.desc" data-i18n-html>Dense attention works until it runs out of memory. Window attention holds steady within its window, then <strong>perplexity spikes catastrophically</strong> when context overflows. StreamingLLM remains <strong>flat and stable</strong> throughout.</p>
 
       <canvas id="pplCanvas" class="ppl-canvas"></canvas>
       <div class="anim-controls">
-        <button class="btn btn-accent" onclick="animateChart()">Animate Chart</button>
+        <button class="btn btn-accent" onclick="animateChart()" data-i18n="p08.s4.btn">Animate Chart</button>
       </div>
       <div style="display:flex; justify-content:center; gap:24px; margin-top:14px; flex-wrap:wrap;">
         <span style="display:flex;align-items:center;gap:6px;font-size:0.85rem;"><span style="width:14px;height:14px;border-radius:3px;background:#9d7aff;display:inline-block;"></span> Dense Attention</span>
@@ -274,13 +274,13 @@
     <!-- Section 5: Position Re-mapping                               -->
     <!-- ============================================================ -->
     <div class="card">
-      <h2><span class="badge badge-purple">Detail</span> Position ID Re-mapping</h2>
-      <p>After evicting tokens from the middle of the sequence, position IDs have gaps. Since models using <strong>RoPE</strong> (Rotary Position Embedding) expect contiguous positions, we must re-map IDs to remove gaps — otherwise positional encoding breaks.</p>
+      <h2 data-i18n="p08.s5.heading" data-i18n-html><span class="badge badge-purple">Detail</span> Position ID Re-mapping</h2>
+      <p data-i18n="p08.s5.desc" data-i18n-html>After evicting tokens from the middle of the sequence, position IDs have gaps. Since models using <strong>RoPE</strong> (Rotary Position Embedding) expect contiguous positions, we must re-map IDs to remove gaps — otherwise positional encoding breaks.</p>
 
       <div class="remap-diagram">
         <!-- Before eviction -->
         <div class="remap-row">
-          <div class="remap-row-label">Before eviction:</div>
+          <div class="remap-row-label" data-i18n="p08.s5.before">Before eviction:</div>
           <div class="remap-token remap-sink">0</div>
           <div class="remap-token remap-sink">1</div>
           <div class="remap-token remap-sink">2</div>
@@ -300,7 +300,7 @@
 
         <!-- After eviction (original IDs) -->
         <div class="remap-row">
-          <div class="remap-row-label">After eviction:</div>
+          <div class="remap-row-label" data-i18n="p08.s5.after">After eviction:</div>
           <div class="remap-token remap-sink">0</div>
           <div class="remap-token remap-sink">1</div>
           <div class="remap-token remap-sink">2</div>
@@ -329,7 +329,7 @@
 
         <!-- Re-mapped -->
         <div class="remap-row">
-          <div class="remap-row-label">Re-mapped IDs:</div>
+          <div class="remap-row-label" data-i18n="p08.s5.remapped">Re-mapped IDs:</div>
           <div class="remap-token remap-sink">0</div>
           <div class="remap-token remap-sink">1</div>
           <div class="remap-token remap-sink">2</div>
@@ -343,7 +343,7 @@
         </div>
       </div>
 
-      <div class="remap-note">
+      <div class="remap-note" data-i18n="p08.s5.note" data-i18n-html>
         <strong>Why re-map?</strong> Without re-mapping, position gaps (0,1,2,3 then 15,16,...) confuse RoPE — the model expects contiguous position IDs. Re-mapping to [0..9] restores positional coherence and maintains generation quality.
       </div>
     </div>
@@ -352,39 +352,39 @@
     <!-- Formula Summary                                              -->
     <!-- ============================================================ -->
     <div class="card">
-      <h2><span class="badge badge-green">Summary</span> Key Insight</h2>
+      <h2 data-i18n="p08.s6.heading" data-i18n-html><span class="badge badge-green">Summary</span> Key Insight</h2>
       <div class="formula-box">
         <span class="s">KV Cache</span> <span class="op">=</span>
         <span class="q">Sink Tokens [0..3]</span> <span class="op">+</span>
         <span class="k">Recent Window [t-W+1 .. t]</span>
       </div>
-      <p style="text-align:center; font-size:0.92rem; color:var(--text-dim); margin-top:12px;">
+      <p style="text-align:center; font-size:0.92rem; color:var(--text-dim); margin-top:12px;" data-i18n="p08.s6.formula">
         Constant memory O(W + S) where S = 4 sink tokens, W = window size. Stable perplexity on sequences of 4M+ tokens.
       </p>
     </div>
 
     <!-- ==================== Section: Cache Strategy Advisor Game ==================== -->
     <div class="card">
-      <h2><span class="badge badge-red">Game</span> Cache Strategy Advisor</h2>
-      <p>You are an ML engineer choosing the best KV cache strategy for each deployment scenario. Pick the optimal approach from four options. 2 points per correct answer.</p>
+      <h2 data-i18n="p08.s7.heading" data-i18n-html><span class="badge badge-red">Game</span> Cache Strategy Advisor</h2>
+      <p data-i18n="p08.s7.desc">You are an ML engineer choosing the best KV cache strategy for each deployment scenario. Pick the optimal approach from four options. 2 points per correct answer.</p>
 
       <div class="game-score" id="cacheGameScore">
         <div class="game-score-item">
           <div class="score-val" id="cacheRound">1</div>
-          <div class="score-label">Round</div>
+          <div class="score-label" data-i18n="p08.s7.round">Round</div>
         </div>
         <div class="game-score-item">
           <div class="score-val" id="cacheCorrect">0</div>
-          <div class="score-label">Score</div>
+          <div class="score-label" data-i18n="p08.s7.score">Score</div>
         </div>
         <div class="game-score-item">
           <div class="score-val" id="cacheTotal">5</div>
-          <div class="score-label">Rounds</div>
+          <div class="score-label" data-i18n="p08.s7.rounds">Rounds</div>
         </div>
       </div>
 
       <div class="game-scenario" id="cacheScenario">
-        <div class="scenario-label">Deployment Scenario</div>
+        <div class="scenario-label" data-i18n="p08.s7.scenarioLabel">Deployment Scenario</div>
         <div class="scenario-value" id="cacheScenarioText"></div>
       </div>
 
@@ -393,34 +393,33 @@
       <div class="game-feedback" id="cacheFeedback"></div>
 
       <div style="text-align:center;margin-top:16px;">
-        <button class="btn btn-accent" id="cacheNextBtn" onclick="cacheNextRound()" style="display:none;">Next Round</button>
-        <button class="btn btn-surface" id="cacheResetBtn" onclick="cacheReset()" style="display:none;">Play Again</button>
+        <button class="btn btn-accent" id="cacheNextBtn" onclick="cacheNextRound()" style="display:none;" data-i18n="btn.nextRound">Next Round</button>
+        <button class="btn btn-surface" id="cacheResetBtn" onclick="cacheReset()" style="display:none;" data-i18n="btn.playAgain">Play Again</button>
       </div>
     </div>
 
   </div>
 
   <footer>
-    <p>LLM Algorithm Visualizations &mdash; StreamingLLM (ICLR 2024)</p>
+    <p data-i18n="p08.footer" data-i18n-html>LLM Algorithm Visualizations &mdash; StreamingLLM (ICLR 2024)</p>
   </footer>
 
+  <script src="../shared/theme.js"></script>
+  <script src="../shared/i18n.js"></script>
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
   <script src="../shared/progress.js"></script>
   <script>
-    // ==================== Color Constants ==================== //
-    const COL = {
-      bg:      '#0f1117',
-      surface: '#1a1d2e',
-      border:  '#2a2d3e',
-      accent:  '#6c63ff',
-      accent2: '#00c9a7',
-      accent3: '#f7768e',
-      accent4: '#ff9e64',
-      text:    '#cdd6f4',
-      textDim: '#6c7086',
-      purple:  '#9d7aff',
-    };
+    // ==================== Theme-aware Colors ==================== //
+    var COL = getColors();
+    COL.purple = '#9d7aff';
+    window.addEventListener('themechange', function() {
+      Object.assign(COL, getColors());
+      COL.purple = '#9d7aff';
+      // Redraw canvases
+      drawStreamFrame();
+      drawPPLChart(chartAnimProgress);
+    });
 
     // ==================== Section 2: Attention Heatmaps ==================== //
     (function drawHeatmaps() {
@@ -1005,5 +1004,141 @@
       cacheRenderRound();
     });
   </script>
+<script>
+i18nRegister({
+  'en': {
+    'p08.title': '08. StreamingLLM — LLM Algorithm Visualizations',
+    'p08.heading': 'StreamingLLM',
+    'p08.subtitle': 'Attention Sinks — Enabling Infinite-Length Streaming with Constant Memory',
+    'p08.breadcrumb': 'StreamingLLM',
+    'p08.s1.heading': '<span class="badge badge-purple">Compare</span> Four KV Cache Strategies',
+    'p08.s1.desc': 'StreamingLLM was proposed at ICLR 2024. The key discovery: LLMs allocate anomalously high attention to initial tokens (attention sinks). These aren\'t semantically important — they are a softmax artifact. By keeping sink tokens plus a recent window, we get O(L) constant memory for infinite streaming.',
+    'p08.s1.dense.title': 'Dense Attention',
+    'p08.s1.dense.desc': 'Full N x N attention over all tokens. Gold-standard quality but memory grows without bound.',
+    'p08.s1.dense.verdict': '&#x2718; OOM on long sequences',
+    'p08.s1.window.title': 'Window Attention',
+    'p08.s1.window.desc': 'Keep only the last W tokens in the KV cache. Fixed memory, but quality collapses when context exceeds window.',
+    'p08.s1.window.verdict': '&#x2718; Perplexity spikes at boundary',
+    'p08.s1.sliding.title': 'Sliding + Recompute',
+    'p08.s1.sliding.desc': 'Re-encode the last W tokens from scratch each step. Correct quality but compute cost is prohibitive.',
+    'p08.s1.sliding.verdict': '&#x2718; Too slow for streaming',
+    'p08.s1.streaming.title': 'StreamingLLM',
+    'p08.s1.streaming.desc': 'Keep 4 sink tokens + last W tokens. Constant memory, constant per-step compute, stable quality forever.',
+    'p08.s1.streaming.verdict': '&#x2714; Infinite streaming with constant memory',
+    'p08.s2.heading': '<span class="badge badge-red">Discovery</span> Attention Sink Phenomenon',
+    'p08.s2.desc': 'Across all layers, initial tokens receive disproportionately high attention — even though they carry no special semantic meaning. This is a <strong>softmax artifact</strong>: softmax must distribute probability mass somewhere, and initial tokens become default "sinks" for unused attention.',
+    'p08.s2.note': 'Attention heatmaps for layers 1, 6, 12, and 24. Column 0 (first token) is consistently bright across ALL layers.',
+    'p08.s3.heading': '<span class="badge badge-green">Animation</span> Streaming KV Cache Window',
+    'p08.s3.desc': 'The KV cache holds exactly <strong>4 sink tokens</strong> (always the first 4) plus a <strong>sliding window of W recent tokens</strong>. As new tokens arrive, the oldest token in the recent window is evicted — but sinks are never touched.',
+    'p08.s3.btnPlay': 'Play Stream',
+    'p08.s4.heading': '<span class="badge badge-orange">Performance</span> Perplexity Across Sequence Length',
+    'p08.s4.desc': 'Dense attention works until it runs out of memory. Window attention holds steady within its window, then <strong>perplexity spikes catastrophically</strong> when context overflows. StreamingLLM remains <strong>flat and stable</strong> throughout.',
+    'p08.s4.btn': 'Animate Chart',
+    'p08.s5.heading': '<span class="badge badge-purple">Detail</span> Position ID Re-mapping',
+    'p08.s5.desc': 'After evicting tokens from the middle of the sequence, position IDs have gaps. Since models using <strong>RoPE</strong> (Rotary Position Embedding) expect contiguous positions, we must re-map IDs to remove gaps — otherwise positional encoding breaks.',
+    'p08.s5.before': 'Before eviction:',
+    'p08.s5.after': 'After eviction:',
+    'p08.s5.remapped': 'Re-mapped IDs:',
+    'p08.s5.note': '<strong>Why re-map?</strong> Without re-mapping, position gaps (0,1,2,3 then 15,16,...) confuse RoPE — the model expects contiguous position IDs. Re-mapping to [0..9] restores positional coherence and maintains generation quality.',
+    'p08.s6.heading': '<span class="badge badge-green">Summary</span> Key Insight',
+    'p08.s6.formula': 'Constant memory O(W + S) where S = 4 sink tokens, W = window size. Stable perplexity on sequences of 4M+ tokens.',
+    'p08.s7.heading': '<span class="badge badge-red">Game</span> Cache Strategy Advisor',
+    'p08.s7.desc': 'You are an ML engineer choosing the best KV cache strategy for each deployment scenario. Pick the optimal approach from four options. 2 points per correct answer.',
+    'p08.s7.round': 'Round',
+    'p08.s7.score': 'Score',
+    'p08.s7.rounds': 'Rounds',
+    'p08.s7.scenarioLabel': 'Deployment Scenario',
+    'p08.footer': 'LLM Algorithm Visualizations &mdash; StreamingLLM (ICLR 2024)',
+  },
+  'zh-CN': {
+    'p08.title': '08. StreamingLLM — 大语言模型算法可视化',
+    'p08.heading': 'StreamingLLM',
+    'p08.subtitle': '注意力汇聚点 — 以恒定内存实现无限长度流式推理',
+    'p08.breadcrumb': 'StreamingLLM',
+    'p08.s1.heading': '<span class="badge badge-purple">对比</span> 四种 KV Cache 策略',
+    'p08.s1.desc': 'StreamingLLM 于 ICLR 2024 提出。核心发现：LLM 对初始 token 分配异常高的注意力（注意力汇聚点）。这些 token 在语义上并不重要——它们是 softmax 的副产物。通过保留汇聚 token 加上近期窗口，我们以 O(L) 恒定内存实现无限流式推理。',
+    'p08.s1.dense.title': 'Dense Attention',
+    'p08.s1.dense.desc': '对所有 token 做完整 N x N 注意力计算。质量为金标准，但内存无限增长。',
+    'p08.s1.dense.verdict': '&#x2718; 长序列时内存溢出',
+    'p08.s1.window.title': 'Window Attention',
+    'p08.s1.window.desc': '仅在 KV cache 中保留最后 W 个 token。内存固定，但上下文超出窗口时质量崩溃。',
+    'p08.s1.window.verdict': '&#x2718; 困惑度在边界处飙升',
+    'p08.s1.sliding.title': '滑动窗口 + 重新计算',
+    'p08.s1.sliding.desc': '每一步从头重新编码最后 W 个 token。质量正确，但计算代价过高。',
+    'p08.s1.sliding.verdict': '&#x2718; 对于流式推理而言太慢',
+    'p08.s1.streaming.title': 'StreamingLLM',
+    'p08.s1.streaming.desc': '保留 4 个汇聚 token + 最后 W 个 token。恒定内存，恒定每步计算量，质量永远稳定。',
+    'p08.s1.streaming.verdict': '&#x2714; 以恒定内存实现无限流式推理',
+    'p08.s2.heading': '<span class="badge badge-red">发现</span> 注意力汇聚点现象',
+    'p08.s2.desc': '在所有层中，初始 token 获得不成比例的高注意力——尽管它们不携带特殊语义意义。这是一个 <strong>softmax 副产物</strong>：softmax 必须将概率质量分配到某处，初始 token 就成为未使用注意力的默认"汇聚点"。',
+    'p08.s2.note': '第 1、6、12、24 层的注意力热力图。第 0 列（第一个 token）在所有层中始终呈高亮。',
+    'p08.s3.heading': '<span class="badge badge-green">动画</span> 流式 KV Cache 窗口',
+    'p08.s3.desc': 'KV cache 恰好保存 <strong>4 个汇聚 token</strong>（始终是前 4 个）加上一个 <strong>W 个近期 token 的滑动窗口</strong>。新 token 到达时，近期窗口中最旧的 token 被淘汰——但汇聚 token 永远不会被移除。',
+    'p08.s3.btnPlay': '播放流式动画',
+    'p08.s4.heading': '<span class="badge badge-orange">性能</span> 困惑度随序列长度变化',
+    'p08.s4.desc': 'Dense attention 在内存耗尽前正常工作。Window attention 在窗口内保持稳定，但当上下文溢出时<strong>困惑度灾难性飙升</strong>。StreamingLLM 始终保持<strong>平稳</strong>。',
+    'p08.s4.btn': '播放图表动画',
+    'p08.s5.heading': '<span class="badge badge-purple">细节</span> 位置 ID 重映射',
+    'p08.s5.desc': '从序列中间淘汰 token 后，位置 ID 出现间隔。由于使用 <strong>RoPE</strong>（旋转位置编码）的模型期望连续位置，我们必须重映射 ID 以消除间隔——否则位置编码会出错。',
+    'p08.s5.before': '淘汰前：',
+    'p08.s5.after': '淘汰后：',
+    'p08.s5.remapped': '重映射后 ID：',
+    'p08.s5.note': '<strong>为什么要重映射？</strong>如果不重映射，位置间隔（0,1,2,3 然后 15,16,...）会混淆 RoPE——模型期望连续的位置 ID。重映射到 [0..9] 可恢复位置连贯性并维持生成质量。',
+    'p08.s6.heading': '<span class="badge badge-green">总结</span> 核心洞察',
+    'p08.s6.formula': '恒定内存 O(W + S)，其中 S = 4 个汇聚 token，W = 窗口大小。在 4M+ token 的序列上困惑度保持稳定。',
+    'p08.s7.heading': '<span class="badge badge-red">游戏</span> 缓存策略顾问',
+    'p08.s7.desc': '你是一名 ML 工程师，为每个部署场景选择最佳 KV cache 策略。从四个选项中选出最优方案。每答对得 2 分。',
+    'p08.s7.round': '轮次',
+    'p08.s7.score': '得分',
+    'p08.s7.rounds': '总轮数',
+    'p08.s7.scenarioLabel': '部署场景',
+    'p08.footer': '大语言模型算法可视化 &mdash; StreamingLLM (ICLR 2024)',
+  },
+  'zh-TW': {
+    'p08.title': '08. StreamingLLM — 大語言模型演算法視覺化',
+    'p08.heading': 'StreamingLLM',
+    'p08.subtitle': '注意力匯聚點 — 以恆定記憶體實現無限長度串流推理',
+    'p08.breadcrumb': 'StreamingLLM',
+    'p08.s1.heading': '<span class="badge badge-purple">對比</span> 四種 KV Cache 策略',
+    'p08.s1.desc': 'StreamingLLM 於 ICLR 2024 提出。核心發現：LLM 對初始 token 分配異常高的注意力（注意力匯聚點）。這些 token 在語義上並不重要——它們是 softmax 的副產物。透過保留匯聚 token 加上近期視窗，我們以 O(L) 恆定記憶體實現無限串流推理。',
+    'p08.s1.dense.title': 'Dense Attention',
+    'p08.s1.dense.desc': '對所有 token 做完整 N x N 注意力計算。品質為金標準，但記憶體無限增長。',
+    'p08.s1.dense.verdict': '&#x2718; 長序列時記憶體溢出',
+    'p08.s1.window.title': 'Window Attention',
+    'p08.s1.window.desc': '僅在 KV cache 中保留最後 W 個 token。記憶體固定，但上下文超出視窗時品質崩潰。',
+    'p08.s1.window.verdict': '&#x2718; 困惑度在邊界處飆升',
+    'p08.s1.sliding.title': '滑動視窗 + 重新計算',
+    'p08.s1.sliding.desc': '每一步從頭重新編碼最後 W 個 token。品質正確，但計算代價過高。',
+    'p08.s1.sliding.verdict': '&#x2718; 對於串流推理而言太慢',
+    'p08.s1.streaming.title': 'StreamingLLM',
+    'p08.s1.streaming.desc': '保留 4 個匯聚 token + 最後 W 個 token。恆定記憶體，恆定每步計算量，品質永遠穩定。',
+    'p08.s1.streaming.verdict': '&#x2714; 以恆定記憶體實現無限串流推理',
+    'p08.s2.heading': '<span class="badge badge-red">發現</span> 注意力匯聚點現象',
+    'p08.s2.desc': '在所有層中，初始 token 獲得不成比例的高注意力——儘管它們不攜帶特殊語義意義。這是一個 <strong>softmax 副產物</strong>：softmax 必須將機率質量分配到某處，初始 token 就成為未使用注意力的預設「匯聚點」。',
+    'p08.s2.note': '第 1、6、12、24 層的注意力熱力圖。第 0 欄（第一個 token）在所有層中始終呈高亮。',
+    'p08.s3.heading': '<span class="badge badge-green">動畫</span> 串流 KV Cache 視窗',
+    'p08.s3.desc': 'KV cache 恰好儲存 <strong>4 個匯聚 token</strong>（始終是前 4 個）加上一個 <strong>W 個近期 token 的滑動視窗</strong>。新 token 到達時，近期視窗中最舊的 token 被淘汰——但匯聚 token 永遠不會被移除。',
+    'p08.s3.btnPlay': '播放串流動畫',
+    'p08.s4.heading': '<span class="badge badge-orange">效能</span> 困惑度隨序列長度變化',
+    'p08.s4.desc': 'Dense attention 在記憶體耗盡前正常運作。Window attention 在視窗內保持穩定，但當上下文溢出時<strong>困惑度災難性飆升</strong>。StreamingLLM 始終保持<strong>平穩</strong>。',
+    'p08.s4.btn': '播放圖表動畫',
+    'p08.s5.heading': '<span class="badge badge-purple">細節</span> 位置 ID 重映射',
+    'p08.s5.desc': '從序列中間淘汰 token 後，位置 ID 出現間隔。由於使用 <strong>RoPE</strong>（旋轉位置編碼）的模型期望連續位置，我們必須重映射 ID 以消除間隔——否則位置編碼會出錯。',
+    'p08.s5.before': '淘汰前：',
+    'p08.s5.after': '淘汰後：',
+    'p08.s5.remapped': '重映射後 ID：',
+    'p08.s5.note': '<strong>為什麼要重映射？</strong>如果不重映射，位置間隔（0,1,2,3 然後 15,16,...）會混淆 RoPE——模型期望連續的位置 ID。重映射到 [0..9] 可恢復位置連貫性並維持生成品質。',
+    'p08.s6.heading': '<span class="badge badge-green">總結</span> 核心洞察',
+    'p08.s6.formula': '恆定記憶體 O(W + S)，其中 S = 4 個匯聚 token，W = 視窗大小。在 4M+ token 的序列上困惑度保持穩定。',
+    'p08.s7.heading': '<span class="badge badge-red">遊戲</span> 快取策略顧問',
+    'p08.s7.desc': '你是一名 ML 工程師，為每個部署情境選擇最佳 KV cache 策略。從四個選項中選出最優方案。每答對得 2 分。',
+    'p08.s7.round': '輪次',
+    'p08.s7.score': '得分',
+    'p08.s7.rounds': '總輪數',
+    'p08.s7.scenarioLabel': '部署情境',
+    'p08.footer': '大語言模型演算法視覺化 &mdash; StreamingLLM (ICLR 2024)',
+  }
+});
+</script>
 </body>
 </html>

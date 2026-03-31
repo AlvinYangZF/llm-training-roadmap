@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>09. PD Separation — LLM Algorithm Visualizations</title>
+  <title data-i18n="p09.title">09. PD Separation — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
   <style>
     /* ===== Canvas containers ===== */
@@ -12,7 +12,7 @@
       height: 340px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .viz-canvas.tall { height: 420px; }
     .viz-canvas.short { height: 280px; }
@@ -92,7 +92,7 @@
     .slo-track {
       flex: 1;
       height: 36px;
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       border-radius: 6px;
       overflow: visible;
       position: relative;
@@ -162,7 +162,7 @@
     .metric-box {
       flex: 1;
       min-width: 160px;
-      background: rgba(0,0,0,.25);
+      background: var(--canvas-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 14px;
@@ -186,10 +186,10 @@
 
 <div class="main-content">
   <header>
-    <h1>PD Separation</h1>
-    <p>Disaggregating Prefill and Decode for Optimal GPU Utilization</p>
+    <h1 data-i18n="p09.heading">PD Separation</h1>
+    <p data-i18n="p09.subtitle">Disaggregating Prefill and Decode for Optimal GPU Utilization</p>
     <div class="breadcrumb">
-      <a href="../index.html">Home</a> / Topic 06
+      <a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p09.breadcrumb">PD Separation</span>
     </div>
   </header>
 
@@ -197,69 +197,69 @@
 
     <!-- ========== Section 1: The Interference Problem ========== -->
     <div class="card">
-      <h2><span class="badge badge-red">Problem</span> The Interference Problem</h2>
-      <p>When prefill (compute-bound) and decode (memory-bound) share the same GPU, they interfere with each other. Long prefill jobs block decode responses, causing unpredictable latency spikes.</p>
+      <h2 data-i18n="p09.s1.heading" data-i18n-html><span class="badge badge-red">Problem</span> The Interference Problem</h2>
+      <p data-i18n="p09.s1.desc">When prefill (compute-bound) and decode (memory-bound) share the same GPU, they interfere with each other. Long prefill jobs block decode responses, causing unpredictable latency spikes.</p>
       <canvas id="interferenceCanvas" class="viz-canvas" style="height:240px;"></canvas>
       <div class="legend">
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent);"></div>Prefill (compute-heavy)</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent2);"></div>Decode (memory-heavy)</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent3);"></div>Waiting / blocked</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent);"></div><span data-i18n="p09.s1.legendPrefill">Prefill (compute-heavy)</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent2);"></div><span data-i18n="p09.s1.legendDecode">Decode (memory-heavy)</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent3);"></div><span data-i18n="p09.s1.legendWaiting">Waiting / blocked</span></div>
       </div>
-      <p class="dim-note">Coupled: Prefill blocks Decode &rarr; unpredictable latency</p>
+      <p class="dim-note" data-i18n="p09.s1.note" data-i18n-html>Coupled: Prefill blocks Decode &rarr; unpredictable latency</p>
     </div>
 
     <!-- ========== Section 2: Disaggregated Architecture ========== -->
     <div class="card">
-      <h2><span class="badge badge-purple">Solution</span> Disaggregated Architecture</h2>
-      <p>Separate GPU pools are dedicated to each phase. Prefill nodes crunch prompts in parallel; decode nodes generate tokens at steady throughput. KV cache is transferred between pools.</p>
+      <h2 data-i18n="p09.s2.heading" data-i18n-html><span class="badge badge-purple">Solution</span> Disaggregated Architecture</h2>
+      <p data-i18n="p09.s2.desc">Separate GPU pools are dedicated to each phase. Prefill nodes crunch prompts in parallel; decode nodes generate tokens at steady throughput. KV cache is transferred between pools.</p>
       <canvas id="archCanvas" class="viz-canvas tall"></canvas>
       <div class="legend">
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent);"></div>Prefill GPU Pool</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent2);"></div>Decode GPU Pool</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent4);"></div>KV Cache Transfer</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent);"></div><span data-i18n="p09.s2.legendPrefill">Prefill GPU Pool</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent2);"></div><span data-i18n="p09.s2.legendDecode">Decode GPU Pool</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent4);"></div><span data-i18n="p09.s2.legendTransfer">KV Cache Transfer</span></div>
       </div>
-      <p class="dim-note">Disaggregated: Each pool optimized for its workload</p>
+      <p class="dim-note" data-i18n="p09.s2.note">Disaggregated: Each pool optimized for its workload</p>
     </div>
 
     <!-- ========== Section 3: Resource Utilization Comparison ========== -->
     <div class="card">
-      <h2><span class="badge badge-green">Efficiency</span> Resource Utilization Comparison</h2>
-      <p>In coupled mode, compute and memory bandwidth oscillate wildly. With disaggregation, each pool maintains near-peak utilization of its bottleneck resource.</p>
+      <h2 data-i18n="p09.s3.heading" data-i18n-html><span class="badge badge-green">Efficiency</span> Resource Utilization Comparison</h2>
+      <p data-i18n="p09.s3.desc">In coupled mode, compute and memory bandwidth oscillate wildly. With disaggregation, each pool maintains near-peak utilization of its bottleneck resource.</p>
       <canvas id="utilizationCanvas" class="viz-canvas tall"></canvas>
       <div class="legend">
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent);"></div>Compute utilization</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent2);"></div>Memory bandwidth</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,255,255,.08);"></div>Idle</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent);"></div><span data-i18n="p09.s3.legendCompute">Compute utilization</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--accent2);"></div><span data-i18n="p09.s3.legendMemory">Memory bandwidth</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,255,255,.08);"></div><span data-i18n="p09.s3.legendIdle">Idle</span></div>
       </div>
       <div class="anim-controls">
-        <button class="btn btn-accent" id="btnAnimate" onclick="playUtilization()">Animate</button>
+        <button class="btn btn-accent" id="btnAnimate" onclick="playUtilization()" data-i18n="btn.animate">Animate</button>
       </div>
     </div>
 
     <!-- ========== Section 4: KV Cache Transfer ========== -->
     <div class="card">
-      <h2><span class="badge badge-orange">Transfer</span> KV Cache Transfer</h2>
-      <p>After prefill completes, the KV cache must be transferred to a decode node. With RDMA, this is fast enough to be negligible relative to total latency.</p>
+      <h2 data-i18n="p09.s4.heading" data-i18n-html><span class="badge badge-orange">Transfer</span> KV Cache Transfer</h2>
+      <p data-i18n="p09.s4.desc">After prefill completes, the KV cache must be transferred to a decode node. With RDMA, this is fast enough to be negligible relative to total latency.</p>
       <div class="transfer-steps" id="transferSteps">
-        <div class="transfer-step" id="ts1">1. Prefill processes prompt</div>
+        <div class="transfer-step" id="ts1" data-i18n="p09.s4.step1">1. Prefill processes prompt</div>
         <div class="transfer-arrow">&rarr;</div>
-        <div class="transfer-step" id="ts2">2. KV cache transfers</div>
+        <div class="transfer-step" id="ts2" data-i18n="p09.s4.step2">2. KV cache transfers</div>
         <div class="transfer-arrow">&rarr;</div>
-        <div class="transfer-step" id="ts3">3. Decode generates tokens</div>
+        <div class="transfer-step" id="ts3" data-i18n="p09.s4.step3">3. Decode generates tokens</div>
       </div>
       <canvas id="transferCanvas" class="viz-canvas" style="height:300px;"></canvas>
       <div class="formula-box">
         KV Cache for <span class="q">2K prompt</span> &asymp; <span class="v">800 MB</span> &rarr; Transfer time: <span class="s">&sim;5 ms</span> via RDMA
       </div>
       <div class="anim-controls">
-        <button class="btn btn-accent" id="btnTransfer" onclick="playTransfer()">Play Transfer</button>
+        <button class="btn btn-accent" id="btnTransfer" onclick="playTransfer()" data-i18n="p09.s4.btn">Play Transfer</button>
       </div>
     </div>
 
     <!-- ========== Section 5: SLO Impact ========== -->
     <div class="card">
-      <h2><span class="badge badge-green">Impact</span> SLO (Service Level Objective) Impact</h2>
-      <p>Disaggregation dramatically reduces latency variance. Coupled systems frequently violate SLO targets, while separated architectures deliver consistent performance.</p>
+      <h2 data-i18n="p09.s5.heading" data-i18n-html><span class="badge badge-green">Impact</span> SLO (Service Level Objective) Impact</h2>
+      <p data-i18n="p09.s5.desc">Disaggregation dramatically reduces latency variance. Coupled systems frequently violate SLO targets, while separated architectures deliver consistent performance.</p>
 
       <div class="slo-group">
         <h3 style="color:var(--accent);">TTFT (Time To First Token)</h3>
@@ -308,42 +308,42 @@
       <div class="metric-row">
         <div class="metric-box bad">
           <div class="val">~35%</div>
-          <div class="lbl">Coupled SLO violation rate</div>
+          <div class="lbl" data-i18n="p09.s5.metricCoupled">Coupled SLO violation rate</div>
         </div>
         <div class="metric-box good">
           <div class="val">&lt;2%</div>
-          <div class="lbl">Separated SLO violation rate</div>
+          <div class="lbl" data-i18n="p09.s5.metricSeparated">Separated SLO violation rate</div>
         </div>
         <div class="metric-box good">
           <div class="val">~1.6x</div>
-          <div class="lbl">Throughput improvement</div>
+          <div class="lbl" data-i18n="p09.s5.metricThroughput">Throughput improvement</div>
         </div>
       </div>
 
       <div class="anim-controls" style="margin-top:16px;">
-        <button class="btn btn-accent" id="btnSLO" onclick="playSLO()">Animate SLO</button>
+        <button class="btn btn-accent" id="btnSLO" onclick="playSLO()" data-i18n="p09.s5.btn">Animate SLO</button>
       </div>
     </div>
 
     <!-- ==================== GPU Pool Optimizer Game ==================== -->
     <div class="card">
-      <h2><span class="badge badge-red">Game</span> GPU Pool Optimizer</h2>
-      <p>You have <strong>8 GPUs</strong> total. Allocate them between Prefill and Decode pools to optimize for different workload profiles. How well can you match the optimal split?</p>
+      <h2 data-i18n="p09.s6.heading" data-i18n-html><span class="badge badge-red">Game</span> GPU Pool Optimizer</h2>
+      <p data-i18n="p09.s6.desc" data-i18n-html>You have <strong>8 GPUs</strong> total. Allocate them between Prefill and Decode pools to optimize for different workload profiles. How well can you match the optimal split?</p>
 
       <div class="game-score" id="gpuGameScore">
-        <div class="game-score-item"><div class="score-val" id="gpuScore">0</div><div class="score-label">Score</div></div>
-        <div class="game-score-item"><div class="score-val" id="gpuRound">0 / 4</div><div class="score-label">Round</div></div>
+        <div class="game-score-item"><div class="score-val" id="gpuScore">0</div><div class="score-label" data-i18n="p09.s6.score">Score</div></div>
+        <div class="game-score-item"><div class="score-val" id="gpuRound">0 / 4</div><div class="score-label" data-i18n="p09.s6.round">Round</div></div>
       </div>
 
       <div class="game-scenario" id="gpuScenario" style="display:none;">
-        <div class="scenario-label">Workload Profile</div>
+        <div class="scenario-label" data-i18n="p09.s6.workloadLabel">Workload Profile</div>
         <div class="scenario-value" id="gpuWorkload"></div>
         <div id="gpuWorkloadHint" style="font-size:0.85rem;color:var(--text-dim);margin-top:8px;"></div>
       </div>
 
       <div id="gpuInputArea" style="display:none;margin:20px 0;">
         <div class="slider-group">
-          <label>Prefill GPUs</label>
+          <label data-i18n="p09.s6.prefillGpus">Prefill GPUs</label>
           <input type="range" min="1" max="7" value="4" id="gpuSlider" oninput="updateGpuDisplay()">
           <span class="slider-val" id="gpuPrefill">4</span>
         </div>
@@ -372,14 +372,14 @@
         </div>
 
         <div class="anim-controls">
-          <button class="btn btn-accent" onclick="submitGpuAllocation()" id="gpuSubmitBtn">Lock In Allocation</button>
+          <button class="btn btn-accent" onclick="submitGpuAllocation()" id="gpuSubmitBtn" data-i18n="p09.s6.lockIn">Lock In Allocation</button>
         </div>
       </div>
 
-      <div class="game-feedback" id="gpuFeedback">Press Start to begin!</div>
+      <div class="game-feedback" id="gpuFeedback" data-i18n="p09.s6.feedback">Press Start to begin!</div>
 
       <div class="anim-controls">
-        <button class="btn btn-accent" onclick="startGpuGame()" id="gpuStartBtn">Start Game</button>
+        <button class="btn btn-accent" onclick="startGpuGame()" id="gpuStartBtn" data-i18n="p09.s6.startBtn">Start Game</button>
       </div>
     </div>
 
@@ -390,12 +390,20 @@
     <a class="next-link" href="08-h2o.html">08. H2O &rarr;</a>
   </nav>
 
-  <footer>LLM Algorithm Visualizations &mdash; PD Separation (Mooncake, USENIX FAST 2025)</footer>
+  <footer><span data-i18n="p09.footer" data-i18n-html>LLM Algorithm Visualizations &mdash; PD Separation (Mooncake, USENIX FAST 2025)</span></footer>
 </div>
 
+<script src="../shared/theme.js"></script>
+<script src="../shared/i18n.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script>
+// ==================== Theme-aware Colors ==================== //
+var COLORS = getColors();
+window.addEventListener('themechange', function() {
+  Object.assign(COLORS, getColors());
+});
+
 // ==================== Section 1: Interference Problem ====================
 (function() {
   const canvas = document.getElementById('interferenceCanvas');
@@ -427,7 +435,7 @@
     ctx.clearRect(0, 0, W, H);
 
     // Label
-    ctx.fillStyle = '#6c7086';
+    ctx.fillStyle = COLORS.textDim;
     ctx.font = '600 12px system-ui';
     ctx.textAlign = 'left';
     ctx.fillText('Single GPU Timeline', startX, timelineY - barH / 2 - 14);
@@ -446,8 +454,8 @@
       const drawW = bw * Math.min(progress * blocks.length / (i + 1), 1);
 
       let color;
-      if (b.type === 'prefill') color = '#6c63ff';
-      else if (b.type === 'decode') color = '#00c9a7';
+      if (b.type === 'prefill') color = COLORS.accent;
+      else if (b.type === 'decode') color = COLORS.accent2;
       else color = 'rgba(247,118,142,.5)';
 
       if (drawW > 0) {
@@ -457,7 +465,7 @@
 
         if (b.type === 'wait' && drawW > 8) {
           // Draw waiting markers
-          ctx.fillStyle = '#f7768e';
+          ctx.fillStyle = COLORS.accent3;
           ctx.font = 'bold 16px system-ui';
           ctx.textAlign = 'center';
           ctx.fillText('!', x + drawW / 2, timelineY + 5);
@@ -483,7 +491,7 @@
       const longPrefillEnd = startX + 0.54 * totalW;
       const arrY = timelineY + barH / 2 + 20;
 
-      ctx.strokeStyle = '#f7768e';
+      ctx.strokeStyle = COLORS.accent3;
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 3]);
       ctx.beginPath();
@@ -502,7 +510,7 @@
       ctx.lineTo(longPrefillEnd + 0.10 * totalW, arrY + 6);
       ctx.stroke();
 
-      ctx.fillStyle = '#f7768e';
+      ctx.fillStyle = COLORS.accent3;
       ctx.font = '600 11px system-ui';
       ctx.textAlign = 'center';
       ctx.fillText('Decode blocked — latency spike!', (longPrefillStart + longPrefillEnd + 0.10 * totalW) / 2, arrY + 22);
@@ -511,7 +519,7 @@
     }
 
     // Time arrow
-    ctx.strokeStyle = '#6c7086';
+    ctx.strokeStyle = COLORS.textDim;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(startX, timelineY + barH / 2 + 44);
@@ -522,7 +530,7 @@
     ctx.lineTo(startX + totalW, timelineY + barH / 2 + 44);
     ctx.lineTo(startX + totalW - 6, timelineY + barH / 2 + 48);
     ctx.stroke();
-    ctx.fillStyle = '#6c7086';
+    ctx.fillStyle = COLORS.textDim;
     ctx.font = '11px system-ui';
     ctx.textAlign = 'right';
     ctx.fillText('time →', startX + totalW, timelineY + barH / 2 + 58);
@@ -593,7 +601,7 @@
 
   function drawPacket(x, y, progress) {
     const size = 8;
-    ctx.fillStyle = '#ff9e64';
+    ctx.fillStyle = COLORS.accent4;
     ctx.globalAlpha = 0.8;
     roundRect(ctx, x - size / 2, y - size / 2, size, size, 2);
     ctx.fill();
@@ -618,7 +626,7 @@
     ctx.strokeStyle = 'rgba(255,255,255,.3)';
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = '#cdd6f4';
+    ctx.fillStyle = COLORS.text;
     ctx.font = 'bold 12px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('Client', cx, clientY + 20);
@@ -638,14 +646,14 @@
     ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.fillStyle = '#6c63ff';
+    ctx.fillStyle = COLORS.accent;
     ctx.font = 'bold 13px system-ui';
     ctx.textAlign = 'left';
     ctx.fillText('Prefill GPU Pool', prefillPoolX - 10, prefillY - 8);
 
     for (let i = 0; i < 3; i++) {
       const gx = prefillPoolX + i * (gpuW + poolGap);
-      drawGPUBox(gx, prefillY, gpuW, gpuH, '#6c63ff', `GPU ${i}`, true);
+      drawGPUBox(gx, prefillY, gpuW, gpuH, COLORS.accent, `GPU ${i}`, true);
     }
 
     // ---- KV Cache Transfer zone ----
@@ -658,7 +666,7 @@
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    ctx.fillStyle = '#ff9e64';
+    ctx.fillStyle = COLORS.accent4;
     ctx.font = 'bold 12px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('KV Cache Transfer (RDMA)', cx, transferY + transferH / 2 + 4);
@@ -685,14 +693,14 @@
     ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.fillStyle = '#00c9a7';
+    ctx.fillStyle = COLORS.accent2;
     ctx.font = 'bold 13px system-ui';
     ctx.textAlign = 'left';
     ctx.fillText('Decode GPU Pool', decodePoolX - 10, decodeY - 8);
 
     for (let i = 0; i < 3; i++) {
       const gx = decodePoolX + i * (gpuW + poolGap);
-      drawGPUBox(gx, decodeY, gpuW, gpuH, '#00c9a7', `GPU ${i}`, true);
+      drawGPUBox(gx, decodeY, gpuW, gpuH, COLORS.accent2, `GPU ${i}`, true);
     }
 
     // ---- Response ----
@@ -703,16 +711,16 @@
     ctx.strokeStyle = 'rgba(0,201,167,.4)';
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = '#00c9a7';
+    ctx.fillStyle = COLORS.accent2;
     ctx.font = 'bold 12px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('Response', cx, respY + 20);
 
     // ---- Arrows ----
-    drawArrow(cx, clientY + 30, cx, prefillY - 26, '#6c63ff', false);
-    drawArrow(cx, prefillY + gpuH + 20, cx, transferY, '#ff9e64', true);
-    drawArrow(cx, transferY + transferH, cx, decodeY - 26, '#ff9e64', true);
-    drawArrow(cx, decodeY + gpuH + 20, cx, respY, '#00c9a7', false);
+    drawArrow(cx, clientY + 30, cx, prefillY - 26, COLORS.accent, false);
+    drawArrow(cx, prefillY + gpuH + 20, cx, transferY, COLORS.accent4, true);
+    drawArrow(cx, transferY + transferH, cx, decodeY - 26, COLORS.accent4, true);
+    drawArrow(cx, decodeY + gpuH + 20, cx, respY, COLORS.accent2, false);
 
     rafId = requestAnimationFrame(draw);
   }
@@ -777,7 +785,7 @@ function playUtilization() {
     }
 
     // Label
-    ctx.fillStyle = '#6c7086';
+    ctx.fillStyle = COLORS.textDim;
     ctx.font = '600 11px system-ui';
     ctx.textAlign = 'left';
     ctx.fillText(label, x, y - 6);
@@ -793,12 +801,12 @@ function playUtilization() {
     const rowH = (H - 100) / 2;
 
     // Titles
-    ctx.fillStyle = '#f7768e';
+    ctx.fillStyle = COLORS.accent3;
     ctx.font = 'bold 14px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('Coupled (Single GPU)', margin + colW / 2, 28);
 
-    ctx.fillStyle = '#00c9a7';
+    ctx.fillStyle = COLORS.accent2;
     ctx.fillText('Separated (Dedicated Pools)', margin * 2 + colW + colW / 2, 28);
 
     // Coupled compute
@@ -817,7 +825,7 @@ function playUtilization() {
       ctx.globalAlpha = lineAlpha;
 
       // Coupled: draw oscillation warning
-      ctx.strokeStyle = '#f7768e';
+      ctx.strokeStyle = COLORS.accent3;
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 3]);
       const avgCoupledY = 50 + rowH * 0.5;
@@ -826,13 +834,13 @@ function playUtilization() {
       ctx.lineTo(margin + colW, avgCoupledY);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = '#f7768e';
+      ctx.fillStyle = COLORS.accent3;
       ctx.font = '600 10px system-ui';
       ctx.textAlign = 'right';
       ctx.fillText('~50% avg', margin + colW - 4, avgCoupledY - 4);
 
       // Separated: draw steady line
-      ctx.strokeStyle = '#00c9a7';
+      ctx.strokeStyle = COLORS.accent2;
       ctx.setLineDash([4, 3]);
       const avgSepY = 50 + rowH * 0.1;
       ctx.beginPath();
@@ -840,7 +848,7 @@ function playUtilization() {
       ctx.lineTo(margin * 2 + colW * 2, avgSepY);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = '#00c9a7';
+      ctx.fillStyle = COLORS.accent2;
       ctx.font = '600 10px system-ui';
       ctx.textAlign = 'right';
       ctx.fillText('~90% avg', margin * 2 + colW * 2 - 4, avgSepY - 4);
@@ -922,14 +930,14 @@ function playTransfer() {
     roundRect(ctx, pnX, pnY, nodeW, nodeH, 10);
     ctx.fillStyle = progress < phase1End ? 'rgba(108,99,255,.2)' : 'rgba(108,99,255,.08)';
     ctx.fill();
-    ctx.strokeStyle = progress < phase1End ? '#6c63ff' : 'rgba(108,99,255,.3)';
+    ctx.strokeStyle = progress < phase1End ? COLORS.accent : 'rgba(108,99,255,.3)';
     ctx.lineWidth = progress < phase1End ? 2 : 1;
     ctx.stroke();
-    ctx.fillStyle = '#6c63ff';
+    ctx.fillStyle = COLORS.accent;
     ctx.font = 'bold 13px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('Prefill Node', pnX + nodeW / 2, pnY + 24);
-    ctx.fillStyle = '#cdd6f4';
+    ctx.fillStyle = COLORS.text;
     ctx.font = '11px system-ui';
     ctx.fillText('Process prompt', pnX + nodeW / 2, pnY + 44);
 
@@ -943,7 +951,7 @@ function playTransfer() {
       ctx.fillStyle = 'rgba(0,0,0,.3)';
       ctx.fill();
       roundRect(ctx, barX, barY, barW * prefillProg, 10, 4);
-      ctx.fillStyle = '#6c63ff';
+      ctx.fillStyle = COLORS.accent;
       ctx.fill();
     }
 
@@ -956,7 +964,7 @@ function playTransfer() {
     if (progress >= phase1End * 0.6) {
       const kvAlpha = Math.min((progress - phase1End * 0.6) / (phase1End * 0.4), 1);
       ctx.globalAlpha = kvAlpha;
-      ctx.fillStyle = '#6c7086';
+      ctx.fillStyle = COLORS.textDim;
       ctx.font = '600 10px system-ui';
       ctx.textAlign = 'center';
       ctx.fillText('KV Cache', pnX + nodeW + 20 + kvBlockSize * 1.5, pnY - 4);
@@ -969,14 +977,14 @@ function playTransfer() {
     roundRect(ctx, dnX, dnY, nodeW, nodeH, 10);
     ctx.fillStyle = progress >= phase2End ? 'rgba(0,201,167,.2)' : 'rgba(0,201,167,.08)';
     ctx.fill();
-    ctx.strokeStyle = progress >= phase2End ? '#00c9a7' : 'rgba(0,201,167,.3)';
+    ctx.strokeStyle = progress >= phase2End ? COLORS.accent2 : 'rgba(0,201,167,.3)';
     ctx.lineWidth = progress >= phase2End ? 2 : 1;
     ctx.stroke();
-    ctx.fillStyle = '#00c9a7';
+    ctx.fillStyle = COLORS.accent2;
     ctx.font = 'bold 13px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('Decode Node', dnX + nodeW / 2, dnY + 24);
-    ctx.fillStyle = '#cdd6f4';
+    ctx.fillStyle = COLORS.text;
     ctx.font = '11px system-ui';
     ctx.fillText('Generate tokens', dnX + nodeW / 2, dnY + 44);
 
@@ -990,13 +998,13 @@ function playTransfer() {
       ctx.fillStyle = 'rgba(0,0,0,.3)';
       ctx.fill();
       roundRect(ctx, barX, barY, barW * decodeProg, 10, 4);
-      ctx.fillStyle = '#00c9a7';
+      ctx.fillStyle = COLORS.accent2;
       ctx.fill();
 
       // Generated tokens
       const tokCount = Math.floor(decodeProg * 8);
       if (tokCount > 0) {
-        ctx.fillStyle = '#00c9a7';
+        ctx.fillStyle = COLORS.accent2;
         ctx.font = '600 10px system-ui';
         ctx.textAlign = 'center';
         const tokens = ['The', ' answer', ' to', ' your', ' question', ' is', ' forty', '-two'];
@@ -1033,7 +1041,7 @@ function playTransfer() {
 
         ctx.globalAlpha = blockProg > 0 ? 0.9 : 0;
         roundRect(ctx, bx, by, kvBlockSize, kvBlockSize, 3);
-        ctx.fillStyle = '#ff9e64';
+        ctx.fillStyle = COLORS.accent4;
         ctx.fill();
         ctx.strokeStyle = 'rgba(255,158,100,.6)';
         ctx.lineWidth = 1;
@@ -1043,7 +1051,7 @@ function playTransfer() {
 
       // Network label
       if (transferProg > 0.1 && transferProg < 1) {
-        ctx.fillStyle = '#ff9e64';
+        ctx.fillStyle = COLORS.accent4;
         ctx.font = '600 10px system-ui';
         ctx.textAlign = 'center';
         ctx.fillText('RDMA Transfer ~5ms', (transferZoneX1 + transferZoneX2) / 2, H / 2 + kvBlockSize + 14);
@@ -1055,7 +1063,7 @@ function playTransfer() {
       for (let i = 0; i < builtBlocks; i++) {
         const bx = transferZoneX1 + i * (kvBlockSize + 4);
         roundRect(ctx, bx, kvY, kvBlockSize, kvBlockSize, 3);
-        ctx.fillStyle = '#ff9e64';
+        ctx.fillStyle = COLORS.accent4;
         ctx.fill();
         ctx.strokeStyle = 'rgba(255,158,100,.6)';
         ctx.lineWidth = 1;
@@ -1265,6 +1273,145 @@ function submitGpuAllocation() {
 }
 </script>
 <script src="../shared/progress.js"></script>
+<script>
+i18nRegister({
+  'en': {
+    'p09.title': '09. PD Separation — LLM Algorithm Visualizations',
+    'p09.heading': 'PD Separation',
+    'p09.subtitle': 'Disaggregating Prefill and Decode for Optimal GPU Utilization',
+    'p09.breadcrumb': 'PD Separation',
+    'p09.s1.heading': '<span class="badge badge-red">Problem</span> The Interference Problem',
+    'p09.s1.desc': 'When prefill (compute-bound) and decode (memory-bound) share the same GPU, they interfere with each other. Long prefill jobs block decode responses, causing unpredictable latency spikes.',
+    'p09.s1.legendPrefill': 'Prefill (compute-heavy)',
+    'p09.s1.legendDecode': 'Decode (memory-heavy)',
+    'p09.s1.legendWaiting': 'Waiting / blocked',
+    'p09.s1.note': 'Coupled: Prefill blocks Decode &rarr; unpredictable latency',
+    'p09.s2.heading': '<span class="badge badge-purple">Solution</span> Disaggregated Architecture',
+    'p09.s2.desc': 'Separate GPU pools are dedicated to each phase. Prefill nodes crunch prompts in parallel; decode nodes generate tokens at steady throughput. KV cache is transferred between pools.',
+    'p09.s2.legendPrefill': 'Prefill GPU Pool',
+    'p09.s2.legendDecode': 'Decode GPU Pool',
+    'p09.s2.legendTransfer': 'KV Cache Transfer',
+    'p09.s2.note': 'Disaggregated: Each pool optimized for its workload',
+    'p09.s3.heading': '<span class="badge badge-green">Efficiency</span> Resource Utilization Comparison',
+    'p09.s3.desc': 'In coupled mode, compute and memory bandwidth oscillate wildly. With disaggregation, each pool maintains near-peak utilization of its bottleneck resource.',
+    'p09.s3.legendCompute': 'Compute utilization',
+    'p09.s3.legendMemory': 'Memory bandwidth',
+    'p09.s3.legendIdle': 'Idle',
+    'p09.s4.heading': '<span class="badge badge-orange">Transfer</span> KV Cache Transfer',
+    'p09.s4.desc': 'After prefill completes, the KV cache must be transferred to a decode node. With RDMA, this is fast enough to be negligible relative to total latency.',
+    'p09.s4.step1': '1. Prefill processes prompt',
+    'p09.s4.step2': '2. KV cache transfers',
+    'p09.s4.step3': '3. Decode generates tokens',
+    'p09.s4.btn': 'Play Transfer',
+    'p09.s5.heading': '<span class="badge badge-green">Impact</span> SLO (Service Level Objective) Impact',
+    'p09.s5.desc': 'Disaggregation dramatically reduces latency variance. Coupled systems frequently violate SLO targets, while separated architectures deliver consistent performance.',
+    'p09.s5.metricCoupled': 'Coupled SLO violation rate',
+    'p09.s5.metricSeparated': 'Separated SLO violation rate',
+    'p09.s5.metricThroughput': 'Throughput improvement',
+    'p09.s5.btn': 'Animate SLO',
+    'p09.s6.heading': '<span class="badge badge-red">Game</span> GPU Pool Optimizer',
+    'p09.s6.desc': 'You have <strong>8 GPUs</strong> total. Allocate them between Prefill and Decode pools to optimize for different workload profiles. How well can you match the optimal split?',
+    'p09.s6.score': 'Score',
+    'p09.s6.round': 'Round',
+    'p09.s6.workloadLabel': 'Workload Profile',
+    'p09.s6.prefillGpus': 'Prefill GPUs',
+    'p09.s6.lockIn': 'Lock In Allocation',
+    'p09.s6.feedback': 'Press Start to begin!',
+    'p09.s6.startBtn': 'Start Game',
+    'p09.footer': 'LLM Algorithm Visualizations &mdash; PD Separation (Mooncake, USENIX FAST 2025)',
+  },
+  'zh-CN': {
+    'p09.title': '09. PD 分离 — 大语言模型算法可视化',
+    'p09.heading': 'PD 分离',
+    'p09.subtitle': '将预填充和解码分离以实现最优 GPU 利用率',
+    'p09.breadcrumb': 'PD 分离',
+    'p09.s1.heading': '<span class="badge badge-red">问题</span> 互相干扰问题',
+    'p09.s1.desc': '当预填充（计算密集型）和解码（内存密集型）共享同一 GPU 时，它们会互相干扰。长时间的预填充任务会阻塞解码响应，导致不可预测的延迟尖峰。',
+    'p09.s1.legendPrefill': '预填充（计算密集型）',
+    'p09.s1.legendDecode': '解码（内存密集型）',
+    'p09.s1.legendWaiting': '等待 / 阻塞',
+    'p09.s1.note': '耦合模式：预填充阻塞解码 &rarr; 延迟不可预测',
+    'p09.s2.heading': '<span class="badge badge-purple">方案</span> 分离式架构',
+    'p09.s2.desc': '为每个阶段分配专用 GPU 池。预填充节点并行处理提示；解码节点以稳定吞吐量生成 token。KV cache 在池之间传输。',
+    'p09.s2.legendPrefill': '预填充 GPU 池',
+    'p09.s2.legendDecode': '解码 GPU 池',
+    'p09.s2.legendTransfer': 'KV Cache 传输',
+    'p09.s2.note': '分离模式：每个池针对其工作负载进行优化',
+    'p09.s3.heading': '<span class="badge badge-green">效率</span> 资源利用率对比',
+    'p09.s3.desc': '在耦合模式下，计算和内存带宽剧烈波动。分离后，每个池都能将其瓶颈资源的利用率维持在接近峰值。',
+    'p09.s3.legendCompute': '计算利用率',
+    'p09.s3.legendMemory': '内存带宽',
+    'p09.s3.legendIdle': '空闲',
+    'p09.s4.heading': '<span class="badge badge-orange">传输</span> KV Cache 传输',
+    'p09.s4.desc': '预填充完成后，KV cache 必须传输到解码节点。通过 RDMA，传输速度足够快，相对于总延迟可以忽略不计。',
+    'p09.s4.step1': '1. 预填充处理提示',
+    'p09.s4.step2': '2. KV cache 传输',
+    'p09.s4.step3': '3. 解码生成 token',
+    'p09.s4.btn': '播放传输动画',
+    'p09.s5.heading': '<span class="badge badge-green">影响</span> SLO（服务等级目标）影响',
+    'p09.s5.desc': '分离架构大幅降低延迟波动。耦合系统频繁违反 SLO 目标，而分离架构提供一致的性能。',
+    'p09.s5.metricCoupled': '耦合模式 SLO 违规率',
+    'p09.s5.metricSeparated': '分离模式 SLO 违规率',
+    'p09.s5.metricThroughput': '吞吐量提升',
+    'p09.s5.btn': '播放 SLO 动画',
+    'p09.s6.heading': '<span class="badge badge-red">游戏</span> GPU 池优化器',
+    'p09.s6.desc': '你总共有 <strong>8 个 GPU</strong>。在预填充和解码池之间分配它们，以优化不同的工作负载场景。你能多接近最优分配？',
+    'p09.s6.score': '得分',
+    'p09.s6.round': '轮次',
+    'p09.s6.workloadLabel': '工作负载场景',
+    'p09.s6.prefillGpus': '预填充 GPU',
+    'p09.s6.lockIn': '锁定分配',
+    'p09.s6.feedback': '按"开始游戏"开始！',
+    'p09.s6.startBtn': '开始游戏',
+    'p09.footer': '大语言模型算法可视化 &mdash; PD 分离 (Mooncake, USENIX FAST 2025)',
+  },
+  'zh-TW': {
+    'p09.title': '09. PD 分離 — 大語言模型演算法視覺化',
+    'p09.heading': 'PD 分離',
+    'p09.subtitle': '將預填充和解碼分離以實現最佳 GPU 利用率',
+    'p09.breadcrumb': 'PD 分離',
+    'p09.s1.heading': '<span class="badge badge-red">問題</span> 互相干擾問題',
+    'p09.s1.desc': '當預填充（計算密集型）和解碼（記憶體密集型）共用同一 GPU 時，它們會互相干擾。長時間的預填充任務會阻塞解碼回應，導致不可預測的延遲尖峰。',
+    'p09.s1.legendPrefill': '預填充（計算密集型）',
+    'p09.s1.legendDecode': '解碼（記憶體密集型）',
+    'p09.s1.legendWaiting': '等待 / 阻塞',
+    'p09.s1.note': '耦合模式：預填充阻塞解碼 &rarr; 延遲不可預測',
+    'p09.s2.heading': '<span class="badge badge-purple">方案</span> 分離式架構',
+    'p09.s2.desc': '為每個階段分配專用 GPU 池。預填充節點平行處理提示；解碼節點以穩定吞吐量生成 token。KV cache 在池之間傳輸。',
+    'p09.s2.legendPrefill': '預填充 GPU 池',
+    'p09.s2.legendDecode': '解碼 GPU 池',
+    'p09.s2.legendTransfer': 'KV Cache 傳輸',
+    'p09.s2.note': '分離模式：每個池針對其工作負載進行最佳化',
+    'p09.s3.heading': '<span class="badge badge-green">效率</span> 資源利用率對比',
+    'p09.s3.desc': '在耦合模式下，計算和記憶體頻寬劇烈波動。分離後，每個池都能將其瓶頸資源的利用率維持在接近峰值。',
+    'p09.s3.legendCompute': '計算利用率',
+    'p09.s3.legendMemory': '記憶體頻寬',
+    'p09.s3.legendIdle': '閒置',
+    'p09.s4.heading': '<span class="badge badge-orange">傳輸</span> KV Cache 傳輸',
+    'p09.s4.desc': '預填充完成後，KV cache 必須傳輸到解碼節點。透過 RDMA，傳輸速度足夠快，相對於總延遲可以忽略不計。',
+    'p09.s4.step1': '1. 預填充處理提示',
+    'p09.s4.step2': '2. KV cache 傳輸',
+    'p09.s4.step3': '3. 解碼生成 token',
+    'p09.s4.btn': '播放傳輸動畫',
+    'p09.s5.heading': '<span class="badge badge-green">影響</span> SLO（服務等級目標）影響',
+    'p09.s5.desc': '分離架構大幅降低延遲波動。耦合系統頻繁違反 SLO 目標，而分離架構提供一致的效能。',
+    'p09.s5.metricCoupled': '耦合模式 SLO 違規率',
+    'p09.s5.metricSeparated': '分離模式 SLO 違規率',
+    'p09.s5.metricThroughput': '吞吐量提升',
+    'p09.s5.btn': '播放 SLO 動畫',
+    'p09.s6.heading': '<span class="badge badge-red">遊戲</span> GPU 池最佳化器',
+    'p09.s6.desc': '你總共有 <strong>8 個 GPU</strong>。在預填充和解碼池之間分配它們，以最佳化不同的工作負載情境。你能多接近最佳分配？',
+    'p09.s6.score': '得分',
+    'p09.s6.round': '輪次',
+    'p09.s6.workloadLabel': '工作負載情境',
+    'p09.s6.prefillGpus': '預填充 GPU',
+    'p09.s6.lockIn': '鎖定分配',
+    'p09.s6.feedback': '按「開始遊戲」開始！',
+    'p09.s6.startBtn': '開始遊戲',
+    'p09.footer': '大語言模型演算法視覺化 &mdash; PD 分離 (Mooncake, USENIX FAST 2025)',
+  }
+});
+</script>
 
 </body>
 </html>

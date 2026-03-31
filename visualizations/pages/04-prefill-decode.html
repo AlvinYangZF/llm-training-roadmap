@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>04. Prefill & Decode — LLM Algorithm Visualizations</title>
+  <title data-i18n="p04.title">04. Prefill & Decode — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
   <style>
     /* ==================== Section 3: KV Cache ==================== */
     .kv-compare {
@@ -30,7 +31,7 @@
     .kv-box ul { padding-left: 18px; margin-top: 8px; }
     .kv-box li { margin-bottom: 6px; font-size: 0.92rem; }
     .kv-example {
-      background: rgba(0,0,0,.25);
+      background: var(--canvas-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 16px 20px;
@@ -52,7 +53,7 @@
       height: 340px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .cache-step-info {
       text-align: center;
@@ -103,7 +104,7 @@
     .gauge-track {
       flex: 1;
       height: 32px;
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       border-radius: 6px;
       overflow: hidden;
       position: relative;
@@ -160,34 +161,34 @@
 </head>
 <body>
   <header>
-    <h1>Prefill & Decode</h1>
-    <p>The Two-Phase Inference Pipeline of Large Language Models</p>
-    <div class="breadcrumb"><a href="../index.html">Home</a> / Prefill & Decode</div>
+    <h1 data-i18n="p04.header">Prefill & Decode</h1>
+    <p data-i18n="p04.subtitle">The Two-Phase Inference Pipeline of Large Language Models</p>
+    <div class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p04.breadcrumb">Prefill & Decode</span></div>
   </header>
 
   <div class="container">
 
     <!-- ==================== Section 1: Two-Phase Generation ==================== -->
     <div class="card">
-      <h2><span class="badge badge-purple">Phase Model</span> Two-Phase Generation</h2>
-      <p>LLM inference is split into two fundamentally different phases, each with distinct computational characteristics and hardware bottlenecks.</p>
+      <h2 data-i18n="p04.s1.heading" data-i18n-html><span class="badge badge-purple">Phase Model</span> Two-Phase Generation</h2>
+      <p data-i18n="p04.s1.desc">LLM inference is split into two fundamentally different phases, each with distinct computational characteristics and hardware bottlenecks.</p>
       <div class="phase-grid">
         <div class="phase-card phase-prefill">
-          <h3>Prefill Phase</h3>
+          <h3 data-i18n="p04.s1.prefill.title">Prefill Phase</h3>
           <ul>
-            <li><strong>Parallel processing</strong> &mdash; all prompt tokens processed simultaneously in a single forward pass</li>
-            <li><strong>Compute-bound</strong> &mdash; dominated by large matrix multiplications across all tokens</li>
-            <li><strong>Builds the KV cache</strong> &mdash; generates Key and Value tensors for every layer and stores them for reuse</li>
-            <li><strong>Produces the first token</strong> &mdash; the output of prefill is the probability distribution for token #1</li>
+            <li data-i18n="p04.s1.prefill.li1" data-i18n-html><strong>Parallel processing</strong> &mdash; all prompt tokens processed simultaneously in a single forward pass</li>
+            <li data-i18n="p04.s1.prefill.li2" data-i18n-html><strong>Compute-bound</strong> &mdash; dominated by large matrix multiplications across all tokens</li>
+            <li data-i18n="p04.s1.prefill.li3" data-i18n-html><strong>Builds the KV cache</strong> &mdash; generates Key and Value tensors for every layer and stores them for reuse</li>
+            <li data-i18n="p04.s1.prefill.li4" data-i18n-html><strong>Produces the first token</strong> &mdash; the output of prefill is the probability distribution for token #1</li>
           </ul>
         </div>
         <div class="phase-card phase-decode">
-          <h3>Decode Phase</h3>
+          <h3 data-i18n="p04.s1.decode.title">Decode Phase</h3>
           <ul>
-            <li><strong>One token at a time</strong> &mdash; each forward pass generates exactly one new token</li>
-            <li><strong>Memory-bound</strong> &mdash; dominated by reading model weights and KV cache from memory</li>
-            <li><strong>Appends to KV cache</strong> &mdash; each new token adds its K and V vectors to the existing cache</li>
-            <li><strong>Runs until EOS</strong> &mdash; generation continues until the end-of-sequence token or max length</li>
+            <li data-i18n="p04.s1.decode.li1" data-i18n-html><strong>One token at a time</strong> &mdash; each forward pass generates exactly one new token</li>
+            <li data-i18n="p04.s1.decode.li2" data-i18n-html><strong>Memory-bound</strong> &mdash; dominated by reading model weights and KV cache from memory</li>
+            <li data-i18n="p04.s1.decode.li3" data-i18n-html><strong>Appends to KV cache</strong> &mdash; each new token adds its K and V vectors to the existing cache</li>
+            <li data-i18n="p04.s1.decode.li4" data-i18n-html><strong>Runs until EOS</strong> &mdash; generation continues until the end-of-sequence token or max length</li>
           </ul>
         </div>
       </div>
@@ -195,40 +196,40 @@
 
     <!-- ==================== Section 2: Prefill -> Decode Animation ==================== -->
     <div class="card">
-      <h2><span class="badge badge-green">Interactive</span> Prefill &rarr; Decode Animation</h2>
-      <p>Watch how tokens flow through the two phases: prompt tokens arrive all at once during prefill, then generated tokens appear one by one during decode.</p>
+      <h2 data-i18n="p04.s2.heading" data-i18n-html><span class="badge badge-green">Interactive</span> Prefill &rarr; Decode Animation</h2>
+      <p data-i18n="p04.s2.desc">Watch how tokens flow through the two phases: prompt tokens arrive all at once during prefill, then generated tokens appear one by one during decode.</p>
       <div class="anim-container" id="animContainer">
         <span class="anim-label left" id="animPhaseLabel">Prefill</span>
         <span class="anim-label right" id="animStatusLabel">Waiting...</span>
         <div class="token-stream" id="tokenStream"></div>
       </div>
       <div class="anim-controls">
-        <button class="btn btn-accent" id="playBtn" onclick="startAnimation()">&#9654; Play Animation</button>
+        <button class="btn btn-accent" id="playBtn" onclick="startAnimation()" data-i18n="p04.s2.playBtn" data-i18n-html>&#9654; Play Animation</button>
       </div>
     </div>
 
     <!-- ==================== Section 3: KV Cache Deep Dive ==================== -->
     <div class="card">
-      <h2><span class="badge badge-orange">Deep Dive</span> KV Cache</h2>
-      <p>The KV (Key-Value) cache is the central mechanism that makes autoregressive decoding efficient. Without it, every decode step would need to recompute attention over all previous tokens.</p>
+      <h2 data-i18n="p04.s3.heading" data-i18n-html><span class="badge badge-orange">Deep Dive</span> KV Cache</h2>
+      <p data-i18n="p04.s3.desc">The KV (Key-Value) cache is the central mechanism that makes autoregressive decoding efficient. Without it, every decode step would need to recompute attention over all previous tokens.</p>
 
       <div class="kv-compare">
         <div class="kv-box kv-without">
-          <h3 style="color: var(--accent3);">Without KV Cache</h3>
+          <h3 style="color: var(--accent3);" data-i18n="p04.s3.without.title">Without KV Cache</h3>
           <ul>
-            <li>Each new token requires a full forward pass over <em>all</em> previous tokens</li>
-            <li>Redundant computation grows quadratically: O(n&sup2;)</li>
-            <li>Attention recomputed from scratch every step</li>
-            <li>Impractical for long sequences</li>
+            <li data-i18n="p04.s3.without.li1" data-i18n-html>Each new token requires a full forward pass over <em>all</em> previous tokens</li>
+            <li data-i18n="p04.s3.without.li2" data-i18n-html>Redundant computation grows quadratically: O(n&sup2;)</li>
+            <li data-i18n="p04.s3.without.li3">Attention recomputed from scratch every step</li>
+            <li data-i18n="p04.s3.without.li4">Impractical for long sequences</li>
           </ul>
         </div>
         <div class="kv-box kv-with">
-          <h3 style="color: var(--accent2);">With KV Cache</h3>
+          <h3 style="color: var(--accent2);" data-i18n="p04.s3.with.title">With KV Cache</h3>
           <ul>
-            <li>Previous K and V vectors are stored and reused</li>
-            <li>Only the new token's Q, K, V need to be computed</li>
-            <li>Each decode step is O(n) instead of O(n&sup2;)</li>
-            <li>Trades memory for massive compute savings</li>
+            <li data-i18n="p04.s3.with.li1">Previous K and V vectors are stored and reused</li>
+            <li data-i18n="p04.s3.with.li2">Only the new token's Q, K, V need to be computed</li>
+            <li data-i18n="p04.s3.with.li3" data-i18n-html>Each decode step is O(n) instead of O(n&sup2;)</li>
+            <li data-i18n="p04.s3.with.li4">Trades memory for massive compute savings</li>
           </ul>
         </div>
       </div>
@@ -246,79 +247,79 @@
 
     <!-- ==================== Section 4: KV Cache Growth Visualization ==================== -->
     <div class="card">
-      <h2><span class="badge badge-purple">Visualization</span> KV Cache Growth During Decode</h2>
-      <p>Each decode step appends one new token's Key and Value vectors to the cache. Watch the memory footprint grow linearly with each generated token.</p>
+      <h2 data-i18n="p04.s4.heading" data-i18n-html><span class="badge badge-purple">Visualization</span> KV Cache Growth During Decode</h2>
+      <p data-i18n="p04.s4.desc">Each decode step appends one new token's Key and Value vectors to the cache. Watch the memory footprint grow linearly with each generated token.</p>
       <div class="cache-canvas-wrap">
         <canvas class="cache-canvas" id="cacheCanvas"></canvas>
         <div class="cache-step-info" id="cacheStepInfo">Press play to visualize cache growth</div>
       </div>
       <div class="anim-controls">
-        <button class="btn btn-accent" id="cachePlayBtn" onclick="startCacheAnimation()">&#9654; Play Cache Growth</button>
+        <button class="btn btn-accent" id="cachePlayBtn" onclick="startCacheAnimation()" data-i18n="p04.s4.playBtn" data-i18n-html>&#9654; Play Cache Growth</button>
       </div>
     </div>
 
     <!-- ==================== Section 5: Compute vs Memory Bandwidth Gauge ==================== -->
     <div class="card">
-      <h2><span class="badge badge-red">Analysis</span> Compute vs Memory Bandwidth</h2>
-      <p>Prefill and decode have opposite bottlenecks. Prefill saturates GPU compute with large matrix operations. Decode is starved for data, spending most time reading weights and cache from HBM.</p>
+      <h2 data-i18n="p04.s5.heading" data-i18n-html><span class="badge badge-red">Analysis</span> Compute vs Memory Bandwidth</h2>
+      <p data-i18n="p04.s5.desc">Prefill and decode have opposite bottlenecks. Prefill saturates GPU compute with large matrix operations. Decode is starved for data, spending most time reading weights and cache from HBM.</p>
 
       <div class="gauge-section">
         <div class="gauge-group">
-          <div class="gauge-phase-label prefill">Prefill Phase</div>
+          <div class="gauge-phase-label prefill" data-i18n="p04.s5.prefillLabel">Prefill Phase</div>
           <div class="gauge-row">
-            <span class="gauge-label">GPU Compute</span>
+            <span class="gauge-label" data-i18n="p04.s5.gpuCompute">GPU Compute</span>
             <div class="gauge-track">
               <div class="gauge-fill compute gauge-anim" data-width="90" id="prefillCompute">90%</div>
             </div>
-            <span class="bottleneck-tag active">Bottleneck</span>
+            <span class="bottleneck-tag active" data-i18n="p04.s5.bottleneck">Bottleneck</span>
           </div>
           <div class="gauge-row">
-            <span class="gauge-label">Memory Bandwidth</span>
+            <span class="gauge-label" data-i18n="p04.s5.memBandwidth">Memory Bandwidth</span>
             <div class="gauge-track">
               <div class="gauge-fill memory gauge-anim" data-width="30" id="prefillMemory">30%</div>
             </div>
-            <span class="bottleneck-tag idle">Underused</span>
+            <span class="bottleneck-tag idle" data-i18n="p04.s5.underused">Underused</span>
           </div>
-          <div class="gauge-explanation">Large batch of tokens = massive matrix multiplications that keep all GPU cores busy. Memory reads are amortized across many tokens.</div>
+          <div class="gauge-explanation" data-i18n="p04.s5.prefillExplain">Large batch of tokens = massive matrix multiplications that keep all GPU cores busy. Memory reads are amortized across many tokens.</div>
         </div>
 
         <div class="gauge-group">
-          <div class="gauge-phase-label decode">Decode Phase</div>
+          <div class="gauge-phase-label decode" data-i18n="p04.s5.decodeLabel">Decode Phase</div>
           <div class="gauge-row">
-            <span class="gauge-label">GPU Compute</span>
+            <span class="gauge-label" data-i18n="p04.s5.gpuCompute">GPU Compute</span>
             <div class="gauge-track">
               <div class="gauge-fill compute gauge-anim" data-width="10" id="decodeCompute">10%</div>
             </div>
-            <span class="bottleneck-tag idle">Underused</span>
+            <span class="bottleneck-tag idle" data-i18n="p04.s5.underused">Underused</span>
           </div>
           <div class="gauge-row">
-            <span class="gauge-label">Memory Bandwidth</span>
+            <span class="gauge-label" data-i18n="p04.s5.memBandwidth">Memory Bandwidth</span>
             <div class="gauge-track">
               <div class="gauge-fill memory gauge-anim" data-width="90" id="decodeMemory">90%</div>
             </div>
-            <span class="bottleneck-tag active">Bottleneck</span>
+            <span class="bottleneck-tag active" data-i18n="p04.s5.bottleneck">Bottleneck</span>
           </div>
-          <div class="gauge-explanation">Single token per step = tiny matrix-vector products. GPU spends most time waiting to load model weights and KV cache from HBM.</div>
+          <div class="gauge-explanation" data-i18n="p04.s5.decodeExplain">Single token per step = tiny matrix-vector products. GPU spends most time waiting to load model weights and KV cache from HBM.</div>
         </div>
       </div>
 
       <div class="anim-controls">
-        <button class="btn btn-accent" id="gaugePlayBtn" onclick="animateGauges()">&#9654; Animate Gauges</button>
+        <button class="btn btn-accent" id="gaugePlayBtn" onclick="animateGauges()" data-i18n="p04.s5.animBtn" data-i18n-html>&#9654; Animate Gauges</button>
       </div>
     </div>
 
     <!-- ==================== Game 1: Latency Estimator ==================== -->
     <div class="card">
-      <h2><span class="badge badge-red">Game</span> Latency Estimator Challenge</h2>
-      <p>Can you estimate the Time-To-First-Token (TTFT) and Time-Between-Tokens (TBT) for different model+GPU combos? Enter your guesses in milliseconds.</p>
+      <h2 data-i18n="p04.g1.heading" data-i18n-html><span class="badge badge-red">Game</span> Latency Estimator Challenge</h2>
+      <p data-i18n="p04.g1.desc">Can you estimate the Time-To-First-Token (TTFT) and Time-Between-Tokens (TBT) for different model+GPU combos? Enter your guesses in milliseconds.</p>
 
       <div class="game-score" id="latencyGameScore">
-        <div class="game-score-item"><div class="score-val" id="latScore">0</div><div class="score-label">Score</div></div>
-        <div class="game-score-item"><div class="score-val" id="latRound">0 / 4</div><div class="score-label">Round</div></div>
+        <div class="game-score-item"><div class="score-val" id="latScore">0</div><div class="score-label" data-i18n="p04.g1.score">Score</div></div>
+        <div class="game-score-item"><div class="score-val" id="latRound">0 / 4</div><div class="score-label" data-i18n="p04.g1.round">Round</div></div>
       </div>
 
       <div class="game-scenario" id="latScenario" style="display:none;">
-        <div class="scenario-label">Scenario</div>
+        <div class="scenario-label" data-i18n="p04.g1.scenario">Scenario</div>
         <div class="scenario-value" id="latScenarioText"></div>
       </div>
 
@@ -331,10 +332,10 @@
           <div style="font-size:0.78rem;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;">TBT (ms)</div>
           <input class="game-input" type="number" id="latTBTInput" placeholder="e.g. 15">
         </div>
-        <button class="btn btn-accent" onclick="checkLatencyGuess()" id="latCheckBtn">Check</button>
+        <button class="btn btn-accent" onclick="checkLatencyGuess()" id="latCheckBtn" data-i18n="p04.g1.check">Check</button>
       </div>
 
-      <div class="game-feedback" id="latFeedback">Press Start to begin!</div>
+      <div class="game-feedback" id="latFeedback" data-i18n="p04.g1.feedback">Press Start to begin!</div>
 
       <div id="latBarsContainer" style="display:none;">
         <div style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin:16px 0;">
@@ -351,14 +352,14 @@
       </div>
 
       <div class="anim-controls">
-        <button class="btn btn-accent" id="latStartBtn" onclick="startLatencyGame()">Start Game</button>
+        <button class="btn btn-accent" id="latStartBtn" onclick="startLatencyGame()" data-i18n="p04.g1.startBtn">Start Game</button>
       </div>
     </div>
 
     <!-- ==================== Game 2: KV Cache Calculator ==================== -->
     <div class="card">
-      <h2><span class="badge badge-orange">Game</span> KV Cache Calculator</h2>
-      <p>Adjust model parameters to see how KV cache memory scales. Use presets for common models, then tweak sequence length and precision to explore the impact.</p>
+      <h2 data-i18n="p04.g2.heading" data-i18n-html><span class="badge badge-orange">Game</span> KV Cache Calculator</h2>
+      <p data-i18n="p04.g2.desc">Adjust model parameters to see how KV cache memory scales. Use presets for common models, then tweak sequence length and precision to explore the impact.</p>
 
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:16px 0;">
         <button class="btn btn-surface" onclick="kvPreset('llama7b')">LLaMA-2 7B</button>
@@ -396,21 +397,22 @@
       </div>
 
       <div class="game-scenario" style="margin:20px 0;">
-        <div class="scenario-label">KV Cache Size</div>
+        <div class="scenario-label" data-i18n="p04.g2.cacheLabel">KV Cache Size</div>
         <div class="scenario-value" id="kvCacheSize" style="font-size:2rem;">0 MB</div>
         <div style="font-size:0.82rem;color:var(--text-dim);margin-top:8px;" id="kvFormula"></div>
       </div>
 
       <div style="margin:16px 0;">
-        <div style="font-size:0.82rem;font-weight:600;margin-bottom:10px;">GPU Memory Usage</div>
+        <div style="font-size:0.82rem;font-weight:600;margin-bottom:10px;" data-i18n="p04.g2.gpuMemUsage">GPU Memory Usage</div>
         <div id="kvGpuBars"></div>
       </div>
     </div>
 
   </div>
 
-  <footer><p>LLM Algorithm Visualization Series</p></footer>
+  <footer><p data-i18n="footer.text">LLM Algorithm Visualization Series</p></footer>
 
+  <script src="../shared/i18n.js"></script>
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
   <script src="../shared/progress.js"></script>
@@ -814,7 +816,7 @@
         barsHTML +=
           '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">' +
             '<div style="width:130px;text-align:right;font-size:0.85rem;font-weight:600;flex-shrink:0;">' + gpu.name + '</div>' +
-            '<div style="flex:1;height:24px;background:#e2e8f0;border-radius:6px;overflow:hidden;position:relative;">' +
+            '<div style="flex:1;height:24px;background:var(--bar-track-bg);border-radius:6px;overflow:hidden;position:relative;">' +
               '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:6px;transition:width 0.4s;"></div>' +
             '</div>' +
             '<div style="min-width:60px;font-size:0.82rem;font-weight:700;color:' + color + ';">' + pct.toFixed(1) + '%</div>' +
@@ -846,6 +848,187 @@
     window.addEventListener('DOMContentLoaded', () => {
       updateKVCalc();
     });
+  </script>
+  <script>
+  i18nRegister({
+    'en': {
+      'p04.title': '04. Prefill & Decode — LLM Algorithm Visualizations',
+      'p04.header': 'Prefill & Decode',
+      'p04.subtitle': 'The Two-Phase Inference Pipeline of Large Language Models',
+      'p04.breadcrumb': 'Prefill & Decode',
+      'p04.s1.heading': '<span class="badge badge-purple">Phase Model</span> Two-Phase Generation',
+      'p04.s1.desc': 'LLM inference is split into two fundamentally different phases, each with distinct computational characteristics and hardware bottlenecks.',
+      'p04.s1.prefill.title': 'Prefill Phase',
+      'p04.s1.prefill.li1': '<strong>Parallel processing</strong> — all prompt tokens processed simultaneously in a single forward pass',
+      'p04.s1.prefill.li2': '<strong>Compute-bound</strong> — dominated by large matrix multiplications across all tokens',
+      'p04.s1.prefill.li3': '<strong>Builds the KV cache</strong> — generates Key and Value tensors for every layer and stores them for reuse',
+      'p04.s1.prefill.li4': '<strong>Produces the first token</strong> — the output of prefill is the probability distribution for token #1',
+      'p04.s1.decode.title': 'Decode Phase',
+      'p04.s1.decode.li1': '<strong>One token at a time</strong> — each forward pass generates exactly one new token',
+      'p04.s1.decode.li2': '<strong>Memory-bound</strong> — dominated by reading model weights and KV cache from memory',
+      'p04.s1.decode.li3': '<strong>Appends to KV cache</strong> — each new token adds its K and V vectors to the existing cache',
+      'p04.s1.decode.li4': '<strong>Runs until EOS</strong> — generation continues until the end-of-sequence token or max length',
+      'p04.s2.heading': '<span class="badge badge-green">Interactive</span> Prefill &rarr; Decode Animation',
+      'p04.s2.desc': 'Watch how tokens flow through the two phases: prompt tokens arrive all at once during prefill, then generated tokens appear one by one during decode.',
+      'p04.s2.playBtn': '&#9654; Play Animation',
+      'p04.s3.heading': '<span class="badge badge-orange">Deep Dive</span> KV Cache',
+      'p04.s3.desc': 'The KV (Key-Value) cache is the central mechanism that makes autoregressive decoding efficient. Without it, every decode step would need to recompute attention over all previous tokens.',
+      'p04.s3.without.title': 'Without KV Cache',
+      'p04.s3.without.li1': 'Each new token requires a full forward pass over <em>all</em> previous tokens',
+      'p04.s3.without.li2': 'Redundant computation grows quadratically: O(n²)',
+      'p04.s3.without.li3': 'Attention recomputed from scratch every step',
+      'p04.s3.without.li4': 'Impractical for long sequences',
+      'p04.s3.with.title': 'With KV Cache',
+      'p04.s3.with.li1': 'Previous K and V vectors are stored and reused',
+      'p04.s3.with.li2': 'Only the new token\'s Q, K, V need to be computed',
+      'p04.s3.with.li3': 'Each decode step is O(n) instead of O(n²)',
+      'p04.s3.with.li4': 'Trades memory for massive compute savings',
+      'p04.s4.heading': '<span class="badge badge-purple">Visualization</span> KV Cache Growth During Decode',
+      'p04.s4.desc': 'Each decode step appends one new token\'s Key and Value vectors to the cache. Watch the memory footprint grow linearly with each generated token.',
+      'p04.s4.playBtn': '&#9654; Play Cache Growth',
+      'p04.s5.heading': '<span class="badge badge-red">Analysis</span> Compute vs Memory Bandwidth',
+      'p04.s5.desc': 'Prefill and decode have opposite bottlenecks. Prefill saturates GPU compute with large matrix operations. Decode is starved for data, spending most time reading weights and cache from HBM.',
+      'p04.s5.prefillLabel': 'Prefill Phase',
+      'p04.s5.decodeLabel': 'Decode Phase',
+      'p04.s5.gpuCompute': 'GPU Compute',
+      'p04.s5.memBandwidth': 'Memory Bandwidth',
+      'p04.s5.bottleneck': 'Bottleneck',
+      'p04.s5.underused': 'Underused',
+      'p04.s5.prefillExplain': 'Large batch of tokens = massive matrix multiplications that keep all GPU cores busy. Memory reads are amortized across many tokens.',
+      'p04.s5.decodeExplain': 'Single token per step = tiny matrix-vector products. GPU spends most time waiting to load model weights and KV cache from HBM.',
+      'p04.s5.animBtn': '&#9654; Animate Gauges',
+      'p04.g1.heading': '<span class="badge badge-red">Game</span> Latency Estimator Challenge',
+      'p04.g1.desc': 'Can you estimate the Time-To-First-Token (TTFT) and Time-Between-Tokens (TBT) for different model+GPU combos? Enter your guesses in milliseconds.',
+      'p04.g1.score': 'Score',
+      'p04.g1.round': 'Round',
+      'p04.g1.scenario': 'Scenario',
+      'p04.g1.check': 'Check',
+      'p04.g1.feedback': 'Press Start to begin!',
+      'p04.g1.startBtn': 'Start Game',
+      'p04.g2.heading': '<span class="badge badge-orange">Game</span> KV Cache Calculator',
+      'p04.g2.desc': 'Adjust model parameters to see how KV cache memory scales. Use presets for common models, then tweak sequence length and precision to explore the impact.',
+      'p04.g2.cacheLabel': 'KV Cache Size',
+      'p04.g2.gpuMemUsage': 'GPU Memory Usage',
+    },
+    'zh-CN': {
+      'p04.title': '04. 预填充与解码 — 大语言模型算法可视化',
+      'p04.header': '预填充与解码',
+      'p04.subtitle': '大语言模型的两阶段推理流水线',
+      'p04.breadcrumb': '预填充与解码',
+      'p04.s1.heading': '<span class="badge badge-purple">阶段模型</span> 两阶段生成',
+      'p04.s1.desc': 'LLM 推理分为两个本质不同的阶段，各自具有独特的计算特性和硬件瓶颈。',
+      'p04.s1.prefill.title': '预填充阶段',
+      'p04.s1.prefill.li1': '<strong>并行处理</strong> — 所有提示词 token 在一次前向传播中同时处理',
+      'p04.s1.prefill.li2': '<strong>计算密集型</strong> — 以跨所有 token 的大规模矩阵乘法为主',
+      'p04.s1.prefill.li3': '<strong>构建 KV cache</strong> — 为每一层生成 Key 和 Value 张量并存储以供复用',
+      'p04.s1.prefill.li4': '<strong>产生第一个 token</strong> — 预填充的输出是第一个 token 的概率分布',
+      'p04.s1.decode.title': '解码阶段',
+      'p04.s1.decode.li1': '<strong>逐 token 生成</strong> — 每次前向传播恰好生成一个新 token',
+      'p04.s1.decode.li2': '<strong>内存密集型</strong> — 以从内存读取模型权重和 KV cache 为主',
+      'p04.s1.decode.li3': '<strong>追加到 KV cache</strong> — 每个新 token 将其 K 和 V 向量添加到现有缓存',
+      'p04.s1.decode.li4': '<strong>运行直到 EOS</strong> — 生成持续到出现结束符 token 或达到最大长度',
+      'p04.s2.heading': '<span class="badge badge-green">交互</span> 预填充 &rarr; 解码动画',
+      'p04.s2.desc': '观察 token 如何流经两个阶段：预填充时提示词 token 一次性全部到达，解码时生成的 token 逐个出现。',
+      'p04.s2.playBtn': '&#9654; 播放动画',
+      'p04.s3.heading': '<span class="badge badge-orange">深入</span> KV Cache',
+      'p04.s3.desc': 'KV（键值）缓存是使自回归解码高效的核心机制。没有它，每个解码步骤都需要重新计算所有先前 token 的注意力。',
+      'p04.s3.without.title': '无 KV Cache',
+      'p04.s3.without.li1': '每个新 token 都需要对<em>所有</em>先前 token 进行完整的前向传播',
+      'p04.s3.without.li2': '冗余计算呈二次增长：O(n²)',
+      'p04.s3.without.li3': '每一步都从头重新计算注意力',
+      'p04.s3.without.li4': '对于长序列不切实际',
+      'p04.s3.with.title': '有 KV Cache',
+      'p04.s3.with.li1': '先前的 K 和 V 向量被存储和复用',
+      'p04.s3.with.li2': '只需计算新 token 的 Q、K、V',
+      'p04.s3.with.li3': '每个解码步骤为 O(n) 而非 O(n²)',
+      'p04.s3.with.li4': '用内存换取大量计算节省',
+      'p04.s4.heading': '<span class="badge badge-purple">可视化</span> 解码过程中的 KV Cache 增长',
+      'p04.s4.desc': '每个解码步骤将一个新 token 的 Key 和 Value 向量追加到缓存。观察内存占用随每个生成的 token 线性增长。',
+      'p04.s4.playBtn': '&#9654; 播放缓存增长',
+      'p04.s5.heading': '<span class="badge badge-red">分析</span> 计算 vs 内存带宽',
+      'p04.s5.desc': '预填充和解码具有相反的瓶颈。预填充以大规模矩阵运算使 GPU 计算饱和。解码则缺少数据，大部分时间用于从 HBM 读取权重和缓存。',
+      'p04.s5.prefillLabel': '预填充阶段',
+      'p04.s5.decodeLabel': '解码阶段',
+      'p04.s5.gpuCompute': 'GPU 计算',
+      'p04.s5.memBandwidth': '内存带宽',
+      'p04.s5.bottleneck': '瓶颈',
+      'p04.s5.underused': '未充分利用',
+      'p04.s5.prefillExplain': '大批量 token = 大规模矩阵乘法，让所有 GPU 核心保持忙碌。内存读取在多个 token 间摊销。',
+      'p04.s5.decodeExplain': '每步单个 token = 微小的矩阵向量乘积。GPU 大部分时间在等待从 HBM 加载模型权重和 KV cache。',
+      'p04.s5.animBtn': '&#9654; 播放动画',
+      'p04.g1.heading': '<span class="badge badge-red">游戏</span> 延迟估算挑战',
+      'p04.g1.desc': '你能估算不同模型+GPU 组合的首 Token 时间（TTFT）和 Token 间隔时间（TBT）吗？请以毫秒为单位输入你的猜测。',
+      'p04.g1.score': '得分',
+      'p04.g1.round': '轮次',
+      'p04.g1.scenario': '场景',
+      'p04.g1.check': '检查',
+      'p04.g1.feedback': '按开始按钮开始！',
+      'p04.g1.startBtn': '开始游戏',
+      'p04.g2.heading': '<span class="badge badge-orange">游戏</span> KV Cache 计算器',
+      'p04.g2.desc': '调整模型参数查看 KV cache 内存如何扩展。使用预设查看常见模型，然后调整序列长度和精度来探索影响。',
+      'p04.g2.cacheLabel': 'KV Cache 大小',
+      'p04.g2.gpuMemUsage': 'GPU 内存使用量',
+    },
+    'zh-TW': {
+      'p04.title': '04. 預填充與解碼 — 大語言模型演算法視覺化',
+      'p04.header': '預填充與解碼',
+      'p04.subtitle': '大語言模型的兩階段推理管線',
+      'p04.breadcrumb': '預填充與解碼',
+      'p04.s1.heading': '<span class="badge badge-purple">階段模型</span> 兩階段生成',
+      'p04.s1.desc': 'LLM 推理分為兩個本質不同的階段，各自具有獨特的計算特性和硬體瓶頸。',
+      'p04.s1.prefill.title': '預填充階段',
+      'p04.s1.prefill.li1': '<strong>平行處理</strong> — 所有提示詞 token 在一次前向傳播中同時處理',
+      'p04.s1.prefill.li2': '<strong>計算密集型</strong> — 以跨所有 token 的大規模矩陣乘法為主',
+      'p04.s1.prefill.li3': '<strong>建構 KV cache</strong> — 為每一層產生 Key 和 Value 張量並儲存以供複用',
+      'p04.s1.prefill.li4': '<strong>產生第一個 token</strong> — 預填充的輸出是第一個 token 的機率分佈',
+      'p04.s1.decode.title': '解碼階段',
+      'p04.s1.decode.li1': '<strong>逐 token 生成</strong> — 每次前向傳播恰好生成一個新 token',
+      'p04.s1.decode.li2': '<strong>記憶體密集型</strong> — 以從記憶體讀取模型權重和 KV cache 為主',
+      'p04.s1.decode.li3': '<strong>追加到 KV cache</strong> — 每個新 token 將其 K 和 V 向量加入現有快取',
+      'p04.s1.decode.li4': '<strong>執行直到 EOS</strong> — 生成持續到出現結束符 token 或達到最大長度',
+      'p04.s2.heading': '<span class="badge badge-green">互動</span> 預填充 &rarr; 解碼動畫',
+      'p04.s2.desc': '觀察 token 如何流經兩個階段：預填充時提示詞 token 一次性全部抵達，解碼時生成的 token 逐個出現。',
+      'p04.s2.playBtn': '&#9654; 播放動畫',
+      'p04.s3.heading': '<span class="badge badge-orange">深入</span> KV Cache',
+      'p04.s3.desc': 'KV（鍵值）快取是使自迴歸解碼高效的核心機制。沒有它，每個解碼步驟都需要重新計算所有先前 token 的注意力。',
+      'p04.s3.without.title': '無 KV Cache',
+      'p04.s3.without.li1': '每個新 token 都需要對<em>所有</em>先前 token 進行完整的前向傳播',
+      'p04.s3.without.li2': '冗餘計算呈二次成長：O(n²)',
+      'p04.s3.without.li3': '每一步都從頭重新計算注意力',
+      'p04.s3.without.li4': '對於長序列不切實際',
+      'p04.s3.with.title': '有 KV Cache',
+      'p04.s3.with.li1': '先前的 K 和 V 向量被儲存和複用',
+      'p04.s3.with.li2': '只需計算新 token 的 Q、K、V',
+      'p04.s3.with.li3': '每個解碼步驟為 O(n) 而非 O(n²)',
+      'p04.s3.with.li4': '用記憶體換取大量計算節省',
+      'p04.s4.heading': '<span class="badge badge-purple">視覺化</span> 解碼過程中的 KV Cache 成長',
+      'p04.s4.desc': '每個解碼步驟將一個新 token 的 Key 和 Value 向量追加到快取。觀察記憶體佔用隨每個生成的 token 線性成長。',
+      'p04.s4.playBtn': '&#9654; 播放快取成長',
+      'p04.s5.heading': '<span class="badge badge-red">分析</span> 計算 vs 記憶體頻寬',
+      'p04.s5.desc': '預填充和解碼具有相反的瓶頸。預填充以大規模矩陣運算使 GPU 計算飽和。解碼則缺少資料，大部分時間用於從 HBM 讀取權重和快取。',
+      'p04.s5.prefillLabel': '預填充階段',
+      'p04.s5.decodeLabel': '解碼階段',
+      'p04.s5.gpuCompute': 'GPU 計算',
+      'p04.s5.memBandwidth': '記憶體頻寬',
+      'p04.s5.bottleneck': '瓶頸',
+      'p04.s5.underused': '未充分利用',
+      'p04.s5.prefillExplain': '大批量 token = 大規模矩陣乘法，讓所有 GPU 核心保持忙碌。記憶體讀取在多個 token 間攤銷。',
+      'p04.s5.decodeExplain': '每步單個 token = 微小的矩陣向量乘積。GPU 大部分時間在等待從 HBM 載入模型權重和 KV cache。',
+      'p04.s5.animBtn': '&#9654; 播放動畫',
+      'p04.g1.heading': '<span class="badge badge-red">遊戲</span> 延遲估算挑戰',
+      'p04.g1.desc': '你能估算不同模型+GPU 組合的首 Token 時間（TTFT）和 Token 間隔時間（TBT）嗎？請以毫秒為單位輸入你的猜測。',
+      'p04.g1.score': '得分',
+      'p04.g1.round': '輪次',
+      'p04.g1.scenario': '場景',
+      'p04.g1.check': '檢查',
+      'p04.g1.feedback': '按開始按鈕開始！',
+      'p04.g1.startBtn': '開始遊戲',
+      'p04.g2.heading': '<span class="badge badge-orange">遊戲</span> KV Cache 計算器',
+      'p04.g2.desc': '調整模型參數查看 KV cache 記憶體如何擴展。使用預設查看常見模型，然後調整序列長度和精度來探索影響。',
+      'p04.g2.cacheLabel': 'KV Cache 大小',
+      'p04.g2.gpuMemUsage': 'GPU 記憶體使用量',
+    }
+  });
   </script>
 </body>
 </html>

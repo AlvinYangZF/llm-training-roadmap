@@ -1,6 +1,9 @@
 // ==================== LLM Algorithm Visualization — Navigation ==================== //
 
 const NAV_TOPICS = [
+  { cat: 'Prerequisites', items: [
+    { num: '00', title: 'Linear Algebra Basics', file: '00-linear-algebra.html', year: 'Math' },
+  ]},
   { cat: '2017–2019 Foundations', items: [
     { num: '01', title: 'Transformer Basics', file: '01-transformer-basics.html', year: '2017' },
     { num: '02', title: 'GPT-2 Architecture', file: '02-gpt2-architecture.html', year: '2019' },
@@ -24,6 +27,7 @@ const NAV_TOPICS = [
 
 // Flat ordered list for prev/next navigation (chronological)
 const NAV_ORDERED = [
+  '00-linear-algebra.html',
   '01-transformer-basics.html',
   '02-gpt2-architecture.html',
   '03-sparse-transformers.html',
@@ -57,9 +61,20 @@ function buildNav() {
   // Top nav bar
   const nav = document.createElement('nav');
   nav.className = 'site-nav';
+  const currentLang = typeof getLang === 'function' ? getLang() : 'en';
   nav.innerHTML = `
     <a href="${basePath}index.html" class="nav-brand">LLM Algorithm Visualizations</a>
-    <button class="nav-toggle" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+    <div class="nav-right">
+      <div class="lang-selector">
+        <select id="langSelect" onchange="setLang(this.value)" aria-label="Language">
+          <option value="en" ${currentLang === 'en' ? 'selected' : ''}>English</option>
+          <option value="zh-CN" ${currentLang === 'zh-CN' ? 'selected' : ''}>简体中文</option>
+          <option value="zh-TW" ${currentLang === 'zh-TW' ? 'selected' : ''}>繁體中文</option>
+        </select>
+      </div>
+      <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+      <button class="nav-toggle" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+    </div>
   `;
   document.body.prepend(nav);
 
@@ -68,9 +83,19 @@ function buildNav() {
   sidebar.className = 'site-sidebar';
   sidebar.id = 'siteSidebar';
 
+  // Category i18n keys
+  const catI18nKeys = [
+    'nav.cat.prerequisites',
+    'nav.cat.foundations',
+    'nav.cat.compute',
+    'nav.cat.memory',
+    'nav.cat.advanced',
+  ];
+
   let html = '';
-  NAV_TOPICS.forEach(group => {
-    html += `<div class="nav-category">${group.cat}</div>`;
+  NAV_TOPICS.forEach((group, gi) => {
+    const catKey = catI18nKeys[gi] || '';
+    html += `<div class="nav-category" data-i18n="${catKey}">${group.cat}</div>`;
     group.items.forEach(item => {
       const href = `${basePath}pages/${item.file}`;
       const active = currentPage === item.file ? ' active' : '';

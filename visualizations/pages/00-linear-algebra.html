@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p00.title">00. Linear Algebra Basics — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    /* Vector canvas */
+    .vec-canvas-wrap { position: relative; }
+    .vec-canvas {
+      width: 100%; height: 360px; display: block;
+      background: var(--canvas-bg); border: 1px solid var(--border); border-radius: var(--radius);
+      cursor: crosshair;
+    }
+    .vec-info {
+      display: flex; gap: 24px; margin-top: 12px; flex-wrap: wrap; justify-content: center;
+    }
+    .vec-info-item {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 16px; font-size: 0.85rem; font-family: monospace;
+    }
+    .vec-info-item .label { color: var(--text-dim); font-size: 0.72rem; text-transform: uppercase; }
+
+    /* Dot product */
+    .dot-canvas { width: 100%; height: 360px; display: block; background: var(--canvas-bg); border: 1px solid var(--border); border-radius: var(--radius); cursor: grab; }
+    .dot-result {
+      text-align: center; margin-top: 16px; font-size: 1.3rem; font-weight: 700;
+      padding: 12px; border-radius: var(--radius); background: var(--formula-bg); border: 1px solid var(--border);
+    }
+    .dot-result .similarity-label { font-size: 0.82rem; color: var(--text-dim); margin-top: 4px; }
+
+    /* MatMul */
+    .matmul-grid {
+      display: grid; grid-template-columns: auto auto auto; gap: 16px;
+      align-items: center; justify-content: center; margin: 20px 0;
+    }
+    .mat-table { border-collapse: collapse; }
+    .mat-table td {
+      width: 48px; height: 48px; text-align: center; font-weight: 600; font-size: 0.95rem;
+      border: 1px solid var(--border); background: var(--surface); transition: all 0.3s;
+    }
+    .mat-table td.highlight-row { background: rgba(91,91,214,0.15); }
+    .mat-table td.highlight-col { background: rgba(13,148,136,0.15); }
+    .mat-table td.highlight-result { background: rgba(225,29,72,0.15); border-color: var(--accent3); }
+    .mat-op { font-size: 1.5rem; font-weight: 700; color: var(--text-dim); }
+    .matmul-controls { display: flex; gap: 12px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+    .matmul-controls button {
+      padding: 8px 20px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); cursor: pointer; font-weight: 600; font-size: 0.85rem;
+      color: var(--text); transition: all 0.2s;
+    }
+    .matmul-controls button:hover { border-color: var(--accent); color: var(--accent); }
+    .matmul-controls button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .matmul-controls button.primary:hover { opacity: 0.85; }
+    .matmul-step-desc {
+      text-align: center; margin-top: 12px; font-size: 0.9rem; color: var(--text-dim);
+      min-height: 24px;
+    }
+
+    /* Game: Predict */
+    .predict-wrap { text-align: center; }
+    .predict-question { margin: 20px 0; }
+    .predict-options { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .predict-options button {
+      padding: 12px 24px; border-radius: 10px; border: 2px solid var(--border);
+      background: var(--surface); cursor: pointer; font-weight: 700; font-size: 1.1rem;
+      color: var(--text); transition: all 0.2s; min-width: 80px;
+    }
+    .predict-options button:hover { border-color: var(--accent); transform: scale(1.05); }
+    .predict-options button.correct { border-color: var(--accent2); background: rgba(13,148,136,0.1); color: var(--accent2); }
+    .predict-options button.wrong { border-color: var(--accent3); background: rgba(225,29,72,0.08); color: var(--accent3); }
+    .predict-feedback { margin-top: 16px; font-weight: 600; min-height: 28px; }
+
+    /* Transform */
+    .transform-canvas { width: 100%; height: 400px; display: block; background: var(--canvas-bg); border: 1px solid var(--border); border-radius: var(--radius); }
+    .transform-sliders {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; margin-top: 16px;
+      max-width: 500px; margin-left: auto; margin-right: auto;
+    }
+    .transform-sliders label { font-size: 0.85rem; font-weight: 600; display: flex; justify-content: space-between; }
+    .transform-sliders input[type=range] { width: 100%; }
+    .preset-btns { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+    .preset-btns button {
+      padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); cursor: pointer; font-size: 0.78rem; font-weight: 600;
+      color: var(--text); transition: all 0.2s;
+    }
+    .preset-btns button:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Softmax */
+    .softmax-inputs { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin: 20px 0; align-items: flex-end; }
+    .softmax-input-group { text-align: center; }
+    .softmax-input-group label { display: block; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 4px; }
+    .softmax-input-group input {
+      width: 70px; padding: 8px; text-align: center; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 1rem; font-weight: 600; background: var(--game-input-bg); color: var(--text);
+    }
+    .softmax-bars { display: flex; gap: 16px; justify-content: center; align-items: flex-end; height: 220px; margin: 20px 0; }
+    .softmax-bar-group { display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+    .softmax-bar {
+      width: 52px; border-radius: 8px 8px 0 0; transition: height 0.5s ease, background 0.3s;
+      min-height: 4px;
+    }
+    .softmax-bar-label { font-size: 0.72rem; color: var(--text-dim); margin-top: 6px; }
+    .softmax-bar-val { font-size: 0.82rem; font-weight: 700; margin-top: 2px; }
+    .softmax-temp { display: flex; align-items: center; gap: 12px; justify-content: center; margin-top: 16px; }
+    .softmax-temp label { font-size: 0.85rem; font-weight: 600; }
+
+    /* Attention Pipeline Game */
+    .pipeline-game { text-align: center; }
+    .pipeline-slots {
+      display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 20px 0;
+      min-height: 56px; padding: 12px; border: 2px dashed var(--border); border-radius: var(--radius);
+      background: var(--canvas-bg); align-items: center;
+    }
+    .pipeline-slot {
+      padding: 10px 16px; border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+      border: 1px solid var(--border); background: var(--surface); min-width: 80px;
+      cursor: pointer; transition: all 0.2s; user-select: none;
+    }
+    .pipeline-slot:hover { border-color: var(--accent3); }
+    .pipeline-slot .arrow { color: var(--text-dim); margin-left: 4px; }
+    .pipeline-bank {
+      display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 16px 0;
+    }
+    .pipeline-chip {
+      padding: 10px 18px; border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+      cursor: grab; user-select: none; transition: all 0.2s;
+      border: 2px solid var(--border); background: var(--surface); color: var(--text);
+    }
+    .pipeline-chip:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .pipeline-chip.used { opacity: 0.3; pointer-events: none; }
+    .pipeline-chip.dragging { opacity: 0.5; }
+    .pipeline-result { margin-top: 16px; font-weight: 600; min-height: 28px; }
+
+    @media (max-width: 700px) {
+      .matmul-grid { grid-template-columns: 1fr; gap: 8px; }
+      .transform-sliders { grid-template-columns: 1fr; }
+      .softmax-bars { height: 160px; gap: 10px; }
+      .softmax-bar { width: 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p00.heading">Linear Algebra Basics for LLMs</h1>
+<p class="subtitle" data-i18n="p00.subtitle">The mathematical building blocks behind every transformer. Master vectors, matrices, and softmax through interactive demos.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p00.heading">Linear Algebra Basics for LLMs</span></p>
+
+<div class="container">
+
+  <!-- ==================== Section 1: Vectors ==================== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)" data-i18n="p00.sec1.badge">Concept</span>
+    <h2 data-i18n="p00.sec1.title">Vectors — Direction & Magnitude</h2>
+    <p data-i18n="p00.sec1.desc" data-i18n-html="1">A vector is an arrow with direction and length (magnitude). In LLMs, every token is represented as a high-dimensional vector called an <strong>embedding</strong>. Click on the canvas to create vectors and see their components.</p>
+    <div class="vec-canvas-wrap">
+      <canvas id="vecCanvas" class="vec-canvas"></canvas>
+    </div>
+    <div class="vec-info">
+      <div class="vec-info-item"><span class="label">Vector</span><br><span id="vecCoords">(0, 0)</span></div>
+      <div class="vec-info-item"><span class="label" data-i18n="p00.sec1.magnitude">Magnitude</span><br><span id="vecMag">0.00</span></div>
+      <div class="vec-info-item"><span class="label" data-i18n="p00.sec1.angle">Angle</span><br><span id="vecAngle">0.0&deg;</span></div>
+      <div class="vec-info-item"><span class="label" data-i18n="p00.sec1.dims">Dimensions</span><br><span>2D</span></div>
+    </div>
+    <p style="font-size:0.82rem;color:var(--text-dim);margin-top:12px;text-align:center" data-i18n="p00.sec1.hint">Click anywhere on the canvas to draw a vector from the origin. In real LLMs, vectors have 768 to 12,288 dimensions!</p>
+  </div>
+
+  <!-- ==================== Section 2: Dot Product ==================== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)" data-i18n="p00.sec2.badge">Interactive</span>
+    <h2 data-i18n="p00.sec2.title">Dot Product — Measuring Similarity</h2>
+    <p data-i18n="p00.sec2.desc" data-i18n-html="1">The dot product tells us how similar two vectors are. It is the <strong>core operation</strong> in attention: Q&middot;K measures how much a query "attends" to a key.</p>
+    <div class="formula">a &middot; b = |a| &times; |b| &times; cos(&theta;) = a<sub>1</sub>b<sub>1</sub> + a<sub>2</sub>b<sub>2</sub></div>
+    <canvas id="dotCanvas" class="dot-canvas"></canvas>
+    <div class="dot-result">
+      <span data-i18n="p00.sec2.dotProduct">Dot Product</span>: <span id="dotValue">0.00</span>
+      <div class="similarity-label" id="dotSimilarity"></div>
+    </div>
+    <p style="font-size:0.82rem;color:var(--text-dim);margin-top:12px;text-align:center" data-i18n="p00.sec2.hint">Drag the colored dots to move the vectors. Watch how the dot product changes with the angle between them.</p>
+  </div>
+
+  <!-- ==================== Section 3: Matrix Multiplication ==================== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)" data-i18n="p00.sec3.badge">Visualization</span>
+    <h2 data-i18n="p00.sec3.title">Matrix Multiplication — The Core Engine</h2>
+    <p data-i18n="p00.sec3.desc" data-i18n-html="1">Matrix multiplication is the <strong>workhorse</strong> of neural networks. Every layer, every attention head, every projection — it's all matmul. Watch how each output cell is computed from a row &times; column dot product.</p>
+    <div class="formula">C[i][j] = &sum;<sub>k</sub> A[i][k] &times; B[k][j]</div>
+    <div class="matmul-grid">
+      <div>
+        <div style="text-align:center;font-weight:700;margin-bottom:6px;color:var(--accent)">A (2&times;3)</div>
+        <table class="mat-table" id="matA"></table>
+      </div>
+      <div class="mat-op">&times;</div>
+      <div>
+        <div style="text-align:center;font-weight:700;margin-bottom:6px;color:var(--accent2)">B (3&times;2)</div>
+        <table class="mat-table" id="matB"></table>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:1.2rem;font-weight:700;color:var(--text-dim);margin:8px 0">=</div>
+    <div style="display:flex;justify-content:center">
+      <div>
+        <div style="text-align:center;font-weight:700;margin-bottom:6px;color:var(--accent3)">C (2&times;2)</div>
+        <table class="mat-table" id="matC"></table>
+      </div>
+    </div>
+    <div class="matmul-step-desc" id="matmulDesc"></div>
+    <div class="matmul-controls">
+      <button onclick="matmulPrev()" data-i18n="btn.prev">&larr; Prev</button>
+      <button onclick="matmulNext()" class="primary" data-i18n="btn.next">Next &rarr;</button>
+      <button onclick="matmulRandomize()" data-i18n="btn.randomize">Randomize</button>
+    </div>
+  </div>
+
+  <!-- ==================== Section 3b: MatMul Prediction Game ==================== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)" data-i18n="p00.sec3b.badge">Game</span>
+    <h2 data-i18n="p00.sec3b.title">Predict the Result!</h2>
+    <p data-i18n="p00.sec3b.desc">Given two small matrices, can you predict the output cell? Practice the row &times; column pattern until it becomes second nature.</p>
+    <div class="predict-wrap">
+      <div class="predict-question" id="predictQuestion"></div>
+      <div class="predict-options" id="predictOptions"></div>
+      <div class="predict-feedback" id="predictFeedback"></div>
+      <div style="margin-top:12px">
+        <span data-i18n="p00.sec3b.score">Score</span>: <strong id="predictScore">0</strong> / <strong id="predictTotal">0</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Section 4: Matrix Transformations ==================== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)" data-i18n="p00.sec4.badge">Explorer</span>
+    <h2 data-i18n="p00.sec4.title">Matrix Transformations — Seeing the Geometry</h2>
+    <p data-i18n="p00.sec4.desc" data-i18n-html="1">A 2&times;2 matrix transforms every point in space. Adjust the matrix values to see rotation, scaling, shearing, and reflection. This is exactly what <strong>weight matrices</strong> do to embeddings in a neural network.</p>
+    <canvas id="transformCanvas" class="transform-canvas"></canvas>
+    <div class="transform-sliders">
+      <div><label>a <span id="valA">1.00</span></label><input type="range" id="sliderA" min="-2" max="2" step="0.05" value="1"></div>
+      <div><label>b <span id="valB">0.00</span></label><input type="range" id="sliderB" min="-2" max="2" step="0.05" value="0"></div>
+      <div><label>c <span id="valC">0.00</span></label><input type="range" id="sliderC" min="-2" max="2" step="0.05" value="0"></div>
+      <div><label>d <span id="valD">1.00</span></label><input type="range" id="sliderD" min="-2" max="2" step="0.05" value="1"></div>
+    </div>
+    <div style="text-align:center;margin-top:8px;font-family:monospace;font-size:0.9rem">
+      M = [<span id="matDisplay">1.00, 0.00; 0.00, 1.00</span>]
+    </div>
+    <div class="preset-btns">
+      <button onclick="setTransform(1,0,0,1)" data-i18n="p00.sec4.identity">Identity</button>
+      <button onclick="setTransform(2,0,0,2)" data-i18n="p00.sec4.scale">Scale 2x</button>
+      <button onclick="setTransform(0.707,-0.707,0.707,0.707)" data-i18n="p00.sec4.rotate">Rotate 45&deg;</button>
+      <button onclick="setTransform(1,0.5,0,1)" data-i18n="p00.sec4.shear">Shear</button>
+      <button onclick="setTransform(-1,0,0,1)" data-i18n="p00.sec4.reflect">Reflect</button>
+    </div>
+  </div>
+
+  <!-- ==================== Section 5: Softmax ==================== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)" data-i18n="p00.sec5.badge">Interactive</span>
+    <h2 data-i18n="p00.sec5.title">Softmax — From Scores to Probabilities</h2>
+    <p data-i18n="p00.sec5.desc" data-i18n-html="1">Softmax converts raw scores (logits) into a probability distribution that sums to 1. In attention, it turns Q&middot;K<sup>T</sup> similarity scores into <strong>attention weights</strong>.</p>
+    <div class="formula">softmax(z<sub>i</sub>) = e<sup>z<sub>i</sub>/T</sup> / &sum;<sub>j</sub> e<sup>z<sub>j</sub>/T</sup></div>
+    <div class="softmax-inputs" id="softmaxInputs">
+      <div class="softmax-input-group"><label>z<sub>1</sub></label><input type="number" value="2.0" step="0.5" onchange="updateSoftmax()"></div>
+      <div class="softmax-input-group"><label>z<sub>2</sub></label><input type="number" value="1.0" step="0.5" onchange="updateSoftmax()"></div>
+      <div class="softmax-input-group"><label>z<sub>3</sub></label><input type="number" value="0.5" step="0.5" onchange="updateSoftmax()"></div>
+      <div class="softmax-input-group"><label>z<sub>4</sub></label><input type="number" value="-1.0" step="0.5" onchange="updateSoftmax()"></div>
+      <div class="softmax-input-group"><label>z<sub>5</sub></label><input type="number" value="0.0" step="0.5" onchange="updateSoftmax()"></div>
+    </div>
+    <div class="softmax-bars" id="softmaxBars"></div>
+    <div class="softmax-temp">
+      <label data-i18n="p00.sec5.temperature">Temperature (T)</label>
+      <input type="range" id="tempSlider" min="0.1" max="5" step="0.1" value="1" style="width:200px" oninput="updateSoftmax()">
+      <span id="tempVal">1.0</span>
+    </div>
+    <p style="font-size:0.82rem;color:var(--text-dim);margin-top:10px;text-align:center" data-i18n="p00.sec5.hint">Low temperature &rarr; sharper (more confident). High temperature &rarr; more uniform. Try extreme values!</p>
+  </div>
+
+  <!-- ==================== Section 6: Attention Pipeline Game ==================== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)" data-i18n="p00.sec6.badge">Game</span>
+    <h2 data-i18n="p00.sec6.title">Build Attention — Put It All Together!</h2>
+    <p data-i18n="p00.sec6.desc">You've learned vectors, dot products, matmul, and softmax. Now arrange them into the correct attention formula! Click operations in the right order to build the pipeline.</p>
+    <div class="formula">Attention(Q,K,V) = softmax(QK<sup>T</sup> / &radic;d<sub>k</sub>) &middot; V</div>
+    <div class="pipeline-game">
+      <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:8px" data-i18n="p00.sec6.yourPipeline">Your pipeline:</div>
+      <div class="pipeline-slots" id="pipelineSlots">
+        <span style="color:var(--text-dim);font-style:italic" data-i18n="p00.sec6.clickToAdd">Click operations below to add them...</span>
+      </div>
+      <div style="font-size:0.85rem;color:var(--text-dim);margin:12px 0 8px" data-i18n="p00.sec6.available">Available operations:</div>
+      <div class="pipeline-bank" id="pipelineBank"></div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:12px">
+        <button onclick="checkPipeline()" class="matmul-controls primary" style="padding:10px 28px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer" data-i18n="p00.sec6.check">Check Answer</button>
+        <button onclick="resetPipeline()" class="matmul-controls" style="padding:10px 28px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-weight:600;cursor:pointer;color:var(--text)" data-i18n="btn.reset">Reset</button>
+      </div>
+      <div class="pipeline-result" id="pipelineResult"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer><small data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</small></footer>
+
+<!-- ==================== Scripts ==================== -->
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+// ==================== i18n Registrations ==================== //
+i18nRegister({
+  'en': {
+    'p00.title': '00. Linear Algebra Basics — LLM Algorithm Visualizations',
+    'p00.heading': 'Linear Algebra Basics for LLMs',
+    'p00.subtitle': 'The mathematical building blocks behind every transformer. Master vectors, matrices, and softmax through interactive demos.',
+    'p00.sec1.badge': 'Concept',
+    'p00.sec1.title': 'Vectors — Direction & Magnitude',
+    'p00.sec1.desc': 'A vector is an arrow with direction and length (magnitude). In LLMs, every token is represented as a high-dimensional vector called an <strong>embedding</strong>. Click on the canvas to create vectors and see their components.',
+    'p00.sec1.magnitude': 'Magnitude',
+    'p00.sec1.angle': 'Angle',
+    'p00.sec1.dims': 'Dimensions',
+    'p00.sec1.hint': 'Click anywhere on the canvas to draw a vector from the origin. In real LLMs, vectors have 768 to 12,288 dimensions!',
+    'p00.sec2.badge': 'Interactive',
+    'p00.sec2.title': 'Dot Product — Measuring Similarity',
+    'p00.sec2.desc': 'The dot product tells us how similar two vectors are. It is the <strong>core operation</strong> in attention: Q·K measures how much a query "attends" to a key.',
+    'p00.sec2.dotProduct': 'Dot Product',
+    'p00.sec2.hint': 'Drag the colored dots to move the vectors. Watch how the dot product changes with the angle between them.',
+    'p00.sec2.similar': 'Similar (same direction)',
+    'p00.sec2.orthogonal': 'Orthogonal (unrelated)',
+    'p00.sec2.opposite': 'Opposite (dissimilar)',
+    'p00.sec3.badge': 'Visualization',
+    'p00.sec3.title': 'Matrix Multiplication — The Core Engine',
+    'p00.sec3.desc': 'Matrix multiplication is the <strong>workhorse</strong> of neural networks. Every layer, every attention head, every projection — it\'s all matmul. Watch how each output cell is computed from a row × column dot product.',
+    'p00.sec3.step': 'C[{0}][{1}] = A row {0} · B col {1} = {2}',
+    'p00.sec3.done': 'Complete! Each output cell is a dot product of one row from A and one column from B.',
+    'p00.sec3.start': 'Click Next to step through the matrix multiplication.',
+    'p00.sec3b.badge': 'Game',
+    'p00.sec3b.title': 'Predict the Result!',
+    'p00.sec3b.desc': 'Given two small matrices, can you predict the output cell? Practice the row × column pattern until it becomes second nature.',
+    'p00.sec3b.score': 'Score',
+    'p00.sec3b.question': 'What is C[{0}][{1}]?',
+    'p00.sec3b.correct': 'Correct!',
+    'p00.sec3b.wrong': 'Not quite. {0}×{1} + {2}×{3} = {4}',
+    'p00.sec4.badge': 'Explorer',
+    'p00.sec4.title': 'Matrix Transformations — Seeing the Geometry',
+    'p00.sec4.desc': 'A 2×2 matrix transforms every point in space. Adjust the matrix values to see rotation, scaling, shearing, and reflection. This is exactly what <strong>weight matrices</strong> do to embeddings in a neural network.',
+    'p00.sec4.identity': 'Identity',
+    'p00.sec4.scale': 'Scale 2x',
+    'p00.sec4.rotate': 'Rotate 45°',
+    'p00.sec4.shear': 'Shear',
+    'p00.sec4.reflect': 'Reflect',
+    'p00.sec5.badge': 'Interactive',
+    'p00.sec5.title': 'Softmax — From Scores to Probabilities',
+    'p00.sec5.desc': 'Softmax converts raw scores (logits) into a probability distribution that sums to 1. In attention, it turns Q·K<sup>T</sup> similarity scores into <strong>attention weights</strong>.',
+    'p00.sec5.temperature': 'Temperature (T)',
+    'p00.sec5.hint': 'Low temperature → sharper (more confident). High temperature → more uniform. Try extreme values!',
+    'p00.sec6.badge': 'Game',
+    'p00.sec6.title': 'Build Attention — Put It All Together!',
+    'p00.sec6.desc': 'You\'ve learned vectors, dot products, matmul, and softmax. Now arrange them into the correct attention formula! Click operations in the right order to build the pipeline.',
+    'p00.sec6.yourPipeline': 'Your pipeline:',
+    'p00.sec6.clickToAdd': 'Click operations below to add them...',
+    'p00.sec6.available': 'Available operations:',
+    'p00.sec6.check': 'Check Answer',
+    'p00.sec6.correct': 'Perfect! That\'s exactly how attention works: Q×K^T → Scale → Softmax → ×V',
+    'p00.sec6.wrong': 'Not quite right. Think about: first multiply Q×K^T, then scale, then softmax, then multiply by V.',
+    'p00.sec6.incomplete': 'Add all 5 operations to the pipeline first!',
+  },
+  'zh-CN': {
+    'p00.title': '00. 线性代数基础 — 大语言模型算法可视化',
+    'p00.heading': '大语言模型的线性代数基础',
+    'p00.subtitle': '每个 Transformer 背后的数学基石。通过交互式演示掌握向量、矩阵和 softmax。',
+    'p00.sec1.badge': '概念',
+    'p00.sec1.title': '向量 — 方向与大小',
+    'p00.sec1.desc': '向量是具有方向和长度（大小）的箭头。在大语言模型中，每个 token 都被表示为一个高维向量，称为<strong>嵌入（Embedding）</strong>。点击画布创建向量并查看其分量。',
+    'p00.sec1.magnitude': '大小',
+    'p00.sec1.angle': '角度',
+    'p00.sec1.dims': '维度',
+    'p00.sec1.hint': '点击画布上的任意位置，从原点绘制一个向量。在真实的大语言模型中，向量有 768 到 12,288 个维度！',
+    'p00.sec2.badge': '交互',
+    'p00.sec2.title': '点积 — 度量相似性',
+    'p00.sec2.desc': '点积告诉我们两个向量有多相似。它是注意力机制中的<strong>核心运算</strong>：Q·K 衡量一个查询对一个键的"注意程度"。',
+    'p00.sec2.dotProduct': '点积',
+    'p00.sec2.hint': '拖拽彩色圆点移动向量。观察点积如何随它们之间的角度变化。',
+    'p00.sec2.similar': '相似（同方向）',
+    'p00.sec2.orthogonal': '正交（不相关）',
+    'p00.sec2.opposite': '相反（不相似）',
+    'p00.sec3.badge': '可视化',
+    'p00.sec3.title': '矩阵乘法 — 核心引擎',
+    'p00.sec3.desc': '矩阵乘法是神经网络的<strong>主力运算</strong>。每一层、每个注意力头、每次投影——都是矩阵乘法。观察每个输出单元是如何由行 × 列点积计算的。',
+    'p00.sec3.step': 'C[{0}][{1}] = A 第 {0} 行 · B 第 {1} 列 = {2}',
+    'p00.sec3.done': '完成！每个输出单元都是 A 的一行与 B 的一列的点积。',
+    'p00.sec3.start': '点击"下一步"逐步演示矩阵乘法。',
+    'p00.sec3b.badge': '游戏',
+    'p00.sec3b.title': '预测结果！',
+    'p00.sec3b.desc': '给定两个小矩阵，你能预测输出单元的值吗？练习行×列模式直到形成肌肉记忆。',
+    'p00.sec3b.score': '得分',
+    'p00.sec3b.question': 'C[{0}][{1}] 是多少？',
+    'p00.sec3b.correct': '正确！',
+    'p00.sec3b.wrong': '不太对。{0}×{1} + {2}×{3} = {4}',
+    'p00.sec4.badge': '探索',
+    'p00.sec4.title': '矩阵变换 — 看见几何',
+    'p00.sec4.desc': '一个 2×2 矩阵可以变换空间中的每个点。调整矩阵值来观察旋转、缩放、剪切和反射。这正是神经网络中<strong>权重矩阵</strong>对嵌入所做的操作。',
+    'p00.sec4.identity': '单位矩阵',
+    'p00.sec4.scale': '缩放 2x',
+    'p00.sec4.rotate': '旋转 45°',
+    'p00.sec4.shear': '剪切',
+    'p00.sec4.reflect': '反射',
+    'p00.sec5.badge': '交互',
+    'p00.sec5.title': 'Softmax — 从分数到概率',
+    'p00.sec5.desc': 'Softmax 将原始分数（logits）转换为总和为 1 的概率分布。在注意力机制中，它将 Q·K<sup>T</sup> 相似度分数转换为<strong>注意力权重</strong>。',
+    'p00.sec5.temperature': '温度 (T)',
+    'p00.sec5.hint': '低温度 → 更尖锐（更自信）。高温度 → 更均匀。试试极端值！',
+    'p00.sec6.badge': '游戏',
+    'p00.sec6.title': '构建注意力 — 综合运用！',
+    'p00.sec6.desc': '你已经学习了向量、点积、矩阵乘法和 softmax。现在按正确顺序排列它们组成注意力公式！按顺序点击操作来构建流水线。',
+    'p00.sec6.yourPipeline': '你的流水线：',
+    'p00.sec6.clickToAdd': '点击下方操作添加...',
+    'p00.sec6.available': '可用操作：',
+    'p00.sec6.check': '检查答案',
+    'p00.sec6.correct': '完美！这正是注意力的工作方式：Q×K^T → 缩放 → Softmax → ×V',
+    'p00.sec6.wrong': '不太对。想想看：先 Q×K^T，然后缩放，再 softmax，最后乘以 V。',
+    'p00.sec6.incomplete': '请先将全部 5 个操作添加到流水线中！',
+  },
+  'zh-TW': {
+    'p00.title': '00. 線性代數基礎 — 大語言模型演算法視覺化',
+    'p00.heading': '大語言模型的線性代數基礎',
+    'p00.subtitle': '每個 Transformer 背後的數學基石。透過互動式演示掌握向量、矩陣和 softmax。',
+    'p00.sec1.badge': '概念',
+    'p00.sec1.title': '向量 — 方向與大小',
+    'p00.sec1.desc': '向量是具有方向和長度（大小）的箭頭。在大語言模型中，每個 token 都被表示為一個高維向量，稱為<strong>嵌入（Embedding）</strong>。點擊畫布建立向量並查看其分量。',
+    'p00.sec1.magnitude': '大小',
+    'p00.sec1.angle': '角度',
+    'p00.sec1.dims': '維度',
+    'p00.sec1.hint': '點擊畫布上的任意位置，從原點繪製一個向量。在真實的大語言模型中，向量有 768 到 12,288 個維度！',
+    'p00.sec2.badge': '互動',
+    'p00.sec2.title': '點積 — 度量相似性',
+    'p00.sec2.desc': '點積告訴我們兩個向量有多相似。它是注意力機制中的<strong>核心運算</strong>：Q·K 衡量一個查詢對一個鍵的「注意程度」。',
+    'p00.sec2.dotProduct': '點積',
+    'p00.sec2.hint': '拖曳彩色圓點移動向量。觀察點積如何隨它們之間的角度變化。',
+    'p00.sec2.similar': '相似（同方向）',
+    'p00.sec2.orthogonal': '正交（不相關）',
+    'p00.sec2.opposite': '相反（不相似）',
+    'p00.sec3.badge': '視覺化',
+    'p00.sec3.title': '矩陣乘法 — 核心引擎',
+    'p00.sec3.desc': '矩陣乘法是神經網路的<strong>主力運算</strong>。每一層、每個注意力頭、每次投影——都是矩陣乘法。觀察每個輸出單元是如何由列 × 行點積計算的。',
+    'p00.sec3.step': 'C[{0}][{1}] = A 第 {0} 列 · B 第 {1} 行 = {2}',
+    'p00.sec3.done': '完成！每個輸出單元都是 A 的一列與 B 的一行的點積。',
+    'p00.sec3.start': '點擊「下一步」逐步演示矩陣乘法。',
+    'p00.sec3b.badge': '遊戲',
+    'p00.sec3b.title': '預測結果！',
+    'p00.sec3b.desc': '給定兩個小矩陣，你能預測輸出單元的值嗎？練習列×行模式直到形成肌肉記憶。',
+    'p00.sec3b.score': '得分',
+    'p00.sec3b.question': 'C[{0}][{1}] 是多少？',
+    'p00.sec3b.correct': '正確！',
+    'p00.sec3b.wrong': '不太對。{0}×{1} + {2}×{3} = {4}',
+    'p00.sec4.badge': '探索',
+    'p00.sec4.title': '矩陣變換 — 看見幾何',
+    'p00.sec4.desc': '一個 2×2 矩陣可以變換空間中的每個點。調整矩陣值來觀察旋轉、縮放、剪切和反射。這正是神經網路中<strong>權重矩陣</strong>對嵌入所做的操作。',
+    'p00.sec4.identity': '單位矩陣',
+    'p00.sec4.scale': '縮放 2x',
+    'p00.sec4.rotate': '旋轉 45°',
+    'p00.sec4.shear': '剪切',
+    'p00.sec4.reflect': '反射',
+    'p00.sec5.badge': '互動',
+    'p00.sec5.title': 'Softmax — 從分數到機率',
+    'p00.sec5.desc': 'Softmax 將原始分數（logits）轉換為總和為 1 的機率分佈。在注意力機制中，它將 Q·K<sup>T</sup> 相似度分數轉換為<strong>注意力權重</strong>。',
+    'p00.sec5.temperature': '溫度 (T)',
+    'p00.sec5.hint': '低溫度 → 更尖銳（更自信）。高溫度 → 更均勻。試試極端值！',
+    'p00.sec6.badge': '遊戲',
+    'p00.sec6.title': '建構注意力 — 綜合運用！',
+    'p00.sec6.desc': '你已經學習了向量、點積、矩陣乘法和 softmax。現在按正確順序排列它們組成注意力公式！按順序點擊操作來建構流水線。',
+    'p00.sec6.yourPipeline': '你的流水線：',
+    'p00.sec6.clickToAdd': '點擊下方操作新增...',
+    'p00.sec6.available': '可用操作：',
+    'p00.sec6.check': '檢查答案',
+    'p00.sec6.correct': '完美！這正是注意力的運作方式：Q×K^T → 縮放 → Softmax → ×V',
+    'p00.sec6.wrong': '不太對。想想看：先 Q×K^T，然後縮放，再 softmax，最後乘以 V。',
+    'p00.sec6.incomplete': '請先將全部 5 個操作新增到流水線中！',
+  }
+});
+
+// ==================== Utilities ==================== //
+function setupHiDPI(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, W: rect.width, H: rect.height };
+}
+
+function getThemeColors() {
+  const style = getComputedStyle(document.documentElement);
+  return {
+    text: style.getPropertyValue('--text').trim(),
+    textDim: style.getPropertyValue('--text-dim').trim(),
+    border: style.getPropertyValue('--border').trim(),
+    accent: style.getPropertyValue('--accent').trim(),
+    accent2: style.getPropertyValue('--accent2').trim(),
+    accent3: style.getPropertyValue('--accent3').trim(),
+    accent4: style.getPropertyValue('--accent4').trim(),
+    canvasBg: style.getPropertyValue('--canvas-bg').trim(),
+    surface: style.getPropertyValue('--surface').trim(),
+  };
+}
+
+// ==================== Section 1: Vector Canvas ==================== //
+(function() {
+  let vectors = [];
+  function draw() {
+    const canvas = document.getElementById('vecCanvas');
+    if (!canvas) return;
+    const { ctx, W, H } = setupHiDPI(canvas);
+    const c = getThemeColors();
+    const ox = W / 2, oy = H / 2;
+    const scale = Math.min(W, H) / 6;
+
+    // Grid
+    ctx.strokeStyle = c.border;
+    ctx.lineWidth = 0.5;
+    for (let x = ox % scale; x < W; x += scale) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = oy % scale; y < H; y += scale) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    // Axes
+    ctx.strokeStyle = c.textDim;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+
+    // Axis labels
+    ctx.fillStyle = c.textDim; ctx.font = '12px sans-serif';
+    ctx.fillText('x', W - 16, oy - 8);
+    ctx.fillText('y', ox + 8, 16);
+
+    // Vectors
+    const colors = [c.accent, c.accent2, c.accent3, c.accent4, '#8b5cf6'];
+    vectors.forEach(function(v, i) {
+      const color = colors[i % colors.length];
+      const ex = ox + v.x * scale, ey = oy - v.y * scale;
+      // Line
+      ctx.strokeStyle = color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.stroke();
+      // Arrowhead
+      const angle = Math.atan2(oy - ey, ex - ox);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex - 12 * Math.cos(angle - 0.3), ey + 12 * Math.sin(angle - 0.3));
+      ctx.lineTo(ex - 12 * Math.cos(angle + 0.3), ey + 12 * Math.sin(angle + 0.3));
+      ctx.fill();
+      // Label
+      ctx.fillStyle = color; ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('(' + v.x.toFixed(1) + ', ' + v.y.toFixed(1) + ')', ex + 8, ey - 8);
+    });
+
+    // Origin dot
+    ctx.fillStyle = c.text; ctx.beginPath(); ctx.arc(ox, oy, 4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  window.addEventListener('load', function() {
+    var canvas = document.getElementById('vecCanvas');
+    if (!canvas) return;
+    draw();
+    canvas.addEventListener('click', function(e) {
+      var rect = canvas.getBoundingClientRect();
+      var W = rect.width, H = rect.height;
+      var ox = W / 2, oy = H / 2;
+      var scale = Math.min(W, H) / 6;
+      var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      var vx = (mx - ox) / scale, vy = (oy - my) / scale;
+      if (vectors.length >= 5) vectors.shift();
+      vectors.push({ x: vx, y: vy });
+      var last = vectors[vectors.length - 1];
+      var mag = Math.sqrt(last.x * last.x + last.y * last.y);
+      var ang = Math.atan2(last.y, last.x) * 180 / Math.PI;
+      document.getElementById('vecCoords').textContent = '(' + last.x.toFixed(2) + ', ' + last.y.toFixed(2) + ')';
+      document.getElementById('vecMag').textContent = mag.toFixed(2);
+      document.getElementById('vecAngle').innerHTML = ang.toFixed(1) + '&deg;';
+      draw();
+    });
+  });
+  window.addEventListener('themechange', draw);
+  window.addEventListener('resize', draw);
+})();
+
+// ==================== Section 2: Dot Product ==================== //
+(function() {
+  var vecA = { x: 0.8, y: 0.6 };  // unit-ish
+  var vecB = { x: 0.5, y: -0.5 };
+  var dragging = null;
+
+  function draw() {
+    var canvas = document.getElementById('dotCanvas');
+    if (!canvas) return;
+    var { ctx, W, H } = setupHiDPI(canvas);
+    var c = getThemeColors();
+    var ox = W / 2, oy = H / 2;
+    var scale = Math.min(W, H) / 4;
+
+    // Grid
+    ctx.strokeStyle = c.border; ctx.lineWidth = 0.5;
+    for (var x = ox % (scale / 2); x < W; x += scale / 2) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (var y = oy % (scale / 2); y < H; y += scale / 2) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    // Axes
+    ctx.strokeStyle = c.textDim; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+
+    // Unit circle reference
+    ctx.strokeStyle = c.border; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.arc(ox, oy, scale, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw vectors
+    function drawVec(v, color, label) {
+      var ex = ox + v.x * scale, ey = oy - v.y * scale;
+      ctx.strokeStyle = color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.stroke();
+      // Arrowhead
+      var angle = Math.atan2(oy - ey, ex - ox);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex - 12 * Math.cos(angle - 0.3), ey + 12 * Math.sin(angle - 0.3));
+      ctx.lineTo(ex - 12 * Math.cos(angle + 0.3), ey + 12 * Math.sin(angle + 0.3));
+      ctx.fill();
+      // Drag handle
+      ctx.beginPath(); ctx.arc(ex, ey, 10, 0, Math.PI * 2);
+      ctx.fillStyle = color; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      // Label
+      ctx.fillStyle = color; ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(label, ex + 14, ey - 10);
+    }
+
+    drawVec(vecA, c.accent, 'a');
+    drawVec(vecB, c.accent2, 'b');
+
+    // Angle arc
+    var angA = Math.atan2(vecA.y, vecA.x);
+    var angB = Math.atan2(vecB.y, vecB.x);
+    ctx.strokeStyle = c.accent4; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(ox, oy, 30, -angA, -angB, angA > angB);
+    ctx.stroke();
+    ctx.fillStyle = c.accent4; ctx.font = '12px sans-serif';
+    var midAng = (angA + angB) / 2;
+    var theta = Math.acos(Math.min(1, Math.max(-1, (vecA.x * vecB.x + vecA.y * vecB.y) / (Math.sqrt(vecA.x*vecA.x+vecA.y*vecA.y) * Math.sqrt(vecB.x*vecB.x+vecB.y*vecB.y)))));
+    ctx.fillText((theta * 180 / Math.PI).toFixed(0) + '\u00B0', ox + 38 * Math.cos(-midAng), oy + 38 * Math.sin(-midAng));
+
+    // Update dot product
+    var dot = vecA.x * vecB.x + vecA.y * vecB.y;
+    document.getElementById('dotValue').textContent = dot.toFixed(3);
+    var sim = document.getElementById('dotSimilarity');
+    if (dot > 0.3) { sim.textContent = t('p00.sec2.similar'); sim.style.color = c.accent2; }
+    else if (dot < -0.3) { sim.textContent = t('p00.sec2.opposite'); sim.style.color = c.accent3; }
+    else { sim.textContent = t('p00.sec2.orthogonal'); sim.style.color = c.accent4; }
+  }
+
+  window.addEventListener('load', function() {
+    var canvas = document.getElementById('dotCanvas');
+    if (!canvas) return;
+    draw();
+
+    function getMousePos(e) {
+      var rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+    function toCanvas(v) {
+      var rect = canvas.getBoundingClientRect();
+      var scale = Math.min(rect.width, rect.height) / 4;
+      return { x: rect.width / 2 + v.x * scale, y: rect.height / 2 - v.y * scale };
+    }
+    function fromCanvas(p) {
+      var rect = canvas.getBoundingClientRect();
+      var scale = Math.min(rect.width, rect.height) / 4;
+      return { x: (p.x - rect.width / 2) / scale, y: (rect.height / 2 - p.y) / scale };
+    }
+
+    canvas.addEventListener('mousedown', function(e) {
+      var p = getMousePos(e);
+      var pA = toCanvas(vecA), pB = toCanvas(vecB);
+      if (Math.hypot(p.x - pA.x, p.y - pA.y) < 20) dragging = vecA;
+      else if (Math.hypot(p.x - pB.x, p.y - pB.y) < 20) dragging = vecB;
+    });
+    canvas.addEventListener('mousemove', function(e) {
+      if (!dragging) return;
+      var p = getMousePos(e);
+      var v = fromCanvas(p);
+      dragging.x = v.x; dragging.y = v.y;
+      draw();
+    });
+    canvas.addEventListener('mouseup', function() { dragging = null; });
+    canvas.addEventListener('mouseleave', function() { dragging = null; });
+
+    // Touch support
+    canvas.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      var touch = e.touches[0];
+      var rect = canvas.getBoundingClientRect();
+      var p = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+      var scale = Math.min(rect.width, rect.height) / 4;
+      var pA = { x: rect.width/2 + vecA.x*scale, y: rect.height/2 - vecA.y*scale };
+      var pB = { x: rect.width/2 + vecB.x*scale, y: rect.height/2 - vecB.y*scale };
+      if (Math.hypot(p.x-pA.x, p.y-pA.y) < 30) dragging = vecA;
+      else if (Math.hypot(p.x-pB.x, p.y-pB.y) < 30) dragging = vecB;
+    }, { passive: false });
+    canvas.addEventListener('touchmove', function(e) {
+      if (!dragging) return;
+      e.preventDefault();
+      var touch = e.touches[0];
+      var rect = canvas.getBoundingClientRect();
+      var scale = Math.min(rect.width, rect.height) / 4;
+      dragging.x = (touch.clientX - rect.left - rect.width/2) / scale;
+      dragging.y = (rect.height/2 - (touch.clientY - rect.top)) / scale;
+      draw();
+    }, { passive: false });
+    canvas.addEventListener('touchend', function() { dragging = null; });
+  });
+  window.addEventListener('themechange', draw);
+  window.addEventListener('resize', draw);
+})();
+
+// ==================== Section 3: Matrix Multiplication ==================== //
+var matA_data, matB_data, matC_data, matStep;
+function randomMat(r, c, lo, hi) {
+  var m = [];
+  for (var i = 0; i < r; i++) { m[i] = []; for (var j = 0; j < c; j++) m[i][j] = Math.floor(Math.random() * (hi - lo + 1)) + lo; }
+  return m;
+}
+function renderMat(id, mat, hlRow, hlCol, hlCell) {
+  var table = document.getElementById(id);
+  table.innerHTML = '';
+  for (var i = 0; i < mat.length; i++) {
+    var tr = document.createElement('tr');
+    for (var j = 0; j < mat[i].length; j++) {
+      var td = document.createElement('td');
+      td.textContent = mat[i][j];
+      if (hlRow !== undefined && i === hlRow) td.classList.add('highlight-row');
+      if (hlCol !== undefined && j === hlCol) td.classList.add('highlight-col');
+      if (hlCell && hlCell[0] === i && hlCell[1] === j) td.classList.add('highlight-result');
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+}
+function matmulInit() {
+  matA_data = randomMat(2, 3, 0, 5);
+  matB_data = randomMat(3, 2, 0, 5);
+  matC_data = [[null, null], [null, null]];
+  matStep = -1;
+  renderMat('matA', matA_data);
+  renderMat('matB', matB_data);
+  renderMat('matC', matC_data.map(function(r) { return r.map(function(v) { return v === null ? '?' : v; }); }));
+  document.getElementById('matmulDesc').textContent = t('p00.sec3.start');
+}
+function matmulNext() {
+  if (matStep >= 3) return;
+  matStep++;
+  var ri = Math.floor(matStep / 2), ci = matStep % 2;
+  var sum = 0;
+  for (var k = 0; k < 3; k++) sum += matA_data[ri][k] * matB_data[k][ci];
+  matC_data[ri][ci] = sum;
+  renderMat('matA', matA_data, ri);
+  renderMat('matB', matB_data, undefined, ci);
+  renderMat('matC', matC_data.map(function(r) { return r.map(function(v) { return v === null ? '?' : v; }); }), undefined, undefined, [ri, ci]);
+  if (matStep < 3) {
+    var desc = t('p00.sec3.step').replace('{0}', ri).replace('{1}', ci).replace('{2}', sum);
+    document.getElementById('matmulDesc').textContent = desc;
+  } else {
+    document.getElementById('matmulDesc').textContent = t('p00.sec3.done');
+  }
+}
+function matmulPrev() {
+  if (matStep < 0) return;
+  var ri = Math.floor(matStep / 2), ci = matStep % 2;
+  matC_data[ri][ci] = null;
+  matStep--;
+  if (matStep >= 0) {
+    var pri = Math.floor(matStep / 2), pci = matStep % 2;
+    renderMat('matA', matA_data, pri);
+    renderMat('matB', matB_data, undefined, pci);
+  } else {
+    renderMat('matA', matA_data);
+    renderMat('matB', matB_data);
+  }
+  renderMat('matC', matC_data.map(function(r) { return r.map(function(v) { return v === null ? '?' : v; }); }));
+  document.getElementById('matmulDesc').textContent = matStep < 0 ? t('p00.sec3.start') : '';
+}
+function matmulRandomize() { matmulInit(); }
+
+// ==================== Section 3b: Prediction Game ==================== //
+var predictA, predictB, predictTarget, predictAnswer, predScore = 0, predTotal = 0;
+function newPredictRound() {
+  predictA = randomMat(2, 2, 1, 6);
+  predictB = randomMat(2, 2, 1, 6);
+  var ri = Math.floor(Math.random() * 2), ci = Math.floor(Math.random() * 2);
+  predictTarget = [ri, ci];
+  predictAnswer = predictA[ri][0] * predictB[0][ci] + predictA[ri][1] * predictB[1][ci];
+
+  var q = '<div style="display:flex;gap:16px;justify-content:center;align-items:center;flex-wrap:wrap">';
+  q += '<table class="mat-table"><tr><td>' + predictA[0][0] + '</td><td>' + predictA[0][1] + '</td></tr><tr><td>' + predictA[1][0] + '</td><td>' + predictA[1][1] + '</td></tr></table>';
+  q += '<span class="mat-op">&times;</span>';
+  q += '<table class="mat-table"><tr><td>' + predictB[0][0] + '</td><td>' + predictB[0][1] + '</td></tr><tr><td>' + predictB[1][0] + '</td><td>' + predictB[1][1] + '</td></tr></table>';
+  q += '</div>';
+  q += '<p style="margin-top:12px;font-weight:600">' + t('p00.sec3b.question').replace('{0}', ri).replace('{1}', ci) + '</p>';
+  document.getElementById('predictQuestion').innerHTML = q;
+
+  // Generate options
+  var options = [predictAnswer];
+  while (options.length < 4) {
+    var fake = predictAnswer + Math.floor(Math.random() * 21) - 10;
+    if (fake !== predictAnswer && options.indexOf(fake) === -1) options.push(fake);
+  }
+  // Shuffle
+  options.sort(function() { return Math.random() - 0.5; });
+
+  var optDiv = document.getElementById('predictOptions');
+  optDiv.innerHTML = '';
+  options.forEach(function(val) {
+    var btn = document.createElement('button');
+    btn.textContent = val;
+    btn.onclick = function() { checkPredict(val, btn); };
+    optDiv.appendChild(btn);
+  });
+  document.getElementById('predictFeedback').textContent = '';
+}
+function checkPredict(val, btn) {
+  predTotal++;
+  var allBtns = document.getElementById('predictOptions').querySelectorAll('button');
+  allBtns.forEach(function(b) { b.disabled = true; });
+  if (val === predictAnswer) {
+    predScore++;
+    btn.classList.add('correct');
+    document.getElementById('predictFeedback').innerHTML = '<span style="color:var(--accent2)">' + t('p00.sec3b.correct') + '</span>';
+    if (typeof markGameCompleted === 'function') markGameCompleted('00');
+  } else {
+    btn.classList.add('wrong');
+    // Highlight correct
+    allBtns.forEach(function(b) { if (parseInt(b.textContent) === predictAnswer) b.classList.add('correct'); });
+    var ri = predictTarget[0], ci = predictTarget[1];
+    var explanation = t('p00.sec3b.wrong')
+      .replace('{0}', predictA[ri][0]).replace('{1}', predictB[0][ci])
+      .replace('{2}', predictA[ri][1]).replace('{3}', predictB[1][ci])
+      .replace('{4}', predictAnswer);
+    document.getElementById('predictFeedback').innerHTML = '<span style="color:var(--accent3)">' + explanation + '</span>';
+  }
+  document.getElementById('predictScore').textContent = predScore;
+  document.getElementById('predictTotal').textContent = predTotal;
+  setTimeout(newPredictRound, 2000);
+}
+
+// ==================== Section 4: Transformations ==================== //
+function drawTransform() {
+  var canvas = document.getElementById('transformCanvas');
+  if (!canvas) return;
+  var { ctx, W, H } = setupHiDPI(canvas);
+  var c = getThemeColors();
+  var ox = W / 2, oy = H / 2;
+  var scale = Math.min(W, H) / 8;
+
+  var a = parseFloat(document.getElementById('sliderA').value);
+  var b = parseFloat(document.getElementById('sliderB').value);
+  var cc = parseFloat(document.getElementById('sliderC').value);
+  var d = parseFloat(document.getElementById('sliderD').value);
+
+  // Grid
+  ctx.strokeStyle = c.border; ctx.lineWidth = 0.5;
+  for (var x = ox % scale; x < W; x += scale) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (var y = oy % scale; y < H; y += scale) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // Axes
+  ctx.strokeStyle = c.textDim; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+
+  // Original grid points (lighter)
+  ctx.fillStyle = 'rgba(100,116,139,0.25)';
+  for (var gx = -3; gx <= 3; gx++) {
+    for (var gy = -3; gy <= 3; gy++) {
+      ctx.beginPath();
+      ctx.arc(ox + gx * scale, oy - gy * scale, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Original grid lines (faded)
+  ctx.strokeStyle = 'rgba(100,116,139,0.15)'; ctx.lineWidth = 1;
+  for (var gi = -3; gi <= 3; gi++) {
+    // Vertical
+    ctx.beginPath();
+    ctx.moveTo(ox + gi * scale, oy + 3 * scale);
+    ctx.lineTo(ox + gi * scale, oy - 3 * scale);
+    ctx.stroke();
+    // Horizontal
+    ctx.beginPath();
+    ctx.moveTo(ox - 3 * scale, oy - gi * scale);
+    ctx.lineTo(ox + 3 * scale, oy - gi * scale);
+    ctx.stroke();
+  }
+
+  // Transformed grid lines
+  ctx.lineWidth = 1.5;
+  for (var gi2 = -3; gi2 <= 3; gi2++) {
+    // Transformed vertical lines (x=gi, y varies)
+    ctx.strokeStyle = 'rgba(91,91,214,0.35)';
+    ctx.beginPath();
+    for (var t2 = -3; t2 <= 3; t2 += 0.1) {
+      var tx = a * gi2 + b * t2, ty = cc * gi2 + d * t2;
+      var px = ox + tx * scale, py = oy - ty * scale;
+      t2 === -3 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    // Transformed horizontal lines (y=gi, x varies)
+    ctx.strokeStyle = 'rgba(13,148,136,0.35)';
+    ctx.beginPath();
+    for (var t3 = -3; t3 <= 3; t3 += 0.1) {
+      var tx2 = a * t3 + b * gi2, ty2 = cc * t3 + d * gi2;
+      var px2 = ox + tx2 * scale, py2 = oy - ty2 * scale;
+      t3 === -3 ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2);
+    }
+    ctx.stroke();
+  }
+
+  // Transformed points
+  for (var gx2 = -3; gx2 <= 3; gx2++) {
+    for (var gy2 = -3; gy2 <= 3; gy2++) {
+      var tx3 = a * gx2 + b * gy2;
+      var ty3 = cc * gx2 + d * gy2;
+      var dist = Math.sqrt(gx2*gx2 + gy2*gy2);
+      var alpha = Math.max(0.3, 1 - dist / 5);
+      ctx.fillStyle = 'rgba(91,91,214,' + alpha + ')';
+      ctx.beginPath();
+      ctx.arc(ox + tx3 * scale, oy - ty3 * scale, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Basis vectors
+  function drawBasis(vx, vy, color, label) {
+    var ex = ox + vx * scale, ey = oy - vy * scale;
+    ctx.strokeStyle = color; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.stroke();
+    var angle = Math.atan2(oy - ey, ex - ox);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - 14 * Math.cos(angle - 0.3), ey + 14 * Math.sin(angle - 0.3));
+    ctx.lineTo(ex - 14 * Math.cos(angle + 0.3), ey + 14 * Math.sin(angle + 0.3));
+    ctx.fill();
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(label, ex + 10, ey - 10);
+  }
+  drawBasis(a, cc, c.accent, 'e\u2081\'');
+  drawBasis(b, d, c.accent2, 'e\u2082\'');
+
+  // Det
+  var det = a * d - b * cc;
+  ctx.fillStyle = c.textDim; ctx.font = '13px sans-serif';
+  ctx.fillText('det = ' + det.toFixed(2), 12, 20);
+
+  // Update display
+  document.getElementById('valA').textContent = a.toFixed(2);
+  document.getElementById('valB').textContent = b.toFixed(2);
+  document.getElementById('valC').textContent = cc.toFixed(2);
+  document.getElementById('valD').textContent = d.toFixed(2);
+  document.getElementById('matDisplay').textContent = a.toFixed(2) + ', ' + b.toFixed(2) + '; ' + cc.toFixed(2) + ', ' + d.toFixed(2);
+}
+function setTransform(a, b, c, d) {
+  document.getElementById('sliderA').value = a;
+  document.getElementById('sliderB').value = b;
+  document.getElementById('sliderC').value = c;
+  document.getElementById('sliderD').value = d;
+  drawTransform();
+}
+
+// ==================== Section 5: Softmax ==================== //
+var softmaxColors = ['#5b5bd6', '#0d9488', '#e11d48', '#ea580c', '#8b5cf6'];
+function updateSoftmax() {
+  var inputs = document.querySelectorAll('#softmaxInputs input[type=number]');
+  var T = parseFloat(document.getElementById('tempSlider').value) || 1;
+  document.getElementById('tempVal').textContent = T.toFixed(1);
+
+  var z = [];
+  inputs.forEach(function(inp) { z.push(parseFloat(inp.value) || 0); });
+
+  // Softmax with temperature
+  var maxZ = Math.max.apply(null, z);
+  var exps = z.map(function(v) { return Math.exp((v - maxZ) / T); });
+  var sumExp = exps.reduce(function(a, b) { return a + b; }, 0);
+  var probs = exps.map(function(e) { return e / sumExp; });
+
+  var barsDiv = document.getElementById('softmaxBars');
+  barsDiv.innerHTML = '';
+  probs.forEach(function(p, i) {
+    var group = document.createElement('div');
+    group.className = 'softmax-bar-group';
+    var bar = document.createElement('div');
+    bar.className = 'softmax-bar';
+    bar.style.height = (p * 200) + 'px';
+    bar.style.background = softmaxColors[i % softmaxColors.length];
+    var val = document.createElement('div');
+    val.className = 'softmax-bar-val';
+    val.textContent = (p * 100).toFixed(1) + '%';
+    val.style.color = softmaxColors[i % softmaxColors.length];
+    var label = document.createElement('div');
+    label.className = 'softmax-bar-label';
+    label.innerHTML = 'z<sub>' + (i + 1) + '</sub>=' + z[i].toFixed(1);
+    group.appendChild(val);
+    group.appendChild(bar);
+    group.appendChild(label);
+    barsDiv.appendChild(group);
+  });
+}
+
+// ==================== Section 6: Attention Pipeline Game ==================== //
+var pipelineOps = [
+  { id: 'qkt', label: 'Q \u00D7 K\u1D40' },
+  { id: 'scale', label: '\u00F7 \u221Ad\u2096' },
+  { id: 'softmax', label: 'Softmax' },
+  { id: 'mulv', label: '\u00D7 V' },
+  { id: 'mask', label: 'Mask (opt.)' },
+];
+var correctOrder = ['qkt', 'scale', 'softmax', 'mulv'];
+var playerPipeline = [];
+
+function renderPipeline() {
+  var slotsDiv = document.getElementById('pipelineSlots');
+  var bankDiv = document.getElementById('pipelineBank');
+
+  if (playerPipeline.length === 0) {
+    slotsDiv.innerHTML = '<span style="color:var(--text-dim);font-style:italic" data-i18n="p00.sec6.clickToAdd">' + t('p00.sec6.clickToAdd') + '</span>';
+  } else {
+    slotsDiv.innerHTML = '';
+    playerPipeline.forEach(function(opId, idx) {
+      var op = pipelineOps.find(function(o) { return o.id === opId; });
+      var slot = document.createElement('div');
+      slot.className = 'pipeline-slot';
+      slot.innerHTML = op.label + (idx < playerPipeline.length - 1 ? ' <span class="arrow">\u2192</span>' : '');
+      slot.onclick = function() { removePipelineSlot(idx); };
+      slotsDiv.appendChild(slot);
+    });
+  }
+
+  bankDiv.innerHTML = '';
+  pipelineOps.forEach(function(op) {
+    var chip = document.createElement('div');
+    chip.className = 'pipeline-chip';
+    if (playerPipeline.indexOf(op.id) !== -1) chip.classList.add('used');
+    chip.textContent = op.label;
+    chip.onclick = function() { addToPipeline(op.id); };
+    bankDiv.appendChild(chip);
+  });
+}
+function addToPipeline(opId) {
+  if (playerPipeline.indexOf(opId) !== -1) return;
+  playerPipeline.push(opId);
+  renderPipeline();
+  document.getElementById('pipelineResult').textContent = '';
+}
+function removePipelineSlot(idx) {
+  playerPipeline.splice(idx, 1);
+  renderPipeline();
+  document.getElementById('pipelineResult').textContent = '';
+}
+function resetPipeline() {
+  playerPipeline = [];
+  renderPipeline();
+  document.getElementById('pipelineResult').textContent = '';
+}
+function checkPipeline() {
+  // Filter out optional mask for comparison
+  var playerCore = playerPipeline.filter(function(id) { return id !== 'mask'; });
+  var resultDiv = document.getElementById('pipelineResult');
+  if (playerCore.length < 4) {
+    resultDiv.innerHTML = '<span style="color:var(--accent4)">' + t('p00.sec6.incomplete') + '</span>';
+    return;
+  }
+  var correct = playerCore.length === correctOrder.length && playerCore.every(function(v, i) { return v === correctOrder[i]; });
+  if (correct) {
+    resultDiv.innerHTML = '<span style="color:var(--accent2)">' + t('p00.sec6.correct') + '</span>';
+    if (typeof markGameCompleted === 'function') markGameCompleted('00');
+  } else {
+    resultDiv.innerHTML = '<span style="color:var(--accent3)">' + t('p00.sec6.wrong') + '</span>';
+  }
+}
+
+// ==================== Init ==================== //
+window.addEventListener('load', function() {
+  matmulInit();
+  newPredictRound();
+  drawTransform();
+  updateSoftmax();
+  renderPipeline();
+
+  // Slider events
+  ['sliderA', 'sliderB', 'sliderC', 'sliderD'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', drawTransform);
+  });
+});
+
+window.addEventListener('themechange', function() {
+  drawTransform();
+  updateSoftmax();
+});
+window.addEventListener('resize', function() {
+  drawTransform();
+});
+</script>
+</body>
+</html>

@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>05. FlashAttention — LLM Algorithm Visualizations</title>
+  <title data-i18n="p05.title">05. FlashAttention — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
   <style>
     /* ===== Online Softmax Formula ===== */
     .softmax-steps {
@@ -14,7 +15,7 @@
       margin: 20px 0;
     }
     .softmax-step {
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 14px 20px;
@@ -75,17 +76,17 @@
 </head>
 <body>
   <header>
-    <h1>FlashAttention</h1>
-    <p>IO-Aware Attention — Tiling, Online Softmax, and Memory Hierarchy Optimization</p>
-    <div class="breadcrumb"><a href="../index.html">Home</a> / FlashAttention</div>
+    <h1 data-i18n="p05.header">FlashAttention</h1>
+    <p data-i18n="p05.subtitle">IO-Aware Attention — Tiling, Online Softmax, and Memory Hierarchy Optimization</p>
+    <div class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p05.breadcrumb">FlashAttention</span></div>
   </header>
 
   <div class="container">
 
     <!-- ==================== Section 1: Memory Hierarchy ==================== -->
     <div class="card">
-      <h2><span class="badge badge-purple">Core</span> Memory Hierarchy</h2>
-      <p>The key insight behind FlashAttention: GPU memory has a hierarchy. SRAM is fast but tiny; HBM is large but slow. Standard attention bounces data through HBM for every intermediate result, creating a massive IO bottleneck.</p>
+      <h2 data-i18n="p05.s1.heading" data-i18n-html><span class="badge badge-purple">Core</span> Memory Hierarchy</h2>
+      <p data-i18n="p05.s1.desc">The key insight behind FlashAttention: GPU memory has a hierarchy. SRAM is fast but tiny; HBM is large but slow. Standard attention bounces data through HBM for every intermediate result, creating a massive IO bottleneck.</p>
 
       <div class="mem-hierarchy">
         <div class="mem-tier mem-sram">
@@ -101,33 +102,33 @@
         </div>
       </div>
 
-      <p class="dim-note">FlashAttention keeps computation in SRAM tiles, avoiding redundant HBM round-trips.</p>
+      <p class="dim-note" data-i18n="p05.s1.note">FlashAttention keeps computation in SRAM tiles, avoiding redundant HBM round-trips.</p>
     </div>
 
     <!-- ==================== Section 2: Standard vs Flash ==================== -->
     <div class="card">
-      <h2><span class="badge badge-red">Compare</span> Standard vs FlashAttention</h2>
+      <h2 data-i18n="p05.s2.heading" data-i18n-html><span class="badge badge-red">Compare</span> Standard vs FlashAttention</h2>
 
       <div class="compare-grid">
         <div class="compare-card compare-standard">
-          <h3 style="color: var(--accent3);">Standard Attention</h3>
+          <h3 style="color: var(--accent3);" data-i18n="p05.s2.std.title">Standard Attention</h3>
           <ul>
-            <li>Compute S = Q K<sup>T</sup> &rarr; write to HBM</li>
-            <li>Read S from HBM &rarr; compute softmax P &rarr; write to HBM</li>
-            <li>Read P from HBM &rarr; compute O = P V &rarr; write to HBM</li>
-            <li>Every N x N intermediate materialized in HBM</li>
+            <li data-i18n="p05.s2.std.li1" data-i18n-html>Compute S = Q K<sup>T</sup> &rarr; write to HBM</li>
+            <li data-i18n="p05.s2.std.li2" data-i18n-html>Read S from HBM &rarr; compute softmax P &rarr; write to HBM</li>
+            <li data-i18n="p05.s2.std.li3" data-i18n-html>Read P from HBM &rarr; compute O = P V &rarr; write to HBM</li>
+            <li data-i18n="p05.s2.std.li4">Every N x N intermediate materialized in HBM</li>
           </ul>
           <div class="formula-box">
             IO = <span class="s">O(N<sup>2</sup>)</span>
           </div>
         </div>
         <div class="compare-card compare-flash">
-          <h3 style="color: var(--accent);">FlashAttention</h3>
+          <h3 style="color: var(--accent);" data-i18n="p05.s2.flash.title">FlashAttention</h3>
           <ul>
-            <li>Load Q, K, V tiles into SRAM</li>
-            <li>Compute attention in SRAM — no intermediate writes</li>
-            <li>Use online softmax to accumulate across tiles</li>
-            <li>Write only final O blocks back to HBM</li>
+            <li data-i18n="p05.s2.flash.li1">Load Q, K, V tiles into SRAM</li>
+            <li data-i18n="p05.s2.flash.li2">Compute attention in SRAM — no intermediate writes</li>
+            <li data-i18n="p05.s2.flash.li3">Use online softmax to accumulate across tiles</li>
+            <li data-i18n="p05.s2.flash.li4">Write only final O blocks back to HBM</li>
           </ul>
           <div class="formula-box">
             IO = <span class="q">O(N<sup>2</sup>d / M)</span>
@@ -135,13 +136,13 @@
         </div>
       </div>
 
-      <p class="dim-note">Where N = sequence length, d = head dimension, M = SRAM size. FlashAttention reduces IO by a factor of M/d.</p>
+      <p class="dim-note" data-i18n="p05.s2.note">Where N = sequence length, d = head dimension, M = SRAM size. FlashAttention reduces IO by a factor of M/d.</p>
     </div>
 
     <!-- ==================== Section 3: Tiling Animation ==================== -->
     <div class="card">
-      <h2><span class="badge badge-green">Interactive</span> Tiling Animation</h2>
-      <p>FlashAttention processes the N x N attention matrix in small tiles that fit in SRAM. Watch how Q-row blocks and K-column blocks are loaded tile by tile, with the output accumulator updated incrementally.</p>
+      <h2 data-i18n="p05.s3.heading" data-i18n-html><span class="badge badge-green">Interactive</span> Tiling Animation</h2>
+      <p data-i18n="p05.s3.desc">FlashAttention processes the N x N attention matrix in small tiles that fit in SRAM. Watch how Q-row blocks and K-column blocks are loaded tile by tile, with the output accumulator updated incrementally.</p>
 
       <div class="tile-canvas-wrap">
         <canvas id="tileCanvas" class="tile-canvas"></canvas>
@@ -157,14 +158,14 @@
       <div class="tile-status" id="tileStatus"></div>
 
       <div class="anim-controls">
-        <button class="btn btn-accent" id="btnTile" onclick="runTilingAnimation()">Run Tiling Animation</button>
+        <button class="btn btn-accent" id="btnTile" onclick="runTilingAnimation()" data-i18n="p05.s3.runBtn">Run Tiling Animation</button>
       </div>
     </div>
 
     <!-- ==================== Section 4: Online Softmax ==================== -->
     <div class="card">
-      <h2><span class="badge badge-orange">Key Trick</span> Online Softmax</h2>
-      <p>Standard softmax requires seeing all scores before normalizing. FlashAttention uses <strong>online softmax</strong> to update the running result as each K-block tile is processed:</p>
+      <h2 data-i18n="p05.s4.heading" data-i18n-html><span class="badge badge-orange">Key Trick</span> Online Softmax</h2>
+      <p data-i18n="p05.s4.desc" data-i18n-html>Standard softmax requires seeing all scores before normalizing. FlashAttention uses <strong>online softmax</strong> to update the running result as each K-block tile is processed:</p>
 
       <div class="softmax-steps">
         <div class="softmax-step">
@@ -181,14 +182,14 @@
         </div>
       </div>
 
-      <div class="softmax-note">
+      <div class="softmax-note" data-i18n="p05.s4.note" data-i18n-html>
         This produces the <strong>exact same result</strong> as standard softmax — no approximation. The trick is rescaling previous partial sums when the running max changes.
       </div>
     </div>
 
     <!-- ==================== Section 5: Performance Bars ==================== -->
     <div class="card">
-      <h2><span class="badge badge-green">Performance</span> Speed Comparison</h2>
+      <h2 data-i18n="p05.s5.heading" data-i18n-html><span class="badge badge-green">Performance</span> Speed Comparison</h2>
 
       <div class="speedup-bar-wrap">
         <div class="perf-section-label">Wall-Clock Speed</div>
@@ -229,27 +230,27 @@
       </div>
 
       <div class="anim-controls">
-        <button class="btn btn-accent" onclick="animateBars('.speedup-fill')">Animate Bars</button>
+        <button class="btn btn-accent" onclick="animateBars('.speedup-fill')" data-i18n="btn.animate">Animate Bars</button>
       </div>
     </div>
 
     <!-- ==================== Section 6: Memory Hierarchy Quiz ==================== -->
     <div class="card">
-      <h2><span class="badge badge-green">Game</span> Memory Hierarchy Quiz</h2>
-      <p>Test your understanding of GPU memory hierarchy and FlashAttention concepts. Answer 5 multiple-choice questions.</p>
+      <h2 data-i18n="p05.g1.heading" data-i18n-html><span class="badge badge-green">Game</span> Memory Hierarchy Quiz</h2>
+      <p data-i18n="p05.g1.desc">Test your understanding of GPU memory hierarchy and FlashAttention concepts. Answer 5 multiple-choice questions.</p>
 
       <div class="game-score" id="memQuizScore">
         <div class="game-score-item">
           <div class="score-val" id="memQuizCurrent">1</div>
-          <div class="score-label">Question</div>
+          <div class="score-label" data-i18n="p05.g1.question">Question</div>
         </div>
         <div class="game-score-item">
           <div class="score-val" id="memQuizCorrect">0</div>
-          <div class="score-label">Correct</div>
+          <div class="score-label" data-i18n="p05.g1.correct">Correct</div>
         </div>
         <div class="game-score-item">
           <div class="score-val" id="memQuizTotal">5</div>
-          <div class="score-label">Total</div>
+          <div class="score-label" data-i18n="p05.g1.total">Total</div>
         </div>
       </div>
 
@@ -263,39 +264,39 @@
       <div class="game-feedback" id="memQuizFeedback"></div>
 
       <div class="anim-controls">
-        <button class="btn btn-accent" id="memQuizNextBtn" style="display:none;" onclick="memQuizNext()">Next Question</button>
-        <button class="btn btn-surface" id="memQuizResetBtn" style="display:none;" onclick="memQuizReset()">Play Again</button>
+        <button class="btn btn-accent" id="memQuizNextBtn" style="display:none;" onclick="memQuizNext()" data-i18n="p05.g1.nextBtn">Next Question</button>
+        <button class="btn btn-surface" id="memQuizResetBtn" style="display:none;" onclick="memQuizReset()" data-i18n="btn.playAgain">Play Again</button>
       </div>
     </div>
 
     <!-- ==================== Section 7: IO Cost Comparison Game ==================== -->
     <div class="card">
-      <h2><span class="badge badge-orange">Game</span> IO Cost Comparison</h2>
-      <p>Compare Standard vs Flash attention IO costs by processing tiles. Click each tile in both modes to see how IO adds up.</p>
+      <h2 data-i18n="p05.g2.heading" data-i18n-html><span class="badge badge-orange">Game</span> IO Cost Comparison</h2>
+      <p data-i18n="p05.g2.desc">Compare Standard vs Flash attention IO costs by processing tiles. Click each tile in both modes to see how IO adds up.</p>
 
       <div class="game-score" id="ioCostScore">
         <div class="game-score-item">
           <div class="score-val" id="ioStdCounter" style="color:var(--accent3);">0</div>
-          <div class="score-label">Standard IO</div>
+          <div class="score-label" data-i18n="p05.g2.stdIO">Standard IO</div>
         </div>
         <div class="game-score-item">
           <div class="score-val" id="ioFlashCounter" style="color:var(--accent2);">0</div>
-          <div class="score-label">Flash IO</div>
+          <div class="score-label" data-i18n="p05.g2.flashIO">Flash IO</div>
         </div>
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin:20px 0;">
         <!-- Standard Mode -->
         <div style="text-align:center;">
-          <h3 style="color:var(--accent3); margin-top:0;">Standard Mode</h3>
-          <p style="font-size:0.82rem; color:var(--text-dim); margin-bottom:12px;">Each tile: 6 IO ops (read Q, K, write S, read S, read V, write O)</p>
+          <h3 style="color:var(--accent3); margin-top:0;" data-i18n="p05.g2.stdMode">Standard Mode</h3>
+          <p style="font-size:0.82rem; color:var(--text-dim); margin-bottom:12px;" data-i18n="p05.g2.stdModeDesc">Each tile: 6 IO ops (read Q, K, write S, read S, read V, write O)</p>
           <div id="ioStdGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; max-width:200px; margin:0 auto;"></div>
           <div class="game-feedback" id="ioStdStatus" style="font-size:0.85rem;"></div>
         </div>
         <!-- Flash Mode -->
         <div style="text-align:center;">
-          <h3 style="color:var(--accent2); margin-top:0;">Flash Mode</h3>
-          <p style="font-size:0.82rem; color:var(--text-dim); margin-bottom:12px;">Each tile: 3 IO ops (read Q,K,V; compute in SRAM; write O)</p>
+          <h3 style="color:var(--accent2); margin-top:0;" data-i18n="p05.g2.flashMode">Flash Mode</h3>
+          <p style="font-size:0.82rem; color:var(--text-dim); margin-bottom:12px;" data-i18n="p05.g2.flashModeDesc">Each tile: 3 IO ops (read Q,K,V; compute in SRAM; write O)</p>
           <div id="ioFlashGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; max-width:200px; margin:0 auto;"></div>
           <div class="game-feedback" id="ioFlashStatus" style="font-size:0.85rem;"></div>
         </div>
@@ -317,14 +318,15 @@
       </div>
 
       <div class="anim-controls">
-        <button class="btn btn-surface" onclick="ioGameReset()">Reset</button>
+        <button class="btn btn-surface" onclick="ioGameReset()" data-i18n="btn.reset">Reset</button>
       </div>
     </div>
 
   </div>
 
-  <footer><p>LLM Algorithm Visualization Series</p></footer>
+  <footer><p data-i18n="footer.text">LLM Algorithm Visualization Series</p></footer>
 
+  <script src="../shared/i18n.js"></script>
   <script src="../shared/nav.js"></script>
   <script src="../shared/animations.js"></script>
   <script src="../shared/progress.js"></script>
@@ -785,6 +787,143 @@
         initTileCanvas();
       }
     });
+
+    // Re-render canvases on theme change
+    window.addEventListener('themechange', function() {
+      if (!tileAnimRunning) {
+        initTileCanvas();
+      }
+    });
+  </script>
+  <script>
+  i18nRegister({
+    'en': {
+      'p05.title': '05. FlashAttention — LLM Algorithm Visualizations',
+      'p05.header': 'FlashAttention',
+      'p05.subtitle': 'IO-Aware Attention — Tiling, Online Softmax, and Memory Hierarchy Optimization',
+      'p05.breadcrumb': 'FlashAttention',
+      'p05.s1.heading': '<span class="badge badge-purple">Core</span> Memory Hierarchy',
+      'p05.s1.desc': 'The key insight behind FlashAttention: GPU memory has a hierarchy. SRAM is fast but tiny; HBM is large but slow. Standard attention bounces data through HBM for every intermediate result, creating a massive IO bottleneck.',
+      'p05.s1.note': 'FlashAttention keeps computation in SRAM tiles, avoiding redundant HBM round-trips.',
+      'p05.s2.heading': '<span class="badge badge-red">Compare</span> Standard vs FlashAttention',
+      'p05.s2.std.title': 'Standard Attention',
+      'p05.s2.std.li1': 'Compute S = Q K<sup>T</sup> &rarr; write to HBM',
+      'p05.s2.std.li2': 'Read S from HBM &rarr; compute softmax P &rarr; write to HBM',
+      'p05.s2.std.li3': 'Read P from HBM &rarr; compute O = P V &rarr; write to HBM',
+      'p05.s2.std.li4': 'Every N x N intermediate materialized in HBM',
+      'p05.s2.flash.title': 'FlashAttention',
+      'p05.s2.flash.li1': 'Load Q, K, V tiles into SRAM',
+      'p05.s2.flash.li2': 'Compute attention in SRAM — no intermediate writes',
+      'p05.s2.flash.li3': 'Use online softmax to accumulate across tiles',
+      'p05.s2.flash.li4': 'Write only final O blocks back to HBM',
+      'p05.s2.note': 'Where N = sequence length, d = head dimension, M = SRAM size. FlashAttention reduces IO by a factor of M/d.',
+      'p05.s3.heading': '<span class="badge badge-green">Interactive</span> Tiling Animation',
+      'p05.s3.desc': 'FlashAttention processes the N x N attention matrix in small tiles that fit in SRAM. Watch how Q-row blocks and K-column blocks are loaded tile by tile, with the output accumulator updated incrementally.',
+      'p05.s3.runBtn': 'Run Tiling Animation',
+      'p05.s4.heading': '<span class="badge badge-orange">Key Trick</span> Online Softmax',
+      'p05.s4.desc': 'Standard softmax requires seeing all scores before normalizing. FlashAttention uses <strong>online softmax</strong> to update the running result as each K-block tile is processed:',
+      'p05.s4.note': 'This produces the <strong>exact same result</strong> as standard softmax — no approximation. The trick is rescaling previous partial sums when the running max changes.',
+      'p05.s5.heading': '<span class="badge badge-green">Performance</span> Speed Comparison',
+      'p05.g1.heading': '<span class="badge badge-green">Game</span> Memory Hierarchy Quiz',
+      'p05.g1.desc': 'Test your understanding of GPU memory hierarchy and FlashAttention concepts. Answer 5 multiple-choice questions.',
+      'p05.g1.question': 'Question',
+      'p05.g1.correct': 'Correct',
+      'p05.g1.total': 'Total',
+      'p05.g1.nextBtn': 'Next Question',
+      'p05.g2.heading': '<span class="badge badge-orange">Game</span> IO Cost Comparison',
+      'p05.g2.desc': 'Compare Standard vs Flash attention IO costs by processing tiles. Click each tile in both modes to see how IO adds up.',
+      'p05.g2.stdIO': 'Standard IO',
+      'p05.g2.flashIO': 'Flash IO',
+      'p05.g2.stdMode': 'Standard Mode',
+      'p05.g2.stdModeDesc': 'Each tile: 6 IO ops (read Q, K, write S, read S, read V, write O)',
+      'p05.g2.flashMode': 'Flash Mode',
+      'p05.g2.flashModeDesc': 'Each tile: 3 IO ops (read Q,K,V; compute in SRAM; write O)',
+    },
+    'zh-CN': {
+      'p05.title': '05. FlashAttention — 大语言模型算法可视化',
+      'p05.header': 'FlashAttention',
+      'p05.subtitle': 'IO 感知的注意力机制 — 分块、在线 Softmax 与内存层次优化',
+      'p05.breadcrumb': 'FlashAttention',
+      'p05.s1.heading': '<span class="badge badge-purple">核心</span> 内存层次结构',
+      'p05.s1.desc': 'FlashAttention 背后的关键洞察：GPU 内存具有层次结构。SRAM 速度快但容量小；HBM 容量大但速度慢。标准注意力每次中间结果都要经过 HBM，造成巨大的 IO 瓶颈。',
+      'p05.s1.note': 'FlashAttention 将计算保持在 SRAM 分块中，避免冗余的 HBM 往返。',
+      'p05.s2.heading': '<span class="badge badge-red">对比</span> 标准注意力 vs FlashAttention',
+      'p05.s2.std.title': '标准注意力',
+      'p05.s2.std.li1': '计算 S = Q K<sup>T</sup> &rarr; 写入 HBM',
+      'p05.s2.std.li2': '从 HBM 读取 S &rarr; 计算 softmax P &rarr; 写入 HBM',
+      'p05.s2.std.li3': '从 HBM 读取 P &rarr; 计算 O = P V &rarr; 写入 HBM',
+      'p05.s2.std.li4': '每个 N x N 中间结果都实体化在 HBM 中',
+      'p05.s2.flash.title': 'FlashAttention',
+      'p05.s2.flash.li1': '将 Q、K、V 分块加载到 SRAM',
+      'p05.s2.flash.li2': '在 SRAM 中计算注意力 — 无中间写入',
+      'p05.s2.flash.li3': '使用在线 softmax 跨分块累积',
+      'p05.s2.flash.li4': '仅将最终 O 块写回 HBM',
+      'p05.s2.note': '其中 N = 序列长度，d = 头维度，M = SRAM 大小。FlashAttention 将 IO 降低了 M/d 倍。',
+      'p05.s3.heading': '<span class="badge badge-green">交互</span> 分块动画',
+      'p05.s3.desc': 'FlashAttention 将 N x N 注意力矩阵处理为可放入 SRAM 的小分块。观察 Q 行块和 K 列块如何逐块加载，输出累加器增量更新。',
+      'p05.s3.runBtn': '运行分块动画',
+      'p05.s4.heading': '<span class="badge badge-orange">关键技巧</span> 在线 Softmax',
+      'p05.s4.desc': '标准 softmax 需要看到所有分数后才能归一化。FlashAttention 使用<strong>在线 softmax</strong> 在处理每个 K 块分块时更新运行结果：',
+      'p05.s4.note': '这产生与标准 softmax <strong>完全相同的结果</strong> — 没有近似。技巧在于当运行最大值改变时重新缩放之前的部分和。',
+      'p05.s5.heading': '<span class="badge badge-green">性能</span> 速度对比',
+      'p05.g1.heading': '<span class="badge badge-green">游戏</span> 内存层次测验',
+      'p05.g1.desc': '测试你对 GPU 内存层次结构和 FlashAttention 概念的理解。回答 5 道选择题。',
+      'p05.g1.question': '题目',
+      'p05.g1.correct': '正确',
+      'p05.g1.total': '总计',
+      'p05.g1.nextBtn': '下一题',
+      'p05.g2.heading': '<span class="badge badge-orange">游戏</span> IO 开销对比',
+      'p05.g2.desc': '通过处理分块来比较标准注意力与 Flash 注意力的 IO 开销。点击两种模式中的每个分块，查看 IO 如何累积。',
+      'p05.g2.stdIO': '标准 IO',
+      'p05.g2.flashIO': 'Flash IO',
+      'p05.g2.stdMode': '标准模式',
+      'p05.g2.stdModeDesc': '每个分块：6 次 IO 操作（读 Q、K，写 S，读 S，读 V，写 O）',
+      'p05.g2.flashMode': 'Flash 模式',
+      'p05.g2.flashModeDesc': '每个分块：3 次 IO 操作（读 Q、K、V；在 SRAM 中计算；写 O）',
+    },
+    'zh-TW': {
+      'p05.title': '05. FlashAttention — 大語言模型演算法視覺化',
+      'p05.header': 'FlashAttention',
+      'p05.subtitle': 'IO 感知的注意力機制 — 分塊、線上 Softmax 與記憶體階層優化',
+      'p05.breadcrumb': 'FlashAttention',
+      'p05.s1.heading': '<span class="badge badge-purple">核心</span> 記憶體階層結構',
+      'p05.s1.desc': 'FlashAttention 背後的關鍵洞察：GPU 記憶體具有階層結構。SRAM 速度快但容量小；HBM 容量大但速度慢。標準注意力每次中間結果都要經過 HBM，造成巨大的 IO 瓶頸。',
+      'p05.s1.note': 'FlashAttention 將計算保持在 SRAM 分塊中，避免冗餘的 HBM 往返。',
+      'p05.s2.heading': '<span class="badge badge-red">對比</span> 標準注意力 vs FlashAttention',
+      'p05.s2.std.title': '標準注意力',
+      'p05.s2.std.li1': '計算 S = Q K<sup>T</sup> &rarr; 寫入 HBM',
+      'p05.s2.std.li2': '從 HBM 讀取 S &rarr; 計算 softmax P &rarr; 寫入 HBM',
+      'p05.s2.std.li3': '從 HBM 讀取 P &rarr; 計算 O = P V &rarr; 寫入 HBM',
+      'p05.s2.std.li4': '每個 N x N 中間結果都實體化在 HBM 中',
+      'p05.s2.flash.title': 'FlashAttention',
+      'p05.s2.flash.li1': '將 Q、K、V 分塊載入 SRAM',
+      'p05.s2.flash.li2': '在 SRAM 中計算注意力 — 無中間寫入',
+      'p05.s2.flash.li3': '使用線上 softmax 跨分塊累積',
+      'p05.s2.flash.li4': '僅將最終 O 塊寫回 HBM',
+      'p05.s2.note': '其中 N = 序列長度，d = 頭維度，M = SRAM 大小。FlashAttention 將 IO 降低了 M/d 倍。',
+      'p05.s3.heading': '<span class="badge badge-green">互動</span> 分塊動畫',
+      'p05.s3.desc': 'FlashAttention 將 N x N 注意力矩陣處理為可放入 SRAM 的小分塊。觀察 Q 列塊和 K 行塊如何逐塊載入，輸出累加器增量更新。',
+      'p05.s3.runBtn': '執行分塊動畫',
+      'p05.s4.heading': '<span class="badge badge-orange">關鍵技巧</span> 線上 Softmax',
+      'p05.s4.desc': '標準 softmax 需要看到所有分數後才能歸一化。FlashAttention 使用<strong>線上 softmax</strong> 在處理每個 K 塊分塊時更新執行結果：',
+      'p05.s4.note': '這產生與標準 softmax <strong>完全相同的結果</strong> — 沒有近似。技巧在於當執行最大值改變時重新縮放之前的部分和。',
+      'p05.s5.heading': '<span class="badge badge-green">效能</span> 速度對比',
+      'p05.g1.heading': '<span class="badge badge-green">遊戲</span> 記憶體階層測驗',
+      'p05.g1.desc': '測試你對 GPU 記憶體階層結構和 FlashAttention 概念的理解。回答 5 道選擇題。',
+      'p05.g1.question': '題目',
+      'p05.g1.correct': '正確',
+      'p05.g1.total': '總計',
+      'p05.g1.nextBtn': '下一題',
+      'p05.g2.heading': '<span class="badge badge-orange">遊戲</span> IO 開銷對比',
+      'p05.g2.desc': '透過處理分塊來比較標準注意力與 Flash 注意力的 IO 開銷。點擊兩種模式中的每個分塊，查看 IO 如何累積。',
+      'p05.g2.stdIO': '標準 IO',
+      'p05.g2.flashIO': 'Flash IO',
+      'p05.g2.stdMode': '標準模式',
+      'p05.g2.stdModeDesc': '每個分塊：6 次 IO 操作（讀 Q、K，寫 S，讀 S，讀 V，寫 O）',
+      'p05.g2.flashMode': 'Flash 模式',
+      'p05.g2.flashModeDesc': '每個分塊：3 次 IO 操作（讀 Q、K、V；在 SRAM 中計算；寫 O）',
+    }
+  });
   </script>
 </body>
 </html>

@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>02 — GPT-2 Architecture | LLM Algorithm Visualizations</title>
+<title data-i18n="p02.title">02 — GPT-2 Architecture | LLM Algorithm Visualizations</title>
 <link rel="stylesheet" href="../shared/style.css">
+<script src="../shared/theme.js"></script>
 <style>
 /* ==================== Section 1: Encoder-Decoder vs Decoder-Only ==================== */
 .arch-compare {
@@ -181,7 +182,7 @@
   padding: 14px 18px;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--canvas-bg);
   color: var(--text);
   font-size: 1rem;
   font-family: inherit;
@@ -199,7 +200,7 @@
   min-height: 48px;
   padding: 16px;
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--canvas-bg);
   border: 1px solid var(--border);
 }
 .tok {
@@ -298,7 +299,7 @@
   gap: 2px;
   border-radius: 8px;
   padding: 8px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--canvas-bg);
   border: 1px solid var(--border);
 }
 .matrix-cell {
@@ -388,7 +389,7 @@
 .model-stat {
   padding: 16px;
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--canvas-bg);
   border: 1px solid var(--border);
   text-align: center;
   transition: all 0.4s;
@@ -431,7 +432,7 @@
 .size-bar-track {
   flex: 1;
   height: 28px;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--canvas-bg);
   border-radius: 6px;
   overflow: hidden;
   position: relative;
@@ -576,10 +577,10 @@
 
 <!-- ==================== Header ==================== -->
 <header>
-  <h1>GPT-2 Architecture</h1>
-  <p>Decoder-Only Transformer &mdash; The Foundation of Modern LLMs</p>
+  <h1 data-i18n="p02.heading">GPT-2 Architecture</h1>
+  <p data-i18n="p02.subtitle">Decoder-Only Transformer &mdash; The Foundation of Modern LLMs</p>
   <div class="breadcrumb">
-    <a href="../index.html">Home</a> &rsaquo; <strong>02 &mdash; GPT-2 Architecture</strong>
+    <a href="../index.html" data-i18n="breadcrumb.home">Home</a> &rsaquo; <strong data-i18n="p02.breadcrumb">02 &mdash; GPT-2 Architecture</strong>
   </div>
 </header>
 
@@ -588,8 +589,8 @@
 
   <!-- ========== Section 1: Encoder-Decoder vs Decoder-Only ========== -->
   <div class="card">
-    <h2><span class="badge badge-purple">1</span> Encoder-Decoder vs Decoder-Only</h2>
-    <p>The original Transformer (Vaswani et al., 2017) uses both an encoder and a decoder with cross-attention connecting them. GPT-2 simplifies this by keeping <strong>only the decoder stack</strong>, removing the encoder entirely and the cross-attention layers that connected them.</p>
+    <h2 data-i18n="p02.s1.heading" data-i18n-html><span class="badge badge-purple">1</span> Encoder-Decoder vs Decoder-Only</h2>
+    <p data-i18n="p02.s1.desc" data-i18n-html>The original Transformer (Vaswani et al., 2017) uses both an encoder and a decoder with cross-attention connecting them. GPT-2 simplifies this by keeping <strong>only the decoder stack</strong>, removing the encoder entirely and the cross-attention layers that connected them.</p>
 
     <div class="arch-compare">
       <!-- LEFT: Original Transformer -->
@@ -641,13 +642,13 @@
       </div>
     </div>
 
-    <p class="dim-note">GPT-2 processes input and output in a single pass through the decoder stack. No encoder needed for language modeling.</p>
+    <p class="dim-note" data-i18n="p02.s1.note">GPT-2 processes input and output in a single pass through the decoder stack. No encoder needed for language modeling.</p>
   </div>
 
   <!-- ========== Section 2: Pre-LayerNorm vs Post-LayerNorm ========== -->
   <div class="card">
-    <h2><span class="badge badge-green">2</span> Pre-LayerNorm vs Post-LayerNorm</h2>
-    <p>The original Transformer applies LayerNorm <em>after</em> the residual addition (Post-LN). GPT-2 moves LayerNorm <em>before</em> each sublayer (Pre-LN), which produces more stable gradients and enables training of much deeper networks.</p>
+    <h2 data-i18n="p02.s2.heading" data-i18n-html><span class="badge badge-green">2</span> Pre-LayerNorm vs Post-LayerNorm</h2>
+    <p data-i18n="p02.s2.desc" data-i18n-html>The original Transformer applies LayerNorm <em>after</em> the residual addition (Post-LN). GPT-2 moves LayerNorm <em>before</em> each sublayer (Pre-LN), which produces more stable gradients and enables training of much deeper networks.</p>
 
     <div class="ln-compare">
       <!-- Post-LN -->
@@ -684,25 +685,25 @@
     </div>
 
     <div class="anim-controls">
-      <button class="btn btn-accent" id="lnAnimBtn" onclick="animateLayerNorm()">Animate Data Flow</button>
+      <button class="btn btn-accent" id="lnAnimBtn" onclick="animateLayerNorm()" data-i18n="p02.s2.animBtn">Animate Data Flow</button>
     </div>
 
     <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:16px;">
       <div style="padding:14px; border-radius:8px; background:rgba(247,118,142,0.06); border:1px solid rgba(247,118,142,0.2); font-size:0.88rem;">
-        <strong style="color:var(--accent3);">Post-LN issues:</strong><br>
-        Gradient magnitudes vary wildly across layers, making deep networks hard to train without careful warmup.
+        <strong style="color:var(--accent3);" data-i18n="p02.s2.postln.label">Post-LN issues:</strong><br>
+        <span data-i18n="p02.s2.postln.text">Gradient magnitudes vary wildly across layers, making deep networks hard to train without careful warmup.</span>
       </div>
       <div style="padding:14px; border-radius:8px; background:rgba(0,201,167,0.06); border:1px solid rgba(0,201,167,0.2); font-size:0.88rem;">
-        <strong style="color:var(--accent2);">Pre-LN benefits:</strong><br>
-        Gradients stay well-behaved through many layers. Enables stable training of 48+ layer models without warmup.
+        <strong style="color:var(--accent2);" data-i18n="p02.s2.preln.label">Pre-LN benefits:</strong><br>
+        <span data-i18n="p02.s2.preln.text">Gradients stay well-behaved through many layers. Enables stable training of 48+ layer models without warmup.</span>
       </div>
     </div>
   </div>
 
   <!-- ========== Section 3: Interactive BPE Tokenizer Demo ========== -->
   <div class="card">
-    <h2><span class="badge badge-orange">3</span> Interactive BPE Tokenizer Demo</h2>
-    <p>GPT-2 uses Byte-Pair Encoding (BPE) at the byte level, meaning it can tokenize <em>any</em> text without unknown tokens. Common words stay whole; rare words get split into subword pieces.</p>
+    <h2 data-i18n="p02.s3.heading" data-i18n-html><span class="badge badge-orange">3</span> Interactive BPE Tokenizer Demo</h2>
+    <p data-i18n="p02.s3.desc" data-i18n-html>GPT-2 uses Byte-Pair Encoding (BPE) at the byte level, meaning it can tokenize <em>any</em> text without unknown tokens. Common words stay whole; rare words get split into subword pieces.</p>
 
     <input type="text" class="bpe-input" id="bpeInput" value="Hello, world! This is GPT-2 tokenization." placeholder="Type any text to see tokenization...">
 
@@ -728,13 +729,13 @@
       </div>
     </div>
 
-    <p class="dim-note" style="margin-top:12px;">This is a simplified simulation. Real BPE uses a learned merge table of ~50,257 tokens built from training data.</p>
+    <p class="dim-note" style="margin-top:12px;" data-i18n="p02.s3.note">This is a simplified simulation. Real BPE uses a learned merge table of ~50,257 tokens built from training data.</p>
   </div>
 
   <!-- ========== Section 4: Weight Tying ========== -->
   <div class="card">
-    <h2><span class="badge badge-green">4</span> Weight Tying Visualization</h2>
-    <p>GPT-2 shares the same weight matrix between the input token embedding and the output projection layer. The output projection is simply the <em>transpose</em> of the embedding matrix.</p>
+    <h2 data-i18n="p02.s4.heading" data-i18n-html><span class="badge badge-green">4</span> Weight Tying Visualization</h2>
+    <p data-i18n="p02.s4.desc" data-i18n-html>GPT-2 shares the same weight matrix between the input token embedding and the output projection layer. The output projection is simply the <em>transpose</em> of the embedding matrix.</p>
 
     <div class="weight-tie-diagram" id="weightTieDiagram">
       <!-- Input Embedding -->
@@ -762,19 +763,19 @@
     </div>
 
     <div class="benefit-list">
-      <div class="benefit-item">
+      <div class="benefit-item" data-i18n="p02.s4.b1" data-i18n-html>
         <strong>~30% fewer parameters</strong>
         Eliminates a separate 50,257 &times; 768 output matrix (~38.5M parameters saved in GPT-2 Small).
       </div>
-      <div class="benefit-item">
+      <div class="benefit-item" data-i18n="p02.s4.b2" data-i18n-html>
         <strong>Acts as regularization</strong>
         Forces the model to learn embeddings that work well for both understanding input and predicting output.
       </div>
-      <div class="benefit-item">
+      <div class="benefit-item" data-i18n="p02.s4.b3" data-i18n-html>
         <strong>Better generalization</strong>
         Shared representations create a more coherent semantic space where input and output meanings align.
       </div>
-      <div class="benefit-item">
+      <div class="benefit-item" data-i18n="p02.s4.b4" data-i18n-html>
         <strong>Faster convergence</strong>
         Fewer parameters to learn means the model can converge more quickly during training.
       </div>
@@ -783,8 +784,8 @@
 
   <!-- ========== Section 5: Model Size Explorer ========== -->
   <div class="card">
-    <h2><span class="badge badge-purple">5</span> Model Size Explorer</h2>
-    <p>GPT-2 was released in 4 sizes, all sharing the same architecture but differing in depth and width. Select a model to explore its configuration.</p>
+    <h2 data-i18n="p02.s5.heading" data-i18n-html><span class="badge badge-purple">5</span> Model Size Explorer</h2>
+    <p data-i18n="p02.s5.desc">GPT-2 was released in 4 sizes, all sharing the same architecture but differing in depth and width. Select a model to explore its configuration.</p>
 
     <div class="model-tabs" id="modelTabs">
       <button class="model-tab active" data-model="0">Small (117M)</button>
@@ -795,14 +796,14 @@
 
     <div class="model-details" id="modelDetails"></div>
 
-    <h3>Relative Parameter Counts</h3>
+    <h3 data-i18n="p02.s5.relParams">Relative Parameter Counts</h3>
     <div class="size-bars" id="sizeBars"></div>
   </div>
 
   <!-- ========== Section 6: Full Architecture Diagram ========== -->
   <div class="card">
-    <h2><span class="badge badge-red">6</span> GPT-2 Full Architecture Diagram</h2>
-    <p>The complete GPT-2 architecture from input tokens to output probabilities. Note the Pre-LayerNorm placement, absence of cross-attention, GELU activation, and tied output weights.</p>
+    <h2 data-i18n="p02.s6.heading" data-i18n-html><span class="badge badge-red">6</span> GPT-2 Full Architecture Diagram</h2>
+    <p data-i18n="p02.s6.desc">The complete GPT-2 architecture from input tokens to output probabilities. Note the Pre-LayerNorm placement, absence of cross-attention, GELU activation, and tied output weights.</p>
 
     <div class="gpt2-arch">
       <!-- Input -->
@@ -889,8 +890,8 @@
 
   <!-- ========== Section 7: Token Count Challenge ========== -->
   <div class="card">
-    <h2><span class="badge badge-orange">Game</span> Token Count Challenge</h2>
-    <p>How well can you predict BPE tokenization? Guess how many tokens each sentence will produce.</p>
+    <h2 data-i18n="p02.s7.heading" data-i18n-html><span class="badge badge-orange">Game</span> Token Count Challenge</h2>
+    <p data-i18n="p02.s7.desc">How well can you predict BPE tokenization? Guess how many tokens each sentence will produce.</p>
 
     <div class="game-score" id="tokGameScore">
       <div class="game-score-item"><span class="score-val" id="tokRound">1</span><span class="score-label">Round</span></div>
@@ -904,7 +905,7 @@
 
     <div class="game-input-group" id="tokInputGroup">
       <input type="number" class="game-input" id="tokGuessInput" placeholder="Your guess..." min="1" max="200">
-      <button class="btn btn-accent" onclick="tokCheck()">Check</button>
+      <button class="btn btn-accent" onclick="tokCheck()" data-i18n="p02.s7.checkBtn">Check</button>
     </div>
 
     <div class="game-feedback" id="tokFeedback"></div>
@@ -912,15 +913,15 @@
     <div class="token-display" id="tokRevealDisplay" style="display:none;"></div>
 
     <div style="text-align:center;margin-top:16px;">
-      <button class="btn btn-accent" id="tokNextBtn" onclick="tokNextRound()" style="display:none;">Next Round &rarr;</button>
-      <button class="btn btn-surface" id="tokRestartBtn" onclick="tokRestart()" style="display:none;">Play Again</button>
+      <button class="btn btn-accent" id="tokNextBtn" onclick="tokNextRound()" style="display:none;" data-i18n="btn.nextRound">Next Round &rarr;</button>
+      <button class="btn btn-surface" id="tokRestartBtn" onclick="tokRestart()" style="display:none;" data-i18n="btn.playAgain">Play Again</button>
     </div>
   </div>
 
   <!-- ========== Section 8: Parameter Calculator ========== -->
   <div class="card">
-    <h2><span class="badge badge-purple">Calculator</span> Parameter Calculator</h2>
-    <p>Explore how model dimensions affect total parameter count. Adjust the sliders or use preset buttons for GPT-2 configurations.</p>
+    <h2 data-i18n="p02.s8.heading" data-i18n-html><span class="badge badge-purple">Calculator</span> Parameter Calculator</h2>
+    <p data-i18n="p02.s8.desc">Explore how model dimensions affect total parameter count. Adjust the sliders or use preset buttons for GPT-2 configurations.</p>
 
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
       <button class="btn btn-surface" onclick="paramPreset(12,768,50257)">GPT-2 Small</button>
@@ -947,7 +948,7 @@
       <div style="font-size:0.85rem;color:var(--text-dim);margin-top:4px;" id="paramBreakdown"></div>
     </div>
 
-    <canvas id="paramCanvas" style="width:100%;height:120px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(0,0,0,.3);"></canvas>
+    <canvas id="paramCanvas" style="width:100%;height:120px;border:1px solid var(--border);border-radius:var(--radius);background:var(--canvas-bg);"></canvas>
     <div style="display:flex;justify-content:center;gap:20px;margin-top:10px;font-size:0.8rem;color:var(--text-dim);">
       <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#6c63ff;vertical-align:middle;margin-right:4px;"></span>Embedding</span>
       <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#bb9af7;vertical-align:middle;margin-right:4px;"></span>Attention</span>
@@ -959,10 +960,11 @@
 
 <!-- ==================== Footer ==================== -->
 <footer>
-  <p>LLM Algorithm Visualization Series &mdash; Topic 02: GPT-2 Architecture</p>
+  <p data-i18n="p02.footer">LLM Algorithm Visualization Series &mdash; Topic 02: GPT-2 Architecture</p>
 </footer>
 
 <!-- ==================== Scripts ==================== -->
+<script src="../shared/i18n.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
@@ -1539,6 +1541,149 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.addEventListener('resize', paramCalc);
+
+// Re-render on theme change
+window.addEventListener('themechange', function() {
+  paramCalc();
+  renderModelExplorer(document.querySelector('.model-tab.active') ?
+    Array.from(document.querySelectorAll('.model-tab')).indexOf(document.querySelector('.model-tab.active')) : 0);
+});
+</script>
+<script>
+i18nRegister({
+  'en': {
+    'p02.title': '02 — GPT-2 Architecture | LLM Algorithm Visualizations',
+    'p02.heading': 'GPT-2 Architecture',
+    'p02.subtitle': 'Decoder-Only Transformer — The Foundation of Modern LLMs',
+    'p02.breadcrumb': '02 — GPT-2 Architecture',
+    'p02.footer': 'LLM Algorithm Visualization Series — Topic 02: GPT-2 Architecture',
+    // Section 1
+    'p02.s1.heading': '<span class="badge badge-purple">1</span> Encoder-Decoder vs Decoder-Only',
+    'p02.s1.desc': 'The original Transformer (Vaswani et al., 2017) uses both an encoder and a decoder with cross-attention connecting them. GPT-2 simplifies this by keeping <strong>only the decoder stack</strong>, removing the encoder entirely and the cross-attention layers that connected them.',
+    'p02.s1.note': 'GPT-2 processes input and output in a single pass through the decoder stack. No encoder needed for language modeling.',
+    // Section 2
+    'p02.s2.heading': '<span class="badge badge-green">2</span> Pre-LayerNorm vs Post-LayerNorm',
+    'p02.s2.desc': 'The original Transformer applies LayerNorm <em>after</em> the residual addition (Post-LN). GPT-2 moves LayerNorm <em>before</em> each sublayer (Pre-LN), which produces more stable gradients and enables training of much deeper networks.',
+    'p02.s2.animBtn': 'Animate Data Flow',
+    'p02.s2.postln.label': 'Post-LN issues:',
+    'p02.s2.postln.text': 'Gradient magnitudes vary wildly across layers, making deep networks hard to train without careful warmup.',
+    'p02.s2.preln.label': 'Pre-LN benefits:',
+    'p02.s2.preln.text': 'Gradients stay well-behaved through many layers. Enables stable training of 48+ layer models without warmup.',
+    // Section 3
+    'p02.s3.heading': '<span class="badge badge-orange">3</span> Interactive BPE Tokenizer Demo',
+    'p02.s3.desc': 'GPT-2 uses Byte-Pair Encoding (BPE) at the byte level, meaning it can tokenize <em>any</em> text without unknown tokens. Common words stay whole; rare words get split into subword pieces.',
+    'p02.s3.note': 'This is a simplified simulation. Real BPE uses a learned merge table of ~50,257 tokens built from training data.',
+    // Section 4
+    'p02.s4.heading': '<span class="badge badge-green">4</span> Weight Tying Visualization',
+    'p02.s4.desc': 'GPT-2 shares the same weight matrix between the input token embedding and the output projection layer. The output projection is simply the <em>transpose</em> of the embedding matrix.',
+    'p02.s4.b1': '<strong>~30% fewer parameters</strong> Eliminates a separate 50,257 \u00d7 768 output matrix (~38.5M parameters saved in GPT-2 Small).',
+    'p02.s4.b2': '<strong>Acts as regularization</strong> Forces the model to learn embeddings that work well for both understanding input and predicting output.',
+    'p02.s4.b3': '<strong>Better generalization</strong> Shared representations create a more coherent semantic space where input and output meanings align.',
+    'p02.s4.b4': '<strong>Faster convergence</strong> Fewer parameters to learn means the model can converge more quickly during training.',
+    // Section 5
+    'p02.s5.heading': '<span class="badge badge-purple">5</span> Model Size Explorer',
+    'p02.s5.desc': 'GPT-2 was released in 4 sizes, all sharing the same architecture but differing in depth and width. Select a model to explore its configuration.',
+    'p02.s5.relParams': 'Relative Parameter Counts',
+    // Section 6
+    'p02.s6.heading': '<span class="badge badge-red">6</span> GPT-2 Full Architecture Diagram',
+    'p02.s6.desc': 'The complete GPT-2 architecture from input tokens to output probabilities. Note the Pre-LayerNorm placement, absence of cross-attention, GELU activation, and tied output weights.',
+    // Section 7
+    'p02.s7.heading': '<span class="badge badge-orange">Game</span> Token Count Challenge',
+    'p02.s7.desc': 'How well can you predict BPE tokenization? Guess how many tokens each sentence will produce.',
+    'p02.s7.checkBtn': 'Check',
+    // Section 8
+    'p02.s8.heading': '<span class="badge badge-purple">Calculator</span> Parameter Calculator',
+    'p02.s8.desc': 'Explore how model dimensions affect total parameter count. Adjust the sliders or use preset buttons for GPT-2 configurations.',
+  },
+  'zh-CN': {
+    'p02.title': '02 — GPT-2 架构 | 大语言模型算法可视化',
+    'p02.heading': 'GPT-2 架构',
+    'p02.subtitle': '仅解码器 Transformer — 现代大语言模型的基石',
+    'p02.breadcrumb': '02 — GPT-2 架构',
+    'p02.footer': '大语言模型算法可视化系列 — 主题 02：GPT-2 架构',
+    // Section 1
+    'p02.s1.heading': '<span class="badge badge-purple">1</span> 编码器-解码器 vs 仅解码器',
+    'p02.s1.desc': '原始 Transformer（Vaswani et al., 2017）同时使用编码器和解码器，通过交叉注意力将它们连接。GPT-2 简化了这一设计，仅保留<strong>解码器堆叠</strong>，完全移除了编码器及连接两者的交叉注意力层。',
+    'p02.s1.note': 'GPT-2 通过解码器堆叠单次处理输入和输出。语言建模无需编码器。',
+    // Section 2
+    'p02.s2.heading': '<span class="badge badge-green">2</span> Pre-LayerNorm vs Post-LayerNorm',
+    'p02.s2.desc': '原始 Transformer 在残差相加<em>之后</em>应用 LayerNorm（Post-LN）。GPT-2 将 LayerNorm 移至每个子层<em>之前</em>（Pre-LN），这产生更稳定的梯度，使训练更深的网络成为可能。',
+    'p02.s2.animBtn': '播放数据流动画',
+    'p02.s2.postln.label': 'Post-LN 问题：',
+    'p02.s2.postln.text': '梯度幅度在各层间剧烈变化，使得深层网络在没有仔细预热的情况下难以训练。',
+    'p02.s2.preln.label': 'Pre-LN 优势：',
+    'p02.s2.preln.text': '梯度在多层中保持良好表现。无需预热即可稳定训练 48+ 层模型。',
+    // Section 3
+    'p02.s3.heading': '<span class="badge badge-orange">3</span> 交互式 BPE 分词器演示',
+    'p02.s3.desc': 'GPT-2 在字节级别使用 Byte-Pair Encoding（BPE），意味着它可以对<em>任何</em>文本进行分词而不会产生未知 token。常见词保持完整；罕见词被拆分为子词片段。',
+    'p02.s3.note': '这是一个简化模拟。真实的 BPE 使用从训练数据构建的约 50,257 个 token 的学习合并表。',
+    // Section 4
+    'p02.s4.heading': '<span class="badge badge-green">4</span> 权重绑定可视化',
+    'p02.s4.desc': 'GPT-2 在输入 token 嵌入和输出投影层之间共享同一权重矩阵。输出投影只是嵌入矩阵的<em>转置</em>。',
+    'p02.s4.b1': '<strong>减少约 30% 参数</strong> 省去了一个独立的 50,257 \u00d7 768 输出矩阵（GPT-2 Small 节省约 3850 万参数）。',
+    'p02.s4.b2': '<strong>起到正则化作用</strong> 迫使模型学习既能理解输入又能预测输出的嵌入表示。',
+    'p02.s4.b3': '<strong>更好的泛化能力</strong> 共享表示创建了一个更一致的语义空间，使输入和输出的含义对齐。',
+    'p02.s4.b4': '<strong>更快的收敛速度</strong> 更少的参数意味着模型在训练过程中可以更快地收敛。',
+    // Section 5
+    'p02.s5.heading': '<span class="badge badge-purple">5</span> 模型规模探索器',
+    'p02.s5.desc': 'GPT-2 发布了 4 种规模，均共享相同架构但在深度和宽度上不同。选择一个模型来探索其配置。',
+    'p02.s5.relParams': '相对参数量',
+    // Section 6
+    'p02.s6.heading': '<span class="badge badge-red">6</span> GPT-2 完整架构图',
+    'p02.s6.desc': '从输入 token 到输出概率的完整 GPT-2 架构。注意 Pre-LayerNorm 的位置、交叉注意力的缺失、GELU 激活函数和绑定的输出权重。',
+    // Section 7
+    'p02.s7.heading': '<span class="badge badge-orange">游戏</span> Token 计数挑战',
+    'p02.s7.desc': '你能预测 BPE 分词结果吗？猜猜每个句子会产生多少个 token。',
+    'p02.s7.checkBtn': '检查',
+    // Section 8
+    'p02.s8.heading': '<span class="badge badge-purple">计算器</span> 参数计算器',
+    'p02.s8.desc': '探索模型维度如何影响总参数量。调整滑块或使用预设按钮查看 GPT-2 配置。',
+  },
+  'zh-TW': {
+    'p02.title': '02 — GPT-2 架構 | 大語言模型演算法視覺化',
+    'p02.heading': 'GPT-2 架構',
+    'p02.subtitle': '僅解碼器 Transformer — 現代大語言模型的基石',
+    'p02.breadcrumb': '02 — GPT-2 架構',
+    'p02.footer': '大語言模型演算法視覺化系列 — 主題 02：GPT-2 架構',
+    // Section 1
+    'p02.s1.heading': '<span class="badge badge-purple">1</span> 編碼器-解碼器 vs 僅解碼器',
+    'p02.s1.desc': '原始 Transformer（Vaswani et al., 2017）同時使用編碼器和解碼器，透過交叉注意力將它們連接。GPT-2 簡化了這一設計，僅保留<strong>解碼器堆疊</strong>，完全移除了編碼器及連接兩者的交叉注意力層。',
+    'p02.s1.note': 'GPT-2 透過解碼器堆疊單次處理輸入和輸出。語言建模無需編碼器。',
+    // Section 2
+    'p02.s2.heading': '<span class="badge badge-green">2</span> Pre-LayerNorm vs Post-LayerNorm',
+    'p02.s2.desc': '原始 Transformer 在殘差相加<em>之後</em>套用 LayerNorm（Post-LN）。GPT-2 將 LayerNorm 移至每個子層<em>之前</em>（Pre-LN），這產生更穩定的梯度，使訓練更深的網路成為可能。',
+    'p02.s2.animBtn': '播放資料流動畫',
+    'p02.s2.postln.label': 'Post-LN 問題：',
+    'p02.s2.postln.text': '梯度幅度在各層間劇烈變化，使得深層網路在沒有仔細預熱的情況下難以訓練。',
+    'p02.s2.preln.label': 'Pre-LN 優勢：',
+    'p02.s2.preln.text': '梯度在多層中保持良好表現。無需預熱即可穩定訓練 48+ 層模型。',
+    // Section 3
+    'p02.s3.heading': '<span class="badge badge-orange">3</span> 互動式 BPE 分詞器示範',
+    'p02.s3.desc': 'GPT-2 在位元組級別使用 Byte-Pair Encoding（BPE），意味著它可以對<em>任何</em>文字進行分詞而不會產生未知 token。常見詞保持完整；罕見詞被拆分為子詞片段。',
+    'p02.s3.note': '這是一個簡化模擬。真實的 BPE 使用從訓練資料建構的約 50,257 個 token 的學習合併表。',
+    // Section 4
+    'p02.s4.heading': '<span class="badge badge-green">4</span> 權重綁定視覺化',
+    'p02.s4.desc': 'GPT-2 在輸入 token 嵌入和輸出投影層之間共享同一權重矩陣。輸出投影只是嵌入矩陣的<em>轉置</em>。',
+    'p02.s4.b1': '<strong>減少約 30% 參數</strong> 省去了一個獨立的 50,257 \u00d7 768 輸出矩陣（GPT-2 Small 節省約 3850 萬參數）。',
+    'p02.s4.b2': '<strong>起到正規化作用</strong> 迫使模型學習既能理解輸入又能預測輸出的嵌入表示。',
+    'p02.s4.b3': '<strong>更好的泛化能力</strong> 共享表示建立了一個更一致的語義空間，使輸入和輸出的含義對齊。',
+    'p02.s4.b4': '<strong>更快的收斂速度</strong> 更少的參數意味著模型在訓練過程中可以更快地收斂。',
+    // Section 5
+    'p02.s5.heading': '<span class="badge badge-purple">5</span> 模型規模探索器',
+    'p02.s5.desc': 'GPT-2 發布了 4 種規模，均共享相同架構但在深度和寬度上不同。選擇一個模型來探索其組態。',
+    'p02.s5.relParams': '相對參數量',
+    // Section 6
+    'p02.s6.heading': '<span class="badge badge-red">6</span> GPT-2 完整架構圖',
+    'p02.s6.desc': '從輸入 token 到輸出機率的完整 GPT-2 架構。注意 Pre-LayerNorm 的位置、交叉注意力的缺失、GELU 啟動函式和綁定的輸出權重。',
+    // Section 7
+    'p02.s7.heading': '<span class="badge badge-orange">遊戲</span> Token 計數挑戰',
+    'p02.s7.desc': '你能預測 BPE 分詞結果嗎？猜猜每個句子會產生多少個 token。',
+    'p02.s7.checkBtn': '檢查',
+    // Section 8
+    'p02.s8.heading': '<span class="badge badge-purple">計算器</span> 參數計算器',
+    'p02.s8.desc': '探索模型維度如何影響總參數量。調整滑桿或使用預設按鈕查看 GPT-2 組態。',
+  }
+});
 </script>
 </body>
 </html>

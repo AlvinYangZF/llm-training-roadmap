@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>10. Mooncake Architecture — LLM Algorithm Visualizations</title>
+  <title data-i18n="p10.title">10. Mooncake Architecture — LLM Algorithm Visualizations</title>
   <link rel="stylesheet" href="../shared/style.css">
   <style>
     /* ===== System Architecture Canvas ===== */
@@ -17,7 +17,7 @@
       height: 520px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
 
     /* ===== Request Lifecycle ===== */
@@ -31,7 +31,7 @@
       height: 420px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .stage-info {
       text-align: center;
@@ -55,7 +55,7 @@
       height: 400px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
 
     /* ===== Cache-Aware Scheduling ===== */
@@ -69,7 +69,7 @@
       height: 380px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: rgba(0,0,0,.3);
+      background: var(--canvas-bg);
     }
     .sched-result {
       text-align: center;
@@ -99,7 +99,7 @@
       margin: 20px 0;
     }
     .feature-item {
-      background: rgba(0,0,0,.2);
+      background: var(--canvas-bg);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 16px;
@@ -125,10 +125,10 @@
 <body>
 
 <header>
-  <h1>Mooncake Architecture</h1>
-  <p>KV-Cache-Centric Disaggregated Serving — USENIX FAST 2025 Best Paper</p>
+  <h1 data-i18n="p10.heading">Mooncake Architecture</h1>
+  <p data-i18n="p10.subtitle">KV-Cache-Centric Disaggregated Serving — USENIX FAST 2025 Best Paper</p>
   <div class="breadcrumb">
-    <a href="../index.html">Home</a> / Topic 07
+    <a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p10.breadcrumb">Topic 10</span>
   </div>
 </header>
 
@@ -136,38 +136,38 @@
 
   <!-- ==================== Section 1: System Architecture Overview ==================== -->
   <div class="card">
-    <h2><span class="badge badge-purple">Architecture</span> System Architecture Overview</h2>
-    <p>Mooncake separates prefill and decode into independent, elastically-scalable pools coordinated by a global Conductor scheduler. A distributed KV cache pool spanning GPU VRAM, CPU DRAM, and NVMe SSD enables aggressive cache reuse across requests.</p>
+    <h2 data-i18n="p10.s1.heading" data-i18n-html><span class="badge badge-purple">Architecture</span> System Architecture Overview</h2>
+    <p data-i18n="p10.s1.desc" data-i18n-html>Mooncake separates prefill and decode into independent, elastically-scalable pools coordinated by a global Conductor scheduler. A distributed KV cache pool spanning GPU VRAM, CPU DRAM, and NVMe SSD enables aggressive cache reuse across requests.</p>
 
     <div class="arch-canvas-wrap">
       <canvas id="archCanvas" class="arch-canvas"></canvas>
     </div>
-    <p class="dim-note">Mooncake production architecture deployed at Kimi (Moonshot AI)</p>
+    <p class="dim-note" data-i18n="p10.s1.note">Mooncake production architecture deployed at Kimi (Moonshot AI)</p>
 
     <div class="feature-grid">
       <div class="feature-item">
-        <h4>Conductor</h4>
-        <p>Global scheduler with prefix-hash routing, load balancing, and cache-aware request placement.</p>
+        <h4 data-i18n="p10.s1.f1.title">Conductor</h4>
+        <p data-i18n="p10.s1.f1.desc">Global scheduler with prefix-hash routing, load balancing, and cache-aware request placement.</p>
       </div>
       <div class="feature-item">
-        <h4>Prefill Pool</h4>
-        <p>Compute-optimized nodes for prompt processing. Supports incremental prefill to skip cached tokens.</p>
+        <h4 data-i18n="p10.s1.f2.title">Prefill Pool</h4>
+        <p data-i18n="p10.s1.f2.desc">Compute-optimized nodes for prompt processing. Supports incremental prefill to skip cached tokens.</p>
       </div>
       <div class="feature-item">
-        <h4>Decode Pool</h4>
-        <p>Memory-bandwidth-optimized nodes for autoregressive token generation with received KV caches.</p>
+        <h4 data-i18n="p10.s1.f3.title">Decode Pool</h4>
+        <p data-i18n="p10.s1.f3.desc">Memory-bandwidth-optimized nodes for autoregressive token generation with received KV caches.</p>
       </div>
       <div class="feature-item">
-        <h4>KV Cache Pool</h4>
-        <p>Distributed 3-tier storage across all nodes. GPUDirect RDMA enables fast cross-node KV transfers.</p>
+        <h4 data-i18n="p10.s1.f4.title">KV Cache Pool</h4>
+        <p data-i18n="p10.s1.f4.desc">Distributed 3-tier storage across all nodes. GPUDirect RDMA enables fast cross-node KV transfers.</p>
       </div>
     </div>
   </div>
 
   <!-- ==================== Section 2: Request Lifecycle Animation ==================== -->
   <div class="card">
-    <h2><span class="badge badge-green">Lifecycle</span> Request Lifecycle Animation</h2>
-    <p>Follow a single request through Mooncake's pipeline, from arrival to token generation. Each stage highlights the active system components.</p>
+    <h2 data-i18n="p10.s2.heading" data-i18n-html><span class="badge badge-green">Lifecycle</span> Request Lifecycle Animation</h2>
+    <p data-i18n="p10.s2.desc">Follow a single request through Mooncake's pipeline, from arrival to token generation. Each stage highlights the active system components.</p>
 
     <div class="lifecycle-canvas-wrap">
       <canvas id="lifecycleCanvas" class="lifecycle-canvas"></canvas>
@@ -186,34 +186,34 @@
     </div>
 
     <div class="anim-controls">
-      <button class="btn btn-accent" id="nextStageBtn" onclick="nextStage()">Next Stage &rarr;</button>
-      <button class="btn btn-surface" onclick="goToStage(0)" style="margin-left:8px;">Reset</button>
+      <button class="btn btn-accent" id="nextStageBtn" onclick="nextStage()" data-i18n="p10.s2.nextStage" data-i18n-html>Next Stage &rarr;</button>
+      <button class="btn btn-surface" onclick="goToStage(0)" style="margin-left:8px;" data-i18n="btn.reset">Reset</button>
     </div>
   </div>
 
   <!-- ==================== Section 3: Three-Tier KV Cache Pool ==================== -->
   <div class="card">
-    <h2><span class="badge badge-orange">Storage</span> Three-Tier KV Cache Pool</h2>
-    <p>Mooncake's distributed KV cache pool organizes storage into three tiers with automatic promotion and demotion of KV blocks based on access frequency.</p>
+    <h2 data-i18n="p10.s3.heading" data-i18n-html><span class="badge badge-orange">Storage</span> Three-Tier KV Cache Pool</h2>
+    <p data-i18n="p10.s3.desc">Mooncake's distributed KV cache pool organizes storage into three tiers with automatic promotion and demotion of KV blocks based on access frequency.</p>
 
     <div class="tier-canvas-wrap">
       <canvas id="tierCanvas" class="tier-canvas"></canvas>
     </div>
 
     <div class="anim-controls">
-      <button class="btn btn-accent" id="tierAnimBtn" onclick="animateTierFlow()">Animate Data Flow</button>
+      <button class="btn btn-accent" id="tierAnimBtn" onclick="animateTierFlow()" data-i18n="p10.s3.animBtn">Animate Data Flow</button>
     </div>
-    <p class="dim-note">Hot KV entries are promoted up; cold entries are demoted down</p>
+    <p class="dim-note" data-i18n="p10.s3.note">Hot KV entries are promoted up; cold entries are demoted down</p>
 
-    <div class="insight-box">
+    <div class="insight-box" data-i18n="p10.s3.insight" data-i18n-html>
       <strong>Why three tiers?</strong> GPU VRAM is fastest but scarce (~40GB per GPU). CPU DRAM offers 6x more capacity at 1/20th the bandwidth. NVMe SSD adds another 16x capacity for cold KV entries that may be reused later. Together, they let Mooncake cache far more KV data than VRAM-only systems.
     </div>
   </div>
 
   <!-- ==================== Section 4: Cache-Aware Scheduling ==================== -->
   <div class="card">
-    <h2><span class="badge badge-purple">Scheduling</span> Cache-Aware Scheduling</h2>
-    <p>The Conductor hashes the prompt prefix and evaluates cache hit ratios on all prefill nodes, then routes the request to the node with the highest overlap — dramatically reducing time-to-first-token.</p>
+    <h2 data-i18n="p10.s4.heading" data-i18n-html><span class="badge badge-purple">Scheduling</span> Cache-Aware Scheduling</h2>
+    <p data-i18n="p10.s4.desc">The Conductor hashes the prompt prefix and evaluates cache hit ratios on all prefill nodes, then routes the request to the node with the highest overlap — dramatically reducing time-to-first-token.</p>
 
     <div class="sched-canvas-wrap">
       <canvas id="schedCanvas" class="sched-canvas"></canvas>
@@ -222,20 +222,20 @@
     <div class="sched-result" id="schedResult"></div>
 
     <div class="anim-controls">
-      <button class="btn btn-accent" id="schedBtn" onclick="runScheduling()">Run Scheduling</button>
+      <button class="btn btn-accent" id="schedBtn" onclick="runScheduling()" data-i18n="p10.s4.runBtn">Run Scheduling</button>
     </div>
 
-    <div class="insight-box">
+    <div class="insight-box" data-i18n="p10.s4.insight" data-i18n-html>
       <strong>Cache-aware routing saves compute:</strong> An 85% cache hit means only 15% of the prompt needs prefill computation, translating to roughly 6x faster time-to-first-token compared to a cold start.
     </div>
   </div>
 
   <!-- ==================== Section 5: Performance Results ==================== -->
   <div class="card">
-    <h2><span class="badge badge-green">Results</span> Performance Results</h2>
-    <p>Mooncake achieves significant improvements over monolithic serving baselines across throughput, latency, and cost metrics. These numbers reflect production deployment at Kimi serving millions of users.</p>
+    <h2 data-i18n="p10.s5.heading" data-i18n-html><span class="badge badge-green">Results</span> Performance Results</h2>
+    <p data-i18n="p10.s5.desc">Mooncake achieves significant improvements over monolithic serving baselines across throughput, latency, and cost metrics. These numbers reflect production deployment at Kimi serving millions of users.</p>
 
-    <h3>Throughput Improvement</h3>
+    <h3 data-i18n="p10.s5.throughput">Throughput Improvement</h3>
     <div class="speedup-bar-wrap">
       <div class="speedup-row">
         <div class="speedup-label">Baseline</div>
@@ -251,7 +251,7 @@
       </div>
     </div>
 
-    <h3>TTFT P99 Latency</h3>
+    <h3 data-i18n="p10.s5.ttft">TTFT P99 Latency</h3>
     <div class="speedup-bar-wrap">
       <div class="speedup-row">
         <div class="speedup-label">Baseline</div>
@@ -267,7 +267,7 @@
       </div>
     </div>
 
-    <h3>Cost per Token</h3>
+    <h3 data-i18n="p10.s5.cost">Cost per Token</h3>
     <div class="speedup-bar-wrap">
       <div class="speedup-row">
         <div class="speedup-label">Baseline</div>
@@ -284,67 +284,74 @@
     </div>
 
     <div class="anim-controls" style="margin-top:20px;">
-      <button class="btn btn-accent" onclick="animatePerformanceBars()">Animate Bars</button>
+      <button class="btn btn-accent" onclick="animatePerformanceBars()" data-i18n="p10.s5.animBtn">Animate Bars</button>
     </div>
 
-    <div class="insight-box" style="margin-top:20px;">
+    <div class="insight-box" style="margin-top:20px;" data-i18n="p10.s5.insight" data-i18n-html>
       <strong>Production-proven:</strong> Deployed at Moonshot AI's Kimi chatbot serving millions of daily users. The disaggregated architecture allows independent scaling of prefill and decode resources based on real-time demand patterns.
     </div>
   </div>
 
     <!-- ==================== Cache Tier Sorter Game ==================== -->
     <div class="card">
-      <h2><span class="badge badge-red">Game</span> Cache Tier Sorter</h2>
-      <p>Mooncake uses a three-tier KV cache: <strong>GPU VRAM</strong> (hot, fast, small), <strong>CPU DRAM</strong> (warm, medium), and <strong>NVMe SSD</strong> (cold, large, slow). Assign each cache entry to the correct tier based on its access pattern.</p>
+      <h2 data-i18n="p10.s6.heading" data-i18n-html><span class="badge badge-red">Game</span> Cache Tier Sorter</h2>
+      <p data-i18n="p10.s6.desc" data-i18n-html>Mooncake uses a three-tier KV cache: <strong>GPU VRAM</strong> (hot, fast, small), <strong>CPU DRAM</strong> (warm, medium), and <strong>NVMe SSD</strong> (cold, large, slow). Assign each cache entry to the correct tier based on its access pattern.</p>
 
       <div class="game-score" id="cacheGameScore">
-        <div class="game-score-item"><div class="score-val" id="cacheScore">0</div><div class="score-label">Score</div></div>
-        <div class="game-score-item"><div class="score-val" id="cacheRound">0 / 3</div><div class="score-label">Round</div></div>
+        <div class="game-score-item"><div class="score-val" id="cacheScore">0</div><div class="score-label" data-i18n="p10.s6.score">Score</div></div>
+        <div class="game-score-item"><div class="score-val" id="cacheRound">0 / 3</div><div class="score-label" data-i18n="p10.s6.round">Round</div></div>
       </div>
 
       <div id="cacheEntries" style="display:none;margin:16px 0;"></div>
 
       <div class="anim-controls" id="cacheSubmitArea" style="display:none;">
-        <button class="btn btn-accent" onclick="checkCacheAssignments()" id="cacheCheckBtn">Check Assignments</button>
+        <button class="btn btn-accent" onclick="checkCacheAssignments()" id="cacheCheckBtn" data-i18n="p10.s6.checkBtn">Check Assignments</button>
       </div>
 
-      <div class="game-feedback" id="cacheFeedback">Press Start to begin!</div>
+      <div class="game-feedback" id="cacheFeedback" data-i18n="p10.s6.startMsg">Press Start to begin!</div>
 
       <div id="cacheExplanation" style="display:none;margin:16px 0;padding:16px;background:rgba(108,99,255,.06);border:1px solid rgba(108,99,255,.2);border-radius:var(--radius);font-size:0.88rem;line-height:1.6;"></div>
 
       <div class="anim-controls">
-        <button class="btn btn-accent" onclick="startCacheGame()" id="cacheStartBtn">Start Game</button>
+        <button class="btn btn-accent" onclick="startCacheGame()" id="cacheStartBtn" data-i18n="p10.s6.startBtn">Start Game</button>
       </div>
     </div>
 
 </div><!-- .container -->
 
 <footer>
-  LLM Algorithm Visualizations &mdash; Topic 07: Mooncake Architecture
+  <p data-i18n="p10.footer" data-i18n-html>LLM Algorithm Visualizations &mdash; Topic 10: Mooncake Architecture</p>
 </footer>
 
+<script src="../shared/theme.js"></script>
+<script src="../shared/i18n.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script>
-// ==================== Color Constants ==================== //
-const COLORS = {
-  bg: '#0f1117',
-  surface: '#1a1d2e',
-  border: '#2a2d3e',
-  accent: '#6c63ff',
-  accent2: '#00c9a7',
-  accent3: '#f7768e',
-  accent4: '#ff9e64',
-  text: '#cdd6f4',
-  textDim: '#6c7086',
-  conductor: '#e0af68',
-  prefill: '#6c63ff',
-  decode: '#00c9a7',
-  kvcache: '#f7768e',
-  vram: '#bb9af7',
-  dram: '#ff9e64',
-  ssd: '#7aa2f7',
-};
+// ==================== Theme-aware Colors ==================== //
+var COLORS = getColors();
+COLORS.conductor = '#e0af68';
+COLORS.prefill = COLORS.accent;
+COLORS.decode = COLORS.accent2;
+COLORS.kvcache = COLORS.accent3;
+COLORS.vram = '#bb9af7';
+COLORS.dram = COLORS.accent4;
+COLORS.ssd = '#7aa2f7';
+
+window.addEventListener('themechange', function() {
+  Object.assign(COLORS, getColors());
+  COLORS.conductor = '#e0af68';
+  COLORS.prefill = COLORS.accent;
+  COLORS.decode = COLORS.accent2;
+  COLORS.kvcache = COLORS.accent3;
+  COLORS.vram = '#bb9af7';
+  COLORS.dram = COLORS.accent4;
+  COLORS.ssd = '#7aa2f7';
+  // Redraw canvases
+  drawLifecycle(currentStage);
+  drawTierStatic();
+  drawScheduling(0, 0);
+});
 
 // ==================== Section 1: System Architecture ==================== //
 (function drawArchitecture() {
@@ -1368,5 +1375,142 @@ function checkCacheAssignments() {
 }
 </script>
 <script src="../shared/progress.js"></script>
+<script>
+i18nRegister({
+  'en': {
+    'p10.title': '10. Mooncake Architecture — LLM Algorithm Visualizations',
+    'p10.heading': 'Mooncake Architecture',
+    'p10.subtitle': 'KV-Cache-Centric Disaggregated Serving — USENIX FAST 2025 Best Paper',
+    'p10.breadcrumb': 'Topic 10',
+    'p10.s1.heading': '<span class="badge badge-purple">Architecture</span> System Architecture Overview',
+    'p10.s1.desc': 'Mooncake separates prefill and decode into independent, elastically-scalable pools coordinated by a global Conductor scheduler. A distributed KV cache pool spanning GPU VRAM, CPU DRAM, and NVMe SSD enables aggressive cache reuse across requests.',
+    'p10.s1.note': 'Mooncake production architecture deployed at Kimi (Moonshot AI)',
+    'p10.s1.f1.title': 'Conductor',
+    'p10.s1.f1.desc': 'Global scheduler with prefix-hash routing, load balancing, and cache-aware request placement.',
+    'p10.s1.f2.title': 'Prefill Pool',
+    'p10.s1.f2.desc': 'Compute-optimized nodes for prompt processing. Supports incremental prefill to skip cached tokens.',
+    'p10.s1.f3.title': 'Decode Pool',
+    'p10.s1.f3.desc': 'Memory-bandwidth-optimized nodes for autoregressive token generation with received KV caches.',
+    'p10.s1.f4.title': 'KV Cache Pool',
+    'p10.s1.f4.desc': 'Distributed 3-tier storage across all nodes. GPUDirect RDMA enables fast cross-node KV transfers.',
+    'p10.s2.heading': '<span class="badge badge-green">Lifecycle</span> Request Lifecycle Animation',
+    'p10.s2.desc': 'Follow a single request through Mooncake\'s pipeline, from arrival to token generation. Each stage highlights the active system components.',
+    'p10.s2.nextStage': 'Next Stage &rarr;',
+    'p10.s3.heading': '<span class="badge badge-orange">Storage</span> Three-Tier KV Cache Pool',
+    'p10.s3.desc': 'Mooncake\'s distributed KV cache pool organizes storage into three tiers with automatic promotion and demotion of KV blocks based on access frequency.',
+    'p10.s3.animBtn': 'Animate Data Flow',
+    'p10.s3.note': 'Hot KV entries are promoted up; cold entries are demoted down',
+    'p10.s3.insight': '<strong>Why three tiers?</strong> GPU VRAM is fastest but scarce (~40GB per GPU). CPU DRAM offers 6x more capacity at 1/20th the bandwidth. NVMe SSD adds another 16x capacity for cold KV entries that may be reused later. Together, they let Mooncake cache far more KV data than VRAM-only systems.',
+    'p10.s4.heading': '<span class="badge badge-purple">Scheduling</span> Cache-Aware Scheduling',
+    'p10.s4.desc': 'The Conductor hashes the prompt prefix and evaluates cache hit ratios on all prefill nodes, then routes the request to the node with the highest overlap \u2014 dramatically reducing time-to-first-token.',
+    'p10.s4.runBtn': 'Run Scheduling',
+    'p10.s4.insight': '<strong>Cache-aware routing saves compute:</strong> An 85% cache hit means only 15% of the prompt needs prefill computation, translating to roughly 6x faster time-to-first-token compared to a cold start.',
+    'p10.s5.heading': '<span class="badge badge-green">Results</span> Performance Results',
+    'p10.s5.desc': 'Mooncake achieves significant improvements over monolithic serving baselines across throughput, latency, and cost metrics. These numbers reflect production deployment at Kimi serving millions of users.',
+    'p10.s5.throughput': 'Throughput Improvement',
+    'p10.s5.ttft': 'TTFT P99 Latency',
+    'p10.s5.cost': 'Cost per Token',
+    'p10.s5.animBtn': 'Animate Bars',
+    'p10.s5.insight': '<strong>Production-proven:</strong> Deployed at Moonshot AI\'s Kimi chatbot serving millions of daily users. The disaggregated architecture allows independent scaling of prefill and decode resources based on real-time demand patterns.',
+    'p10.s6.heading': '<span class="badge badge-red">Game</span> Cache Tier Sorter',
+    'p10.s6.desc': 'Mooncake uses a three-tier KV cache: <strong>GPU VRAM</strong> (hot, fast, small), <strong>CPU DRAM</strong> (warm, medium), and <strong>NVMe SSD</strong> (cold, large, slow). Assign each cache entry to the correct tier based on its access pattern.',
+    'p10.s6.score': 'Score',
+    'p10.s6.round': 'Round',
+    'p10.s6.checkBtn': 'Check Assignments',
+    'p10.s6.startMsg': 'Press Start to begin!',
+    'p10.s6.startBtn': 'Start Game',
+    'p10.footer': 'LLM Algorithm Visualizations &mdash; Topic 10: Mooncake Architecture',
+  },
+  'zh-CN': {
+    'p10.title': '10. Mooncake 架构 — 大语言模型算法可视化',
+    'p10.heading': 'Mooncake 架构',
+    'p10.subtitle': '以 KV 缓存为中心的分离式推理服务 — USENIX FAST 2025 最佳论文',
+    'p10.breadcrumb': '主题 10',
+    'p10.s1.heading': '<span class="badge badge-purple">架构</span> 系统架构概览',
+    'p10.s1.desc': 'Mooncake 将预填充和解码分离为独立的弹性可扩展池，由全局 Conductor 调度器协调。横跨 GPU VRAM、CPU DRAM 和 NVMe SSD 的分布式 KV 缓存池实现了跨请求的高效缓存复用。',
+    'p10.s1.note': 'Mooncake 生产架构部署于 Kimi（Moonshot AI）',
+    'p10.s1.f1.title': 'Conductor',
+    'p10.s1.f1.desc': '全局调度器，支持前缀哈希路由、负载均衡和缓存感知的请求放置。',
+    'p10.s1.f2.title': '预填充池',
+    'p10.s1.f2.desc': '面向计算优化的节点，用于提示词处理。支持增量预填充以跳过已缓存的 token。',
+    'p10.s1.f3.title': '解码池',
+    'p10.s1.f3.desc': '面向内存带宽优化的节点，使用接收到的 KV 缓存进行自回归 token 生成。',
+    'p10.s1.f4.title': 'KV 缓存池',
+    'p10.s1.f4.desc': '分布在所有节点上的三级存储。GPUDirect RDMA 实现快速的跨节点 KV 传输。',
+    'p10.s2.heading': '<span class="badge badge-green">生命周期</span> 请求生命周期动画',
+    'p10.s2.desc': '跟踪单个请求通过 Mooncake 管线的全过程，从到达到 token 生成。每个阶段高亮显示活跃的系统组件。',
+    'p10.s2.nextStage': '下一阶段 &rarr;',
+    'p10.s3.heading': '<span class="badge badge-orange">存储</span> 三级 KV 缓存池',
+    'p10.s3.desc': 'Mooncake 的分布式 KV 缓存池将存储组织为三个层级，根据访问频率自动提升和降级 KV 块。',
+    'p10.s3.animBtn': '播放数据流动画',
+    'p10.s3.note': '热 KV 条目向上提升；冷条目向下降级',
+    'p10.s3.insight': '<strong>为什么需要三级？</strong>GPU VRAM 最快但稀缺（每 GPU 约 40GB）。CPU DRAM 提供 6 倍的容量，带宽为 1/20。NVMe SSD 再增加 16 倍容量，用于存储可能被复用的冷 KV 条目。三者结合使 Mooncake 能够缓存远超纯 VRAM 系统的 KV 数据。',
+    'p10.s4.heading': '<span class="badge badge-purple">调度</span> 缓存感知调度',
+    'p10.s4.desc': 'Conductor 对提示词前缀进行哈希，评估所有预填充节点上的缓存命中率，然后将请求路由到重叠度最高的节点——大幅减少首 token 延迟。',
+    'p10.s4.runBtn': '运行调度',
+    'p10.s4.insight': '<strong>缓存感知路由节省计算：</strong>85% 的缓存命中意味着只有 15% 的提示词需要预填充计算，与冷启动相比首 token 延迟减少约 6 倍。',
+    'p10.s5.heading': '<span class="badge badge-green">结果</span> 性能结果',
+    'p10.s5.desc': 'Mooncake 在吞吐量、延迟和成本指标上相对于单体服务基线实现了显著提升。这些数据反映了在服务数百万用户的 Kimi 上的生产部署。',
+    'p10.s5.throughput': '吞吐量提升',
+    'p10.s5.ttft': 'TTFT P99 延迟',
+    'p10.s5.cost': '每 Token 成本',
+    'p10.s5.animBtn': '播放柱状图',
+    'p10.s5.insight': '<strong>经过生产验证：</strong>部署于 Moonshot AI 的 Kimi 聊天机器人，服务数百万日活用户。分离式架构允许根据实时需求模式独立扩展预填充和解码资源。',
+    'p10.s6.heading': '<span class="badge badge-red">游戏</span> 缓存层级分类器',
+    'p10.s6.desc': 'Mooncake 使用三级 KV 缓存：<strong>GPU VRAM</strong>（热数据、高速、容量小）、<strong>CPU DRAM</strong>（温数据、中等）和 <strong>NVMe SSD</strong>（冷数据、容量大、速度慢）。根据访问模式将每个缓存条目分配到正确的层级。',
+    'p10.s6.score': '得分',
+    'p10.s6.round': '轮次',
+    'p10.s6.checkBtn': '检查分配',
+    'p10.s6.startMsg': '按开始键开始！',
+    'p10.s6.startBtn': '开始游戏',
+    'p10.footer': '大语言模型算法可视化系列 &mdash; 主题 10：Mooncake 架构',
+  },
+  'zh-TW': {
+    'p10.title': '10. Mooncake 架構 — 大語言模型演算法視覺化',
+    'p10.heading': 'Mooncake 架構',
+    'p10.subtitle': '以 KV 快取為中心的分離式推理服務 — USENIX FAST 2025 最佳論文',
+    'p10.breadcrumb': '主題 10',
+    'p10.s1.heading': '<span class="badge badge-purple">架構</span> 系統架構概覽',
+    'p10.s1.desc': 'Mooncake 將預填充和解碼分離為獨立的彈性可擴展池，由全域 Conductor 排程器協調。橫跨 GPU VRAM、CPU DRAM 和 NVMe SSD 的分散式 KV 快取池實現了跨請求的高效快取複用。',
+    'p10.s1.note': 'Mooncake 生產架構部署於 Kimi（Moonshot AI）',
+    'p10.s1.f1.title': 'Conductor',
+    'p10.s1.f1.desc': '全域排程器，支援前綴雜湊路由、負載平衡和快取感知的請求放置。',
+    'p10.s1.f2.title': '預填充池',
+    'p10.s1.f2.desc': '面向計算優化的節點，用於提示詞處理。支援增量預填充以跳過已快取的 token。',
+    'p10.s1.f3.title': '解碼池',
+    'p10.s1.f3.desc': '面向記憶體頻寬優化的節點，使用接收到的 KV 快取進行自迴歸 token 生成。',
+    'p10.s1.f4.title': 'KV 快取池',
+    'p10.s1.f4.desc': '分散在所有節點上的三級儲存。GPUDirect RDMA 實現快速的跨節點 KV 傳輸。',
+    'p10.s2.heading': '<span class="badge badge-green">生命週期</span> 請求生命週期動畫',
+    'p10.s2.desc': '追蹤單個請求通過 Mooncake 管線的全過程，從到達到 token 生成。每個階段高亮顯示活躍的系統組件。',
+    'p10.s2.nextStage': '下一階段 &rarr;',
+    'p10.s3.heading': '<span class="badge badge-orange">儲存</span> 三級 KV 快取池',
+    'p10.s3.desc': 'Mooncake 的分散式 KV 快取池將儲存組織為三個層級，根據存取頻率自動提升和降級 KV 區塊。',
+    'p10.s3.animBtn': '播放資料流動畫',
+    'p10.s3.note': '熱 KV 條目向上提升；冷條目向下降級',
+    'p10.s3.insight': '<strong>為什麼需要三級？</strong>GPU VRAM 最快但稀缺（每 GPU 約 40GB）。CPU DRAM 提供 6 倍的容量，頻寬為 1/20。NVMe SSD 再增加 16 倍容量，用於儲存可能被複用的冷 KV 條目。三者結合使 Mooncake 能夠快取遠超純 VRAM 系統的 KV 資料。',
+    'p10.s4.heading': '<span class="badge badge-purple">排程</span> 快取感知排程',
+    'p10.s4.desc': 'Conductor 對提示詞前綴進行雜湊，評估所有預填充節點上的快取命中率，然後將請求路由到重疊度最高的節點——大幅減少首 token 延遲。',
+    'p10.s4.runBtn': '執行排程',
+    'p10.s4.insight': '<strong>快取感知路由節省計算：</strong>85% 的快取命中意味著只有 15% 的提示詞需要預填充計算，與冷啟動相比首 token 延遲減少約 6 倍。',
+    'p10.s5.heading': '<span class="badge badge-green">結果</span> 效能結果',
+    'p10.s5.desc': 'Mooncake 在吞吐量、延遲和成本指標上相對於單體服務基線實現了顯著提升。這些數據反映了在服務數百萬使用者的 Kimi 上的生產部署。',
+    'p10.s5.throughput': '吞吐量提升',
+    'p10.s5.ttft': 'TTFT P99 延遲',
+    'p10.s5.cost': '每 Token 成本',
+    'p10.s5.animBtn': '播放長條圖',
+    'p10.s5.insight': '<strong>經過生產驗證：</strong>部署於 Moonshot AI 的 Kimi 聊天機器人，服務數百萬日活使用者。分離式架構允許根據即時需求模式獨立擴展預填充和解碼資源。',
+    'p10.s6.heading': '<span class="badge badge-red">遊戲</span> 快取層級分類器',
+    'p10.s6.desc': 'Mooncake 使用三級 KV 快取：<strong>GPU VRAM</strong>（熱資料、高速、容量小）、<strong>CPU DRAM</strong>（溫資料、中等）和 <strong>NVMe SSD</strong>（冷資料、容量大、速度慢）。根據存取模式將每個快取條目分配到正確的層級。',
+    'p10.s6.score': '得分',
+    'p10.s6.round': '輪次',
+    'p10.s6.checkBtn': '檢查分配',
+    'p10.s6.startMsg': '按開始鍵開始！',
+    'p10.s6.startBtn': '開始遊戲',
+    'p10.footer': '大語言模型演算法視覺化系列 &mdash; 主題 10：Mooncake 架構',
+  }
+});
+if (typeof applyI18n === 'function') applyI18n();
+</script>
 </body>
 </html>

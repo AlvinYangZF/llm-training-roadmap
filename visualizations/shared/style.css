@@ -1,6 +1,7 @@
 /* ==================== LLM Algorithm Visualization — Shared Styles ==================== */
 
-:root {
+:root,
+[data-theme="light"] {
   --bg: #f5f7fa;
   --surface: #ffffff;
   --border: #e2e8f0;
@@ -14,6 +15,40 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
   --shadow-lg: 0 10px 30px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04);
+  --canvas-bg: #f1f5f9;
+  --header-gradient-from: #eef2ff;
+  --nav-bg: rgba(255, 255, 255, 0.88);
+  --sidebar-bg: #ffffff;
+  --formula-bg: #f8fafc;
+  --game-input-bg: #f8fafc;
+  --scenario-bg: #f8fafc;
+  --bar-track-bg: #e2e8f0;
+  --code-bg: rgba(0,0,0,0.06);
+}
+
+[data-theme="dark"] {
+  --bg: #0f1117;
+  --surface: #1a1d2e;
+  --border: #2a2d3e;
+  --accent: #6c63ff;
+  --accent2: #00c9a7;
+  --accent3: #f7768e;
+  --accent4: #ff9e64;
+  --text: #cdd6f4;
+  --text-dim: #6c7086;
+  --radius: 14px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.15);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.35), 0 4px 8px rgba(0,0,0,0.2);
+  --canvas-bg: rgba(0,0,0,0.3);
+  --header-gradient-from: #161929;
+  --nav-bg: rgba(15, 17, 23, 0.88);
+  --sidebar-bg: #141620;
+  --formula-bg: #161929;
+  --game-input-bg: #161929;
+  --scenario-bg: #161929;
+  --bar-track-bg: #2a2d3e;
+  --code-bg: rgba(255,255,255,0.08);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,7 +68,7 @@ body {
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--nav-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   padding: 0 24px;
@@ -51,6 +86,11 @@ body {
   -webkit-text-fill-color: transparent;
   text-decoration: none;
 }
+.site-nav .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .site-nav .nav-toggle {
   display: none;
   background: none;
@@ -58,6 +98,49 @@ body {
   color: var(--text);
   font-size: 1.4rem;
   cursor: pointer;
+}
+.lang-selector select {
+  padding: 6px 28px 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  transition: border-color 0.2s;
+}
+.lang-selector select:hover {
+  border-color: var(--accent);
+}
+.lang-selector select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(91,91,214,0.15);
+}
+/* Theme toggle */
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* Sidebar */
@@ -67,7 +150,7 @@ body {
   left: 0;
   bottom: 0;
   width: 260px;
-  background: #ffffff;
+  background: var(--sidebar-bg);
   border-right: 1px solid var(--border);
   overflow-y: auto;
   z-index: 999;
@@ -129,7 +212,7 @@ body {
 header {
   text-align: center;
   padding: 48px 24px 32px;
-  background: linear-gradient(180deg, #eef2ff 0%, var(--bg) 100%);
+  background: linear-gradient(180deg, var(--header-gradient-from) 0%, var(--bg) 100%);
   border-bottom: 1px solid var(--border);
 }
 header h1 {
@@ -208,7 +291,7 @@ header p { color: var(--text-dim); font-size: 1.1rem; }
 
 /* ==================== Formula Box ==================== */
 .formula-box {
-  background: #f8fafc;
+  background: var(--formula-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
@@ -261,8 +344,8 @@ header p { color: var(--text-dim); font-size: 1.1rem; }
 .blk-ffn { background: linear-gradient(135deg, #fed7aa, #fff7ed); border: 1px solid #fdba74; color: #9a3412; }
 .blk-output { background: linear-gradient(135deg, #fce7f3, #fdf2f8); border: 1px solid #f9a8d4; color: #9d174d; }
 .blk-repeat {
-  border: 2px dashed #cbd5e1;
-  background: #f8fafc;
+  border: 2px dashed var(--border);
+  background: var(--formula-bg);
   padding: 8px 20px;
   font-size: 0.85rem;
   color: var(--text-dim);
@@ -290,7 +373,7 @@ header p { color: var(--text-dim); font-size: 1.1rem; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  background: #f1f5f9;
+  background: var(--canvas-bg);
 }
 .token-stream {
   display: flex;
@@ -355,7 +438,7 @@ table.matrix td {
   font-size: 0.85rem;
   font-weight: 600;
   border: 1px solid var(--border);
-  background: #f8fafc;
+  background: var(--formula-bg);
   transition: background .3s, color .3s;
 }
 table.matrix td.highlight-q { background: rgba(91,91,214,.12); color: #4338ca; }
@@ -436,7 +519,7 @@ table.matrix td.highlight-o { background: rgba(124,58,237,.12); color: #7c3aed; 
   text-align: center;
   max-width: 520px;
   width: 100%;
-  background: #f1f5f9;
+  background: var(--canvas-bg);
   border-left: 1px solid var(--border);
   border-right: 1px solid var(--border);
 }
@@ -467,7 +550,7 @@ table.matrix td.highlight-o { background: rgba(124,58,237,.12); color: #7c3aed; 
   height: 380px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #f8fafc;
+  background: var(--formula-bg);
 }
 .tile-legend {
   display: flex;
@@ -507,7 +590,7 @@ table.matrix td.highlight-o { background: rgba(124,58,237,.12); color: #7c3aed; 
 .speedup-track {
   flex: 1;
   height: 32px;
-  background: #e2e8f0;
+  background: var(--bar-track-bg);
   border-radius: 6px;
   overflow: hidden;
   position: relative;
@@ -635,7 +718,7 @@ footer {
   padding: 10px 14px;
   border-radius: 10px;
   border: 2px solid var(--border);
-  background: #f8fafc;
+  background: var(--game-input-bg);
   color: var(--text);
   font-size: 1rem;
   font-weight: 600;
@@ -645,7 +728,7 @@ footer {
 }
 .game-input:focus { border-color: var(--accent); }
 .game-scenario {
-  background: #f8fafc;
+  background: var(--scenario-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
