@@ -234,12 +234,35 @@
         </div>
       </div>
 
-      <div class="formula-box">
+      <div class="formula-box" style="font-size:1.05rem">
         Cache Size = <span class="op">2</span> &times; <span class="q">n_layers</span> &times; <span class="k">seq_len</span> &times; <span class="v">d_model</span> &times; <span class="s">dtype_bytes</span>
       </div>
 
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0">
+        <div style="background:var(--formula-bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-weight:700;color:var(--accent4);font-size:1.1rem;margin-bottom:6px">2</div>
+          <div style="font-size:0.82rem;color:var(--text-dim);line-height:1.6" data-i18n="p04.s3.param.two" data-i18n-html><strong style="color:var(--text)">K + V</strong> &mdash; Two matrices are cached per layer: the <strong>Key</strong> matrix and the <strong>Value</strong> matrix. The Query is not cached because it's only needed for the current token.</div>
+        </div>
+        <div style="background:var(--formula-bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px"><span class="q">n_layers</span></div>
+          <div style="font-size:0.82rem;color:var(--text-dim);line-height:1.6" data-i18n="p04.s3.param.layers" data-i18n-html><strong style="color:var(--text)">Number of transformer layers</strong> &mdash; Each layer has its own independent KV cache. Deeper models (more layers) need proportionally more cache memory. E.g., LLaMA-2 7B = 32 layers, 70B = 80 layers.</div>
+        </div>
+        <div style="background:var(--formula-bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px"><span class="k">seq_len</span></div>
+          <div style="font-size:0.82rem;color:var(--text-dim);line-height:1.6" data-i18n="p04.s3.param.seqlen" data-i18n-html><strong style="color:var(--text)">Total sequence length</strong> &mdash; prompt tokens + generated tokens so far. This is the only parameter that <strong>grows during decode</strong> &mdash; each new token adds one row to every layer's K and V. This is why KV cache grows linearly with generation length.</div>
+        </div>
+        <div style="background:var(--formula-bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px"><span class="v">d_model</span></div>
+          <div style="font-size:0.82rem;color:var(--text-dim);line-height:1.6" data-i18n="p04.s3.param.dmodel" data-i18n-html><strong style="color:var(--text)">Hidden dimension</strong> &mdash; The size of each K/V vector per token. Determined by the model architecture. E.g., 4096 for LLaMA-2 7B/13B, 8192 for 70B. With GQA, effective dim = n_kv_heads &times; d_head (often smaller than d_model).</div>
+        </div>
+        <div style="background:var(--formula-bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px"><span class="s">dtype_bytes</span></div>
+          <div style="font-size:0.82rem;color:var(--text-dim);line-height:1.6" data-i18n="p04.s3.param.dtype" data-i18n-html><strong style="color:var(--text)">Bytes per element</strong> &mdash; Depends on numerical precision. FP32 = 4 bytes, <strong>FP16/BF16 = 2 bytes</strong> (most common), INT8 = 1 byte, INT4 = 0.5 bytes. Quantizing KV cache (e.g., TurboQuant) can dramatically reduce memory.</div>
+        </div>
+      </div>
+
       <div class="kv-example">
-        <strong>Example (LLaMA-2 70B scale):</strong><br>
+        <strong data-i18n="p04.s3.example.title">Example (LLaMA-2 70B scale):</strong><br>
         <span class="val">2</span> (K+V) &times; <span class="val">32</span> layers &times; <span class="val">4096</span> seq_len &times; <span class="val">4096</span> d_model &times; <span class="val">2</span> bytes (FP16)<br>
         = <span class="result">2,147,483,648 bytes &approx; 2 GB per request</span>
       </div>
@@ -984,6 +1007,12 @@
       'p04.s3.with.li2': 'Only the new token\'s Q, K, V need to be computed',
       'p04.s3.with.li3': 'Each decode step is O(n) instead of O(n²)',
       'p04.s3.with.li4': 'Trades memory for massive compute savings',
+      'p04.s3.param.two': '<strong style="color:var(--text)">K + V</strong> — Two matrices are cached per layer: the <strong>Key</strong> matrix and the <strong>Value</strong> matrix. The Query is not cached because it\'s only needed for the current token.',
+      'p04.s3.param.layers': '<strong style="color:var(--text)">Number of transformer layers</strong> — Each layer has its own independent KV cache. Deeper models (more layers) need proportionally more cache memory. E.g., LLaMA-2 7B = 32 layers, 70B = 80 layers.',
+      'p04.s3.param.seqlen': '<strong style="color:var(--text)">Total sequence length</strong> — prompt tokens + generated tokens so far. This is the only parameter that <strong>grows during decode</strong> — each new token adds one row to every layer\'s K and V. This is why KV cache grows linearly with generation length.',
+      'p04.s3.param.dmodel': '<strong style="color:var(--text)">Hidden dimension</strong> — The size of each K/V vector per token. Determined by the model architecture. E.g., 4096 for LLaMA-2 7B/13B, 8192 for 70B. With GQA, effective dim = n_kv_heads × d_head (often smaller than d_model).',
+      'p04.s3.param.dtype': '<strong style="color:var(--text)">Bytes per element</strong> — Depends on numerical precision. FP32 = 4 bytes, <strong>FP16/BF16 = 2 bytes</strong> (most common), INT8 = 1 byte, INT4 = 0.5 bytes. Quantizing KV cache (e.g., TurboQuant) can dramatically reduce memory.',
+      'p04.s3.example.title': 'Example (LLaMA-2 70B scale):',
       'p04.s4.heading': '<span class="badge badge-purple">Visualization</span> KV Cache Growth During Decode',
       'p04.s4.desc': 'Each decode step appends one new token\'s Key and Value vectors to the cache. Watch the memory footprint grow linearly with each generated token.',
       'p04.s4.playBtn': '&#9654; Play',
@@ -1062,6 +1091,12 @@
       'p04.s3.with.li2': '只需计算新 token 的 Q、K、V',
       'p04.s3.with.li3': '每个解码步骤为 O(n) 而非 O(n²)',
       'p04.s3.with.li4': '用内存换取大量计算节省',
+      'p04.s3.param.two': '<strong style="color:var(--text)">K + V</strong> — 每层缓存两个矩阵：<strong>Key</strong> 矩阵和 <strong>Value</strong> 矩阵。Query 不缓存，因为它只在当前 token 计算时使用。',
+      'p04.s3.param.layers': '<strong style="color:var(--text)">Transformer 层数</strong> — 每层有独立的 KV cache。模型越深（层数越多），缓存内存成比例增长。例如 LLaMA-2 7B = 32 层，70B = 80 层。',
+      'p04.s3.param.seqlen': '<strong style="color:var(--text)">总序列长度</strong> — 提示 token 数 + 已生成 token 数。这是唯一在<strong>解码过程中增长</strong>的参数——每个新 token 在每层的 K 和 V 中添加一行。这就是 KV cache 随生成长度线性增长的原因。',
+      'p04.s3.param.dmodel': '<strong style="color:var(--text)">隐藏维度</strong> — 每个 token 的 K/V 向量大小，由模型架构决定。例如 LLaMA-2 7B/13B = 4096，70B = 8192。使用 GQA 时，实际维度 = n_kv_heads × d_head（通常小于 d_model）。',
+      'p04.s3.param.dtype': '<strong style="color:var(--text)">每元素字节数</strong> — 取决于数值精度。FP32 = 4 字节，<strong>FP16/BF16 = 2 字节</strong>（最常用），INT8 = 1 字节，INT4 = 0.5 字节。量化 KV cache（如 TurboQuant）可大幅减少内存。',
+      'p04.s3.example.title': '示例（LLaMA-2 70B 规模）：',
       'p04.s4.heading': '<span class="badge badge-purple">可视化</span> 解码过程中的 KV Cache 增长',
       'p04.s4.desc': '每个解码步骤将一个新 token 的 Key 和 Value 向量追加到缓存。观察内存占用随每个生成的 token 线性增长。',
       'p04.s4.playBtn': '&#9654; 播放',
@@ -1140,6 +1175,12 @@
       'p04.s3.with.li2': '只需計算新 token 的 Q、K、V',
       'p04.s3.with.li3': '每個解碼步驟為 O(n) 而非 O(n²)',
       'p04.s3.with.li4': '用記憶體換取大量計算節省',
+      'p04.s3.param.two': '<strong style="color:var(--text)">K + V</strong> — 每層快取兩個矩陣：<strong>Key</strong> 矩陣和 <strong>Value</strong> 矩陣。Query 不快取，因為它只在當前 token 計算時使用。',
+      'p04.s3.param.layers': '<strong style="color:var(--text)">Transformer 層數</strong> — 每層有獨立的 KV cache。模型越深（層數越多），快取記憶體成比例成長。例如 LLaMA-2 7B = 32 層，70B = 80 層。',
+      'p04.s3.param.seqlen': '<strong style="color:var(--text)">總序列長度</strong> — 提示 token 數 + 已生成 token 數。這是唯一在<strong>解碼過程中成長</strong>的參數——每個新 token 在每層的 K 和 V 中新增一列。這就是 KV cache 隨生成長度線性成長的原因。',
+      'p04.s3.param.dmodel': '<strong style="color:var(--text)">隱藏維度</strong> — 每個 token 的 K/V 向量大小，由模型架構決定。例如 LLaMA-2 7B/13B = 4096，70B = 8192。使用 GQA 時，實際維度 = n_kv_heads × d_head（通常小於 d_model）。',
+      'p04.s3.param.dtype': '<strong style="color:var(--text)">每元素位元組數</strong> — 取決於數值精度。FP32 = 4 位元組，<strong>FP16/BF16 = 2 位元組</strong>（最常用），INT8 = 1 位元組，INT4 = 0.5 位元組。量化 KV cache（如 TurboQuant）可大幅減少記憶體。',
+      'p04.s3.example.title': '範例（LLaMA-2 70B 規模）：',
       'p04.s4.heading': '<span class="badge badge-purple">視覺化</span> 解碼過程中的 KV Cache 成長',
       'p04.s4.desc': '每個解碼步驟將一個新 token 的 Key 和 Value 向量追加到快取。觀察記憶體佔用隨每個生成的 token 線性成長。',
       'p04.s4.playBtn': '&#9654; 播放',
