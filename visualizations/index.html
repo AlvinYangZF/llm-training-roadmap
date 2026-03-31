@@ -388,6 +388,16 @@
 
 <!-- ==================== Grid View ==================== -->
 <div id="gridView" class="grid-view">
+  <div class="section-title" data-i18n="index.section.prerequisites">Prerequisites</div>
+  <div class="topic-grid">
+    <a href="pages/00-linear-algebra.html" class="topic-card">
+      <span class="topic-num">00</span>
+      <span class="topic-tag tag-foundation">Math</span>
+      <span class="topic-title" data-i18n="index.00.title">Linear Algebra Basics</span>
+      <span class="topic-desc" data-i18n="index.00.desc">Vectors, dot products, matrix multiplication, softmax — the math building blocks behind every transformer layer.</span>
+    </a>
+  </div>
+
   <div class="section-title" data-i18n="index.section.foundations">2017–2019 Foundations</div>
   <div class="topic-grid">
     <a href="pages/01-transformer-basics.html" class="topic-card">
@@ -510,6 +520,9 @@
 <script>
 // ==================== Knowledge Graph Data ==================== //
 const GRAPH_NODES = [
+  { id: '00', title: 'Linear Algebra Basics', cat: 'foundation', year: 'Math',
+    desc: 'Vectors, dot products, matrix multiplication, softmax — the math behind transformers.',
+    file: 'pages/00-linear-algebra.html' },
   { id: '01', title: 'Transformer Basics', cat: 'foundation', year: '2017',
     desc: 'Attention Is All You Need — QKV attention, multi-head, positional encoding.',
     file: 'pages/01-transformer-basics.html' },
@@ -547,6 +560,7 @@ const GRAPH_NODES = [
 
 // Edges: [from, to] — "from" depends on "to"
 const GRAPH_EDGES = [
+  ['01', '00'], // Transformer Basics builds on Linear Algebra
   ['02', '01'], // GPT-2 builds on Transformer
   ['03', '01'], // Sparse builds on Transformer attention
   ['04', '02'], // Prefill/Decode requires understanding GPT architecture
