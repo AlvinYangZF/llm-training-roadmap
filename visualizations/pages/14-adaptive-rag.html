@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p14.title">14. Adaptive RAG — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .flow-node{display:inline-block;padding:10px 18px;border-radius:10px;font-weight:600;font-size:.82rem;border:2px solid var(--border);background:var(--surface);transition:all .4s;margin:4px}
+    .flow-node.active{transform:scale(1.08);box-shadow:0 0 16px rgba(91,91,214,.3)}
+    .flow-node.yes{border-color:var(--accent2);background:rgba(13,148,136,.1);color:var(--accent2)}
+    .flow-node.no{border-color:var(--accent3);background:rgba(225,29,72,.08);color:var(--accent3)}
+    .flow-arrow{color:var(--text-dim);font-size:1.2rem;margin:0 4px}
+    .crag-path{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;padding:16px;margin:8px 0;border-radius:var(--radius);border:1px solid var(--border);background:var(--canvas-bg);min-height:50px;transition:all .4s}
+    .crag-path.correct-path{border-color:var(--accent2);background:rgba(13,148,136,.06)}
+    .crag-path.incorrect-path{border-color:var(--accent3);background:rgba(225,29,72,.04)}
+    .crag-path.ambiguous-path{border-color:var(--accent4);background:rgba(234,88,12,.04)}
+    .conf-bar{height:24px;border-radius:6px;transition:width .6s ease;display:flex;align-items:center;padding:0 8px;font-size:.72rem;font-weight:700;color:#fff}
+    .flare-token{display:inline-block;padding:4px 8px;margin:2px;border-radius:6px;font-size:.85rem;font-weight:500;border:1px solid var(--border);background:var(--surface);transition:all .3s}
+    .flare-token.high{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .flare-token.low{border-color:var(--accent3);background:rgba(225,29,72,.1);animation:pulse .8s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+    .bench-canvas{width:100%;height:300px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .game-opt{padding:12px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.88rem;color:var(--text);transition:all .2s;text-align:center}
+    .game-opt:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .game-opt.correct{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .game-opt.wrong{border-color:var(--accent3);background:rgba(225,29,72,.08)}
+    .scenario-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+    .scenario-btns button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:.82rem;font-weight:600;color:var(--text);transition:all .2s}
+    .scenario-btns button:hover,.scenario-btns button.active{border-color:var(--accent);color:var(--accent)}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p14.heading">Adaptive RAG — Self-RAG, CRAG & FLARE</h1>
+<p class="subtitle" data-i18n="p14.subtitle">From "always retrieve" to "intelligently decide when, what, and how to retrieve."</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p14.heading">Adaptive RAG</span></p>
+
+<div class="container">
+
+  <!-- Section 1: Self-RAG -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)">Self-RAG</span>
+    <h2 data-i18n="p14.s1.title">Self-RAG — Reflection Tokens</h2>
+    <p data-i18n="p14.s1.desc" data-i18n-html="1">Self-RAG trains the LM to emit <strong>4 reflection tokens</strong> that control retrieval and self-evaluate quality. No separate reward model needed.</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0;text-align:center">
+      <div style="background:var(--canvas-bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="font-weight:700;color:var(--accent);font-size:1.1rem">[Retrieve]</div>
+        <div style="font-size:.78rem;color:var(--text-dim);margin-top:6px">Should I retrieve?<br><strong>YES / NO</strong></div>
+      </div>
+      <div style="background:var(--canvas-bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="font-weight:700;color:var(--accent2);font-size:1.1rem">[IsRel]</div>
+        <div style="font-size:.78rem;color:var(--text-dim);margin-top:6px">Is passage relevant?<br><strong>YES / NO</strong></div>
+      </div>
+      <div style="background:var(--canvas-bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="font-weight:700;color:var(--accent4);font-size:1.1rem">[IsSup]</div>
+        <div style="font-size:.78rem;color:var(--text-dim);margin-top:6px">Is answer supported?<br><strong>FULL / PARTIAL / NO</strong></div>
+      </div>
+      <div style="background:var(--canvas-bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="font-weight:700;color:var(--accent3);font-size:1.1rem">[IsUse]</div>
+        <div style="font-size:.78rem;color:var(--text-dim);margin-top:6px">Is this useful?<br><strong>Rating 1-5</strong></div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:12px">
+      <div id="selfRagDemo" style="padding:16px;background:var(--formula-bg);border-radius:var(--radius);border:1px solid var(--border);font-size:.88rem;line-height:1.8;min-height:60px"></div>
+      <button onclick="selfRagStep()" style="margin-top:12px;padding:8px 24px;border-radius:8px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-weight:600">Step Through</button>
+      <button onclick="selfRagReset()" style="margin-top:12px;padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;color:var(--text)" data-i18n="btn.reset">Reset</button>
+    </div>
+    <div style="display:flex;gap:16px;justify-content:center;margin-top:16px;flex-wrap:wrap">
+      <div class="stat-badge" style="padding:10px 20px;border-radius:10px;border:1px solid var(--border);background:var(--surface);text-align:center"><div style="font-size:1.3rem;font-weight:800;color:var(--accent2)">55.8%</div><div style="font-size:.72rem;color:var(--text-dim)">PopQA</div></div>
+      <div class="stat-badge" style="padding:10px 20px;border-radius:10px;border:1px solid var(--border);background:var(--surface);text-align:center"><div style="font-size:1.3rem;font-weight:800;color:var(--accent2)">81.2%</div><div style="font-size:.72rem;color:var(--text-dim)">FactScore</div></div>
+      <div class="stat-badge" style="padding:10px 20px;border-radius:10px;border:1px solid var(--border);background:var(--surface);text-align:center"><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">ICLR'24</div><div style="font-size:.72rem;color:var(--text-dim)">Oral (Top 1%)</div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: CRAG -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)">CRAG</span>
+    <h2 data-i18n="p14.s2.title">CRAG — Corrective Retrieval</h2>
+    <p data-i18n="p14.s2.desc" data-i18n-html="1">A T5-large evaluator (84.3% accuracy vs ChatGPT's 64.7%) scores retrieved docs and triggers <strong>3 correction paths</strong>.</p>
+    <div class="scenario-btns" id="cragScenarios"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:16px 0;flex-wrap:wrap">
+      <div class="flow-node" id="cragEval">T5 Evaluator</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node" id="cragConf">Confidence: ?</div>
+    </div>
+    <div id="cragCorrect" class="crag-path"><span style="color:var(--accent2);font-weight:700">CORRECT</span><span class="flow-arrow">&rarr;</span><span>Decompose docs &rarr; Filter strips &rarr; Recompose</span></div>
+    <div id="cragIncorrect" class="crag-path"><span style="color:var(--accent3);font-weight:700">INCORRECT</span><span class="flow-arrow">&rarr;</span><span>Discard docs &rarr; Web Search fallback &rarr; New docs</span></div>
+    <div id="cragAmbiguous" class="crag-path"><span style="color:var(--accent4);font-weight:700">AMBIGUOUS</span><span class="flow-arrow">&rarr;</span><span>Combine refined docs + web results</span></div>
+    <div id="cragResult" style="text-align:center;margin-top:12px;font-size:.88rem;color:var(--text-dim);min-height:24px"></div>
+  </div>
+
+  <!-- Section 3: FLARE -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)">FLARE</span>
+    <h2 data-i18n="p14.s3.title">FLARE — Active Mid-Generation Retrieval</h2>
+    <p data-i18n="p14.s3.desc" data-i18n-html="1">FLARE generates tokens with confidence scores. When confidence drops below <strong>&theta;</strong>, retrieval triggers mid-generation. The tentative text becomes the query.</p>
+    <div style="text-align:center;margin:12px 0">
+      <label style="font-size:.85rem;font-weight:600">Threshold &theta;: <span id="flareTheta">0.4</span></label><br>
+      <input type="range" id="flareThetaSlider" min="0.1" max="0.9" step="0.05" value="0.4" style="width:300px" oninput="document.getElementById('flareTheta').textContent=this.value;renderFlare()">
+    </div>
+    <div id="flareTokens" style="padding:16px;background:var(--formula-bg);border-radius:var(--radius);border:1px solid var(--border);min-height:60px;line-height:2.2"></div>
+    <div id="flareInfo" style="text-align:center;margin-top:8px;font-size:.82rem;color:var(--text-dim)"></div>
+    <div style="text-align:center;margin-top:12px">
+      <button onclick="flareAnimate()" style="padding:8px 24px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-weight:600">Animate Generation</button>
+    </div>
+  </div>
+
+  <!-- Section 4: Strategy Game -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Game</span>
+    <h2 data-i18n="p14.s4.title">Pick the Best Strategy</h2>
+    <p data-i18n="p14.s4.desc">Different questions need different retrieval strategies. Can you pick the right one?</p>
+    <div style="text-align:center;margin:8px 0">Round: <strong id="sRound">1/5</strong> | Score: <strong id="sScore">0</strong></div>
+    <div id="sQuestion" style="text-align:center;font-weight:600;padding:12px;background:var(--formula-bg);border-radius:8px;border:1px solid var(--border);margin:12px 0"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="sOpts"></div>
+    <div id="sFb" style="text-align:center;margin-top:12px;font-weight:600;min-height:24px"></div>
+  </div>
+
+  <!-- Section 5: Benchmark Chart -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)">Comparison</span>
+    <h2 data-i18n="p14.s5.title">Performance Benchmarks</h2>
+    <p data-i18n="p14.s5.desc">How do these methods compare across key benchmarks?</p>
+    <div class="scenario-btns" id="benchBtns"></div>
+    <canvas id="benchCanvas" class="bench-canvas"></canvas>
+  </div>
+
+</div>
+<footer><small data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</small></footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+i18nRegister({
+  'en':{'p14.title':'14. Adaptive RAG — LLM Algorithm Visualizations','p14.heading':'Adaptive RAG — Self-RAG, CRAG & FLARE','p14.subtitle':'From "always retrieve" to "intelligently decide when, what, and how to retrieve."','p14.s1.title':'Self-RAG — Reflection Tokens','p14.s1.desc':'Self-RAG trains the LM to emit <strong>4 reflection tokens</strong> that control retrieval and self-evaluate quality.','p14.s2.title':'CRAG — Corrective Retrieval','p14.s2.desc':'A T5-large evaluator (84.3% accuracy vs ChatGPT\'s 64.7%) scores retrieved docs and triggers <strong>3 correction paths</strong>.','p14.s3.title':'FLARE — Active Mid-Generation Retrieval','p14.s3.desc':'FLARE generates tokens with confidence scores. When confidence drops below <strong>θ</strong>, retrieval triggers mid-generation.','p14.s4.title':'Pick the Best Strategy','p14.s4.desc':'Different questions need different retrieval strategies. Can you pick the right one?','p14.s5.title':'Performance Benchmarks','p14.s5.desc':'How do these methods compare across key benchmarks?'},
+  'zh-CN':{'p14.title':'14. 自适应 RAG — 大语言模型算法可视化','p14.heading':'自适应 RAG — Self-RAG、CRAG 与 FLARE','p14.subtitle':'从"总是检索"到"智能决定何时、检索什么、如何检索"。','p14.s1.title':'Self-RAG — 反思 Token','p14.s1.desc':'Self-RAG 训练语言模型发出<strong>4 种反思 token</strong>来控制检索和自我评估质量。','p14.s2.title':'CRAG — 纠正性检索','p14.s2.desc':'T5-large 评估器（准确率 84.3% vs ChatGPT 64.7%）对检索文档评分，触发<strong>3 条纠正路径</strong>。','p14.s3.title':'FLARE — 生成中主动检索','p14.s3.desc':'FLARE 生成带置信度的 token。当置信度低于 <strong>θ</strong> 时，在生成过程中触发检索。','p14.s4.title':'选择最佳策略','p14.s4.desc':'不同问题需要不同检索策略。你能选对吗？','p14.s5.title':'性能基准对比','p14.s5.desc':'这些方法在关键基准上表现如何？'},
+  'zh-TW':{'p14.title':'14. 自適應 RAG — 大語言模型演算法視覺化','p14.heading':'自適應 RAG — Self-RAG、CRAG 與 FLARE','p14.subtitle':'從「總是檢索」到「智慧決定何時、檢索什麼、如何檢索」。','p14.s1.title':'Self-RAG — 反思 Token','p14.s1.desc':'Self-RAG 訓練語言模型發出<strong>4 種反思 token</strong>來控制檢索和自我評估品質。','p14.s2.title':'CRAG — 糾正性檢索','p14.s2.desc':'T5-large 評估器（準確率 84.3% vs ChatGPT 64.7%）對檢索文件評分，觸發<strong>3 條糾正路徑</strong>。','p14.s3.title':'FLARE — 生成中主動檢索','p14.s3.desc':'FLARE 生成帶信心度的 token。當信心度低於 <strong>θ</strong> 時，在生成過程中觸發檢索。','p14.s4.title':'選擇最佳策略','p14.s4.desc':'不同問題需要不同檢索策略。你能選對嗎？','p14.s5.title':'效能基準對比','p14.s5.desc':'這些方法在關鍵基準上表現如何？'}
+});
+
+// ===== Section 1: Self-RAG Demo =====
+var srSteps=[
+  {html:'<strong>Q:</strong> "What causes diabetes?"',desc:'Question received'},
+  {html:'<span class="flow-node yes">[Retrieve] YES</span> — Complex medical question, retrieval needed',desc:'Decide to retrieve'},
+  {html:'Retrieved: "Type 2 diabetes is caused by insulin resistance..."',desc:'Document retrieved'},
+  {html:'<span class="flow-node yes">[IsRel] YES</span> — Passage directly answers the question',desc:'Check relevance'},
+  {html:'<strong>Generate:</strong> "Diabetes is primarily caused by insulin resistance and..."',desc:'Generate answer'},
+  {html:'<span class="flow-node yes">[IsSup] FULL</span> — Answer fully supported by retrieved evidence',desc:'Check support'},
+  {html:'<span class="flow-node" style="border-color:var(--accent);color:var(--accent)">[IsUse] 5</span> — Highly useful response',desc:'Rate usefulness'},
+];
+var srStep=-1;
+function selfRagStep(){srStep++;if(srStep>=srSteps.length)srStep=0;var el=document.getElementById('selfRagDemo');el.innerHTML=srSteps.slice(0,srStep+1).map(function(s){return s.html;}).join('<br>');}
+function selfRagReset(){srStep=-1;document.getElementById('selfRagDemo').innerHTML='Click "Step Through" to see Self-RAG in action...';}
+
+// ===== Section 2: CRAG =====
+var CRAG_SC=[
+  {name:'Medical Query',conf:0.92,path:'correct',result:'High confidence (0.92) → CORRECT path. Docs refined and recomposed.'},
+  {name:'Obscure Trivia',conf:0.15,path:'incorrect',result:'Low confidence (0.15) → INCORRECT path. Web search activated.'},
+  {name:'Ambiguous Query',conf:0.55,path:'ambiguous',result:'Medium confidence (0.55) → AMBIGUOUS. Both refined docs + web results used.'},
+];
+var cragIdx=0;
+function renderCRAG(){
+  var btns=document.getElementById('cragScenarios');btns.innerHTML='';
+  CRAG_SC.forEach(function(s,i){var b=document.createElement('button');b.textContent=s.name;if(i===cragIdx)b.classList.add('active');b.onclick=function(){cragIdx=i;renderCRAG();};btns.appendChild(b);});
+  var s=CRAG_SC[cragIdx];
+  document.getElementById('cragConf').textContent='Confidence: '+s.conf.toFixed(2);
+  document.getElementById('cragConf').style.color=s.conf>.7?'var(--accent2)':s.conf<.3?'var(--accent3)':'var(--accent4)';
+  document.getElementById('cragCorrect').className='crag-path'+(s.path==='correct'?' correct-path':'');
+  document.getElementById('cragIncorrect').className='crag-path'+(s.path==='incorrect'?' incorrect-path':'');
+  document.getElementById('cragAmbiguous').className='crag-path'+(s.path==='ambiguous'?' ambiguous-path':'');
+  document.getElementById('cragResult').textContent=s.result;
+}
+
+// ===== Section 3: FLARE =====
+var FLARE_TOKENS=[
+  {t:'Photosynthesis',c:.92},{t:'is',c:.95},{t:'the',c:.97},{t:'process',c:.88},{t:'by',c:.93},
+  {t:'which',c:.91},{t:'plants',c:.85},{t:'convert',c:.78},{t:'carbon',c:.42},{t:'dioxide',c:.38},
+  {t:'[RETRIEVE]',c:0},{t:'and',c:.89},{t:'water',c:.94},{t:'into',c:.91},{t:'glucose',c:.72},
+  {t:'using',c:.88},{t:'sunlight',c:.65},{t:'energy',c:.45},{t:'captured',c:.35},
+  {t:'[RETRIEVE]',c:0},{t:'by',c:.91},{t:'chlorophyll',c:.87},{t:'molecules',c:.82},{t:'.',c:.99},
+];
+function renderFlare(){
+  var theta=parseFloat(document.getElementById('flareThetaSlider').value);
+  var el=document.getElementById('flareTokens');el.innerHTML='';
+  var retrievals=0;
+  FLARE_TOKENS.forEach(function(tok){
+    if(tok.c===0){retrievals++;var sp=document.createElement('span');sp.className='flare-token';sp.style.cssText='background:rgba(91,91,214,.15);border-color:var(--accent);color:var(--accent);font-weight:700';sp.textContent='🔍 Retrieve';el.appendChild(sp);return;}
+    var sp=document.createElement('span');sp.className='flare-token '+(tok.c<theta?'low':'high');
+    sp.textContent=tok.t;sp.title='confidence: '+tok.c.toFixed(2);el.appendChild(sp);
+  });
+  var lowCount=FLARE_TOKENS.filter(function(t){return t.c>0&&t.c<theta;}).length;
+  document.getElementById('flareInfo').textContent='Threshold θ='+theta+' | '+lowCount+' low-confidence tokens | '+retrievals+' retrieval triggers';
+}
+function flareAnimate(){
+  var el=document.getElementById('flareTokens');el.innerHTML='';
+  var theta=parseFloat(document.getElementById('flareThetaSlider').value);
+  var i=0;
+  var iv=setInterval(function(){
+    if(i>=FLARE_TOKENS.length){clearInterval(iv);return;}
+    var tok=FLARE_TOKENS[i];
+    var sp=document.createElement('span');
+    if(tok.c===0){sp.className='flare-token';sp.style.cssText='background:rgba(91,91,214,.15);border-color:var(--accent);color:var(--accent);font-weight:700';sp.textContent='🔍';}
+    else{sp.className='flare-token '+(tok.c<theta?'low':'high');sp.textContent=tok.t;}
+    el.appendChild(sp);i++;
+  },150);
+}
+
+// ===== Section 4: Strategy Game =====
+var STRAT=[
+  {q:'"What is 2+2?"',best:'No Retrieval',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],explain:'Simple math — no external knowledge needed.'},
+  {q:'"Latest COVID vaccine side effects in 2024?"',best:'CRAG',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],explain:'Time-sensitive query — CRAG can fall back to web search for current info.'},
+  {q:'"Explain quantum entanglement step by step"',best:'Self-RAG',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],explain:'Complex multi-step explanation — Self-RAG adaptively retrieves and self-critiques each step.'},
+  {q:'"What is the capital of France?"',best:'No Retrieval',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],explain:'Simple factual question in training data — retrieval is unnecessary overhead.'},
+  {q:'"Compare pros/cons of React vs Vue in 2024"',best:'CRAG',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],explain:'Evolving topic with potentially outdated training data — CRAG\'s web fallback gets current comparisons.'},
+];
+var si=0,ss=0;
+function renderStrat(){document.getElementById('sRound').textContent=(si+1)+'/5';document.getElementById('sScore').textContent=ss;document.getElementById('sQuestion').textContent=STRAT[si].q;document.getElementById('sFb').textContent='';var o=document.getElementById('sOpts');o.innerHTML='';STRAT[si].opts.forEach(function(op){var d=document.createElement('div');d.className='game-opt';d.textContent=op;d.onclick=function(){checkStrat(op,d);};o.appendChild(d);});}
+function checkStrat(pick,el){var all=document.getElementById('sOpts').querySelectorAll('.game-opt');all.forEach(function(d){d.style.pointerEvents='none';});if(pick===STRAT[si].best){el.classList.add('correct');ss++;document.getElementById('sFb').innerHTML='<span style="color:var(--accent2)">Correct!</span> '+STRAT[si].explain;}else{el.classList.add('wrong');all.forEach(function(d){if(d.textContent===STRAT[si].best)d.classList.add('correct');});document.getElementById('sFb').innerHTML='<span style="color:var(--accent3)">Best: '+STRAT[si].best+'</span> — '+STRAT[si].explain;}document.getElementById('sScore').textContent=ss;setTimeout(function(){si++;if(si<5)renderStrat();else{document.getElementById('sFb').innerHTML='<strong>Final: '+ss+'/5</strong>';if(typeof markGameCompleted==='function')markGameCompleted('14');}},2500);}
+
+// ===== Section 5: Benchmark Chart =====
+var BENCH={
+  'PopQA':{labels:['Vanilla LLM','Standard RAG','Self-RAG','CRAG','FLARE'],values:[32.1,41.2,55.8,48.2,44.5],colors:['#6c7086','#5b5bd6','#0d9488','#e11d48','#ea580c']},
+  'PubHealth':{labels:['Vanilla LLM','Standard RAG','Self-RAG','CRAG','FLARE'],values:[48.2,52.1,74.5,88.7,62.3],colors:['#6c7086','#5b5bd6','#0d9488','#e11d48','#ea580c']},
+  'FactScore':{labels:['Vanilla LLM','Standard RAG','Self-RAG','CRAG','FLARE'],values:[52.3,61.4,81.2,76.3,68.1],colors:['#6c7086','#5b5bd6','#0d9488','#e11d48','#ea580c']},
+};
+var curBench='PopQA';
+function renderBenchBtns(){var el=document.getElementById('benchBtns');el.innerHTML='';Object.keys(BENCH).forEach(function(k){var b=document.createElement('button');b.textContent=k;if(k===curBench)b.classList.add('active');b.onclick=function(){curBench=k;renderBenchBtns();drawBench();};el.appendChild(b);});}
+function drawBench(){var c=document.getElementById('benchCanvas');if(!c)return;var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();var b=BENCH[curBench],pad={t:40,r:20,b:40,l:60},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;var bw=cW/b.labels.length*.6,bg=cW/b.labels.length*.4;x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';x.fillText(curBench+' Accuracy (%)',W/2,22);x.strokeStyle=bc;x.lineWidth=1;x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();for(var i=0;i<=4;i++){var v=i*25,y=pad.t+cH-(v/100)*cH;x.fillStyle=dc;x.font='10px monospace';x.textAlign='right';x.fillText(v+'%',pad.l-8,y+4);x.strokeStyle='rgba(128,128,128,.15)';x.beginPath();x.moveTo(pad.l,y);x.lineTo(pad.l+cW,y);x.stroke();}for(var j=0;j<b.labels.length;j++){var bH=(b.values[j]/100)*cH,bx=pad.l+j*(bw+bg)+bg/2,by=pad.t+cH-bH;x.fillStyle=b.colors[j];if(x.roundRect){x.beginPath();x.roundRect(bx,by,bw,bH,4);x.fill();}else{x.fillRect(bx,by,bw,bH);}x.fillStyle=tc;x.font='bold 11px monospace';x.textAlign='center';x.fillText(b.values[j].toFixed(1)+'%',bx+bw/2,by-6);x.fillStyle=dc;x.font='10px system-ui';x.fillText(b.labels[j],bx+bw/2,pad.t+cH+16);}}
+
+// Init
+window.addEventListener('load',function(){selfRagReset();renderCRAG();renderFlare();renderStrat();renderBenchBtns();drawBench();});
+window.addEventListener('themechange',drawBench);window.addEventListener('resize',drawBench);
+</script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p16.title">16. RAG at Scale — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .scale-canvas{width:100%;height:340px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .timeline-wrap{position:relative;padding:20px 0;overflow-x:auto}
+    .timeline{display:flex;align-items:flex-start;gap:0;min-width:800px;position:relative}
+    .era{flex:1;padding:16px 12px;border-radius:var(--radius);margin:0 4px;cursor:pointer;transition:all .3s;border:2px solid transparent}
+    .era:hover,.era.active{transform:translateY(-4px)}
+    .era h3{margin:0 0 8px;font-size:.95rem}
+    .era-papers{font-size:.78rem;color:var(--text-dim);line-height:1.6}
+    .era-papers strong{color:var(--text)}
+    .arch-canvas{width:100%;height:280px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .taxonomy-tree{font-size:.85rem;line-height:2}
+    .tax-node{padding:4px 12px;border-radius:6px;display:inline-block;margin:2px;cursor:pointer;transition:all .2s;border:1px solid var(--border);background:var(--surface)}
+    .tax-node:hover{border-color:var(--accent);transform:scale(1.03)}
+    .tax-node.expanded{border-color:var(--accent);background:rgba(91,91,214,.06)}
+    .tax-children{margin-left:24px;padding-left:12px;border-left:2px solid var(--border)}
+    .game-opt{padding:12px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s;text-align:center}
+    .game-opt:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .game-opt.correct{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .game-opt.wrong{border-color:var(--accent3);background:rgba(225,29,72,.08)}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p16.heading">RAG at Scale — RETRO & Evolution</h1>
+<p class="subtitle" data-i18n="p16.subtitle">Retrieval as an alternative to parameter scaling. The evolution from Naive to Modular RAG.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p16.heading">RAG at Scale</span></p>
+
+<div class="container">
+
+  <!-- Section 1: RETRO Scaling -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)">RETRO</span>
+    <h2 data-i18n="p16.s1.title">Retrieval vs Parameter Scaling</h2>
+    <p data-i18n="p16.s1.desc" data-i18n-html="1">RETRO proves that a <strong>7.5B model + retrieval</strong> matches a <strong>175B GPT-3</strong>. Retrieval provides the equivalent of 10x parameter increase — at a fraction of the cost.</p>
+    <canvas id="scaleCanvas" class="scale-canvas"></canvas>
+    <div class="stat-row">
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent2)">7.5B</div><div style="font-size:.72rem;color:var(--text-dim)">RETRO Parameters</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent3)">175B</div><div style="font-size:.72rem;color:var(--text-dim)">GPT-3 Equivalent</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">25x</div><div style="font-size:.72rem;color:var(--text-dim)">Parameter Reduction</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent4)">2T</div><div style="font-size:.72rem;color:var(--text-dim)">Tokens in DB</div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: CCA Architecture -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)">Architecture</span>
+    <h2 data-i18n="p16.s2.title">Chunked Cross-Attention (CCA)</h2>
+    <p data-i18n="p16.s2.desc" data-i18n-html="1">RETRO splits input into <strong>64-token chunks</strong>. Standard Transformer layers are interleaved with CCA layers that fuse retrieved neighbor context via cross-attention.</p>
+    <canvas id="ccaCanvas" class="arch-canvas"></canvas>
+    <div style="text-align:center;margin-top:8px;font-size:.82rem;color:var(--text-dim)">Query from decoder chunk &rarr; Cross-Attend to retrieved K/V from neighbors &rarr; Fuse external knowledge</div>
+  </div>
+
+  <!-- Section 3: RAG Evolution Timeline -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)">Timeline</span>
+    <h2 data-i18n="p16.s3.title">RAG Evolution: 2020 — 2026</h2>
+    <p data-i18n="p16.s3.desc">Three paradigm shifts in six years. Click each era to see its key papers and innovations.</p>
+    <div class="timeline-wrap">
+      <div class="timeline">
+        <div class="era active" id="era0" onclick="setEra(0)" style="background:rgba(91,91,214,.08);border-color:var(--accent)">
+          <h3 style="color:var(--accent)">Naive RAG<br><small style="color:var(--text-dim)">2020–2022</small></h3>
+          <div class="era-papers">
+            <strong>RAG</strong> — Retrieve-then-generate<br>
+            <strong>DPR</strong> — Dense retrieval beats BM25<br>
+            <strong>FiD</strong> — Fusion-in-Decoder<br>
+            <strong>RETRO</strong> — Retrieval at scale<br>
+            <strong>ColBERT</strong> — Late interaction
+          </div>
+        </div>
+        <div class="era" id="era1" onclick="setEra(1)" style="background:rgba(13,148,136,.06)">
+          <h3 style="color:var(--accent2)">Advanced RAG<br><small style="color:var(--text-dim)">2023–2024</small></h3>
+          <div class="era-papers">
+            <strong>HyDE</strong> — Hypothetical document query<br>
+            <strong>FLARE</strong> — Active mid-gen retrieval<br>
+            <strong>Self-RAG</strong> — Reflection tokens<br>
+            <strong>CRAG</strong> — Corrective retrieval<br>
+            <strong>GraphRAG</strong> — KG communities
+          </div>
+        </div>
+        <div class="era" id="era2" onclick="setEra(2)" style="background:rgba(225,29,72,.05)">
+          <h3 style="color:var(--accent3)">Modular/Agentic RAG<br><small style="color:var(--text-dim)">2025–2026</small></h3>
+          <div class="era-papers">
+            <strong>Agentic RAG</strong> — Agent-driven retrieval<br>
+            <strong>A-RAG</strong> — Hierarchical interfaces<br>
+            <strong>CoT-RAG</strong> — Chain-of-thought + KG<br>
+            <strong>VisRAG</strong> — Vision-native RAG<br>
+            <strong>Speculative RAG</strong> — Draft + verify
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="eraDesc" style="text-align:center;font-size:.88rem;color:var(--text-dim);margin-top:8px;min-height:40px;padding:8px"></div>
+  </div>
+
+  <!-- Section 4: RAG Taxonomy -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)">Survey</span>
+    <h2 data-i18n="p16.s4.title">RAG Taxonomy (Gao et al. Survey)</h2>
+    <p data-i18n="p16.s4.desc" data-i18n-html="1">The most comprehensive RAG survey (~3000 citations) proposes a tripartite framework. Click nodes to expand.</p>
+    <div class="taxonomy-tree" id="taxTree"></div>
+  </div>
+
+  <!-- Section 5: Quiz Game -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Game</span>
+    <h2 data-i18n="p16.s5.title">Match the RAG Paper</h2>
+    <p data-i18n="p16.s5.desc">Given a description of a key innovation, match it to the correct paper!</p>
+    <div style="text-align:center;margin:8px 0">Round: <strong id="qRound">1/8</strong> | Score: <strong id="qScore">0</strong></div>
+    <div id="qDesc" style="text-align:center;padding:16px;background:var(--formula-bg);border-radius:var(--radius);border:1px solid var(--border);margin:12px 0;font-size:.92rem;line-height:1.6;font-style:italic"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="qOpts"></div>
+    <div id="qFb" style="text-align:center;margin-top:12px;font-weight:600;min-height:24px"></div>
+  </div>
+
+</div>
+<footer><small data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</small></footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+i18nRegister({
+  'en':{'p16.title':'16. RAG at Scale — LLM Algorithm Visualizations','p16.heading':'RAG at Scale — RETRO & Evolution','p16.subtitle':'Retrieval as an alternative to parameter scaling.','p16.s1.title':'Retrieval vs Parameter Scaling','p16.s1.desc':'RETRO proves that a <strong>7.5B model + retrieval</strong> matches a <strong>175B GPT-3</strong>.','p16.s2.title':'Chunked Cross-Attention (CCA)','p16.s2.desc':'RETRO splits input into <strong>64-token chunks</strong>. Standard layers interleaved with CCA layers.','p16.s3.title':'RAG Evolution: 2020 — 2026','p16.s3.desc':'Three paradigm shifts in six years. Click each era.','p16.s4.title':'RAG Taxonomy (Gao et al. Survey)','p16.s4.desc':'The most comprehensive RAG survey (~3000 citations) proposes a tripartite framework. Click nodes to expand.','p16.s5.title':'Match the RAG Paper','p16.s5.desc':'Given a description, match it to the correct paper!'},
+  'zh-CN':{'p16.title':'16. 大规模 RAG — 大语言模型算法可视化','p16.heading':'大规模 RAG — RETRO 与演进','p16.subtitle':'检索作为参数扩展的替代方案。','p16.s1.title':'检索 vs 参数扩展','p16.s1.desc':'RETRO 证明 <strong>7.5B 模型 + 检索</strong>匹配 <strong>175B GPT-3</strong>。','p16.s2.title':'分块交叉注意力（CCA）','p16.s2.desc':'RETRO 将输入分为 <strong>64-token 块</strong>，标准层与 CCA 层交替。','p16.s3.title':'RAG 演进：2020 — 2026','p16.s3.desc':'六年三次范式转变。点击每个时代。','p16.s4.title':'RAG 分类法（Gao 等综述）','p16.s4.desc':'最全面的 RAG 综述（~3000 引用）提出了三方框架。点击展开。','p16.s5.title':'匹配 RAG 论文','p16.s5.desc':'给出描述，匹配正确的论文！'},
+  'zh-TW':{'p16.title':'16. 大規模 RAG — 大語言模型演算法視覺化','p16.heading':'大規模 RAG — RETRO 與演進','p16.subtitle':'檢索作為參數擴展的替代方案。','p16.s1.title':'檢索 vs 參數擴展','p16.s1.desc':'RETRO 證明 <strong>7.5B 模型 + 檢索</strong>匹配 <strong>175B GPT-3</strong>。','p16.s2.title':'分塊交叉注意力（CCA）','p16.s2.desc':'RETRO 將輸入分為 <strong>64-token 塊</strong>，標準層與 CCA 層交替。','p16.s3.title':'RAG 演進：2020 — 2026','p16.s3.desc':'六年三次範式轉變。點擊每個時代。','p16.s4.title':'RAG 分類法（Gao 等綜述）','p16.s4.desc':'最全面的 RAG 綜述（~3000 引用）提出了三方框架。點擊展開。','p16.s5.title':'匹配 RAG 論文','p16.s5.desc':'給出描述，匹配正確的論文！'}
+});
+
+// ===== Section 1: Scaling Chart =====
+function drawScale(){
+  var c=document.getElementById('scaleCanvas');if(!c)return;
+  var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;
+  var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();
+  var pad={t:40,r:40,b:50,l:70},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  // Title
+  x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';x.fillText('Perplexity vs Model Parameters',W/2,22);
+  // Axes
+  x.strokeStyle=bc;x.lineWidth=1;x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
+  // X labels (log scale: 150M, 400M, 1.3B, 7.5B, 13B, 70B, 175B)
+  var params=[0.15,0.4,1.3,7.5,13,70,175];var logMin=Math.log10(0.1),logMax=Math.log10(200);
+  x.fillStyle=dc;x.font='10px monospace';x.textAlign='center';
+  params.forEach(function(p){var px=pad.l+((Math.log10(p)-logMin)/(logMax-logMin))*cW;x.fillText(p>=1?p+'B':p*1000+'M',px,pad.t+cH+16);});
+  x.fillText('Parameters (log scale)',pad.l+cW/2,H-8);
+  // Y labels (perplexity)
+  var pplMin=8,pplMax=22;x.textAlign='right';
+  for(var i=8;i<=22;i+=2){var py=pad.t+cH-((i-pplMin)/(pplMax-pplMin))*cH;x.fillText(i.toString(),pad.l-8,py+4);x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(pad.l,py);x.lineTo(pad.l+cW,py);x.stroke();}
+  x.save();x.translate(14,pad.t+cH/2);x.rotate(-Math.PI/2);x.fillStyle=dc;x.font='11px system-ui';x.textAlign='center';x.fillText('Perplexity ↓',0,0);x.restore();
+  // Standard LM curve (red)
+  var stdPts=[[0.15,21],[0.4,18.5],[1.3,15.2],[7.5,11.5],[13,10.8],[70,9.2],[175,8.8]];
+  x.strokeStyle='#e11d48';x.lineWidth=2.5;x.beginPath();
+  stdPts.forEach(function(pt,i){var px=pad.l+((Math.log10(pt[0])-logMin)/(logMax-logMin))*cW;var py=pad.t+cH-((pt[1]-pplMin)/(pplMax-pplMin))*cH;i===0?x.moveTo(px,py):x.lineTo(px,py);});x.stroke();
+  stdPts.forEach(function(pt){var px=pad.l+((Math.log10(pt[0])-logMin)/(logMax-logMin))*cW;var py=pad.t+cH-((pt[1]-pplMin)/(pplMax-pplMin))*cH;x.fillStyle='#e11d48';x.beginPath();x.arc(px,py,4,0,Math.PI*2);x.fill();});
+  // RETRO curve (green)
+  var retroPts=[[0.15,18],[0.4,14.5],[1.3,11.2],[7.5,8.9]];
+  x.strokeStyle='#0d9488';x.lineWidth=2.5;x.beginPath();
+  retroPts.forEach(function(pt,i){var px=pad.l+((Math.log10(pt[0])-logMin)/(logMax-logMin))*cW;var py=pad.t+cH-((pt[1]-pplMin)/(pplMax-pplMin))*cH;i===0?x.moveTo(px,py):x.lineTo(px,py);});x.stroke();
+  retroPts.forEach(function(pt){var px=pad.l+((Math.log10(pt[0])-logMin)/(logMax-logMin))*cW;var py=pad.t+cH-((pt[1]-pplMin)/(pplMax-pplMin))*cH;x.fillStyle='#0d9488';x.beginPath();x.arc(px,py,5,0,Math.PI*2);x.fill();});
+  // Dashed line showing equivalence
+  var rx=pad.l+((Math.log10(7.5)-logMin)/(logMax-logMin))*cW;var ry=pad.t+cH-((8.9-pplMin)/(pplMax-pplMin))*cH;
+  var gx=pad.l+((Math.log10(175)-logMin)/(logMax-logMin))*cW;var gy=pad.t+cH-((8.8-pplMin)/(pplMax-pplMin))*cH;
+  x.setLineDash([6,4]);x.strokeStyle='#f9e2af';x.lineWidth=2;x.beginPath();x.moveTo(rx,ry);x.lineTo(gx,gy);x.stroke();x.setLineDash([]);
+  x.fillStyle='#f9e2af';x.font='bold 12px system-ui';x.textAlign='center';x.fillText('≈ Same perplexity!',(rx+gx)/2,(ry+gy)/2-10);
+  // Legend
+  x.fillStyle='#e11d48';x.fillRect(W-160,pad.t+8,12,12);x.fillStyle=tc;x.font='11px system-ui';x.textAlign='left';x.fillText('Standard LM',W-144,pad.t+18);
+  x.fillStyle='#0d9488';x.fillRect(W-160,pad.t+26,12,12);x.fillText('RETRO (+ retrieval)',W-144,pad.t+36);
+}
+
+// ===== Section 2: CCA Architecture =====
+function drawCCA(){
+  var c=document.getElementById('ccaCanvas');if(!c)return;
+  var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;
+  var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();
+  var layers=[{y:.15,label:'Input Chunks (64 tokens each)',color:'#5b5bd6'},{y:.3,label:'Standard Transformer Layer',color:'#6c7086'},{y:.45,label:'CCA Layer (Cross-Attend to Retrieved)',color:'#0d9488'},{y:.6,label:'Standard Transformer Layer',color:'#6c7086'},{y:.75,label:'CCA Layer',color:'#0d9488'},{y:.9,label:'Output',color:'#e11d48'}];
+  var lw=W*.7,lh=30,lx=(W-lw)/2;
+  layers.forEach(function(l,i){var y=l.y*H-lh/2;x.fillStyle=l.color+'22';x.strokeStyle=l.color;x.lineWidth=2;x.beginPath();if(x.roundRect)x.roundRect(lx,y,lw,lh,8);else x.rect(lx,y,lw,lh);x.fill();x.stroke();x.fillStyle=tc;x.font='bold 11px system-ui';x.textAlign='center';x.textBaseline='middle';x.fillText(l.label,W/2,l.y*H);if(i<layers.length-1){x.strokeStyle='rgba(128,128,128,.3)';x.lineWidth=1;x.beginPath();x.moveTo(W/2,l.y*H+lh/2);x.lineTo(W/2,layers[i+1].y*H-lh/2);x.stroke();}});
+  // Retrieval DB arrow
+  x.fillStyle='#ea580c22';x.strokeStyle='#ea580c';x.lineWidth=2;x.beginPath();if(x.roundRect)x.roundRect(W*.82,H*.35,W*.15,40,8);else x.rect(W*.82,H*.35,W*.15,40);x.fill();x.stroke();x.fillStyle=tc;x.font='bold 10px system-ui';x.textAlign='center';x.fillText('Retrieval DB',W*.895,H*.35+14);x.fillText('2T tokens',W*.895,H*.35+28);
+  x.strokeStyle='#ea580c';x.setLineDash([4,3]);x.beginPath();x.moveTo(W*.82,H*.45);x.lineTo(lx+lw,H*.45);x.stroke();x.setLineDash([]);
+}
+
+// ===== Section 3: Timeline =====
+var ERA_DESC=['<strong>Naive RAG (2020-2022):</strong> Basic retrieve-then-generate. Fixed retrieval at input time. No adaptation, no correction. DPR replaced BM25. RETRO showed retrieval scales better than parameters.','<strong>Advanced RAG (2023-2024):</strong> Pre-retrieval query optimization (HyDE). Active retrieval during generation (FLARE). Self-reflection and correction (Self-RAG, CRAG). Graph-structured retrieval (GraphRAG).','<strong>Modular/Agentic RAG (2025-2026):</strong> Autonomous agents drive retrieval decisions. Composable modules (Search, Memory, Routing). Multi-modal retrieval (VisRAG). Chain-of-thought reasoning integrated with retrieval (CoT-RAG).'];
+function setEra(i){for(var j=0;j<3;j++){document.getElementById('era'+j).style.borderColor=j===i?['var(--accent)','var(--accent2)','var(--accent3)'][j]:'transparent';document.getElementById('era'+j).className='era'+(j===i?' active':'');}document.getElementById('eraDesc').innerHTML=ERA_DESC[i];}
+
+// ===== Section 4: Taxonomy =====
+var TAX={label:'RAG',children:[
+  {label:'Retrieval',children:[{label:'Source',leaf:'Web, Wikipedia, Domain DBs'},{label:'Granularity',leaf:'Token, Sentence, Chunk, Document'},{label:'Pre-retrieval',leaf:'Query rewrite, HyDE, Expansion'},{label:'Post-retrieval',leaf:'Reranking, Compression, Filtering'}]},
+  {label:'Generation',children:[{label:'Fine-tuning',leaf:'RLHF, DPO, SFT on retrieved context'},{label:'Prompting',leaf:'Few-shot, CoT, In-context learning'},{label:'Decoding',leaf:'Constrained, Speculative, Beam search'}]},
+  {label:'Augmentation',children:[{label:'Iterative',leaf:'Multi-hop retrieval chains'},{label:'Recursive',leaf:'Retrieve → Generate → Retrieve again'},{label:'Adaptive',leaf:'Self-RAG, FLARE, CRAG strategies'}]}
+]};
+function renderTax(){
+  function renderNode(node,depth){
+    var html='<div style="margin-left:'+(depth*20)+'px">';
+    var cls='tax-node'+(node.expanded?' expanded':'');
+    var style='';
+    if(depth===0)style='font-weight:700;font-size:1rem;background:rgba(91,91,214,.1);border-color:var(--accent)';
+    else if(depth===1)style='font-weight:600;background:rgba(13,148,136,.06)';
+    html+='<span class="'+cls+'" style="'+style+'" onclick="toggleTax(this)">'+node.label+'</span>';
+    if(node.leaf)html+='<span style="font-size:.78rem;color:var(--text-dim);margin-left:8px">— '+node.leaf+'</span>';
+    if(node.children&&node.expanded){html+='<div class="tax-children">';node.children.forEach(function(c){html+=renderNode(c,depth+1);});html+='</div>';}
+    html+='</div>';return html;
+  }
+  TAX.expanded=true;TAX.children.forEach(function(c){c.expanded=true;});
+  document.getElementById('taxTree').innerHTML=renderNode(TAX,0);
+}
+window.toggleTax=function(el){
+  // Simple toggle via re-render
+  var label=el.textContent;
+  function findAndToggle(node){if(node.label===label){node.expanded=!node.expanded;return true;}if(node.children)for(var i=0;i<node.children.length;i++){if(findAndToggle(node.children[i]))return true;}return false;}
+  findAndToggle(TAX);renderTax();
+};
+
+// ===== Section 5: Quiz =====
+var QUIZ=[
+  {desc:'Coined the "RAG" term. Combines DPR retriever with BART generator. Documents as latent variables.',ans:'RAG',opts:['RAG','DPR','RETRO','HyDE']},
+  {desc:'Dense dual-encoder beats BM25 by +19.3%. In-batch negatives training trick.',ans:'DPR',opts:['DPR','ColBERT','SPLADE','BM25']},
+  {desc:'7.5B parameters + retrieval from 2T tokens matches 175B GPT-3.',ans:'RETRO',opts:['RETRO','RAG','FiD','REALM']},
+  {desc:'Generate hypothetical answer first, then use its embedding for retrieval.',ans:'HyDE',opts:['HyDE','Self-RAG','FLARE','DPR']},
+  {desc:'4 reflection tokens: [Retrieve], [IsRel], [IsSup], [IsUse]. ICLR 2024 Oral.',ans:'Self-RAG',opts:['Self-RAG','CRAG','FLARE','Adaptive-RAG']},
+  {desc:'T5 evaluator triggers 3 paths: Correct, Incorrect (web fallback), Ambiguous.',ans:'CRAG',opts:['CRAG','Self-RAG','GraphRAG','FLARE']},
+  {desc:'Active retrieval triggered mid-generation when token confidence drops below threshold.',ans:'FLARE',opts:['FLARE','CRAG','Self-RAG','HyDE']},
+  {desc:'Leiden community detection on knowledge graphs. Map-reduce over community summaries.',ans:'GraphRAG',opts:['GraphRAG','RETRO','ColBERT','RAG']},
+];
+var qi=0,qs=0;
+function renderQuiz(){document.getElementById('qRound').textContent=(qi+1)+'/8';document.getElementById('qScore').textContent=qs;document.getElementById('qDesc').textContent='"'+QUIZ[qi].desc+'"';document.getElementById('qFb').textContent='';var o=document.getElementById('qOpts');o.innerHTML='';var opts=QUIZ[qi].opts.slice().sort(function(){return Math.random()-.5;});opts.forEach(function(op){var d=document.createElement('div');d.className='game-opt';d.textContent=op;d.onclick=function(){checkQuiz(op,d);};o.appendChild(d);});}
+function checkQuiz(pick,el){var all=document.getElementById('qOpts').querySelectorAll('.game-opt');all.forEach(function(d){d.style.pointerEvents='none';});if(pick===QUIZ[qi].ans){el.classList.add('correct');qs++;document.getElementById('qFb').innerHTML='<span style="color:var(--accent2)">Correct!</span>';}else{el.classList.add('wrong');all.forEach(function(d){if(d.textContent===QUIZ[qi].ans)d.classList.add('correct');});document.getElementById('qFb').innerHTML='<span style="color:var(--accent3)">It was '+QUIZ[qi].ans+'</span>';}document.getElementById('qScore').textContent=qs;setTimeout(function(){qi++;if(qi<8)renderQuiz();else{document.getElementById('qFb').innerHTML='<strong>Final: '+qs+'/8</strong>';if(typeof markGameCompleted==='function')markGameCompleted('16');}},2000);}
+
+// Init
+window.addEventListener('load',function(){drawScale();drawCCA();setEra(0);renderTax();renderQuiz();});
+window.addEventListener('themechange',function(){drawScale();drawCCA();});
+window.addEventListener('resize',function(){drawScale();drawCCA();});
+</script>
+</body>
+</html>
