@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p12.title">12. Dense Retrieval — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .search-panel{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0}
+    .search-col{background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .search-col h3{margin-top:0;font-size:1rem}
+    .doc-item{padding:10px;margin:8px 0;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:.85rem;line-height:1.6;position:relative;transition:all .3s}
+    .doc-item .score{position:absolute;right:8px;top:8px;font-weight:700;font-size:.82rem;padding:2px 8px;border-radius:6px}
+    .doc-item .score.high{background:rgba(13,148,136,.15);color:var(--accent2)}
+    .doc-item .score.med{background:rgba(234,88,12,.1);color:var(--accent4)}
+    .doc-item .score.low{background:rgba(100,116,139,.1);color:var(--text-dim)}
+    .doc-item mark{background:rgba(91,91,214,.2);padding:1px 3px;border-radius:3px}
+    .doc-item mark.semantic{background:rgba(13,148,136,.2)}
+    .query-btns{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+    .query-btns button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:.82rem;font-weight:600;color:var(--text);transition:all .2s}
+    .query-btns button:hover,.query-btns button.active{border-color:var(--accent);color:var(--accent);background:rgba(91,91,214,.06)}
+    .arch-flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin:20px 0}
+    .arch-box{padding:14px 20px;border-radius:var(--radius);text-align:center;font-weight:600;font-size:.85rem;border:1px solid var(--border);min-width:100px}
+    .arch-arrow{font-size:1.4rem;color:var(--text-dim)}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+    .stat-badge .val{font-size:1.4rem;font-weight:800}
+    .stat-badge .lbl{font-size:.72rem;color:var(--text-dim);text-transform:uppercase}
+    .heatmap-canvas{width:100%;height:300px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .game-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+    .game-row button{padding:10px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:700;font-size:.95rem;color:var(--text);transition:all .2s;min-width:120px}
+    .game-row button:hover{border-color:var(--accent);transform:scale(1.03)}
+    .game-row button.correct{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .game-row button.wrong{border-color:var(--accent3);background:rgba(225,29,72,.08)}
+    .code-block{background:#1e1e2e;border-radius:var(--radius);overflow:hidden;font-family:'SF Mono','Fira Code','Consolas',monospace;font-size:.78rem;border:1px solid var(--border)}
+    .code-header{padding:8px 14px;background:rgba(0,0,0,.3);border-bottom:1px solid rgba(255,255,255,.06);font-size:.72rem;color:#6c7086;display:flex;justify-content:space-between}
+    .code-header .lang-tag{color:#f9e2af;font-weight:600}
+    .code-lines{padding:12px 0;overflow-x:auto}
+    .code-line{display:flex;padding:1px 14px;line-height:1.7;transition:background .3s;white-space:pre}
+    .code-line.active{background:rgba(91,91,214,.15);border-left:3px solid var(--accent);padding-left:11px}
+    .code-line.executed{background:rgba(13,148,136,.08)}
+    .code-line .ln{color:#45475a;min-width:28px;text-align:right;margin-right:12px;user-select:none}
+    .tok-kw{color:#c678dd}.tok-fn{color:#61afef}.tok-str{color:#98c379}.tok-num{color:#d19a66}.tok-cm{color:#5c6370;font-style:italic}.tok-op{color:#56b6c2}.tok-cls{color:#e5c07b}.tok-var{color:#abb2bf}
+    .output-block{background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:12px;font-family:monospace;font-size:.78rem;min-height:100px;max-height:260px;overflow-y:auto;line-height:1.6}
+    .out-label{color:var(--accent);font-weight:600}
+    .run-controls{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+    .run-controls button{padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.82rem;color:var(--text);transition:all .2s}
+    .run-controls button:hover{border-color:var(--accent);color:var(--accent)}
+    .run-controls button.run-btn{background:#e06c75;color:#fff;border-color:#e06c75}
+    @media(max-width:700px){.search-panel{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p12.heading">Dense Retrieval — DPR & ColBERT</h1>
+<p class="subtitle" data-i18n="p12.subtitle">From keyword matching to semantic understanding. How dense vectors revolutionized information retrieval.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p12.heading">Dense Retrieval</span></p>
+
+<div class="container">
+
+  <!-- Section 1: BM25 vs Dense -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)">Interactive</span>
+    <h2 data-i18n="p12.s1.title">BM25 vs Dense Retrieval</h2>
+    <p data-i18n="p12.s1.desc" data-i18n-html="1">BM25 matches exact keywords. Dense retrieval matches <strong>meaning</strong>. Click a query to see the difference.</p>
+    <div class="query-btns" id="queryBtns"></div>
+    <div class="search-panel">
+      <div class="search-col" id="bm25Col"><h3 style="color:var(--accent3)">BM25 (Keyword)</h3><div id="bm25Results"></div></div>
+      <div class="search-col" id="denseCol"><h3 style="color:var(--accent2)">Dense (Semantic)</h3><div id="denseResults"></div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: DPR Architecture -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)">Architecture</span>
+    <h2 data-i18n="p12.s2.title">DPR — Dual Encoder Architecture</h2>
+    <p data-i18n="p12.s2.desc" data-i18n-html="1">Two independent BERT encoders project queries and passages into a shared 768-d vector space. Similarity is a simple <strong>dot product</strong>.</p>
+    <div class="arch-flow">
+      <div class="arch-box" style="background:rgba(91,91,214,.1);border-color:var(--accent)">Query<br><small style="color:var(--text-dim)">"How to treat headache?"</small></div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box" style="background:rgba(91,91,214,.15);border-color:var(--accent)">BERT<sub>Q</sub><br><small style="color:var(--text-dim)">Query Encoder</small></div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box" style="background:rgba(225,29,72,.1);border-color:var(--accent3)"><strong>q</strong> (768d)<br><small style="color:var(--text-dim)">query vector</small></div>
+      <div class="arch-arrow" style="font-size:2rem">&middot;</div>
+      <div class="arch-box" style="background:rgba(13,148,136,.1);border-color:var(--accent2)"><strong>d</strong> (768d)<br><small style="color:var(--text-dim)">doc vector</small></div>
+      <div class="arch-arrow">&larr;</div>
+      <div class="arch-box" style="background:rgba(13,148,136,.15);border-color:var(--accent2)">BERT<sub>D</sub><br><small style="color:var(--text-dim)">Passage Encoder</small></div>
+      <div class="arch-arrow">&larr;</div>
+      <div class="arch-box" style="background:rgba(13,148,136,.1);border-color:var(--accent2)">21M Passages<br><small style="color:var(--text-dim)">FAISS Index</small></div>
+    </div>
+    <div class="formula-box">score(q, d) = E<sub>Q</sub>(q)<sup>T</sup> &middot; E<sub>D</sub>(d)</div>
+    <div class="stat-row">
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)">78.4%</div><div class="lbl">DPR Top-20 Recall</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent3)">59.1%</div><div class="lbl">BM25 Top-20 Recall</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent)">+19.3%</div><div class="lbl">Improvement</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)">995/s</div><div class="lbl">Queries per second</div></div>
+    </div>
+  </div>
+
+  <!-- Section 3: ColBERT MaxSim -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)">Visualization</span>
+    <h2 data-i18n="p12.s3.title">ColBERT — Late Interaction & MaxSim</h2>
+    <p data-i18n="p12.s3.desc" data-i18n-html="1">Unlike DPR's single-vector comparison, ColBERT keeps <strong>per-token</strong> embeddings. The MaxSim operator finds the best match for each query token across all document tokens.</p>
+    <canvas id="heatmapCanvas" class="heatmap-canvas"></canvas>
+    <div style="text-align:center;margin-top:8px">
+      <button onclick="animateMaxSim()" style="padding:8px 24px;border-radius:8px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-weight:600" data-i18n="p12.s3.animate">Animate MaxSim</button>
+    </div>
+    <div class="formula-box" style="margin-top:12px">S<sub>ColBERT</sub>(q, d) = &sum;<sub>i</sub> max<sub>j</sub> cos(q<sub>i</sub>, d<sub>j</sub>)</div>
+    <p style="text-align:center;font-size:.82rem;color:var(--text-dim)" data-i18n="p12.s3.hint">Each query token finds its best-matching document token. This preserves fine-grained matching that single-vector models lose.</p>
+  </div>
+
+  <!-- Section 4: Speed vs Quality Game -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Game</span>
+    <h2 data-i18n="p12.s4.title">Retrieval Method Showdown</h2>
+    <p data-i18n="p12.s4.desc">Rank these retrieval methods by quality for the given query. Can you predict the ranking?</p>
+    <div style="text-align:center;margin:12px 0">
+      <span data-i18n="p12.s4.round">Round</span>: <strong id="gameRound">1/5</strong> &nbsp; | &nbsp;
+      <span data-i18n="p12.s4.score">Score</span>: <strong id="gameScore">0</strong>
+    </div>
+    <div id="gameQuestion" style="text-align:center;font-size:1rem;font-weight:600;margin:12px 0;padding:12px;background:var(--formula-bg);border-radius:8px;border:1px solid var(--border)"></div>
+    <div class="game-row" id="gameOptions"></div>
+    <div id="gameFeedback" style="text-align:center;margin-top:12px;font-weight:600;min-height:24px"></div>
+  </div>
+
+  <!-- Section 5: PyTorch DPR Code -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)">PyTorch</span>
+    <h2 data-i18n="p12.s5.title">DPR in PyTorch Code</h2>
+    <p data-i18n="p12.s5.desc" data-i18n-html="1">See how dual-encoder retrieval works in real code. Click <strong>Run Step</strong> to execute line by line.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang-tag">PyTorch</span><span>dpr_retrieval.py</span></div>
+      <div class="code-lines" id="dprCode"></div>
+    </div>
+    <div class="output-block" id="dprOutput"><span style="color:var(--text-dim);font-style:italic">Click "Run Step" to execute...</span></div>
+    <div class="run-controls">
+      <button onclick="dprRunStep()" class="run-btn" data-i18n-html="1">&#9654; Run Step</button>
+      <button onclick="dprRunAll()">Run All</button>
+      <button onclick="dprReset()" data-i18n="btn.reset">Reset</button>
+    </div>
+  </div>
+
+</div>
+
+<footer><small data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</small></footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+// ==================== i18n ==================== //
+i18nRegister({
+  'en':{
+    'p12.title':'12. Dense Retrieval — LLM Algorithm Visualizations',
+    'p12.heading':'Dense Retrieval — DPR & ColBERT',
+    'p12.subtitle':'From keyword matching to semantic understanding. How dense vectors revolutionized information retrieval.',
+    'p12.s1.title':'BM25 vs Dense Retrieval',
+    'p12.s1.desc':'BM25 matches exact keywords. Dense retrieval matches <strong>meaning</strong>. Click a query to see the difference.',
+    'p12.s2.title':'DPR — Dual Encoder Architecture',
+    'p12.s2.desc':'Two independent BERT encoders project queries and passages into a shared 768-d vector space. Similarity is a simple <strong>dot product</strong>.',
+    'p12.s3.title':'ColBERT — Late Interaction & MaxSim',
+    'p12.s3.desc':'Unlike DPR\'s single-vector comparison, ColBERT keeps <strong>per-token</strong> embeddings. The MaxSim operator finds the best match for each query token across all document tokens.',
+    'p12.s3.animate':'Animate MaxSim',
+    'p12.s3.hint':'Each query token finds its best-matching document token. This preserves fine-grained matching that single-vector models lose.',
+    'p12.s4.title':'Retrieval Method Showdown',
+    'p12.s4.desc':'Rank these retrieval methods by quality for the given query. Can you predict the ranking?',
+    'p12.s4.round':'Round','p12.s4.score':'Score',
+    'p12.s5.title':'DPR in PyTorch Code',
+    'p12.s5.desc':'See how dual-encoder retrieval works in real code. Click <strong>Run Step</strong> to execute line by line.',
+  },
+  'zh-CN':{
+    'p12.title':'12. 稠密检索 — 大语言模型算法可视化',
+    'p12.heading':'稠密检索 — DPR 与 ColBERT',
+    'p12.subtitle':'从关键词匹配到语义理解。稠密向量如何革新了信息检索。',
+    'p12.s1.title':'BM25 vs 稠密检索',
+    'p12.s1.desc':'BM25 匹配精确关键词。稠密检索匹配<strong>语义</strong>。点击查询查看差异。',
+    'p12.s2.title':'DPR — 双编码器架构',
+    'p12.s2.desc':'两个独立的 BERT 编码器将查询和段落投影到共享的 768 维向量空间。相似度是简单的<strong>点积</strong>。',
+    'p12.s3.title':'ColBERT — 后交互与 MaxSim',
+    'p12.s3.desc':'与 DPR 的单向量比较不同，ColBERT 保留<strong>每个 token</strong> 的嵌入。MaxSim 算子为每个查询 token 找到所有文档 token 中的最佳匹配。',
+    'p12.s3.animate':'播放 MaxSim 动画','p12.s3.hint':'每个查询 token 找到其最佳匹配的文档 token。这保留了单向量模型丢失的细粒度匹配信号。',
+    'p12.s4.title':'检索方法大比拼','p12.s4.desc':'为给定查询按质量排列这些检索方法。你能预测排名吗？',
+    'p12.s4.round':'轮次','p12.s4.score':'得分',
+    'p12.s5.title':'PyTorch 实现 DPR','p12.s5.desc':'看看双编码器检索在真实代码中如何工作。点击 <strong>Run Step</strong> 逐行执行。',
+  },
+  'zh-TW':{
+    'p12.title':'12. 稠密檢索 — 大語言模型演算法視覺化',
+    'p12.heading':'稠密檢索 — DPR 與 ColBERT',
+    'p12.subtitle':'從關鍵詞匹配到語義理解。稠密向量如何革新了資訊檢索。',
+    'p12.s1.title':'BM25 vs 稠密檢索',
+    'p12.s1.desc':'BM25 匹配精確關鍵詞。稠密檢索匹配<strong>語義</strong>。點擊查詢查看差異。',
+    'p12.s2.title':'DPR — 雙編碼器架構',
+    'p12.s2.desc':'兩個獨立的 BERT 編碼器將查詢和段落投影到共享的 768 維向量空間。相似度是簡單的<strong>點積</strong>。',
+    'p12.s3.title':'ColBERT — 後交互與 MaxSim',
+    'p12.s3.desc':'與 DPR 的單向量比較不同，ColBERT 保留<strong>每個 token</strong> 的嵌入。MaxSim 算子為每個查詢 token 找到所有文件 token 中的最佳匹配。',
+    'p12.s3.animate':'播放 MaxSim 動畫','p12.s3.hint':'每個查詢 token 找到其最佳匹配的文件 token。這保留了單向量模型遺失的細粒度匹配訊號。',
+    'p12.s4.title':'檢索方法大比拼','p12.s4.desc':'為給定查詢按品質排列這些檢索方法。你能預測排名嗎？',
+    'p12.s4.round':'輪次','p12.s4.score':'得分',
+    'p12.s5.title':'PyTorch 實現 DPR','p12.s5.desc':'看看雙編碼器檢索在真實程式碼中如何運作。點擊 <strong>Run Step</strong> 逐行執行。',
+  }
+});
+
+// ==================== Section 1: BM25 vs Dense ==================== //
+var DOCS = [
+  "Aspirin and ibuprofen are common over-the-counter medications for pain relief and reducing inflammation.",
+  "Migraine symptoms include throbbing headache, nausea, and sensitivity to light. Treatment options vary.",
+  "The Python programming language was created by Guido van Rossum in 1991.",
+  "Tension headaches can be relieved through massage, rest, and adequate hydration.",
+  "Neural networks process information through layers of interconnected nodes called neurons."
+];
+var QUERIES = [
+  { q: "How to treat headache?", bm25: [0.1,0.3,0,0.4,0], dense: [0.72,0.89,0.05,0.85,0.08], bm25kw:["headache"], densekw:["pain relief","reducing","Migraine","headache","Treatment","relieved"] },
+  { q: "Remedy for migraine", bm25: [0,0.5,0,0,0], dense: [0.65,0.95,0.03,0.58,0.04], bm25kw:["Migraine"], densekw:["pain relief","Migraine","throbbing headache","Treatment","relieved"] },
+  { q: "Medicine for head pain", bm25: [0,0,0,0,0], dense: [0.78,0.82,0.02,0.71,0.06], bm25kw:[], densekw:["medications","pain relief","headache","Migraine","Treatment","relieved"] },
+];
+var currentQuery = 0;
+function renderSearch() {
+  var btns = document.getElementById('queryBtns');
+  btns.innerHTML = '';
+  QUERIES.forEach(function(qo,i) {
+    var b = document.createElement('button');
+    b.textContent = '"' + qo.q + '"';
+    if (i === currentQuery) b.classList.add('active');
+    b.onclick = function() { currentQuery = i; renderSearch(); };
+    btns.appendChild(b);
+  });
+  var qo = QUERIES[currentQuery];
+  // BM25
+  var bm25 = document.getElementById('bm25Results'); bm25.innerHTML = '';
+  DOCS.forEach(function(d,i) {
+    var div = document.createElement('div'); div.className = 'doc-item';
+    var txt = d;
+    qo.bm25kw.forEach(function(kw) { txt = txt.replace(new RegExp('('+kw+')','gi'), '<mark>$1</mark>'); });
+    var sc = qo.bm25[i];
+    var cls = sc > 0.3 ? 'high' : sc > 0.1 ? 'med' : 'low';
+    div.innerHTML = txt + '<span class="score '+cls+'">'+sc.toFixed(1)+'</span>';
+    if (sc === 0) div.style.opacity = '0.4';
+    bm25.appendChild(div);
+  });
+  // Dense
+  var dense = document.getElementById('denseResults'); dense.innerHTML = '';
+  DOCS.forEach(function(d,i) {
+    var div = document.createElement('div'); div.className = 'doc-item';
+    var txt = d;
+    qo.densekw.forEach(function(kw) { txt = txt.replace(new RegExp('('+kw+')','gi'), '<mark class="semantic">$1</mark>'); });
+    var sc = qo.dense[i];
+    var cls = sc > 0.7 ? 'high' : sc > 0.4 ? 'med' : 'low';
+    div.innerHTML = txt + '<span class="score '+cls+'">'+sc.toFixed(2)+'</span>';
+    if (sc < 0.1) div.style.opacity = '0.4';
+    dense.appendChild(div);
+  });
+}
+
+// ==================== Section 3: ColBERT Heatmap ==================== //
+var qTokens = ['How','to','treat','headache'];
+var dTokens = ['Aspirin','ibuprofen','medications','pain','relief','inflammation'];
+var simMatrix = [
+  [0.12,0.08,0.15,0.10,0.09,0.07],
+  [0.05,0.06,0.11,0.04,0.08,0.03],
+  [0.18,0.15,0.62,0.35,0.71,0.22],
+  [0.08,0.07,0.14,0.85,0.52,0.19],
+];
+var maxSimStep = -1;
+
+function drawHeatmap() {
+  var canvas = document.getElementById('heatmapCanvas');
+  if (!canvas) return;
+  var rect = canvas.getBoundingClientRect();
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  var ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  var W = rect.width, H = rect.height;
+  var s = getComputedStyle(document.documentElement);
+  var textCol = s.getPropertyValue('--text').trim();
+  var dimCol = s.getPropertyValue('--text-dim').trim();
+  var borderCol = s.getPropertyValue('--border').trim();
+
+  var padL=90, padT=60, padR=30, padB=30;
+  var cw = (W-padL-padR)/dTokens.length;
+  var ch = (H-padT-padB)/qTokens.length;
+
+  // Doc token labels (top)
+  ctx.fillStyle = dimCol; ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center';
+  dTokens.forEach(function(t,j) { ctx.fillText(t, padL + j*cw + cw/2, padT - 10); });
+  ctx.fillStyle = dimCol; ctx.font = '10px system-ui';
+  ctx.fillText('Document Tokens →', padL + (W-padL-padR)/2, 16);
+
+  // Query token labels (left)
+  ctx.textAlign = 'right'; ctx.font = 'bold 11px system-ui'; ctx.fillStyle = dimCol;
+  qTokens.forEach(function(t,i) { ctx.fillText(t, padL - 10, padT + i*ch + ch/2 + 4); });
+  ctx.save(); ctx.translate(14, padT + (H-padT-padB)/2); ctx.rotate(-Math.PI/2);
+  ctx.font = '10px system-ui'; ctx.textAlign = 'center'; ctx.fillText('Query Tokens →', 0, 0); ctx.restore();
+
+  // Cells
+  for (var i=0; i<qTokens.length; i++) {
+    var maxJ = -1, maxV = -1;
+    for (var j=0; j<dTokens.length; j++) { if (simMatrix[i][j] > maxV) { maxV = simMatrix[i][j]; maxJ = j; } }
+    for (var j=0; j<dTokens.length; j++) {
+      var v = simMatrix[i][j];
+      var x = padL + j*cw, y = padT + i*ch;
+      var isMax = (j === maxJ) && (maxSimStep >= i || maxSimStep === -1);
+      // Color
+      var r = Math.round(91 + (247-91)*v), g = Math.round(91 + (118-91)*v), b = Math.round(214 + (142-214)*v);
+      ctx.fillStyle = 'rgba('+r+','+g+','+b+','+(0.2+v*0.8)+')';
+      ctx.fillRect(x+1, y+1, cw-2, ch-2);
+      if (isMax && maxSimStep >= i) {
+        ctx.strokeStyle = '#f9e2af'; ctx.lineWidth = 3;
+        ctx.strokeRect(x+1, y+1, cw-2, ch-2);
+      }
+      // Value
+      ctx.fillStyle = v > 0.5 ? '#fff' : textCol;
+      ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(v.toFixed(2), x+cw/2, y+ch/2+4);
+    }
+  }
+
+  // MaxSim result
+  if (maxSimStep >= 0) {
+    var total = 0;
+    for (var i=0; i<=Math.min(maxSimStep, qTokens.length-1); i++) {
+      var mx = 0; for (var j=0; j<dTokens.length; j++) { if (simMatrix[i][j]>mx) mx=simMatrix[i][j]; }
+      total += mx;
+    }
+    ctx.fillStyle = '#f9e2af'; ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'right';
+    ctx.fillText('MaxSim = ' + total.toFixed(2), W-padR, H-8);
+  }
+}
+
+function animateMaxSim() {
+  maxSimStep = -1;
+  drawHeatmap();
+  var step = 0;
+  var iv = setInterval(function() {
+    maxSimStep = step;
+    drawHeatmap();
+    step++;
+    if (step >= qTokens.length) { clearInterval(iv); if (typeof markGameCompleted === 'function') markGameCompleted('12'); }
+  }, 600);
+}
+
+// ==================== Section 4: Game ==================== //
+var GAME_ROUNDS = [
+  { q: "What causes diabetes?", best: "Cross-Encoder", order: ["BM25","DPR","ColBERT","Cross-Encoder"], explain: "Cross-encoder reads query+doc together for highest quality, but slowest." },
+  { q: "python list comprehension", best: "BM25", order: ["DPR","ColBERT","Cross-Encoder","BM25"], explain: "Exact keyword match — BM25 excels when query terms appear verbatim." },
+  { q: "remedy for feeling under the weather", best: "ColBERT", order: ["BM25","DPR","ColBERT","Cross-Encoder"], explain: "Idiomatic expression — ColBERT's token-level matching captures partial semantic overlap." },
+  { q: "COVID vaccine side effects 2024", best: "DPR", order: ["BM25","DPR","ColBERT","Cross-Encoder"], explain: "Semantic + temporal query — DPR generalizes well with fast retrieval." },
+  { q: "How does photosynthesis work?", best: "Cross-Encoder", order: ["BM25","DPR","ColBERT","Cross-Encoder"], explain: "Complex conceptual query benefits from joint query-doc encoding." },
+];
+var gameIdx = 0, gScore = 0;
+function renderGame() {
+  var r = GAME_ROUNDS[gameIdx];
+  document.getElementById('gameRound').textContent = (gameIdx+1) + '/5';
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameQuestion').textContent = '"' + r.q + '"';
+  document.getElementById('gameFeedback').textContent = '';
+  var opts = document.getElementById('gameOptions'); opts.innerHTML = '';
+  var methods = ["BM25","DPR","ColBERT","Cross-Encoder"];
+  methods.sort(function() { return Math.random()-0.5; });
+  methods.forEach(function(m) {
+    var b = document.createElement('button'); b.textContent = m;
+    b.onclick = function() { checkGame(m, b); }; opts.appendChild(b);
+  });
+}
+function checkGame(pick, btn) {
+  var r = GAME_ROUNDS[gameIdx];
+  var allBtns = document.getElementById('gameOptions').querySelectorAll('button');
+  allBtns.forEach(function(b) { b.disabled = true; });
+  if (pick === r.best) {
+    btn.classList.add('correct'); gScore++;
+    document.getElementById('gameFeedback').innerHTML = '<span style="color:var(--accent2)">Correct!</span> ' + r.explain;
+  } else {
+    btn.classList.add('wrong');
+    allBtns.forEach(function(b) { if (b.textContent === r.best) b.classList.add('correct'); });
+    document.getElementById('gameFeedback').innerHTML = '<span style="color:var(--accent3)">Best: ' + r.best + '</span> — ' + r.explain;
+  }
+  document.getElementById('gameScore').textContent = gScore;
+  setTimeout(function() { gameIdx++; if (gameIdx < 5) renderGame(); else { document.getElementById('gameFeedback').innerHTML = '<strong>Final: ' + gScore + '/5</strong>'; if (typeof markGameCompleted === 'function') markGameCompleted('12'); } }, 2500);
+}
+
+// ==================== Section 5: PyTorch Code ==================== //
+var DPR_CODE = [
+  {c:'<span class="tok-kw">import</span> <span class="tok-cls">torch</span>'},
+  {c:'<span class="tok-kw">import</span> <span class="tok-cls">torch.nn.functional</span> <span class="tok-kw">as</span> <span class="tok-var">F</span>'},
+  {c:''},
+  {c:'<span class="tok-cm"># Simulated BERT encoders (768-d output)</span>'},
+  {c:'<span class="tok-var">d_model</span> <span class="tok-op">=</span> <span class="tok-num">768</span>; <span class="tok-var">n_docs</span> <span class="tok-op">=</span> <span class="tok-num">1000</span>',exec:'init'},
+  {c:''},
+  {c:'<span class="tok-cm"># Encode query</span>'},
+  {c:'<span class="tok-var">q</span> <span class="tok-op">=</span> <span class="tok-cls">torch</span>.<span class="tok-fn">randn</span>(<span class="tok-num">1</span>, <span class="tok-var">d_model</span>)  <span class="tok-cm"># (1, 768)</span>',exec:'q'},
+  {c:'<span class="tok-var">q</span> <span class="tok-op">=</span> <span class="tok-var">F</span>.<span class="tok-fn">normalize</span>(<span class="tok-var">q</span>, <span class="tok-var">dim</span><span class="tok-op">=</span><span class="tok-num">-1</span>)',exec:'qnorm'},
+  {c:''},
+  {c:'<span class="tok-cm"># Pre-encoded document embeddings (FAISS index)</span>'},
+  {c:'<span class="tok-var">D</span> <span class="tok-op">=</span> <span class="tok-cls">torch</span>.<span class="tok-fn">randn</span>(<span class="tok-var">n_docs</span>, <span class="tok-var">d_model</span>)',exec:'docs'},
+  {c:'<span class="tok-var">D</span> <span class="tok-op">=</span> <span class="tok-var">F</span>.<span class="tok-fn">normalize</span>(<span class="tok-var">D</span>, <span class="tok-var">dim</span><span class="tok-op">=</span><span class="tok-num">-1</span>)',exec:'dnorm'},
+  {c:''},
+  {c:'<span class="tok-cm"># Dot-product similarity</span>'},
+  {c:'<span class="tok-var">scores</span> <span class="tok-op">=</span> <span class="tok-var">q</span> <span class="tok-op">@</span> <span class="tok-var">D</span>.<span class="tok-fn">T</span>  <span class="tok-cm"># (1, 1000)</span>',exec:'scores'},
+  {c:''},
+  {c:'<span class="tok-cm"># Top-5 retrieval</span>'},
+  {c:'<span class="tok-var">top5</span> <span class="tok-op">=</span> <span class="tok-cls">torch</span>.<span class="tok-fn">topk</span>(<span class="tok-var">scores</span>, <span class="tok-var">k</span><span class="tok-op">=</span><span class="tok-num">5</span>)',exec:'topk'},
+  {c:'<span class="tok-fn">print</span>(<span class="tok-str">"Top-5 scores:"</span>, <span class="tok-var">top5</span>.<span class="tok-var">values</span>)',exec:'print'},
+];
+var dprExecs = []; DPR_CODE.forEach(function(l,i) { if (l.exec) dprExecs.push(i); });
+var dprStep = -1, dprData = {};
+
+function dprRender() {
+  var c = document.getElementById('dprCode'); c.innerHTML = '';
+  DPR_CODE.forEach(function(l,i) {
+    var cls = 'code-line';
+    var ei = dprExecs.indexOf(i);
+    if (ei !== -1) { if (ei === dprStep) cls += ' active'; else if (ei < dprStep) cls += ' executed'; }
+    c.innerHTML += '<div class="'+cls+'"><span class="ln">'+(i+1)+'</span><span>'+l.c+'</span></div>';
+  });
+}
+function dprExec() {
+  dprStep++; if (dprStep >= dprExecs.length) { dprStep = dprExecs.length-1; return; }
+  var key = DPR_CODE[dprExecs[dprStep]].exec;
+  var out = document.getElementById('dprOutput');
+  switch(key) {
+    case 'init': out.innerHTML = '<span class="out-label">Config:</span> d_model=768, n_docs=1000'; break;
+    case 'q': out.innerHTML += '<br><span class="out-label">q shape:</span> torch.Size([1, 768])'; break;
+    case 'qnorm': out.innerHTML += '<br><span class="out-label">q normalized:</span> ||q|| = 1.0'; break;
+    case 'docs': out.innerHTML += '<br><span class="out-label">D shape:</span> torch.Size([1000, 768])'; break;
+    case 'dnorm': out.innerHTML += '<br><span class="out-label">D normalized:</span> all ||d_i|| = 1.0'; break;
+    case 'scores':
+      var s = []; for (var i=0;i<5;i++) s.push((Math.random()*0.4+0.1).toFixed(3));
+      dprData.scores = s;
+      out.innerHTML += '<br><span class="out-label">scores shape:</span> torch.Size([1, 1000])';
+      out.innerHTML += '<br><span class="out-label">scores range:</span> [' + (Math.random()*0.05-0.3).toFixed(3) + ' ... ' + (Math.random()*0.1+0.45).toFixed(3) + ']';
+      break;
+    case 'topk':
+      var vals = [0.52,0.48,0.45,0.43,0.41].map(function(v) { return (v+Math.random()*0.05).toFixed(3); });
+      var idxs = []; for (var j=0;j<5;j++) idxs.push(Math.floor(Math.random()*1000));
+      out.innerHTML += '<br><span class="out-label">top5.indices:</span> [' + idxs.join(', ') + ']';
+      out.innerHTML += '<br><span class="out-label">top5.values:</span> [' + vals.join(', ') + ']';
+      break;
+    case 'print':
+      out.innerHTML += '<br><span class="out-label">>>></span> Top-5 retrieved! Ready for generation.';
+      break;
+  }
+  out.scrollTop = out.scrollHeight;
+}
+function dprRunStep() { dprExec(); dprRender(); }
+function dprRunAll() { while (dprStep < dprExecs.length-1) dprExec(); dprRender(); }
+function dprReset() { dprStep = -1; dprData = {}; document.getElementById('dprOutput').innerHTML = '<span style="color:var(--text-dim);font-style:italic">Click "Run Step" to execute...</span>'; dprRender(); }
+
+// ==================== Init ==================== //
+window.addEventListener('load', function() { renderSearch(); drawHeatmap(); renderGame(); dprRender(); });
+window.addEventListener('themechange', drawHeatmap);
+window.addEventListener('resize', drawHeatmap);
+</script>
+</body>
+</html>

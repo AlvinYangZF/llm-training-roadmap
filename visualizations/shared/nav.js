@@ -23,6 +23,13 @@ const NAV_TOPICS = [
     { num: '10', title: 'Mooncake', file: '10-mooncake.html', year: '2025' },
     { num: '11', title: 'TurboQuant', file: '11-turboquant.html', year: '2026' },
   ]},
+  { cat: 'RAG & Retrieval', items: [
+    { num: '12', title: 'Dense Retrieval', file: '12-dense-retrieval.html', year: '2020' },
+    { num: '13', title: 'RAG Pipeline', file: '13-rag-pipeline.html', year: '2020' },
+    { num: '14', title: 'Adaptive RAG', file: '14-adaptive-rag.html', year: '2024' },
+    { num: '15', title: 'GraphRAG', file: '15-graph-rag.html', year: '2024' },
+    { num: '16', title: 'RAG at Scale', file: '16-rag-at-scale.html', year: '2022' },
+  ]},
 ];
 
 // Flat ordered list for prev/next navigation (chronological)
@@ -39,6 +46,11 @@ const NAV_ORDERED = [
   '09-pd-separation.html',
   '10-mooncake.html',
   '11-turboquant.html',
+  '12-dense-retrieval.html',
+  '13-rag-pipeline.html',
+  '14-adaptive-rag.html',
+  '15-graph-rag.html',
+  '16-rag-at-scale.html',
 ];
 
 function getCurrentPage() {
@@ -90,6 +102,7 @@ function buildNav() {
     'nav.cat.compute',
     'nav.cat.memory',
     'nav.cat.advanced',
+    'nav.cat.rag',
   ];
 
   let html = '';

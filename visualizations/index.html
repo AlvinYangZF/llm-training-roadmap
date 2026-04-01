@@ -479,6 +479,40 @@
       <span class="topic-desc" data-i18n="index.11.desc">Training-free KV cache quantization via random rotation + QJL. 6&times; compression, zero accuracy loss.</span>
     </a>
   </div>
+
+  <div class="section-title" data-i18n="index.section.rag">RAG &amp; Retrieval</div>
+  <div class="topic-grid">
+    <a href="pages/12-dense-retrieval.html" class="topic-card">
+      <span class="topic-num">12</span>
+      <span class="topic-tag tag-foundation">2020</span>
+      <span class="topic-title" data-i18n="index.12.title">Dense Retrieval</span>
+      <span class="topic-desc" data-i18n="index.12.desc">DPR &amp; ColBERT &mdash; dense vectors beat BM25 by +19%. Late interaction with token-level MaxSim matching.</span>
+    </a>
+    <a href="pages/13-rag-pipeline.html" class="topic-card">
+      <span class="topic-num">13</span>
+      <span class="topic-tag tag-foundation">2020</span>
+      <span class="topic-title" data-i18n="index.13.title">RAG Pipeline</span>
+      <span class="topic-desc" data-i18n="index.13.desc">Retrieve-then-generate paradigm &amp; HyDE query enhancement. Ground LLM outputs in external knowledge.</span>
+    </a>
+    <a href="pages/14-adaptive-rag.html" class="topic-card">
+      <span class="topic-num">14</span>
+      <span class="topic-tag tag-compute">2024</span>
+      <span class="topic-title" data-i18n="index.14.title">Adaptive RAG</span>
+      <span class="topic-desc" data-i18n="index.14.desc">Self-RAG reflection tokens, CRAG corrective retrieval, FLARE active mid-generation retrieval.</span>
+    </a>
+    <a href="pages/15-graph-rag.html" class="topic-card">
+      <span class="topic-num">15</span>
+      <span class="topic-tag tag-system">2024</span>
+      <span class="topic-title" data-i18n="index.15.title">GraphRAG</span>
+      <span class="topic-desc" data-i18n="index.15.desc">Knowledge graph communities for corpus-level reasoning. 72-83% comprehensiveness over vector RAG.</span>
+    </a>
+    <a href="pages/16-rag-at-scale.html" class="topic-card">
+      <span class="topic-num">16</span>
+      <span class="topic-tag tag-system">2022</span>
+      <span class="topic-title" data-i18n="index.16.title">RAG at Scale</span>
+      <span class="topic-desc" data-i18n="index.16.desc">RETRO: 7.5B + retrieval matches 175B GPT-3. RAG evolution from Naive to Modular paradigm.</span>
+    </a>
+  </div>
 </div>
 
 <!-- ==================== Knowledge Graph View ==================== -->
@@ -557,6 +591,21 @@ const GRAPH_NODES = [
   { id: '11', title: 'TurboQuant', cat: 'memory', year: '2026',
     desc: 'Training-free KV quantization. 6× compression, zero accuracy loss.',
     file: 'pages/11-turboquant.html' },
+  { id: '12', title: 'Dense Retrieval', cat: 'foundation', year: '2020',
+    desc: 'DPR & ColBERT — dense vectors beat BM25, token-level late interaction.',
+    file: 'pages/12-dense-retrieval.html' },
+  { id: '13', title: 'RAG Pipeline', cat: 'foundation', year: '2020',
+    desc: 'Retrieve-then-generate paradigm & HyDE zero-shot query enhancement.',
+    file: 'pages/13-rag-pipeline.html' },
+  { id: '14', title: 'Adaptive RAG', cat: 'compute', year: '2024',
+    desc: 'Self-RAG, CRAG, FLARE — adaptive retrieval with self-reflection.',
+    file: 'pages/14-adaptive-rag.html' },
+  { id: '15', title: 'GraphRAG', cat: 'system', year: '2024',
+    desc: 'Knowledge graph communities for corpus-level sensemaking.',
+    file: 'pages/15-graph-rag.html' },
+  { id: '16', title: 'RAG at Scale', cat: 'system', year: '2022',
+    desc: 'RETRO: 7.5B + retrieval matches 175B. RAG evolution taxonomy.',
+    file: 'pages/16-rag-at-scale.html' },
 ];
 
 // Edges: [from, to] — "from" depends on "to"
@@ -578,6 +627,12 @@ const GRAPH_EDGES = [
   ['10', '06'], // Mooncake distributes KV cache pages
   ['11', '06'], // TurboQuant quantizes KV cache
   ['11', '07'], // TurboQuant relates to KV compression
+  ['12', '01'], // Dense Retrieval builds on Transformer embeddings
+  ['13', '12'], // RAG Pipeline uses dense retrieval
+  ['13', '01'], // RAG Pipeline uses Transformer generation
+  ['14', '13'], // Adaptive RAG extends RAG Pipeline
+  ['15', '14'], // GraphRAG is advanced RAG architecture
+  ['16', '13'], // RETRO is retrieval at scale for RAG
 ];
 
 const CAT_COLORS = {

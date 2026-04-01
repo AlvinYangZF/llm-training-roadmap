@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p13.title">13. RAG Pipeline — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .pipeline-canvas{width:100%;height:300px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .kb-panel{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+    .kb-left,.kb-right{background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+    .kb-doc{padding:8px 12px;margin:6px 0;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:.82rem;line-height:1.5;transition:all .4s;position:relative}
+    .kb-doc.selected{border-color:var(--accent2);background:rgba(13,148,136,.08)}
+    .kb-doc .kb-score{position:absolute;right:8px;top:8px;font-weight:700;font-size:.78rem;padding:2px 6px;border-radius:4px;background:rgba(13,148,136,.15);color:var(--accent2)}
+    .hyde-compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+    .hyde-col{background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .answer-card{padding:16px;border:2px solid var(--border);border-radius:var(--radius);background:var(--surface);margin:8px 0;cursor:pointer;transition:all .2s;font-size:.88rem;line-height:1.6}
+    .answer-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .answer-card.correct{border-color:var(--accent2);background:rgba(13,148,136,.06)}
+    .answer-card.wrong{border-color:var(--accent3);background:rgba(225,29,72,.06)}
+    .rag-step{display:flex;gap:12px;justify-content:center;margin:12px 0;flex-wrap:wrap}
+    .rag-step button{padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.82rem;color:var(--text);transition:all .2s}
+    .rag-step button:hover{border-color:var(--accent);color:var(--accent)}
+    .rag-step button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .code-block{background:#1e1e2e;border-radius:var(--radius);overflow:hidden;font-family:'SF Mono','Fira Code',monospace;font-size:.78rem;border:1px solid var(--border)}
+    .code-header{padding:8px 14px;background:rgba(0,0,0,.3);border-bottom:1px solid rgba(255,255,255,.06);font-size:.72rem;color:#6c7086;display:flex;justify-content:space-between}
+    .code-header .lang-tag{color:#f9e2af;font-weight:600}
+    .code-lines{padding:12px 0;overflow-x:auto}
+    .code-line{display:flex;padding:1px 14px;line-height:1.7;white-space:pre;transition:background .3s}
+    .code-line.active{background:rgba(91,91,214,.15);border-left:3px solid var(--accent);padding-left:11px}
+    .code-line.executed{background:rgba(13,148,136,.08)}
+    .code-line .ln{color:#45475a;min-width:28px;text-align:right;margin-right:12px;user-select:none}
+    .tok-kw{color:#c678dd}.tok-fn{color:#61afef}.tok-str{color:#98c379}.tok-num{color:#d19a66}.tok-cm{color:#5c6370;font-style:italic}.tok-op{color:#56b6c2}.tok-cls{color:#e5c07b}.tok-var{color:#abb2bf}
+    .output-block{background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:12px;font-family:monospace;font-size:.78rem;min-height:80px;max-height:240px;overflow-y:auto;line-height:1.6}
+    .out-label{color:var(--accent);font-weight:600}
+    @media(max-width:700px){.kb-panel,.hyde-compare{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p13.heading">RAG Pipeline — Retrieve & Generate</h1>
+<p class="subtitle" data-i18n="p13.subtitle">Ground LLM outputs in external knowledge. The paradigm that changed how we build AI applications.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p13.heading">RAG Pipeline</span></p>
+
+<div class="container">
+
+  <!-- Section 1: Pipeline Animation -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)">Architecture</span>
+    <h2 data-i18n="p13.s1.title">RAG — Retrieve-then-Generate</h2>
+    <p data-i18n="p13.s1.desc" data-i18n-html="1">RAG combines a <strong>neural retriever</strong> (DPR) with a <strong>seq2seq generator</strong> (BART). Retrieved documents are treated as latent variables.</p>
+    <canvas id="pipelineCanvas" class="pipeline-canvas"></canvas>
+    <div class="rag-step">
+      <button onclick="ragStep()" class="primary" data-i18n-html="1">&#9654; Step</button>
+      <button onclick="ragPlayAll()">Play All</button>
+      <button onclick="ragReset()" data-i18n="btn.reset">Reset</button>
+    </div>
+    <div id="ragDesc" style="text-align:center;font-size:.88rem;color:var(--text-dim);min-height:24px"></div>
+  </div>
+
+  <!-- Section 2: Interactive Demo -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)">Interactive</span>
+    <h2 data-i18n="p13.s2.title">RAG Pipeline Demo</h2>
+    <p data-i18n="p13.s2.desc">Select a question to see retrieval scores and the generated answer.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0" id="ragQBtns"></div>
+    <div class="kb-panel">
+      <div class="kb-left"><h3 style="margin-top:0;font-size:.92rem;color:var(--accent)">Knowledge Base</h3><div id="kbDocs"></div></div>
+      <div class="kb-right"><h3 style="margin-top:0;font-size:.92rem;color:var(--accent2)">Generated Answer</h3><div id="ragAns" style="font-size:.88rem;line-height:1.7;color:var(--text-dim)">Select a question...</div></div>
+    </div>
+  </div>
+
+  <!-- Section 3: HyDE -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)">Innovation</span>
+    <h2 data-i18n="p13.s3.title">HyDE — Hypothetical Document Embeddings</h2>
+    <p data-i18n="p13.s3.desc" data-i18n-html="1">HyDE generates a <strong>hypothetical answer</strong> first, then retrieves by doc-doc similarity. The encoder filters hallucinations.</p>
+    <div class="formula-box">Query &rarr; LLM generates hypothetical doc &rarr; Encode &rarr; Retrieve by doc-doc similarity</div>
+    <div class="hyde-compare">
+      <div class="hyde-col">
+        <h3 style="margin-top:0;color:var(--accent3);font-size:.92rem">Direct Query</h3>
+        <div style="padding:8px;background:var(--formula-bg);border-radius:8px;font-size:.82rem;margin:8px 0;border:1px solid var(--border)"><strong>"What causes ocean acidification?"</strong></div>
+        <div class="kb-doc">Marine biology and coral reef ecosystems...<span class="kb-score" style="background:rgba(225,29,72,.1);color:var(--accent3)">0.31</span></div>
+        <div class="kb-doc">The pH of seawater has decreased by 0.1...<span class="kb-score">0.58</span></div>
+        <div class="kb-doc">CO2 absorption forms carbonic acid...<span class="kb-score" style="background:rgba(225,29,72,.1);color:var(--accent3)">0.42</span></div>
+      </div>
+      <div class="hyde-col">
+        <h3 style="margin-top:0;color:var(--accent2);font-size:.92rem">HyDE Retrieval</h3>
+        <div style="padding:8px;background:var(--formula-bg);border-radius:8px;font-size:.82rem;margin:8px 0;border:1px solid var(--border)"><em>"Ocean acidification is caused by CO2 dissolving in seawater, forming carbonic acid..."</em></div>
+        <div class="kb-doc">CO2 absorption forms carbonic acid...<span class="kb-score">0.91</span></div>
+        <div class="kb-doc">The pH of seawater has decreased by 0.1...<span class="kb-score">0.85</span></div>
+        <div class="kb-doc">Industrial emissions raised atmospheric CO2...<span class="kb-score">0.72</span></div>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:.82rem;color:var(--text-dim)">HyDE improves recall by <strong>+16 nDCG@10</strong> on TREC DL19 (44.5 &rarr; 61.3)</p>
+  </div>
+
+  <!-- Section 4: Game -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Game</span>
+    <h2 data-i18n="p13.s4.title">Spot the RAG Answer</h2>
+    <p data-i18n="p13.s4.desc">One answer is grounded (RAG), one may hallucinate. Which is which?</p>
+    <div style="text-align:center;margin:8px 0">Round: <strong id="hRound">1/5</strong> | Score: <strong id="hScore">0</strong></div>
+    <div id="hQ" style="text-align:center;font-weight:600;padding:12px;background:var(--formula-bg);border-radius:8px;border:1px solid var(--border);margin:12px 0"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="hAns"></div>
+    <div id="hFb" style="text-align:center;margin-top:12px;font-weight:600;min-height:24px"></div>
+  </div>
+
+  <!-- Section 5: PyTorch Code -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)">PyTorch</span>
+    <h2 data-i18n="p13.s5.title">RAG Forward Pass in Code</h2>
+    <p data-i18n="p13.s5.desc" data-i18n-html="1">Complete pipeline: <strong>encode &rarr; retrieve &rarr; augment &rarr; generate</strong>.</p>
+    <div class="code-block"><div class="code-header"><span class="lang-tag">PyTorch</span><span>rag_pipeline.py</span></div><div class="code-lines" id="ragCode"></div></div>
+    <div class="output-block" id="ragOut"><span style="color:var(--text-dim);font-style:italic">Click "Run Step"...</span></div>
+    <div class="rag-step">
+      <button onclick="rcStep()" class="primary" data-i18n-html="1">&#9654; Run Step</button>
+      <button onclick="rcAll()">Run All</button>
+      <button onclick="rcReset()" data-i18n="btn.reset">Reset</button>
+    </div>
+  </div>
+
+</div>
+<footer><small data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</small></footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+i18nRegister({
+  'en':{'p13.title':'13. RAG Pipeline — LLM Algorithm Visualizations','p13.heading':'RAG Pipeline — Retrieve & Generate','p13.subtitle':'Ground LLM outputs in external knowledge.','p13.s1.title':'RAG — Retrieve-then-Generate','p13.s1.desc':'RAG combines a <strong>neural retriever</strong> (DPR) with a <strong>seq2seq generator</strong> (BART).','p13.s2.title':'RAG Pipeline Demo','p13.s2.desc':'Select a question to see retrieval scores and the generated answer.','p13.s3.title':'HyDE — Hypothetical Document Embeddings','p13.s3.desc':'HyDE generates a <strong>hypothetical answer</strong> first, then retrieves by doc-doc similarity.','p13.s4.title':'Spot the RAG Answer','p13.s4.desc':'One answer is grounded (RAG), one may hallucinate. Which is which?','p13.s5.title':'RAG Forward Pass in Code','p13.s5.desc':'Complete pipeline: <strong>encode → retrieve → augment → generate</strong>.'},
+  'zh-CN':{'p13.title':'13. RAG 流水线 — 大语言模型算法可视化','p13.heading':'RAG 流水线 — 检索与生成','p13.subtitle':'将 LLM 输出扎根于外部知识。','p13.s1.title':'RAG — 检索然后生成','p13.s1.desc':'RAG 将<strong>神经检索器</strong>（DPR）与<strong>生成器</strong>（BART）结合。','p13.s2.title':'RAG 流水线演示','p13.s2.desc':'选择问题查看检索分数和生成的答案。','p13.s3.title':'HyDE — 假设文档嵌入','p13.s3.desc':'HyDE 先生成<strong>假设答案</strong>，再通过文档-文档相似度检索。','p13.s4.title':'找出 RAG 答案','p13.s4.desc':'一个答案基于 RAG，一个可能幻觉。你能分辨吗？','p13.s5.title':'RAG 前向传播代码','p13.s5.desc':'完整流水线：<strong>编码 → 检索 → 增强 → 生成</strong>。'},
+  'zh-TW':{'p13.title':'13. RAG 流水線 — 大語言模型演算法視覺化','p13.heading':'RAG 流水線 — 檢索與生成','p13.subtitle':'將 LLM 輸出紮根於外部知識。','p13.s1.title':'RAG — 檢索然後生成','p13.s1.desc':'RAG 將<strong>神經檢索器</strong>（DPR）與<strong>生成器</strong>（BART）結合。','p13.s2.title':'RAG 流水線演示','p13.s2.desc':'選擇問題查看檢索分數和生成的答案。','p13.s3.title':'HyDE — 假設文件嵌入','p13.s3.desc':'HyDE 先生成<strong>假設答案</strong>，再透過文件-文件相似度檢索。','p13.s4.title':'找出 RAG 答案','p13.s4.desc':'一個答案基於 RAG，一個可能幻覺。你能分辨嗎？','p13.s5.title':'RAG 前向傳播程式碼','p13.s5.desc':'完整流水線：<strong>編碼 → 檢索 → 增強 → 生成</strong>。'}
+});
+
+// ===== Section 1: Pipeline =====
+var ragS=-1,STEPS=['Query','DPR Encode','FAISS Search','Top-K Docs','Concatenate','BART Generate','Answer'];
+function drawPipe(){var c=document.getElementById('pipelineCanvas');if(!c)return;var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height,s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();var cols=['#5b5bd6','#5b5bd6','#0d9488','#0d9488','#ea580c','#e11d48','#8b5cf6'];var bw=85,g=(W-STEPS.length*bw)/(STEPS.length+1),cy=H/2;for(var i=0;i<STEPS.length;i++){var px=g+(bw+g)*i,py=cy-25,a=i<=ragS;x.fillStyle=a?cols[i]+'33':bc+'22';x.strokeStyle=a?cols[i]:bc;x.lineWidth=a?2:1;x.beginPath();if(x.roundRect)x.roundRect(px,py,bw,50,8);else{x.rect(px,py,bw,50);}x.fill();x.stroke();x.fillStyle=a?cols[i]:dc;x.font=(a?'bold ':'')+'11px system-ui';x.textAlign='center';x.textBaseline='middle';x.fillText(STEPS[i],px+bw/2,cy);if(i<STEPS.length-1){x.strokeStyle=i<ragS?cols[i]:'rgba(128,128,128,.2)';x.lineWidth=i<ragS?2:1;x.beginPath();x.moveTo(px+bw+4,cy);x.lineTo(px+bw+g-4,cy);x.stroke();if(i<ragS){x.fillStyle=cols[i];x.beginPath();x.moveTo(px+bw+g-4,cy);x.lineTo(px+bw+g-12,cy-4);x.lineTo(px+bw+g-12,cy+4);x.fill();}}}}
+function ragStep(){if(ragS<STEPS.length-1){ragS++;drawPipe();document.getElementById('ragDesc').textContent='Step '+(ragS+1)+': '+STEPS[ragS];}}
+function ragPlayAll(){var iv=setInterval(function(){ragStep();if(ragS>=STEPS.length-1)clearInterval(iv);},400);}
+function ragReset(){ragS=-1;drawPipe();document.getElementById('ragDesc').textContent='';}
+
+// ===== Section 2: Demo =====
+var KB=["The Great Wall stretches over 13,000 miles, built from 7th century BC.","Photosynthesis converts CO2 and water into glucose using sunlight.","Python list comprehension creates lists from iterables concisely.","The heart pumps 2,000 gallons of blood daily through 60,000 miles of vessels.","Machine learning models learn patterns from data, not explicit rules.","The Eiffel Tower, built 1889, stands 1,083 feet tall.","Quantum entanglement links particles across any distance.","Docker containers package apps with dependencies for consistent deployment."];
+var QS=[{q:"How does photosynthesis work?",best:[1],sc:[.12,.94,.05,.08,.11,.06,.15,.03],ans:"Photosynthesis converts CO2 and water into glucose and oxygen using sunlight captured by chlorophyll."},{q:"What is machine learning?",best:[4],sc:[.03,.08,.22,.05,.91,.02,.12,.19],ans:"Machine learning enables models to learn patterns from data rather than being explicitly programmed."},{q:"Tell me about the Great Wall",best:[0],sc:[.96,.04,.02,.03,.05,.18,.02,.01],ans:"The Great Wall of China stretches over 13,000 miles. Construction began in the 7th century BC."}];
+var cq=0;
+function renderDemo(){var b=document.getElementById('ragQBtns');b.innerHTML='';QS.forEach(function(q,i){var e=document.createElement('button');e.textContent='"'+q.q+'"';e.style.cssText='padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:.82rem;font-weight:600;color:var(--text)';if(i===cq)e.style.borderColor='var(--accent)';e.onclick=function(){cq=i;renderDemo();};b.appendChild(e);});var q=QS[cq],d=document.getElementById('kbDocs');d.innerHTML='';KB.forEach(function(t,i){var e=document.createElement('div');e.className='kb-doc';if(q.best.indexOf(i)!==-1)e.classList.add('selected');e.innerHTML=t+'<span class="kb-score">'+q.sc[i].toFixed(2)+'</span>';if(q.sc[i]<.1)e.style.opacity='.4';d.appendChild(e);});document.getElementById('ragAns').innerHTML='<strong style="color:var(--accent2)">Answer:</strong> '+q.ans;}
+
+// ===== Section 4: Game =====
+var HR=[{q:"When was the Eiffel Tower built?",r:"Built in 1889 for the World's Fair.",n:"Built in 1892 by Napoleon III."},{q:"Speed of light?",r:"~299,792,458 m/s in vacuum.",n:"~310,000 km/s, first measured by Galileo."},{q:"Who wrote Romeo and Juliet?",r:"Shakespeare, first published 1597.",n:"Shakespeare in 1589, inspired by his visit to Verona."},{q:"What causes rainbows?",r:"Sunlight refracted and reflected inside water droplets.",n:"Light bouncing off ice crystals in upper atmosphere."},{q:"Distance to Moon?",r:"About 384,400 km (238,855 miles).",n:"About 420,000 km, varying by 50,000 km."}];
+var hi=0,hs=0;
+function renderH(){document.getElementById('hRound').textContent=(hi+1)+'/5';document.getElementById('hScore').textContent=hs;var r=HR[hi];document.getElementById('hQ').textContent='"'+r.q+'"';document.getElementById('hFb').textContent='';var a=document.getElementById('hAns');a.innerHTML='';var o=Math.random()>.5?[{t:r.r,ok:1},{t:r.n,ok:0}]:[{t:r.n,ok:0},{t:r.r,ok:1}];o.forEach(function(x,i){var d=document.createElement('div');d.className='answer-card';d.innerHTML='<b style="color:var(--text-dim);font-size:.75rem">Answer '+(i?'B':'A')+'</b><br>'+x.t;d.onclick=function(){var cs=document.querySelectorAll('.answer-card');cs.forEach(function(c){c.style.pointerEvents='none';});if(x.ok){d.classList.add('correct');hs++;document.getElementById('hFb').innerHTML='<span style="color:var(--accent2)">Correct!</span>';}else{d.classList.add('wrong');cs.forEach(function(c){if(!c.classList.contains('wrong'))c.classList.add('correct');});document.getElementById('hFb').innerHTML='<span style="color:var(--accent3)">Wrong — subtle factual errors!</span>';}document.getElementById('hScore').textContent=hs;setTimeout(function(){hi++;if(hi<5)renderH();else{document.getElementById('hFb').innerHTML='<strong>Final: '+hs+'/5</strong>';if(typeof markGameCompleted==='function')markGameCompleted('13');}},2000);};a.appendChild(d);});}
+
+// ===== Section 5: Code =====
+var RC=[{c:'<span class="tok-kw">import</span> <span class="tok-cls">torch</span>'},{c:'<span class="tok-cm"># Encode query</span>'},{c:'<span class="tok-var">q</span> <span class="tok-op">=</span> <span class="tok-fn">encoder</span>(<span class="tok-var">question</span>)  <span class="tok-cm"># (1, 768)</span>',e:'enc'},{c:'<span class="tok-cm"># Retrieve</span>'},{c:'<span class="tok-var">scores</span> <span class="tok-op">=</span> <span class="tok-var">q</span> <span class="tok-op">@</span> <span class="tok-var">doc_embs</span>.<span class="tok-fn">T</span>',e:'ret'},{c:'<span class="tok-var">top5</span> <span class="tok-op">=</span> <span class="tok-cls">torch</span>.<span class="tok-fn">topk</span>(<span class="tok-var">scores</span>, <span class="tok-num">5</span>)',e:'top'},{c:'<span class="tok-cm"># Augment</span>'},{c:'<span class="tok-var">ctx</span> <span class="tok-op">=</span> <span class="tok-str">" "</span>.<span class="tok-fn">join</span>(<span class="tok-var">docs</span>[<span class="tok-var">top5</span>.<span class="tok-var">indices</span>])',e:'aug'},{c:'<span class="tok-cm"># Generate</span>'},{c:'<span class="tok-var">out</span> <span class="tok-op">=</span> <span class="tok-var">bart</span>.<span class="tok-fn">generate</span>(<span class="tok-fn">tokenize</span>(<span class="tok-var">q</span> <span class="tok-op">+</span> <span class="tok-var">ctx</span>))',e:'gen'},{c:'<span class="tok-fn">print</span>(<span class="tok-fn">decode</span>(<span class="tok-var">out</span>))',e:'out'}];
+var rcE=[];RC.forEach(function(l,i){if(l.e)rcE.push(i);});var rcS=-1;
+function rcR(){var c=document.getElementById('ragCode');c.innerHTML='';RC.forEach(function(l,i){var cl='code-line',ei=rcE.indexOf(i);if(ei!==-1){if(ei===rcS)cl+=' active';else if(ei<rcS)cl+=' executed';}c.innerHTML+='<div class="'+cl+'"><span class="ln">'+(i+1)+'</span><span>'+l.c+'</span></div>';});}
+function rcX(){rcS++;if(rcS>=rcE.length){rcS=rcE.length-1;return;}var k=RC[rcE[rcS]].e,o=document.getElementById('ragOut'),m={enc:'<span class="out-label">q:</span> tensor shape (1, 768)',ret:'<span class="out-label">scores:</span> shape (1, 21M)',top:'<span class="out-label">top5:</span> indices=[4821, 127K, 9012, 55K, 812] values=[0.87, 0.82, 0.79, 0.76, 0.71]',aug:'<span class="out-label">context:</span> 312 tokens from 5 passages',gen:'<span class="out-label">output:</span> 45 tokens generated',out:'<span class="out-label">>>></span> "Photosynthesis converts CO2 and water into glucose using sunlight energy."'};if(rcS===0)o.innerHTML='';o.innerHTML+=(rcS>0?'<br>':'')+(m[k]||'');o.scrollTop=o.scrollHeight;}
+function rcStep(){rcX();rcR();}function rcAll(){while(rcS<rcE.length-1)rcX();rcR();}function rcReset(){rcS=-1;document.getElementById('ragOut').innerHTML='<span style="color:var(--text-dim)">Click "Run Step"...</span>';rcR();}
+
+window.addEventListener('load',function(){drawPipe();renderDemo();renderH();rcR();});
+window.addEventListener('themechange',drawPipe);window.addEventListener('resize',drawPipe);
+</script>
+</body>
+</html>
