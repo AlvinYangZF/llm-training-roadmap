@@ -130,9 +130,18 @@
 <script src="../shared/progress.js"></script>
 <script>
 i18nRegister({
-  'en':{'p16.title':'16. RAG at Scale — LLM Algorithm Visualizations','p16.heading':'RAG at Scale — RETRO & Evolution','p16.subtitle':'Retrieval as an alternative to parameter scaling.','p16.s1.title':'Retrieval vs Parameter Scaling','p16.s1.desc':'RETRO proves that a <strong>7.5B model + retrieval</strong> matches a <strong>175B GPT-3</strong>.','p16.s2.title':'Chunked Cross-Attention (CCA)','p16.s2.desc':'RETRO splits input into <strong>64-token chunks</strong>. Standard layers interleaved with CCA layers.','p16.s3.title':'RAG Evolution: 2020 — 2026','p16.s3.desc':'Three paradigm shifts in six years. Click each era.','p16.s4.title':'RAG Taxonomy (Gao et al. Survey)','p16.s4.desc':'The most comprehensive RAG survey (~3000 citations) proposes a tripartite framework. Click nodes to expand.','p16.s5.title':'Match the RAG Paper','p16.s5.desc':'Given a description, match it to the correct paper!'},
-  'zh-CN':{'p16.title':'16. 大规模 RAG — 大语言模型算法可视化','p16.heading':'大规模 RAG — RETRO 与演进','p16.subtitle':'检索作为参数扩展的替代方案。','p16.s1.title':'检索 vs 参数扩展','p16.s1.desc':'RETRO 证明 <strong>7.5B 模型 + 检索</strong>匹配 <strong>175B GPT-3</strong>。','p16.s2.title':'分块交叉注意力（CCA）','p16.s2.desc':'RETRO 将输入分为 <strong>64-token 块</strong>，标准层与 CCA 层交替。','p16.s3.title':'RAG 演进：2020 — 2026','p16.s3.desc':'六年三次范式转变。点击每个时代。','p16.s4.title':'RAG 分类法（Gao 等综述）','p16.s4.desc':'最全面的 RAG 综述（~3000 引用）提出了三方框架。点击展开。','p16.s5.title':'匹配 RAG 论文','p16.s5.desc':'给出描述，匹配正确的论文！'},
-  'zh-TW':{'p16.title':'16. 大規模 RAG — 大語言模型演算法視覺化','p16.heading':'大規模 RAG — RETRO 與演進','p16.subtitle':'檢索作為參數擴展的替代方案。','p16.s1.title':'檢索 vs 參數擴展','p16.s1.desc':'RETRO 證明 <strong>7.5B 模型 + 檢索</strong>匹配 <strong>175B GPT-3</strong>。','p16.s2.title':'分塊交叉注意力（CCA）','p16.s2.desc':'RETRO 將輸入分為 <strong>64-token 塊</strong>，標準層與 CCA 層交替。','p16.s3.title':'RAG 演進：2020 — 2026','p16.s3.desc':'六年三次範式轉變。點擊每個時代。','p16.s4.title':'RAG 分類法（Gao 等綜述）','p16.s4.desc':'最全面的 RAG 綜述（~3000 引用）提出了三方框架。點擊展開。','p16.s5.title':'匹配 RAG 論文','p16.s5.desc':'給出描述，匹配正確的論文！'}
+  'en':{'p16.title':'16. RAG at Scale — LLM Algorithm Visualizations','p16.heading':'RAG at Scale — RETRO & Evolution','p16.subtitle':'Retrieval as an alternative to parameter scaling.','p16.s1.title':'Retrieval vs Parameter Scaling','p16.s1.desc':'RETRO proves that a <strong>7.5B model + retrieval</strong> matches a <strong>175B GPT-3</strong>.','p16.s2.title':'Chunked Cross-Attention (CCA)','p16.s2.desc':'RETRO splits input into <strong>64-token chunks</strong>. Standard layers interleaved with CCA layers.','p16.s3.title':'RAG Evolution: 2020 — 2026','p16.s3.desc':'Three paradigm shifts in six years. Click each era.','p16.s4.title':'RAG Taxonomy (Gao et al. Survey)','p16.s4.desc':'The most comprehensive RAG survey (~3000 citations) proposes a tripartite framework. Click nodes to expand.','p16.s5.title':'Match the RAG Paper','p16.s5.desc':'Given a description, match it to the correct paper!',
+    'p16.chart.title':'Perplexity vs Model Parameters','p16.chart.params':'Parameters (log scale)','p16.chart.ppl':'Perplexity ↓','p16.chart.std':'Standard LM','p16.chart.retro':'RETRO (+ retrieval)','p16.chart.eq':'≈ Same perplexity!',
+    'p16.quiz.q0':'Coined the "RAG" term. Combines DPR retriever with BART generator. Documents as latent variables.','p16.quiz.q1':'Dense dual-encoder beats BM25 by +19.3%. In-batch negatives training trick.','p16.quiz.q2':'7.5B parameters + retrieval from 2T tokens matches 175B GPT-3.','p16.quiz.q3':'Generate hypothetical answer first, then use its embedding for retrieval.','p16.quiz.q4':'4 reflection tokens: [Retrieve], [IsRel], [IsSup], [IsUse]. ICLR 2024 Oral.','p16.quiz.q5':'T5 evaluator triggers 3 paths: Correct, Incorrect (web fallback), Ambiguous.','p16.quiz.q6':'Active retrieval triggered mid-generation when token confidence drops below threshold.','p16.quiz.q7':'Leiden community detection on knowledge graphs. Map-reduce over community summaries.',
+    'p16.correct':'Correct!','p16.itwas':'It was'},
+  'zh-CN':{'p16.title':'16. 大规模 RAG — 大语言模型算法可视化','p16.heading':'大规模 RAG — RETRO 与演进','p16.subtitle':'检索作为参数扩展的替代方案。','p16.s1.title':'检索 vs 参数扩展','p16.s1.desc':'RETRO 证明 <strong>7.5B 模型 + 检索</strong>匹配 <strong>175B GPT-3</strong>。','p16.s2.title':'分块交叉注意力（CCA）','p16.s2.desc':'RETRO 将输入分为 <strong>64-token 块</strong>，标准层与 CCA 层交替。','p16.s3.title':'RAG 演进：2020 — 2026','p16.s3.desc':'六年三次范式转变。点击每个时代。','p16.s4.title':'RAG 分类法（Gao 等综述）','p16.s4.desc':'最全面的 RAG 综述（~3000 引用）提出了三方框架。点击展开。','p16.s5.title':'匹配 RAG 论文','p16.s5.desc':'给出描述，匹配正确的论文！',
+    'p16.chart.title':'困惑度 vs 模型参数','p16.chart.params':'参数量（对数刻度）','p16.chart.ppl':'困惑度 ↓','p16.chart.std':'标准 LM','p16.chart.retro':'RETRO（+ 检索）','p16.chart.eq':'≈ 相同困惑度！',
+    'p16.quiz.q0':'创造了"RAG"术语。将 DPR 检索器与 BART 生成器结合。文档作为潜变量。','p16.quiz.q1':'稠密双编码器比 BM25 高 +19.3%。批内负样本训练技巧。','p16.quiz.q2':'7.5B 参数 + 从 2T token 检索匹配 175B GPT-3。','p16.quiz.q3':'先生成假设答案，然后用其嵌入进行检索。','p16.quiz.q4':'4 种反思 token：[Retrieve]、[IsRel]、[IsSup]、[IsUse]。ICLR 2024 口头报告。','p16.quiz.q5':'T5 评估器触发 3 条路径：正确、错误（网络回退）、模糊。','p16.quiz.q6':'生成过程中 token 置信度低于阈值时触发主动检索。','p16.quiz.q7':'在知识图谱上进行 Leiden 社区检测。对社区摘要执行 Map-Reduce。',
+    'p16.correct':'正确！','p16.itwas':'应该是'},
+  'zh-TW':{'p16.title':'16. 大規模 RAG — 大語言模型演算法視覺化','p16.heading':'大規模 RAG — RETRO 與演進','p16.subtitle':'檢索作為參數擴展的替代方案。','p16.s1.title':'檢索 vs 參數擴展','p16.s1.desc':'RETRO 證明 <strong>7.5B 模型 + 檢索</strong>匹配 <strong>175B GPT-3</strong>。','p16.s2.title':'分塊交叉注意力（CCA）','p16.s2.desc':'RETRO 將輸入分為 <strong>64-token 塊</strong>，標準層與 CCA 層交替。','p16.s3.title':'RAG 演進：2020 — 2026','p16.s3.desc':'六年三次範式轉變。點擊每個時代。','p16.s4.title':'RAG 分類法（Gao 等綜述）','p16.s4.desc':'最全面的 RAG 綜述（~3000 引用）提出了三方框架。點擊展開。','p16.s5.title':'匹配 RAG 論文','p16.s5.desc':'給出描述，匹配正確的論文！',
+    'p16.chart.title':'困惑度 vs 模型參數','p16.chart.params':'參數量（對數刻度）','p16.chart.ppl':'困惑度 ↓','p16.chart.std':'標準 LM','p16.chart.retro':'RETRO（+ 檢索）','p16.chart.eq':'≈ 相同困惑度！',
+    'p16.quiz.q0':'創造了「RAG」術語。將 DPR 檢索器與 BART 生成器結合。文件作為潛變數。','p16.quiz.q1':'稠密雙編碼器比 BM25 高 +19.3%。批內負樣本訓練技巧。','p16.quiz.q2':'7.5B 參數 + 從 2T token 檢索匹配 175B GPT-3。','p16.quiz.q3':'先生成假設答案，然後用其嵌入進行檢索。','p16.quiz.q4':'4 種反思 token：[Retrieve]、[IsRel]、[IsSup]、[IsUse]。ICLR 2024 口頭報告。','p16.quiz.q5':'T5 評估器觸發 3 條路徑：正確、錯誤（網路回退）、模糊。','p16.quiz.q6':'生成過程中 token 信心度低於閾值時觸發主動檢索。','p16.quiz.q7':'在知識圖譜上進行 Leiden 社群偵測。對社群摘要執行 Map-Reduce。',
+    'p16.correct':'正確！','p16.itwas':'應該是'}
 });
 
 // ===== Section 1: Scaling Chart =====
@@ -142,18 +151,18 @@ function drawScale(){
   var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();
   var pad={t:40,r:40,b:50,l:70},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
   // Title
-  x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';x.fillText('Perplexity vs Model Parameters',W/2,22);
+  x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';x.fillText(t('p16.chart.title'),W/2,22);
   // Axes
   x.strokeStyle=bc;x.lineWidth=1;x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
   // X labels (log scale: 150M, 400M, 1.3B, 7.5B, 13B, 70B, 175B)
   var params=[0.15,0.4,1.3,7.5,13,70,175];var logMin=Math.log10(0.1),logMax=Math.log10(200);
   x.fillStyle=dc;x.font='10px monospace';x.textAlign='center';
   params.forEach(function(p){var px=pad.l+((Math.log10(p)-logMin)/(logMax-logMin))*cW;x.fillText(p>=1?p+'B':p*1000+'M',px,pad.t+cH+16);});
-  x.fillText('Parameters (log scale)',pad.l+cW/2,H-8);
+  x.fillText(t('p16.chart.params'),pad.l+cW/2,H-8);
   // Y labels (perplexity)
   var pplMin=8,pplMax=22;x.textAlign='right';
   for(var i=8;i<=22;i+=2){var py=pad.t+cH-((i-pplMin)/(pplMax-pplMin))*cH;x.fillText(i.toString(),pad.l-8,py+4);x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(pad.l,py);x.lineTo(pad.l+cW,py);x.stroke();}
-  x.save();x.translate(14,pad.t+cH/2);x.rotate(-Math.PI/2);x.fillStyle=dc;x.font='11px system-ui';x.textAlign='center';x.fillText('Perplexity ↓',0,0);x.restore();
+  x.save();x.translate(14,pad.t+cH/2);x.rotate(-Math.PI/2);x.fillStyle=dc;x.font='11px system-ui';x.textAlign='center';x.fillText(t('p16.chart.ppl'),0,0);x.restore();
   // Standard LM curve (red)
   var stdPts=[[0.15,21],[0.4,18.5],[1.3,15.2],[7.5,11.5],[13,10.8],[70,9.2],[175,8.8]];
   x.strokeStyle='#e11d48';x.lineWidth=2.5;x.beginPath();
@@ -168,10 +177,10 @@ function drawScale(){
   var rx=pad.l+((Math.log10(7.5)-logMin)/(logMax-logMin))*cW;var ry=pad.t+cH-((8.9-pplMin)/(pplMax-pplMin))*cH;
   var gx=pad.l+((Math.log10(175)-logMin)/(logMax-logMin))*cW;var gy=pad.t+cH-((8.8-pplMin)/(pplMax-pplMin))*cH;
   x.setLineDash([6,4]);x.strokeStyle='#f9e2af';x.lineWidth=2;x.beginPath();x.moveTo(rx,ry);x.lineTo(gx,gy);x.stroke();x.setLineDash([]);
-  x.fillStyle='#f9e2af';x.font='bold 12px system-ui';x.textAlign='center';x.fillText('≈ Same perplexity!',(rx+gx)/2,(ry+gy)/2-10);
+  x.fillStyle='#f9e2af';x.font='bold 12px system-ui';x.textAlign='center';x.fillText(t('p16.chart.eq'),(rx+gx)/2,(ry+gy)/2-10);
   // Legend
-  x.fillStyle='#e11d48';x.fillRect(W-160,pad.t+8,12,12);x.fillStyle=tc;x.font='11px system-ui';x.textAlign='left';x.fillText('Standard LM',W-144,pad.t+18);
-  x.fillStyle='#0d9488';x.fillRect(W-160,pad.t+26,12,12);x.fillText('RETRO (+ retrieval)',W-144,pad.t+36);
+  x.fillStyle='#e11d48';x.fillRect(W-160,pad.t+8,12,12);x.fillStyle=tc;x.font='11px system-ui';x.textAlign='left';x.fillText(t('p16.chart.std'),W-144,pad.t+18);
+  x.fillStyle='#0d9488';x.fillRect(W-160,pad.t+26,12,12);x.fillText(t('p16.chart.retro'),W-144,pad.t+36);
 }
 
 // ===== Section 2: CCA Architecture =====
@@ -221,18 +230,18 @@ window.toggleTax=function(el){
 
 // ===== Section 5: Quiz =====
 var QUIZ=[
-  {desc:'Coined the "RAG" term. Combines DPR retriever with BART generator. Documents as latent variables.',ans:'RAG',opts:['RAG','DPR','RETRO','HyDE']},
-  {desc:'Dense dual-encoder beats BM25 by +19.3%. In-batch negatives training trick.',ans:'DPR',opts:['DPR','ColBERT','SPLADE','BM25']},
-  {desc:'7.5B parameters + retrieval from 2T tokens matches 175B GPT-3.',ans:'RETRO',opts:['RETRO','RAG','FiD','REALM']},
-  {desc:'Generate hypothetical answer first, then use its embedding for retrieval.',ans:'HyDE',opts:['HyDE','Self-RAG','FLARE','DPR']},
-  {desc:'4 reflection tokens: [Retrieve], [IsRel], [IsSup], [IsUse]. ICLR 2024 Oral.',ans:'Self-RAG',opts:['Self-RAG','CRAG','FLARE','Adaptive-RAG']},
-  {desc:'T5 evaluator triggers 3 paths: Correct, Incorrect (web fallback), Ambiguous.',ans:'CRAG',opts:['CRAG','Self-RAG','GraphRAG','FLARE']},
-  {desc:'Active retrieval triggered mid-generation when token confidence drops below threshold.',ans:'FLARE',opts:['FLARE','CRAG','Self-RAG','HyDE']},
-  {desc:'Leiden community detection on knowledge graphs. Map-reduce over community summaries.',ans:'GraphRAG',opts:['GraphRAG','RETRO','ColBERT','RAG']},
+  {dk:'p16.quiz.q0',ans:'RAG',opts:['RAG','DPR','RETRO','HyDE']},
+  {dk:'p16.quiz.q1',ans:'DPR',opts:['DPR','ColBERT','SPLADE','BM25']},
+  {dk:'p16.quiz.q2',ans:'RETRO',opts:['RETRO','RAG','FiD','REALM']},
+  {dk:'p16.quiz.q3',ans:'HyDE',opts:['HyDE','Self-RAG','FLARE','DPR']},
+  {dk:'p16.quiz.q4',ans:'Self-RAG',opts:['Self-RAG','CRAG','FLARE','Adaptive-RAG']},
+  {dk:'p16.quiz.q5',ans:'CRAG',opts:['CRAG','Self-RAG','GraphRAG','FLARE']},
+  {dk:'p16.quiz.q6',ans:'FLARE',opts:['FLARE','CRAG','Self-RAG','HyDE']},
+  {dk:'p16.quiz.q7',ans:'GraphRAG',opts:['GraphRAG','RETRO','ColBERT','RAG']},
 ];
 var qi=0,qs=0;
-function renderQuiz(){document.getElementById('qRound').textContent=(qi+1)+'/8';document.getElementById('qScore').textContent=qs;document.getElementById('qDesc').textContent='"'+QUIZ[qi].desc+'"';document.getElementById('qFb').textContent='';var o=document.getElementById('qOpts');o.innerHTML='';var opts=QUIZ[qi].opts.slice().sort(function(){return Math.random()-.5;});opts.forEach(function(op){var d=document.createElement('div');d.className='game-opt';d.textContent=op;d.onclick=function(){checkQuiz(op,d);};o.appendChild(d);});}
-function checkQuiz(pick,el){var all=document.getElementById('qOpts').querySelectorAll('.game-opt');all.forEach(function(d){d.style.pointerEvents='none';});if(pick===QUIZ[qi].ans){el.classList.add('correct');qs++;document.getElementById('qFb').innerHTML='<span style="color:var(--accent2)">Correct!</span>';}else{el.classList.add('wrong');all.forEach(function(d){if(d.textContent===QUIZ[qi].ans)d.classList.add('correct');});document.getElementById('qFb').innerHTML='<span style="color:var(--accent3)">It was '+QUIZ[qi].ans+'</span>';}document.getElementById('qScore').textContent=qs;setTimeout(function(){qi++;if(qi<8)renderQuiz();else{document.getElementById('qFb').innerHTML='<strong>Final: '+qs+'/8</strong>';if(typeof markGameCompleted==='function')markGameCompleted('16');}},2000);}
+function renderQuiz(){document.getElementById('qRound').textContent=(qi+1)+'/8';document.getElementById('qScore').textContent=qs;document.getElementById('qDesc').textContent='"'+t(QUIZ[qi].dk)+'"';document.getElementById('qFb').textContent='';var o=document.getElementById('qOpts');o.innerHTML='';var opts=QUIZ[qi].opts.slice().sort(function(){return Math.random()-.5;});opts.forEach(function(op){var d=document.createElement('div');d.className='game-opt';d.textContent=op;d.onclick=function(){checkQuiz(op,d);};o.appendChild(d);});}
+function checkQuiz(pick,el){var all=document.getElementById('qOpts').querySelectorAll('.game-opt');all.forEach(function(d){d.style.pointerEvents='none';});if(pick===QUIZ[qi].ans){el.classList.add('correct');qs++;document.getElementById('qFb').innerHTML='<span style="color:var(--accent2)">'+t('p16.correct')+'</span>';}else{el.classList.add('wrong');all.forEach(function(d){if(d.textContent===QUIZ[qi].ans)d.classList.add('correct');});document.getElementById('qFb').innerHTML='<span style="color:var(--accent3)">'+t('p16.itwas')+' '+QUIZ[qi].ans+'</span>';}document.getElementById('qScore').textContent=qs;setTimeout(function(){qi++;if(qi<8)renderQuiz();else{document.getElementById('qFb').innerHTML='<strong>Final: '+qs+'/8</strong>';if(typeof markGameCompleted==='function')markGameCompleted('16');}},2000);}
 
 // Init
 window.addEventListener('load',function(){drawScale();drawCCA();setEra(0);renderTax();renderQuiz();});

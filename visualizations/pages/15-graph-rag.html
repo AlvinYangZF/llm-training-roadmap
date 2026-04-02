@@ -133,13 +133,29 @@
 <script src="../shared/progress.js"></script>
 <script>
 i18nRegister({
-  'en':{'p15.title':'15. GraphRAG — LLM Algorithm Visualizations','p15.heading':'GraphRAG — Knowledge Graph Communities','p15.subtitle':'From scattered chunks to structured reasoning.','p15.s1.title':'Why Vector RAG Fails on Global Questions','p15.s1.desc':'Vector RAG retrieves chunks similar to the query. But for questions like <strong>"What are the main themes?"</strong>, no single chunk contains the answer.','p15.s2.title':'Knowledge Graph — Entity Extraction','p15.s2.desc':'An LLM extracts <strong>entities</strong> (nodes) and <strong>relationships</strong> (edges) from text.','p15.s3.title':'Leiden Community Detection','p15.s3.desc':'The Leiden algorithm clusters graph nodes into <strong>communities</strong> of related entities.','p15.s4.title':'Map-Reduce Answer Generation','p15.s4.desc':'GraphRAG uses a <strong>map-reduce</strong> pipeline: each community generates a partial answer.','p15.s5.title':'Local vs Global — Which RAG Wins?','p15.s5.desc':'Some questions are local, others global. Predict which RAG wins!'},
-  'zh-CN':{'p15.title':'15. GraphRAG — 大语言模型算法可视化','p15.heading':'GraphRAG — 知识图谱社区','p15.subtitle':'从分散的文本块到结构化推理。','p15.s1.title':'为什么向量 RAG 在全局问题上失败','p15.s1.desc':'向量 RAG 检索与查询相似的文本块。但对于"<strong>主要主题是什么？</strong>"这样的问题，没有单个文本块包含答案。','p15.s2.title':'知识图谱 — 实体提取','p15.s2.desc':'LLM 从文本中提取<strong>实体</strong>（节点）和<strong>关系</strong>（边）。','p15.s3.title':'Leiden 社区检测','p15.s3.desc':'Leiden 算法将图节点聚类为相关实体的<strong>社区</strong>。','p15.s4.title':'Map-Reduce 答案生成','p15.s4.desc':'GraphRAG 使用 <strong>map-reduce</strong> 流水线：每个社区生成部分答案。','p15.s5.title':'局部 vs 全局 — 哪种 RAG 赢？','p15.s5.desc':'有些问题是局部的，有些是全局的。预测哪种 RAG 赢！'},
-  'zh-TW':{'p15.title':'15. GraphRAG — 大語言模型演算法視覺化','p15.heading':'GraphRAG — 知識圖譜社群','p15.subtitle':'從分散的文字塊到結構化推理。','p15.s1.title':'為什麼向量 RAG 在全域問題上失敗','p15.s1.desc':'向量 RAG 檢索與查詢相似的文字塊。但對於「<strong>主要主題是什麼？</strong>」這樣的問題，沒有單一文字塊包含答案。','p15.s2.title':'知識圖譜 — 實體擷取','p15.s2.desc':'LLM 從文字中擷取<strong>實體</strong>（節點）和<strong>關係</strong>（邊）。','p15.s3.title':'Leiden 社群偵測','p15.s3.desc':'Leiden 演算法將圖節點聚類為相關實體的<strong>社群</strong>。','p15.s4.title':'Map-Reduce 答案生成','p15.s4.desc':'GraphRAG 使用 <strong>map-reduce</strong> 管線：每個社群生成部分答案。','p15.s5.title':'局部 vs 全域 — 哪種 RAG 贏？','p15.s5.desc':'有些問題是局部的，有些是全域的。預測哪種 RAG 贏！'}
+  'en':{'p15.title':'15. GraphRAG — LLM Algorithm Visualizations','p15.heading':'GraphRAG — Knowledge Graph Communities','p15.subtitle':'From scattered chunks to structured reasoning.','p15.s1.title':'Why Vector RAG Fails on Global Questions','p15.s1.desc':'Vector RAG retrieves chunks similar to the query. But for questions like <strong>"What are the main themes?"</strong>, no single chunk contains the answer.','p15.s2.title':'Knowledge Graph — Entity Extraction','p15.s2.desc':'An LLM extracts <strong>entities</strong> (nodes) and <strong>relationships</strong> (edges) from text.','p15.s3.title':'Leiden Community Detection','p15.s3.desc':'The Leiden algorithm clusters graph nodes into <strong>communities</strong> of related entities.','p15.s4.title':'Map-Reduce Answer Generation','p15.s4.desc':'GraphRAG uses a <strong>map-reduce</strong> pipeline: each community generates a partial answer.','p15.s5.title':'Local vs Global — Which RAG Wins?','p15.s5.desc':'Some questions are local, others global. Predict which RAG wins!',
+    'p15.kgs.0':'Apple Inc. was founded by Steve Jobs in Cupertino, California.','p15.kgs.1':'Tim Cook became CEO of Apple in 2011 after Steve Jobs resigned.','p15.kgs.2':'Apple launched the iPhone in 2007, revolutionizing the smartphone industry.','p15.kgs.3':'The App Store, created by Apple, hosts millions of applications.',
+    'p15.kg.empty':'Click "Extract" to build the knowledge graph',
+    'p15.comm.c0':['Tech Companies','Search & Web','Enterprise'],'p15.comm.c1':['Apple People','Apple Mgmt','Apple Products','Google Core','Google Products','Microsoft'],
+    'p15.gq.0':'"What year was Apple founded?"','p15.gq.1':'"What are the key trends across all quarterly reports?"','p15.gq.2':'"Who is the CEO of Google?"','p15.gq.3':'"How do the strategies of Apple, Google, and Microsoft compare?"','p15.gq.4':'"What is the price of iPhone 15?"','p15.gq.5':'"What organizational changes occurred across the industry?"',
+    'p15.ge.0':'Local fact lookup — vector RAG excels at finding specific passages.','p15.ge.1':'Global sensemaking — needs corpus-level reasoning across communities.','p15.ge.2':'Simple factual query — single chunk has the answer.','p15.ge.3':'Cross-entity comparison — GraphRAG\'s communities capture each company\'s strategy.','p15.ge.4':'Specific data point — vector retrieval finds the exact passage.','p15.ge.5':'Corpus-level pattern — requires aggregating across multiple companies and events.',
+    'p15.correct':'Correct!'},
+  'zh-CN':{'p15.title':'15. GraphRAG — 大语言模型算法可视化','p15.heading':'GraphRAG — 知识图谱社区','p15.subtitle':'从分散的文本块到结构化推理。','p15.s1.title':'为什么向量 RAG 在全局问题上失败','p15.s1.desc':'向量 RAG 检索与查询相似的文本块。但对于"<strong>主要主题是什么？</strong>"这样的问题，没有单个文本块包含答案。','p15.s2.title':'知识图谱 — 实体提取','p15.s2.desc':'LLM 从文本中提取<strong>实体</strong>（节点）和<strong>关系</strong>（边）。','p15.s3.title':'Leiden 社区检测','p15.s3.desc':'Leiden 算法将图节点聚类为相关实体的<strong>社区</strong>。','p15.s4.title':'Map-Reduce 答案生成','p15.s4.desc':'GraphRAG 使用 <strong>map-reduce</strong> 流水线：每个社区生成部分答案。','p15.s5.title':'局部 vs 全局 — 哪种 RAG 赢？','p15.s5.desc':'有些问题是局部的，有些是全局的。预测哪种 RAG 赢！',
+    'p15.kgs.0':'苹果公司由 Steve Jobs 在加州库比蒂诺创立。','p15.kgs.1':'Tim Cook 在 2011 年 Steve Jobs 辞职后成为苹果 CEO。','p15.kgs.2':'苹果于 2007 年推出 iPhone，革新了智能手机行业。','p15.kgs.3':'苹果创建的 App Store 拥有数百万应用程序。',
+    'p15.kg.empty':'点击"提取"构建知识图谱',
+    'p15.gq.0':'"苹果是哪年创立的？"','p15.gq.1':'"所有季度报告的关键趋势是什么？"','p15.gq.2':'"谁是 Google 的 CEO？"','p15.gq.3':'"苹果、Google 和微软的战略如何对比？"','p15.gq.4':'"iPhone 15 的价格是多少？"','p15.gq.5':'"行业内发生了哪些组织变革？"',
+    'p15.ge.0':'局部事实查找 — 向量 RAG 擅长找到特定段落。','p15.ge.1':'全局理解 — 需要跨社区的语料级推理。','p15.ge.2':'简单事实查询 — 单个文本块有答案。','p15.ge.3':'跨实体对比 — GraphRAG 的社区捕捉每个公司的战略。','p15.ge.4':'特定数据点 — 向量检索找到精确段落。','p15.ge.5':'语料级模式 — 需要跨多个公司和事件聚合。',
+    'p15.correct':'正确！'},
+  'zh-TW':{'p15.title':'15. GraphRAG — 大語言模型演算法視覺化','p15.heading':'GraphRAG — 知識圖譜社群','p15.subtitle':'從分散的文字塊到結構化推理。','p15.s1.title':'為什麼向量 RAG 在全域問題上失敗','p15.s1.desc':'向量 RAG 檢索與查詢相似的文字塊。但對於「<strong>主要主題是什麼？</strong>」這樣的問題，沒有單一文字塊包含答案。','p15.s2.title':'知識圖譜 — 實體擷取','p15.s2.desc':'LLM 從文字中擷取<strong>實體</strong>（節點）和<strong>關係</strong>（邊）。','p15.s3.title':'Leiden 社群偵測','p15.s3.desc':'Leiden 演算法將圖節點聚類為相關實體的<strong>社群</strong>。','p15.s4.title':'Map-Reduce 答案生成','p15.s4.desc':'GraphRAG 使用 <strong>map-reduce</strong> 管線：每個社群生成部分答案。','p15.s5.title':'局部 vs 全域 — 哪種 RAG 贏？','p15.s5.desc':'有些問題是局部的，有些是全域的。預測哪種 RAG 贏！',
+    'p15.kgs.0':'蘋果公司由 Steve Jobs 在加州庫比蒂諾創立。','p15.kgs.1':'Tim Cook 在 2011 年 Steve Jobs 辭職後成為蘋果 CEO。','p15.kgs.2':'蘋果於 2007 年推出 iPhone，革新了智慧型手機產業。','p15.kgs.3':'蘋果建立的 App Store 擁有數百萬應用程式。',
+    'p15.kg.empty':'點擊「擷取」建構知識圖譜',
+    'p15.gq.0':'「蘋果是哪年創立的？」','p15.gq.1':'「所有季度報告的關鍵趨勢是什麼？」','p15.gq.2':'「誰是 Google 的 CEO？」','p15.gq.3':'「蘋果、Google 和微軟的策略如何對比？」','p15.gq.4':'「iPhone 15 的價格是多少？」','p15.gq.5':'「產業內發生了哪些組織變革？」',
+    'p15.ge.0':'局部事實查找 — 向量 RAG 擅長找到特定段落。','p15.ge.1':'全域理解 — 需要跨社群的語料級推理。','p15.ge.2':'簡單事實查詢 — 單一文字塊有答案。','p15.ge.3':'跨實體對比 — GraphRAG 的社群捕捉每間公司的策略。','p15.ge.4':'特定資料點 — 向量檢索找到精確段落。','p15.ge.5':'語料級模式 — 需要跨多間公司和事件彙總。',
+    'p15.correct':'正確！'}
 });
 
 // ===== Section 2: KG Canvas =====
-var KG_SENTS=["Apple Inc. was founded by Steve Jobs in Cupertino, California.","Tim Cook became CEO of Apple in 2011 after Steve Jobs resigned.","Apple launched the iPhone in 2007, revolutionizing the smartphone industry.","The App Store, created by Apple, hosts millions of applications."];
+function getKGSents(){return [t('p15.kgs.0'),t('p15.kgs.1'),t('p15.kgs.2'),t('p15.kgs.3')];}
 var KG_NODES_PER=[
   [{id:'apple',label:'Apple Inc.',x:.5,y:.3,c:'#5b5bd6'},{id:'jobs',label:'Steve Jobs',x:.2,y:.5,c:'#0d9488'},{id:'cupertino',label:'Cupertino',x:.8,y:.5,c:'#ea580c'}],
   [{id:'cook',label:'Tim Cook',x:.2,y:.7,c:'#0d9488'}],
@@ -161,9 +177,9 @@ function drawKG(){
   allEdges.forEach(function(e){var f=allNodes.find(function(n){return n.id===e[0];}),t=allNodes.find(function(n){return n.id===e[1];});if(!f||!t)return;x.strokeStyle='rgba(128,128,128,.4)';x.lineWidth=2;x.beginPath();x.moveTo(f.x*W,f.y*H);x.lineTo(t.x*W,t.y*H);x.stroke();x.fillStyle=dc;x.font='10px system-ui';x.textAlign='center';x.fillText(e[2],(f.x+t.x)/2*W,(f.y+t.y)/2*H-6);});
   // Nodes
   allNodes.forEach(function(n){x.fillStyle=n.c+'33';x.strokeStyle=n.c;x.lineWidth=2;x.beginPath();x.arc(n.x*W,n.y*H,22,0,Math.PI*2);x.fill();x.stroke();x.fillStyle=tc;x.font='bold 11px system-ui';x.textAlign='center';x.textBaseline='middle';x.fillText(n.label,n.x*W,n.y*H);});
-  if(allNodes.length===0){x.fillStyle=dc;x.font='14px system-ui';x.textAlign='center';x.fillText('Click "Extract" to build the knowledge graph',W/2,H/2);}
+  if(allNodes.length===0){x.fillStyle=dc;x.font='14px system-ui';x.textAlign='center';x.fillText(t('p15.kg.empty'),W/2,H/2);}
 }
-function kgExtract(){kgStep++;if(kgStep>=KG_SENTS.length){kgStep=KG_SENTS.length-1;return;}allNodes=allNodes.concat(KG_NODES_PER[kgStep]);allEdges=allEdges.concat(KG_EDGES_PER[kgStep]);document.getElementById('kgSentence').textContent='"'+KG_SENTS[kgStep]+'"';drawKG();}
+function kgExtract(){var sents=getKGSents();kgStep++;if(kgStep>=sents.length){kgStep=sents.length-1;return;}allNodes=allNodes.concat(KG_NODES_PER[kgStep]);allEdges=allEdges.concat(KG_EDGES_PER[kgStep]);document.getElementById('kgSentence').textContent='"'+sents[kgStep]+'"';drawKG();}
 function kgReset(){kgStep=-1;allNodes=[];allEdges=[];document.getElementById('kgSentence').textContent='';drawKG();}
 
 // ===== Section 3: Community Detection =====
@@ -196,16 +212,16 @@ function mrReset(){mrS=-1;for(var i=0;i<=5;i++)document.getElementById('mr'+i).c
 
 // ===== Section 5: Game =====
 var GR=[
-  {q:'"What year was Apple founded?"',best:'Vector RAG',explain:'Local fact lookup — vector RAG excels at finding specific passages.'},
-  {q:'"What are the key trends across all quarterly reports?"',best:'GraphRAG',explain:'Global sensemaking — needs corpus-level reasoning across communities.'},
-  {q:'"Who is the CEO of Google?"',best:'Vector RAG',explain:'Simple factual query — single chunk has the answer.'},
-  {q:'"How do the strategies of Apple, Google, and Microsoft compare?"',best:'GraphRAG',explain:'Cross-entity comparison — GraphRAG\'s communities capture each company\'s strategy.'},
-  {q:'"What is the price of iPhone 15?"',best:'Vector RAG',explain:'Specific data point — vector retrieval finds the exact passage.'},
-  {q:'"What organizational changes occurred across the industry?"',best:'GraphRAG',explain:'Corpus-level pattern — requires aggregating across multiple companies and events.'},
+  {qk:'p15.gq.0',best:'Vector RAG',ek:'p15.ge.0'},
+  {qk:'p15.gq.1',best:'GraphRAG',ek:'p15.ge.1'},
+  {qk:'p15.gq.2',best:'Vector RAG',ek:'p15.ge.2'},
+  {qk:'p15.gq.3',best:'GraphRAG',ek:'p15.ge.3'},
+  {qk:'p15.gq.4',best:'Vector RAG',ek:'p15.ge.4'},
+  {qk:'p15.gq.5',best:'GraphRAG',ek:'p15.ge.5'},
 ];
 var gi=0,gs=0;
-function renderG(){document.getElementById('gRound').textContent=(gi+1)+'/6';document.getElementById('gScore').textContent=gs;document.getElementById('gQ').textContent=GR[gi].q;document.getElementById('gFb').textContent='';var o=document.getElementById('gOpts');o.innerHTML='';['Vector RAG','GraphRAG'].forEach(function(opt){var d=document.createElement('div');d.className='game-opt';d.textContent=opt;d.onclick=function(){checkG(opt,d);};o.appendChild(d);});}
-function checkG(pick,el){var all=document.getElementById('gOpts').querySelectorAll('.game-opt');all.forEach(function(d){d.style.pointerEvents='none';});if(pick===GR[gi].best){el.classList.add('correct');gs++;document.getElementById('gFb').innerHTML='<span style="color:var(--accent2)">Correct!</span> '+GR[gi].explain;}else{el.classList.add('wrong');all.forEach(function(d){if(d.textContent===GR[gi].best)d.classList.add('correct');});document.getElementById('gFb').innerHTML='<span style="color:var(--accent3)">'+GR[gi].best+' wins.</span> '+GR[gi].explain;}document.getElementById('gScore').textContent=gs;setTimeout(function(){gi++;if(gi<6)renderG();else{document.getElementById('gFb').innerHTML='<strong>Final: '+gs+'/6</strong>';if(typeof markGameCompleted==='function')markGameCompleted('15');}},2500);}
+function renderG(){document.getElementById('gRound').textContent=(gi+1)+'/6';document.getElementById('gScore').textContent=gs;document.getElementById('gQ').textContent=t(GR[gi].qk);document.getElementById('gFb').textContent='';var o=document.getElementById('gOpts');o.innerHTML='';['Vector RAG','GraphRAG'].forEach(function(opt){var d=document.createElement('div');d.className='game-opt';d.textContent=opt;d.onclick=function(){checkG(opt,d);};o.appendChild(d);});}
+function checkG(pick,el){var all=document.getElementById('gOpts').querySelectorAll('.game-opt');all.forEach(function(d){d.style.pointerEvents='none';});if(pick===GR[gi].best){el.classList.add('correct');gs++;document.getElementById('gFb').innerHTML='<span style="color:var(--accent2)">'+t('p15.correct')+'</span> '+t(GR[gi].ek);}else{el.classList.add('wrong');all.forEach(function(d){if(d.textContent===GR[gi].best)d.classList.add('correct');});document.getElementById('gFb').innerHTML='<span style="color:var(--accent3)">'+GR[gi].best+' wins.</span> '+t(GR[gi].ek);}document.getElementById('gScore').textContent=gs;setTimeout(function(){gi++;if(gi<6)renderG();else{document.getElementById('gFb').innerHTML='<strong>Final: '+gs+'/6</strong>';if(typeof markGameCompleted==='function')markGameCompleted('15');}},2500);}
 
 window.addEventListener('load',function(){drawKG();drawComm();renderG();});
 window.addEventListener('themechange',function(){drawKG();drawComm();});
