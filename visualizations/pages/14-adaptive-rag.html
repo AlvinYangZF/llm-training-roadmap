@@ -136,42 +136,54 @@
 <script src="../shared/progress.js"></script>
 <script>
 i18nRegister({
-  'en':{'p14.title':'14. Adaptive RAG — LLM Algorithm Visualizations','p14.heading':'Adaptive RAG — Self-RAG, CRAG & FLARE','p14.subtitle':'From "always retrieve" to "intelligently decide when, what, and how to retrieve."','p14.s1.title':'Self-RAG — Reflection Tokens','p14.s1.desc':'Self-RAG trains the LM to emit <strong>4 reflection tokens</strong> that control retrieval and self-evaluate quality.','p14.s2.title':'CRAG — Corrective Retrieval','p14.s2.desc':'A T5-large evaluator (84.3% accuracy vs ChatGPT\'s 64.7%) scores retrieved docs and triggers <strong>3 correction paths</strong>.','p14.s3.title':'FLARE — Active Mid-Generation Retrieval','p14.s3.desc':'FLARE generates tokens with confidence scores. When confidence drops below <strong>θ</strong>, retrieval triggers mid-generation.','p14.s4.title':'Pick the Best Strategy','p14.s4.desc':'Different questions need different retrieval strategies. Can you pick the right one?','p14.s5.title':'Performance Benchmarks','p14.s5.desc':'How do these methods compare across key benchmarks?'},
-  'zh-CN':{'p14.title':'14. 自适应 RAG — 大语言模型算法可视化','p14.heading':'自适应 RAG — Self-RAG、CRAG 与 FLARE','p14.subtitle':'从"总是检索"到"智能决定何时、检索什么、如何检索"。','p14.s1.title':'Self-RAG — 反思 Token','p14.s1.desc':'Self-RAG 训练语言模型发出<strong>4 种反思 token</strong>来控制检索和自我评估质量。','p14.s2.title':'CRAG — 纠正性检索','p14.s2.desc':'T5-large 评估器（准确率 84.3% vs ChatGPT 64.7%）对检索文档评分，触发<strong>3 条纠正路径</strong>。','p14.s3.title':'FLARE — 生成中主动检索','p14.s3.desc':'FLARE 生成带置信度的 token。当置信度低于 <strong>θ</strong> 时，在生成过程中触发检索。','p14.s4.title':'选择最佳策略','p14.s4.desc':'不同问题需要不同检索策略。你能选对吗？','p14.s5.title':'性能基准对比','p14.s5.desc':'这些方法在关键基准上表现如何？'},
-  'zh-TW':{'p14.title':'14. 自適應 RAG — 大語言模型演算法視覺化','p14.heading':'自適應 RAG — Self-RAG、CRAG 與 FLARE','p14.subtitle':'從「總是檢索」到「智慧決定何時、檢索什麼、如何檢索」。','p14.s1.title':'Self-RAG — 反思 Token','p14.s1.desc':'Self-RAG 訓練語言模型發出<strong>4 種反思 token</strong>來控制檢索和自我評估品質。','p14.s2.title':'CRAG — 糾正性檢索','p14.s2.desc':'T5-large 評估器（準確率 84.3% vs ChatGPT 64.7%）對檢索文件評分，觸發<strong>3 條糾正路徑</strong>。','p14.s3.title':'FLARE — 生成中主動檢索','p14.s3.desc':'FLARE 生成帶信心度的 token。當信心度低於 <strong>θ</strong> 時，在生成過程中觸發檢索。','p14.s4.title':'選擇最佳策略','p14.s4.desc':'不同問題需要不同檢索策略。你能選對嗎？','p14.s5.title':'效能基準對比','p14.s5.desc':'這些方法在關鍵基準上表現如何？'}
+  'en':{'p14.title':'14. Adaptive RAG — LLM Algorithm Visualizations','p14.heading':'Adaptive RAG — Self-RAG, CRAG & FLARE','p14.subtitle':'From "always retrieve" to "intelligently decide when, what, and how to retrieve."','p14.s1.title':'Self-RAG — Reflection Tokens','p14.s1.desc':'Self-RAG trains the LM to emit <strong>4 reflection tokens</strong> that control retrieval and self-evaluate quality.','p14.s2.title':'CRAG — Corrective Retrieval','p14.s2.desc':'A T5-large evaluator (84.3% accuracy vs ChatGPT\'s 64.7%) scores retrieved docs and triggers <strong>3 correction paths</strong>.','p14.s3.title':'FLARE — Active Mid-Generation Retrieval','p14.s3.desc':'FLARE generates tokens with confidence scores. When confidence drops below <strong>θ</strong>, retrieval triggers mid-generation.','p14.s4.title':'Pick the Best Strategy','p14.s4.desc':'Different questions need different retrieval strategies. Can you pick the right one?','p14.s5.title':'Performance Benchmarks','p14.s5.desc':'How do these methods compare across key benchmarks?',
+    'p14.sr.0':'<strong>Q:</strong> "What causes diabetes?"','p14.sr.1':'<span class="flow-node yes">[Retrieve] YES</span> — Complex medical question, retrieval needed','p14.sr.2':'Retrieved: "Type 2 diabetes is caused by insulin resistance..."','p14.sr.3':'<span class="flow-node yes">[IsRel] YES</span> — Passage directly answers the question','p14.sr.4':'<strong>Generate:</strong> "Diabetes is primarily caused by insulin resistance and..."','p14.sr.5':'<span class="flow-node yes">[IsSup] FULL</span> — Answer fully supported by retrieved evidence','p14.sr.6':'<span class="flow-node" style="border-color:var(--accent);color:var(--accent)">[IsUse] 5</span> — Highly useful response',
+    'p14.crag.s0':'Medical Query','p14.crag.s1':'Obscure Trivia','p14.crag.s2':'Ambiguous Query',
+    'p14.crag.r0':'High confidence (0.92) → CORRECT path. Docs refined and recomposed.','p14.crag.r1':'Low confidence (0.15) → INCORRECT path. Web search activated.','p14.crag.r2':'Medium confidence (0.55) → AMBIGUOUS. Both refined docs + web results used.',
+    'p14.strat.q0':'"What is 2+2?"','p14.strat.q1':'"Latest COVID vaccine side effects in 2024?"','p14.strat.q2':'"Explain quantum entanglement step by step"','p14.strat.q3':'"What is the capital of France?"','p14.strat.q4':'"Compare pros/cons of React vs Vue in 2024"',
+    'p14.strat.e0':'Simple math — no external knowledge needed.','p14.strat.e1':'Time-sensitive query — CRAG can fall back to web search for current info.','p14.strat.e2':'Complex multi-step explanation — Self-RAG adaptively retrieves and self-critiques each step.','p14.strat.e3':'Simple factual question in training data — retrieval is unnecessary overhead.','p14.strat.e4':'Evolving topic with potentially outdated training data — CRAG\'s web fallback gets current comparisons.',
+    'p14.bench.title':'Accuracy (%)','p14.correct':'Correct!'},
+  'zh-CN':{'p14.title':'14. 自适应 RAG — 大语言模型算法可视化','p14.heading':'自适应 RAG — Self-RAG、CRAG 与 FLARE','p14.subtitle':'从"总是检索"到"智能决定何时、检索什么、如何检索"。','p14.s1.title':'Self-RAG — 反思 Token','p14.s1.desc':'Self-RAG 训练语言模型发出<strong>4 种反思 token</strong>来控制检索和自我评估质量。','p14.s2.title':'CRAG — 纠正性检索','p14.s2.desc':'T5-large 评估器（准确率 84.3% vs ChatGPT 64.7%）对检索文档评分，触发<strong>3 条纠正路径</strong>。','p14.s3.title':'FLARE — 生成中主动检索','p14.s3.desc':'FLARE 生成带置信度的 token。当置信度低于 <strong>θ</strong> 时，在生成过程中触发检索。','p14.s4.title':'选择最佳策略','p14.s4.desc':'不同问题需要不同检索策略。你能选对吗？','p14.s5.title':'性能基准对比','p14.s5.desc':'这些方法在关键基准上表现如何？',
+    'p14.sr.0':'<strong>问题：</strong>"什么导致糖尿病？"','p14.sr.1':'<span class="flow-node yes">[Retrieve] 是</span> — 复杂医学问题，需要检索','p14.sr.2':'已检索："2 型糖尿病由胰岛素抵抗引起……"','p14.sr.3':'<span class="flow-node yes">[IsRel] 是</span> — 段落直接回答了问题','p14.sr.4':'<strong>生成：</strong>"糖尿病主要由胰岛素抵抗引起……"','p14.sr.5':'<span class="flow-node yes">[IsSup] 完全</span> — 答案完全由检索证据支持','p14.sr.6':'<span class="flow-node" style="border-color:var(--accent);color:var(--accent)">[IsUse] 5</span> — 高度有用的回答',
+    'p14.crag.s0':'医学查询','p14.crag.s1':'冷门知识','p14.crag.s2':'模糊查询',
+    'p14.crag.r0':'高置信度 (0.92) → 正确路径。文档被精炼和重组。','p14.crag.r1':'低置信度 (0.15) → 错误路径。启动网络搜索。','p14.crag.r2':'中等置信度 (0.55) → 模糊路径。同时使用精炼文档和网络结果。',
+    'p14.strat.q0':'"2+2 等于多少？"','p14.strat.q1':'"2024 年新冠疫苗最新副作用？"','p14.strat.q2':'"逐步解释量子纠缠"','p14.strat.q3':'"法国的首都是什么？"','p14.strat.q4':'"对比 2024 年 React 和 Vue 的优缺点"',
+    'p14.strat.e0':'简单数学 — 不需要外部知识。','p14.strat.e1':'时效性查询 — CRAG 可以回退到网络搜索获取最新信息。','p14.strat.e2':'复杂多步骤解释 — Self-RAG 自适应检索并自我审查每一步。','p14.strat.e3':'训练数据中的简单事实问题 — 检索是不必要的开销。','p14.strat.e4':'不断变化的话题 — CRAG 的网络回退获取最新对比。',
+    'p14.bench.title':'准确率 (%)','p14.correct':'正确！'},
+  'zh-TW':{'p14.title':'14. 自適應 RAG — 大語言模型演算法視覺化','p14.heading':'自適應 RAG — Self-RAG、CRAG 與 FLARE','p14.subtitle':'從「總是檢索」到「智慧決定何時、檢索什麼、如何檢索」。','p14.s1.title':'Self-RAG — 反思 Token','p14.s1.desc':'Self-RAG 訓練語言模型發出<strong>4 種反思 token</strong>來控制檢索和自我評估品質。','p14.s2.title':'CRAG — 糾正性檢索','p14.s2.desc':'T5-large 評估器（準確率 84.3% vs ChatGPT 64.7%）對檢索文件評分，觸發<strong>3 條糾正路徑</strong>。','p14.s3.title':'FLARE — 生成中主動檢索','p14.s3.desc':'FLARE 生成帶信心度的 token。當信心度低於 <strong>θ</strong> 時，在生成過程中觸發檢索。','p14.s4.title':'選擇最佳策略','p14.s4.desc':'不同問題需要不同檢索策略。你能選對嗎？','p14.s5.title':'效能基準對比','p14.s5.desc':'這些方法在關鍵基準上表現如何？',
+    'p14.sr.0':'<strong>問題：</strong>「什麼導致糖尿病？」','p14.sr.1':'<span class="flow-node yes">[Retrieve] 是</span> — 複雜醫學問題，需要檢索','p14.sr.2':'已檢索：「2 型糖尿病由胰島素阻抗引起……」','p14.sr.3':'<span class="flow-node yes">[IsRel] 是</span> — 段落直接回答了問題','p14.sr.4':'<strong>生成：</strong>「糖尿病主要由胰島素阻抗引起……」','p14.sr.5':'<span class="flow-node yes">[IsSup] 完全</span> — 答案完全由檢索證據支持','p14.sr.6':'<span class="flow-node" style="border-color:var(--accent);color:var(--accent)">[IsUse] 5</span> — 高度有用的回答',
+    'p14.crag.s0':'醫學查詢','p14.crag.s1':'冷門知識','p14.crag.s2':'模糊查詢',
+    'p14.crag.r0':'高信心度 (0.92) → 正確路徑。文件被精煉和重組。','p14.crag.r1':'低信心度 (0.15) → 錯誤路徑。啟動網路搜尋。','p14.crag.r2':'中等信心度 (0.55) → 模糊路徑。同時使用精煉文件和網路結果。',
+    'p14.strat.q0':'「2+2 等於多少？」','p14.strat.q1':'「2024 年新冠疫苗最新副作用？」','p14.strat.q2':'「逐步解釋量子糾纏」','p14.strat.q3':'「法國的首都是什麼？」','p14.strat.q4':'「對比 2024 年 React 和 Vue 的優缺點」',
+    'p14.strat.e0':'簡單數學 — 不需要外部知識。','p14.strat.e1':'時效性查詢 — CRAG 可以回退到網路搜尋取得最新資訊。','p14.strat.e2':'複雜多步驟解釋 — Self-RAG 自適應檢索並自我審查每一步。','p14.strat.e3':'訓練資料中的簡單事實問題 — 檢索是不必要的開銷。','p14.strat.e4':'不斷變化的話題 — CRAG 的網路回退取得最新對比。',
+    'p14.bench.title':'準確率 (%)','p14.correct':'正確！'}
 });
 
 // ===== Section 1: Self-RAG Demo =====
-var srSteps=[
-  {html:'<strong>Q:</strong> "What causes diabetes?"',desc:'Question received'},
-  {html:'<span class="flow-node yes">[Retrieve] YES</span> — Complex medical question, retrieval needed',desc:'Decide to retrieve'},
-  {html:'Retrieved: "Type 2 diabetes is caused by insulin resistance..."',desc:'Document retrieved'},
-  {html:'<span class="flow-node yes">[IsRel] YES</span> — Passage directly answers the question',desc:'Check relevance'},
-  {html:'<strong>Generate:</strong> "Diabetes is primarily caused by insulin resistance and..."',desc:'Generate answer'},
-  {html:'<span class="flow-node yes">[IsSup] FULL</span> — Answer fully supported by retrieved evidence',desc:'Check support'},
-  {html:'<span class="flow-node" style="border-color:var(--accent);color:var(--accent)">[IsUse] 5</span> — Highly useful response',desc:'Rate usefulness'},
-];
+function getSrSteps(){return [
+  {html:t('p14.sr.0')},{html:t('p14.sr.1')},{html:t('p14.sr.2')},{html:t('p14.sr.3')},{html:t('p14.sr.4')},{html:t('p14.sr.5')},{html:t('p14.sr.6')}
+];}
 var srStep=-1;
-function selfRagStep(){srStep++;if(srStep>=srSteps.length)srStep=0;var el=document.getElementById('selfRagDemo');el.innerHTML=srSteps.slice(0,srStep+1).map(function(s){return s.html;}).join('<br>');}
+function selfRagStep(){var steps=getSrSteps();srStep++;if(srStep>=steps.length)srStep=0;var el=document.getElementById('selfRagDemo');el.innerHTML=steps.slice(0,srStep+1).map(function(s){return s.html;}).join('<br>');}
 function selfRagReset(){srStep=-1;document.getElementById('selfRagDemo').innerHTML='Click "Step Through" to see Self-RAG in action...';}
 
 // ===== Section 2: CRAG =====
 var CRAG_SC=[
-  {name:'Medical Query',conf:0.92,path:'correct',result:'High confidence (0.92) → CORRECT path. Docs refined and recomposed.'},
-  {name:'Obscure Trivia',conf:0.15,path:'incorrect',result:'Low confidence (0.15) → INCORRECT path. Web search activated.'},
-  {name:'Ambiguous Query',conf:0.55,path:'ambiguous',result:'Medium confidence (0.55) → AMBIGUOUS. Both refined docs + web results used.'},
+  {nk:'p14.crag.s0',conf:0.92,path:'correct',rk:'p14.crag.r0'},
+  {nk:'p14.crag.s1',conf:0.15,path:'incorrect',rk:'p14.crag.r1'},
+  {nk:'p14.crag.s2',conf:0.55,path:'ambiguous',rk:'p14.crag.r2'},
 ];
 var cragIdx=0;
 function renderCRAG(){
   var btns=document.getElementById('cragScenarios');btns.innerHTML='';
-  CRAG_SC.forEach(function(s,i){var b=document.createElement('button');b.textContent=s.name;if(i===cragIdx)b.classList.add('active');b.onclick=function(){cragIdx=i;renderCRAG();};btns.appendChild(b);});
+  CRAG_SC.forEach(function(s,i){var b=document.createElement('button');b.textContent=t(s.nk);if(i===cragIdx)b.classList.add('active');b.onclick=function(){cragIdx=i;renderCRAG();};btns.appendChild(b);});
   var s=CRAG_SC[cragIdx];
   document.getElementById('cragConf').textContent='Confidence: '+s.conf.toFixed(2);
   document.getElementById('cragConf').style.color=s.conf>.7?'var(--accent2)':s.conf<.3?'var(--accent3)':'var(--accent4)';
   document.getElementById('cragCorrect').className='crag-path'+(s.path==='correct'?' correct-path':'');
   document.getElementById('cragIncorrect').className='crag-path'+(s.path==='incorrect'?' incorrect-path':'');
   document.getElementById('cragAmbiguous').className='crag-path'+(s.path==='ambiguous'?' ambiguous-path':'');
-  document.getElementById('cragResult').textContent=s.result;
+  document.getElementById('cragResult').textContent=t(s.rk);
 }
 
 // ===== Section 3: FLARE =====
@@ -210,15 +222,15 @@ function flareAnimate(){
 
 // ===== Section 4: Strategy Game =====
 var STRAT=[
-  {q:'"What is 2+2?"',best:'No Retrieval',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],explain:'Simple math — no external knowledge needed.'},
-  {q:'"Latest COVID vaccine side effects in 2024?"',best:'CRAG',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],explain:'Time-sensitive query — CRAG can fall back to web search for current info.'},
-  {q:'"Explain quantum entanglement step by step"',best:'Self-RAG',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],explain:'Complex multi-step explanation — Self-RAG adaptively retrieves and self-critiques each step.'},
-  {q:'"What is the capital of France?"',best:'No Retrieval',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],explain:'Simple factual question in training data — retrieval is unnecessary overhead.'},
-  {q:'"Compare pros/cons of React vs Vue in 2024"',best:'CRAG',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],explain:'Evolving topic with potentially outdated training data — CRAG\'s web fallback gets current comparisons.'},
+  {qk:'p14.strat.q0',best:'No Retrieval',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],ek:'p14.strat.e0'},
+  {qk:'p14.strat.q1',best:'CRAG',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],ek:'p14.strat.e1'},
+  {qk:'p14.strat.q2',best:'Self-RAG',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],ek:'p14.strat.e2'},
+  {qk:'p14.strat.q3',best:'No Retrieval',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],ek:'p14.strat.e3'},
+  {qk:'p14.strat.q4',best:'CRAG',opts:['No Retrieval','Standard RAG','Self-RAG','CRAG'],ek:'p14.strat.e4'},
 ];
 var si=0,ss=0;
-function renderStrat(){document.getElementById('sRound').textContent=(si+1)+'/5';document.getElementById('sScore').textContent=ss;document.getElementById('sQuestion').textContent=STRAT[si].q;document.getElementById('sFb').textContent='';var o=document.getElementById('sOpts');o.innerHTML='';STRAT[si].opts.forEach(function(op){var d=document.createElement('div');d.className='game-opt';d.textContent=op;d.onclick=function(){checkStrat(op,d);};o.appendChild(d);});}
-function checkStrat(pick,el){var all=document.getElementById('sOpts').querySelectorAll('.game-opt');all.forEach(function(d){d.style.pointerEvents='none';});if(pick===STRAT[si].best){el.classList.add('correct');ss++;document.getElementById('sFb').innerHTML='<span style="color:var(--accent2)">Correct!</span> '+STRAT[si].explain;}else{el.classList.add('wrong');all.forEach(function(d){if(d.textContent===STRAT[si].best)d.classList.add('correct');});document.getElementById('sFb').innerHTML='<span style="color:var(--accent3)">Best: '+STRAT[si].best+'</span> — '+STRAT[si].explain;}document.getElementById('sScore').textContent=ss;setTimeout(function(){si++;if(si<5)renderStrat();else{document.getElementById('sFb').innerHTML='<strong>Final: '+ss+'/5</strong>';if(typeof markGameCompleted==='function')markGameCompleted('14');}},2500);}
+function renderStrat(){document.getElementById('sRound').textContent=(si+1)+'/5';document.getElementById('sScore').textContent=ss;document.getElementById('sQuestion').textContent=t(STRAT[si].qk);document.getElementById('sFb').textContent='';var o=document.getElementById('sOpts');o.innerHTML='';STRAT[si].opts.forEach(function(op){var d=document.createElement('div');d.className='game-opt';d.textContent=op;d.onclick=function(){checkStrat(op,d);};o.appendChild(d);});}
+function checkStrat(pick,el){var all=document.getElementById('sOpts').querySelectorAll('.game-opt');all.forEach(function(d){d.style.pointerEvents='none';});if(pick===STRAT[si].best){el.classList.add('correct');ss++;document.getElementById('sFb').innerHTML='<span style="color:var(--accent2)">'+t('p14.correct')+'</span> '+t(STRAT[si].ek);}else{el.classList.add('wrong');all.forEach(function(d){if(d.textContent===STRAT[si].best)d.classList.add('correct');});document.getElementById('sFb').innerHTML='<span style="color:var(--accent3)">Best: '+STRAT[si].best+'</span> — '+t(STRAT[si].ek);}document.getElementById('sScore').textContent=ss;setTimeout(function(){si++;if(si<5)renderStrat();else{document.getElementById('sFb').innerHTML='<strong>Final: '+ss+'/5</strong>';if(typeof markGameCompleted==='function')markGameCompleted('14');}},2500);}
 
 // ===== Section 5: Benchmark Chart =====
 var BENCH={
@@ -228,7 +240,7 @@ var BENCH={
 };
 var curBench='PopQA';
 function renderBenchBtns(){var el=document.getElementById('benchBtns');el.innerHTML='';Object.keys(BENCH).forEach(function(k){var b=document.createElement('button');b.textContent=k;if(k===curBench)b.classList.add('active');b.onclick=function(){curBench=k;renderBenchBtns();drawBench();};el.appendChild(b);});}
-function drawBench(){var c=document.getElementById('benchCanvas');if(!c)return;var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();var b=BENCH[curBench],pad={t:40,r:20,b:40,l:60},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;var bw=cW/b.labels.length*.6,bg=cW/b.labels.length*.4;x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';x.fillText(curBench+' Accuracy (%)',W/2,22);x.strokeStyle=bc;x.lineWidth=1;x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();for(var i=0;i<=4;i++){var v=i*25,y=pad.t+cH-(v/100)*cH;x.fillStyle=dc;x.font='10px monospace';x.textAlign='right';x.fillText(v+'%',pad.l-8,y+4);x.strokeStyle='rgba(128,128,128,.15)';x.beginPath();x.moveTo(pad.l,y);x.lineTo(pad.l+cW,y);x.stroke();}for(var j=0;j<b.labels.length;j++){var bH=(b.values[j]/100)*cH,bx=pad.l+j*(bw+bg)+bg/2,by=pad.t+cH-bH;x.fillStyle=b.colors[j];if(x.roundRect){x.beginPath();x.roundRect(bx,by,bw,bH,4);x.fill();}else{x.fillRect(bx,by,bw,bH);}x.fillStyle=tc;x.font='bold 11px monospace';x.textAlign='center';x.fillText(b.values[j].toFixed(1)+'%',bx+bw/2,by-6);x.fillStyle=dc;x.font='10px system-ui';x.fillText(b.labels[j],bx+bw/2,pad.t+cH+16);}}
+function drawBench(){var c=document.getElementById('benchCanvas');if(!c)return;var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();var b=BENCH[curBench],pad={t:40,r:20,b:40,l:60},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;var bw=cW/b.labels.length*.6,bg=cW/b.labels.length*.4;x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';x.fillText(curBench+' '+t('p14.bench.title'),W/2,22);x.strokeStyle=bc;x.lineWidth=1;x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();for(var i=0;i<=4;i++){var v=i*25,y=pad.t+cH-(v/100)*cH;x.fillStyle=dc;x.font='10px monospace';x.textAlign='right';x.fillText(v+'%',pad.l-8,y+4);x.strokeStyle='rgba(128,128,128,.15)';x.beginPath();x.moveTo(pad.l,y);x.lineTo(pad.l+cW,y);x.stroke();}for(var j=0;j<b.labels.length;j++){var bH=(b.values[j]/100)*cH,bx=pad.l+j*(bw+bg)+bg/2,by=pad.t+cH-bH;x.fillStyle=b.colors[j];if(x.roundRect){x.beginPath();x.roundRect(bx,by,bw,bH,4);x.fill();}else{x.fillRect(bx,by,bw,bH);}x.fillStyle=tc;x.font='bold 11px monospace';x.textAlign='center';x.fillText(b.values[j].toFixed(1)+'%',bx+bw/2,by-6);x.fillStyle=dc;x.font='10px system-ui';x.fillText(b.labels[j],bx+bw/2,pad.t+cH+16);}}
 
 // Init
 window.addEventListener('load',function(){selfRagReset();renderCRAG();renderFlare();renderStrat();renderBenchBtns();drawBench();});
