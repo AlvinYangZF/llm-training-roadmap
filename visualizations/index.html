@@ -606,6 +606,12 @@ const GRAPH_NODES = [
   { id: '16', title: 'RAG at Scale', cat: 'system', year: '2022',
     desc: 'RETRO: 7.5B + retrieval matches 175B. RAG evolution taxonomy.',
     file: 'pages/16-rag-at-scale.html' },
+  { id: '17', title: 'DiskANN', cat: 'system', year: '2019',
+    desc: 'Vamana graph + SSD index: billion-scale ANN on a single node with 64GB RAM.',
+    file: 'pages/17-diskann.html' },
+  { id: '18', title: 'AiSAQ', cat: 'system', year: '2024',
+    desc: 'DRAM-free ANN: ~10MB RAM for billion-scale search. Sub-ms index switching for RAG.',
+    file: 'pages/18-aisaq.html' },
 ];
 
 // Edges: [from, to] — "from" depends on "to"
@@ -633,6 +639,9 @@ const GRAPH_EDGES = [
   ['14', '13'], // Adaptive RAG extends RAG Pipeline
   ['15', '14'], // GraphRAG is advanced RAG architecture
   ['16', '13'], // RETRO is retrieval at scale for RAG
+  ['17', '12'], // DiskANN builds on dense retrieval (vector indexing)
+  ['18', '17'], // AiSAQ extends DiskANN (DRAM-free variant)
+  ['18', '13'], // AiSAQ enables multi-source RAG index switching
 ];
 
 const CAT_COLORS = {

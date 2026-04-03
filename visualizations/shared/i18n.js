@@ -125,6 +125,9 @@ i18nRegister({
     'nav.topic.14': 'Adaptive RAG',
     'nav.topic.15': 'GraphRAG',
     'nav.topic.16': 'RAG at Scale',
+    'nav.cat.vectorsearch': 'Vector Search',
+    'nav.topic.17': 'DiskANN',
+    'nav.topic.18': 'AiSAQ',
     // Progress
     'progress.visited': 'Pages Visited',
     'progress.games': 'Games Completed',
@@ -226,6 +229,9 @@ i18nRegister({
     'nav.topic.14': '自适应 RAG',
     'nav.topic.15': 'GraphRAG',
     'nav.topic.16': '大规模 RAG',
+    'nav.cat.vectorsearch': '向量搜索',
+    'nav.topic.17': 'DiskANN',
+    'nav.topic.18': 'AiSAQ',
     // Progress
     'progress.visited': '已访问页面',
     'progress.games': '已完成游戏',
@@ -327,6 +333,9 @@ i18nRegister({
     'nav.topic.14': '自適應 RAG',
     'nav.topic.15': 'GraphRAG',
     'nav.topic.16': '大規模 RAG',
+    'nav.cat.vectorsearch': '向量搜尋',
+    'nav.topic.17': 'DiskANN',
+    'nav.topic.18': 'AiSAQ',
     // Progress
     'progress.visited': '已造訪頁面',
     'progress.games': '已完成遊戲',

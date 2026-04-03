@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p17.title">17. DiskANN — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .scale-canvas{width:100%;height:360px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .vamana-canvas{width:100%;height:420px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .arch-canvas{width:100%;height:340px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .bench-canvas{width:100%;height:380px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+    .stat-badge .val{font-size:1.4rem;font-weight:800}
+    .stat-badge .lbl{font-size:.72rem;color:var(--text-dim);text-transform:uppercase}
+    .scale-btns{display:flex;gap:10px;justify-content:center;margin:14px 0;flex-wrap:wrap}
+    .scale-btns button{padding:10px 24px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:700;font-size:.9rem;color:var(--text);transition:all .2s}
+    .scale-btns button:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .scale-btns button.active{border-color:var(--accent);color:var(--accent);background:rgba(91,91,214,.08)}
+    .alpha-slider-wrap{display:flex;align-items:center;gap:16px;justify-content:center;margin:14px 0;flex-wrap:wrap}
+    .alpha-slider-wrap label{font-weight:600;font-size:.9rem}
+    .alpha-slider-wrap input[type=range]{width:200px;accent-color:var(--accent)}
+    .alpha-slider-wrap .alpha-val{font-weight:800;font-size:1.1rem;color:var(--accent);min-width:40px}
+    .ctrl-btns{display:flex;gap:10px;justify-content:center;margin:12px 0;flex-wrap:wrap}
+    .ctrl-btns button{padding:8px 22px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s}
+    .ctrl-btns button:hover{border-color:var(--accent);color:var(--accent)}
+    .ctrl-btns button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .tier-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:16px 0}
+    .tier-box{padding:18px;border-radius:var(--radius);border:2px solid var(--border);text-align:center}
+    .tier-box h3{margin:0 0 10px;font-size:1rem}
+    .tier-box .tier-items{font-size:.82rem;color:var(--text-dim);line-height:1.8;text-align:left}
+    .game-opt{padding:12px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s;text-align:center}
+    .game-opt:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .game-opt.correct{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .game-opt.wrong{border-color:var(--accent3);background:rgba(225,29,72,.08)}
+    @media(max-width:700px){.tier-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p17.heading">DiskANN — Billion-Scale Vector Search on SSD</h1>
+<p class="subtitle" data-i18n="p17.subtitle">Bridging the gap between in-memory speed and disk-scale capacity. The Vamana graph index that serves 5000+ QPS at &lt;3ms latency.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p17.heading">DiskANN</span></p>
+
+<div class="container">
+
+  <!-- Section 1: The Memory Wall -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)">Interactive</span>
+    <h2 data-i18n="p17.s1.title">Why DiskANN? — The Memory Wall Problem</h2>
+    <p data-i18n="p17.s1.desc" data-i18n-html="1">At billion-scale, in-memory indexes like HNSW need <strong>terabytes of RAM</strong>. Compressed indexes (IVF) save memory but sacrifice recall. DiskANN achieves the best of both worlds: <strong>high recall with SSD + small RAM footprint</strong>.</p>
+    <div class="scale-btns">
+      <button class="active" onclick="setScale(0)" id="scaleBtn0" data-i18n="p17.s1.scale1m">1M Vectors</button>
+      <button onclick="setScale(1)" id="scaleBtn1" data-i18n="p17.s1.scale100m">100M Vectors</button>
+      <button onclick="setScale(2)" id="scaleBtn2" data-i18n="p17.s1.scale1b">1B Vectors</button>
+    </div>
+    <canvas id="memCanvas" class="scale-canvas"></canvas>
+    <div class="stat-row" id="scaleStats"></div>
+  </div>
+
+  <!-- Section 2: Vamana Graph -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)">Algorithm</span>
+    <h2 data-i18n="p17.s2.title">Vamana Graph Algorithm</h2>
+    <p data-i18n="p17.s2.desc" data-i18n-html="1">Vamana builds a navigable graph with a single global entry point. The <strong>RobustPrune</strong> procedure controls the trade-off: <strong>&alpha;=1</strong> produces a sparse graph (like a greedy spanner), while <strong>&alpha;&gt;1</strong> adds long-range edges that reduce graph diameter and improve search speed.</p>
+    <div class="alpha-slider-wrap">
+      <label data-i18n="p17.s2.alpha">&alpha; parameter:</label>
+      <input type="range" id="alphaSlider" min="100" max="150" value="100" oninput="onAlphaChange(this.value)">
+      <span class="alpha-val" id="alphaVal">1.00</span>
+    </div>
+    <canvas id="vamanaCanvas" class="vamana-canvas"></canvas>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="buildVamana()" data-i18n="p17.s2.build">Build Graph</button>
+      <button onclick="resetVamana()" data-i18n="btn.reset">Reset</button>
+    </div>
+    <div class="formula-box">RobustPrune(p, V, &alpha;, R): keep neighbor n if &alpha; &middot; d(n, n') &ge; d(p, n') for all retained n'</div>
+    <div class="stat-row" id="vamanaStats">
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)" id="statEdges">0</div><div class="lbl" data-i18n="p17.s2.edges">Edges</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent)" id="statDiam">0</div><div class="lbl" data-i18n="p17.s2.diameter">Diameter Est.</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)" id="statDeg">0</div><div class="lbl" data-i18n="p17.s2.avgdeg">Avg Degree</div></div>
+    </div>
+  </div>
+
+  <!-- Section 3: SSD Architecture -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)">Architecture</span>
+    <h2 data-i18n="p17.s3.title">SSD Index Architecture</h2>
+    <p data-i18n="p17.s3.desc" data-i18n-html="1">DiskANN uses a <strong>two-tier</strong> design: compressed PQ codes in DRAM for distance estimation, full vectors + graph co-located on SSD for precise search. <strong>BeamSearch</strong> issues W parallel SSD reads per hop, piggybacking full vectors for implicit re-ranking.</p>
+    <div class="tier-row">
+      <div class="tier-box" style="border-color:var(--accent);background:rgba(91,91,214,.04)">
+        <h3 style="color:var(--accent)" data-i18n="p17.s3.dram">DRAM Tier</h3>
+        <div class="tier-items">
+          <div><strong data-i18n="p17.s3.pq">PQ Compressed Vectors</strong></div>
+          <div style="color:var(--accent)">&bull; ~32 bytes per vector</div>
+          <div>&bull; 1B vectors = ~32 GB RAM</div>
+          <div><strong data-i18n="p17.s3.medoid">Global Medoid (entry point)</strong></div>
+          <div>&bull; Single start node for all queries</div>
+        </div>
+      </div>
+      <div class="tier-box" style="border-color:var(--accent4);background:rgba(234,88,12,.04)">
+        <h3 style="color:var(--accent4)" data-i18n="p17.s3.ssd">SSD Tier</h3>
+        <div class="tier-items">
+          <div><strong data-i18n="p17.s3.fullvec">Full Vectors + Graph Edges</strong></div>
+          <div style="color:var(--accent4)">&bull; Co-located in 4KB sectors</div>
+          <div>&bull; One SSD read = node + all neighbors</div>
+          <div><strong data-i18n="p17.s3.beam">BeamSearch (W=4)</strong></div>
+          <div>&bull; 4 parallel async SSD reads per hop</div>
+        </div>
+      </div>
+    </div>
+    <canvas id="archCanvas" class="arch-canvas"></canvas>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="animateBeamSearch()" data-i18n="p17.s3.animate">Animate BeamSearch</button>
+      <button onclick="resetBeam()" data-i18n="btn.reset">Reset</button>
+    </div>
+  </div>
+
+  <!-- Section 4: Benchmark Chart -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Benchmark</span>
+    <h2 data-i18n="p17.s4.title">Benchmark Showdown — SIFT1B</h2>
+    <p data-i18n="p17.s4.desc" data-i18n-html="1">Recall@1 vs query latency on the SIFT1B dataset (1 billion 128-d vectors). DiskANN achieves the <strong>best recall-latency trade-off</strong> among SSD-based systems.</p>
+    <canvas id="benchCanvas" class="bench-canvas"></canvas>
+    <div class="stat-row">
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)">95%+</div><div class="lbl">Recall@1</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent)">&lt;3ms</div><div class="lbl">P99 Latency</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)">5000+</div><div class="lbl">QPS</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent3)">64 GB</div><div class="lbl">RAM Usage</div></div>
+    </div>
+  </div>
+
+  <!-- Section 5: Quiz -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Quiz</span>
+    <h2 data-i18n="p17.s5.title">Quiz: Test Your Understanding</h2>
+    <p data-i18n="p17.s5.desc">Answer these questions to check your understanding of DiskANN concepts!</p>
+    <div style="text-align:center;margin:8px 0"><span data-i18n="p17.s5.round">Round</span>: <strong id="qRound">1/5</strong> | <span data-i18n="p17.s5.score">Score</span>: <strong id="qScore">0</strong></div>
+    <div id="qDesc" style="text-align:center;padding:16px;background:var(--formula-bg);border-radius:var(--radius);border:1px solid var(--border);margin:12px 0;font-size:.92rem;line-height:1.6;font-weight:600"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="qOpts"></div>
+    <div id="qFb" style="text-align:center;margin-top:12px;font-weight:600;min-height:24px"></div>
+  </div>
+
+</div>
+
+<footer>
+  <p>DiskANN — Subramanya et al. (Microsoft Research), NeurIPS 2019</p>
+  <p>LLM Algorithm Visualizations v2.1.0</p>
+</footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+// ==================== i18n ==================== //
+i18nRegister({
+  'en':{
+    'p17.title':'17. DiskANN — LLM Algorithm Visualizations',
+    'p17.heading':'DiskANN — Billion-Scale Vector Search on SSD',
+    'p17.subtitle':'Bridging the gap between in-memory speed and disk-scale capacity. The Vamana graph index that serves 5000+ QPS at <3ms latency.',
+    'p17.s1.title':'Why DiskANN? — The Memory Wall Problem',
+    'p17.s1.desc':'At billion-scale, in-memory indexes like HNSW need <strong>terabytes of RAM</strong>. Compressed indexes (IVF) save memory but sacrifice recall. DiskANN achieves the best of both worlds: <strong>high recall with SSD + small RAM footprint</strong>.',
+    'p17.s1.scale1m':'1M Vectors','p17.s1.scale100m':'100M Vectors','p17.s1.scale1b':'1B Vectors',
+    'p17.s2.title':'Vamana Graph Algorithm',
+    'p17.s2.desc':'Vamana builds a navigable graph with a single global entry point. The <strong>RobustPrune</strong> procedure controls the trade-off: <strong>\u03b1=1</strong> produces a sparse graph, while <strong>\u03b1>1</strong> adds long-range edges that reduce graph diameter.',
+    'p17.s2.alpha':'\u03b1 parameter:','p17.s2.build':'Build Graph','p17.s2.edges':'Edges','p17.s2.diameter':'Diameter Est.','p17.s2.avgdeg':'Avg Degree',
+    'p17.s3.title':'SSD Index Architecture',
+    'p17.s3.desc':'DiskANN uses a <strong>two-tier</strong> design: compressed PQ codes in DRAM for distance estimation, full vectors + graph co-located on SSD for precise search. <strong>BeamSearch</strong> issues W parallel SSD reads per hop.',
+    'p17.s3.dram':'DRAM Tier','p17.s3.ssd':'SSD Tier',
+    'p17.s3.pq':'PQ Compressed Vectors','p17.s3.medoid':'Global Medoid (entry point)',
+    'p17.s3.fullvec':'Full Vectors + Graph Edges','p17.s3.beam':'BeamSearch (W=4)',
+    'p17.s3.animate':'Animate BeamSearch',
+    'p17.s4.title':'Benchmark Showdown — SIFT1B',
+    'p17.s4.desc':'Recall@1 vs query latency on the SIFT1B dataset (1 billion 128-d vectors). DiskANN achieves the <strong>best recall-latency trade-off</strong> among SSD-based systems.',
+    'p17.s5.title':'Quiz: Test Your Understanding',
+    'p17.s5.desc':'Answer these questions to check your understanding of DiskANN concepts!',
+    'p17.s5.round':'Round','p17.s5.score':'Score',
+    'p17.quiz.q0':'What makes Vamana different from HNSW?',
+    'p17.quiz.q1':'Why does DiskANN keep PQ codes in RAM?',
+    'p17.quiz.q2':'What does the \u03b1 parameter in RobustPrune control?',
+    'p17.quiz.q3':'How does BeamSearch improve SSD-based search?',
+    'p17.quiz.q4':'What is co-located on each SSD sector in DiskANN?',
+    'p17.correct':'Correct!','p17.wrong':'Wrong!'
+  },
+  'zh-CN':{
+    'p17.title':'17. DiskANN — 大语言模型算法可视化',
+    'p17.heading':'DiskANN — SSD 上的十亿级向量搜索',
+    'p17.subtitle':'弥合内存速度与磁盘容量之间的差距。Vamana 图索引实现 5000+ QPS、<3ms 延迟。',
+    'p17.s1.title':'为什么需要 DiskANN？— 内存墙问题',
+    'p17.s1.desc':'在十亿级规模下，HNSW 等内存索引需要<strong>TB 级 RAM</strong>。压缩索引（IVF）节省内存但牺牲召回率。DiskANN 两全其美：<strong>SSD + 小内存 = 高召回率</strong>。',
+    'p17.s1.scale1m':'100 万向量','p17.s1.scale100m':'1 亿向量','p17.s1.scale1b':'10 亿向量',
+    'p17.s2.title':'Vamana 图算法',
+    'p17.s2.desc':'Vamana 构建具有单一全局入口点的可导航图。<strong>RobustPrune</strong> 控制权衡：<strong>\u03b1=1</strong> 产生稀疏图，<strong>\u03b1>1</strong> 添加远距离边以降低图直径。',
+    'p17.s2.alpha':'\u03b1 参数：','p17.s2.build':'构建图','p17.s2.edges':'边数','p17.s2.diameter':'直径估计','p17.s2.avgdeg':'平均度',
+    'p17.s3.title':'SSD 索引架构',
+    'p17.s3.desc':'DiskANN 使用<strong>两级</strong>设计：DRAM 中的 PQ 压缩向量用于距离估计，SSD 上的完整向量 + 图用于精确搜索。<strong>BeamSearch</strong> 每跳发出 W 个并行 SSD 读取。',
+    'p17.s3.dram':'DRAM 层','p17.s3.ssd':'SSD 层',
+    'p17.s3.pq':'PQ 压缩向量','p17.s3.medoid':'全局中心点（入口）',
+    'p17.s3.fullvec':'完整向量 + 图边','p17.s3.beam':'BeamSearch（W=4）',
+    'p17.s3.animate':'播放 BeamSearch 动画',
+    'p17.s4.title':'基准测试对比 — SIFT1B',
+    'p17.s4.desc':'SIFT1B 数据集（10 亿 128 维向量）上的 Recall@1 vs 查询延迟。DiskANN 在 SSD 系统中实现<strong>最佳召回-延迟权衡</strong>。',
+    'p17.s5.title':'测验：检验你的理解',
+    'p17.s5.desc':'回答这些问题，检验你对 DiskANN 概念的理解！',
+    'p17.s5.round':'第','p17.s5.score':'得分',
+    'p17.quiz.q0':'Vamana 与 HNSW 有什么不同？',
+    'p17.quiz.q1':'为什么 DiskANN 在 RAM 中保存 PQ 码？',
+    'p17.quiz.q2':'RobustPrune 中的 \u03b1 参数控制什么？',
+    'p17.quiz.q3':'BeamSearch 如何改善基于 SSD 的搜索？',
+    'p17.quiz.q4':'DiskANN 的每个 SSD 扇区上共存了什么？',
+    'p17.correct':'正确！','p17.wrong':'错误！'
+  },
+  'zh-TW':{
+    'p17.title':'17. DiskANN — 大語言模型演算法視覺化',
+    'p17.heading':'DiskANN — SSD 上的十億級向量搜尋',
+    'p17.subtitle':'彌合記憶體速度與磁碟容量之間的差距。Vamana 圖索引實現 5000+ QPS、<3ms 延遲。',
+    'p17.s1.title':'為什麼需要 DiskANN？— 記憶體牆問題',
+    'p17.s1.desc':'在十億級規模下，HNSW 等記憶體索引需要<strong>TB 級 RAM</strong>。壓縮索引（IVF）節省記憶體但犧牲召回率。DiskANN 兩全其美：<strong>SSD + 小記憶體 = 高召回率</strong>。',
+    'p17.s1.scale1m':'100 萬向量','p17.s1.scale100m':'1 億向量','p17.s1.scale1b':'10 億向量',
+    'p17.s2.title':'Vamana 圖演算法',
+    'p17.s2.desc':'Vamana 構建具有單一全域入口點的可導航圖。<strong>RobustPrune</strong> 控制權衡：<strong>\u03b1=1</strong> 產生稀疏圖，<strong>\u03b1>1</strong> 添加遠距離邊以降低圖直徑。',
+    'p17.s2.alpha':'\u03b1 參數：','p17.s2.build':'建構圖','p17.s2.edges':'邊數','p17.s2.diameter':'直徑估計','p17.s2.avgdeg':'平均度',
+    'p17.s3.title':'SSD 索引架構',
+    'p17.s3.desc':'DiskANN 使用<strong>兩級</strong>設計：DRAM 中的 PQ 壓縮向量用於距離估計，SSD 上的完整向量 + 圖用於精確搜尋。<strong>BeamSearch</strong> 每跳發出 W 個平行 SSD 讀取。',
+    'p17.s3.dram':'DRAM 層','p17.s3.ssd':'SSD 層',
+    'p17.s3.pq':'PQ 壓縮向量','p17.s3.medoid':'全域中心點（入口）',
+    'p17.s3.fullvec':'完整向量 + 圖邊','p17.s3.beam':'BeamSearch（W=4）',
+    'p17.s3.animate':'播放 BeamSearch 動畫',
+    'p17.s4.title':'基準測試對比 — SIFT1B',
+    'p17.s4.desc':'SIFT1B 資料集（10 億 128 維向量）上的 Recall@1 vs 查詢延遲。DiskANN 在 SSD 系統中實現<strong>最佳召回-延遲權衡</strong>。',
+    'p17.s5.title':'測驗：檢驗你的理解',
+    'p17.s5.desc':'回答這些問題，檢驗你對 DiskANN 概念的理解！',
+    'p17.s5.round':'第','p17.s5.score':'得分',
+    'p17.quiz.q0':'Vamana 與 HNSW 有什麼不同？',
+    'p17.quiz.q1':'為什麼 DiskANN 在 RAM 中保存 PQ 碼？',
+    'p17.quiz.q2':'RobustPrune 中的 \u03b1 參數控制什麼？',
+    'p17.quiz.q3':'BeamSearch 如何改善基於 SSD 的搜尋？',
+    'p17.quiz.q4':'DiskANN 的每個 SSD 磁區上共存了什麼？',
+    'p17.correct':'正確！','p17.wrong':'錯誤！'
+  }
+});
+
+// ==================== Helpers ==================== //
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function setupCanvas(id){
+  var c=document.getElementById(id);if(!c)return null;
+  var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  c.width=r.width*d;c.height=r.height*d;
+  var x=c.getContext('2d');x.scale(d,d);
+  return{c:c,x:x,W:r.width,H:r.height};
+}
+
+// ==================== Section 1: Memory Wall ==================== //
+var curScale=0;
+var SCALE_DATA=[
+  // [label, HNSW_RAM_GB, IVF_RAM_GB, IVF_Recall, DiskANN_RAM_GB, DiskANN_Recall, diskNote]
+  {n:'1M',   hnsw:3,     ivf:0.064,  ivfR:50, disk:0.064, diskR:95, hnswR:99},
+  {n:'100M', hnsw:300,   ivf:6.4,    ivfR:50, disk:6.4,   diskR:95, hnswR:99},
+  {n:'1B',   hnsw:3000,  ivf:64,     ivfR:50, disk:64,    diskR:96, hnswR:99},
+];
+
+function setScale(i){
+  curScale=i;
+  for(var j=0;j<3;j++){document.getElementById('scaleBtn'+j).className=j===i?'active':'';}
+  drawMemChart();
+  var d=SCALE_DATA[i];
+  document.getElementById('scaleStats').innerHTML=
+    '<div class="stat-badge"><div class="val" style="color:var(--accent3)">'+d.hnsw+' GB</div><div class="lbl">HNSW RAM ('+d.hnswR+'% recall)</div></div>'+
+    '<div class="stat-badge"><div class="val" style="color:var(--accent4)">'+d.ivf+' GB</div><div class="lbl">FAISS IVF RAM ('+d.ivfR+'% recall)</div></div>'+
+    '<div class="stat-badge"><div class="val" style="color:var(--accent2)">'+d.disk+' GB</div><div class="lbl">DiskANN RAM ('+d.diskR+'% recall)</div></div>';
+}
+
+function drawMemChart(){
+  var o=setupCanvas('memCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H,d=SCALE_DATA[curScale];
+  var tc=css('--text'),dc=css('--text-dim'),bc=css('--border');
+  var pad={t:50,r:40,b:80,l:80},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+
+  // Title
+  x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';
+  x.fillText('RAM Requirement at '+d.n+' Scale (128-d float32)',W/2,28);
+
+  // Bars
+  var systems=[
+    {label:'HNSW',ram:d.hnsw,recall:d.hnswR,color:'#e11d48'},
+    {label:'FAISS IVF',ram:d.ivf,recall:d.ivfR,color:'#ea580c'},
+    {label:'DiskANN',ram:d.disk,recall:d.diskR,color:'#0d9488'}
+  ];
+  var maxRAM=Math.max(d.hnsw,d.ivf,d.disk)*1.3;
+  var barW=cW/5, gap=cW/5;
+
+  // Y axis
+  x.strokeStyle=bc;x.lineWidth=1;x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
+  x.fillStyle=dc;x.font='10px monospace';x.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var val=maxRAM*g/4;var py=pad.t+cH-(g/4)*cH;
+    x.fillText(val>=1?val.toFixed(0)+' GB':(val*1024).toFixed(0)+' MB',pad.l-10,py+4);
+    if(g>0){x.strokeStyle='rgba(128,128,128,.12)';x.beginPath();x.moveTo(pad.l,py);x.lineTo(pad.l+cW,py);x.stroke();}
+  }
+
+  systems.forEach(function(s,i){
+    var bx=pad.l+gap*(i+0.5)+barW*i;
+    var bh=(s.ram/maxRAM)*cH;
+    var by=pad.t+cH-bh;
+    // Bar
+    x.fillStyle=s.color+'33';x.strokeStyle=s.color;x.lineWidth=2;
+    x.beginPath();if(x.roundRect)x.roundRect(bx,by,barW,bh,6);else x.rect(bx,by,barW,bh);x.fill();x.stroke();
+    // RAM label
+    x.fillStyle=s.color;x.font='bold 13px system-ui';x.textAlign='center';
+    var ramLabel=s.ram>=1?s.ram+' GB':(s.ram*1024).toFixed(0)+' MB';
+    x.fillText(ramLabel,bx+barW/2,by-8);
+    // System label
+    x.fillStyle=tc;x.font='bold 12px system-ui';
+    x.fillText(s.label,bx+barW/2,pad.t+cH+20);
+    // Recall badge
+    x.fillStyle=s.color;x.font='11px system-ui';
+    x.fillText('Recall: '+s.recall+'%',bx+barW/2,pad.t+cH+38);
+  });
+
+  // DiskANN note
+  if(curScale>=1){
+    x.fillStyle='#0d948899';x.font='italic 11px system-ui';x.textAlign='center';
+    x.fillText('+ SSD for full vectors & graph',W/2,H-12);
+  }
+}
+
+// ==================== Section 2: Vamana Graph ==================== //
+var vNodes=[], vEdges=[], vAlpha=1.0, vBuilding=false, vBuildStep=0, vAnimFrame=null;
+var V_R=64; // max degree
+
+function genVamanaPoints(){
+  vNodes=[];vEdges=[];
+  var rng=function(s){return function(){s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff;};}(42);
+  for(var i=0;i<30;i++){
+    vNodes.push({x:0.08+rng()*0.84, y:0.08+rng()*0.84, edges:[]});
+  }
+}
+
+function dist(a,b){var dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy);}
+
+function buildVamanaGraph(){
+  var N=vNodes.length;
+  // Reset edges
+  vEdges=[];
+  for(var i=0;i<N;i++) vNodes[i].edges=[];
+
+  // Find medoid (closest to centroid)
+  var cx=0,cy=0;
+  for(var i=0;i<N;i++){cx+=vNodes[i].x;cy+=vNodes[i].y;}
+  cx/=N;cy/=N;
+  var med=0,md=Infinity;
+  for(var i=0;i<N;i++){var dd=dist(vNodes[i],{x:cx,y:cy});if(dd<md){md=dd;med=i;}}
+
+  // Random permutation
+  var perm=[];for(var i=0;i<N;i++)perm.push(i);
+  for(var i=N-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=perm[i];perm[i]=perm[j];perm[j]=tmp;}
+
+  var R=6; // max out-degree
+  var alpha=vAlpha;
+
+  // Two passes
+  for(var pass=0;pass<2;pass++){
+    for(var pi=0;pi<N;pi++){
+      var p=perm[pi];
+      // Greedy search from medoid to p
+      var visited=new Set();
+      var cur=med;
+      var path=[cur];
+      for(var step=0;step<50;step++){
+        visited.add(cur);
+        var best=cur,bd=dist(vNodes[cur],vNodes[p]);
+        var neighbors=vNodes[cur].edges;
+        for(var ni=0;ni<neighbors.length;ni++){
+          var nb=neighbors[ni];
+          if(!visited.has(nb)){
+            var dd=dist(vNodes[nb],vNodes[p]);
+            if(dd<bd){bd=dd;best=nb;}
+          }
+        }
+        if(best===cur)break;
+        cur=best;path.push(cur);
+      }
+
+      // RobustPrune: collect candidates
+      var cands=new Set(path);
+      vNodes[p].edges.forEach(function(e){cands.add(e);});
+      cands.delete(p);
+      var candArr=Array.from(cands);
+      candArr.sort(function(a,b){return dist(vNodes[p],vNodes[a])-dist(vNodes[p],vNodes[b]);});
+
+      // Prune
+      var newEdges=[];
+      for(var ci=0;ci<candArr.length&&newEdges.length<R;ci++){
+        var c=candArr[ci];
+        var dominated=false;
+        for(var ei=0;ei<newEdges.length;ei++){
+          if(alpha*dist(vNodes[newEdges[ei]],vNodes[c]) <= dist(vNodes[p],vNodes[c])){
+            dominated=true;break;
+          }
+        }
+        if(!dominated) newEdges.push(c);
+      }
+      vNodes[p].edges=newEdges;
+
+      // Add reverse edges + prune reverse
+      for(var ei=0;ei<newEdges.length;ei++){
+        var nb=newEdges[ei];
+        if(vNodes[nb].edges.indexOf(p)===-1){
+          vNodes[nb].edges.push(p);
+          if(vNodes[nb].edges.length>R){
+            // Prune excess
+            vNodes[nb].edges.sort(function(a,b){return dist(vNodes[nb],vNodes[a])-dist(vNodes[nb],vNodes[b]);});
+            var pruned=[];
+            for(var k=0;k<vNodes[nb].edges.length&&pruned.length<R;k++){
+              var cc=vNodes[nb].edges[k];
+              var dom=false;
+              for(var m=0;m<pruned.length;m++){
+                if(alpha*dist(vNodes[pruned[m]],vNodes[cc])<=dist(vNodes[nb],vNodes[cc])){dom=true;break;}
+              }
+              if(!dom)pruned.push(cc);
+            }
+            vNodes[nb].edges=pruned;
+          }
+        }
+      }
+    }
+    // Second pass uses alpha
+    if(pass===0&&alpha>1.0){/* alpha already set */}
+  }
+
+  // Collect edges
+  vEdges=[];
+  var edgeSet=new Set();
+  for(var i=0;i<N;i++){
+    for(var j=0;j<vNodes[i].edges.length;j++){
+      var nb=vNodes[i].edges[j];
+      var key=Math.min(i,nb)+'-'+Math.max(i,nb);
+      if(!edgeSet.has(key)){edgeSet.add(key);vEdges.push([i,nb]);}
+    }
+  }
+
+  // Stats
+  var totalDeg=0;
+  for(var i=0;i<N;i++) totalDeg+=vNodes[i].edges.length;
+  document.getElementById('statEdges').textContent=vEdges.length;
+  document.getElementById('statDeg').textContent=(totalDeg/N).toFixed(1);
+
+  // Estimate diameter via BFS from medoid
+  function bfsDepth(start){
+    var q=[start],vis=new Set([start]),depth=0;
+    while(q.length){
+      var next=[];
+      for(var qi=0;qi<q.length;qi++){
+        var nb=vNodes[q[qi]].edges;
+        for(var ni=0;ni<nb.length;ni++){
+          if(!vis.has(nb[ni])){vis.add(nb[ni]);next.push(nb[ni]);}
+        }
+      }
+      if(next.length)depth++;
+      q=next;
+    }
+    return depth;
+  }
+  var maxD=bfsDepth(med);
+  document.getElementById('statDiam').textContent='~'+maxD;
+}
+
+function drawVamana(){
+  var o=setupCanvas('vamanaCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim');
+  var pad=30;
+
+  // Find medoid for highlighting
+  var cx=0,cy=0;
+  for(var i=0;i<vNodes.length;i++){cx+=vNodes[i].x;cy+=vNodes[i].y;}
+  if(vNodes.length){cx/=vNodes.length;cy/=vNodes.length;}
+  var med=0,md=Infinity;
+  for(var i=0;i<vNodes.length;i++){var dd=dist(vNodes[i],{x:cx,y:cy});if(dd<md){md=dd;med=i;}}
+
+  // Draw edges
+  x.lineWidth=1.2;
+  for(var i=0;i<vEdges.length;i++){
+    var a=vNodes[vEdges[i][0]],b=vNodes[vEdges[i][1]];
+    var ax=pad+a.x*(W-2*pad),ay=pad+a.y*(H-2*pad);
+    var bx=pad+b.x*(W-2*pad),by=pad+b.y*(H-2*pad);
+    var edgeDist=dist(a,b);
+    // Color long edges differently
+    if(edgeDist>0.4){
+      x.strokeStyle='rgba(234,88,12,.5)';x.setLineDash([4,3]);
+    } else {
+      x.strokeStyle='rgba(91,91,214,.3)';x.setLineDash([]);
+    }
+    x.beginPath();x.moveTo(ax,ay);x.lineTo(bx,by);x.stroke();
+  }
+  x.setLineDash([]);
+
+  // Draw nodes
+  for(var i=0;i<vNodes.length;i++){
+    var nx=pad+vNodes[i].x*(W-2*pad);
+    var ny=pad+vNodes[i].y*(H-2*pad);
+    var r=i===med?8:5;
+    var col=i===med?'#e11d48':'#5b5bd6';
+    x.fillStyle=col;x.beginPath();x.arc(nx,ny,r,0,Math.PI*2);x.fill();
+    x.strokeStyle='rgba(255,255,255,.3)';x.lineWidth=1;x.stroke();
+    if(i===med){
+      x.fillStyle=tc;x.font='bold 10px system-ui';x.textAlign='center';
+      x.fillText('medoid',nx,ny-12);
+    }
+  }
+
+  // Legend
+  x.fillStyle=dc;x.font='11px system-ui';x.textAlign='left';
+  x.strokeStyle='rgba(91,91,214,.5)';x.lineWidth=2;x.beginPath();x.moveTo(12,H-30);x.lineTo(32,H-30);x.stroke();
+  x.fillText('Short-range edge',38,H-26);
+  x.strokeStyle='rgba(234,88,12,.7)';x.setLineDash([4,3]);x.beginPath();x.moveTo(12,H-14);x.lineTo(32,H-14);x.stroke();x.setLineDash([]);
+  x.fillText('Long-range edge (\u03b1>1)',38,H-10);
+}
+
+function onAlphaChange(v){
+  vAlpha=v/100;
+  document.getElementById('alphaVal').textContent=vAlpha.toFixed(2);
+}
+
+function buildVamana(){
+  buildVamanaGraph();
+  drawVamana();
+}
+
+function resetVamana(){
+  genVamanaPoints();vEdges=[];
+  for(var i=0;i<vNodes.length;i++)vNodes[i].edges=[];
+  document.getElementById('statEdges').textContent='0';
+  document.getElementById('statDiam').textContent='0';
+  document.getElementById('statDeg').textContent='0';
+  drawVamana();
+}
+
+// ==================== Section 3: BeamSearch Animation ==================== //
+var beamState={nodes:[],edges:[],query:null,visited:[],beamW:4,step:0,running:false,hops:[],found:null};
+
+function initBeamGraph(){
+  // Create a small graph for visualization
+  var rng=function(s){return function(){s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff;};}(99);
+  beamState.nodes=[];beamState.edges=[];
+  // Cluster layout: SSD sectors visualized
+  for(var i=0;i<20;i++){
+    beamState.nodes.push({x:0.08+rng()*0.84,y:0.15+rng()*0.7,neighbors:[]});
+  }
+  // Build adjacency
+  for(var i=0;i<20;i++){
+    var dists=[];
+    for(var j=0;j<20;j++){if(j!==i)dists.push({j:j,d:dist(beamState.nodes[i],beamState.nodes[j])});}
+    dists.sort(function(a,b){return a.d-b.d;});
+    for(var k=0;k<Math.min(4,dists.length);k++){
+      var j=dists[k].j;
+      if(beamState.nodes[i].neighbors.indexOf(j)===-1)beamState.nodes[i].neighbors.push(j);
+      if(beamState.nodes[j].neighbors.indexOf(i)===-1)beamState.nodes[j].neighbors.push(i);
+    }
+  }
+  // Query point and nearest neighbor
+  beamState.query={x:0.75,y:0.3};
+  var best=0,bd=Infinity;
+  for(var i=0;i<20;i++){var dd=dist(beamState.nodes[i],beamState.query);if(dd<bd){bd=dd;best=i;}}
+  beamState.found=best;
+  beamState.visited=[];beamState.hops=[];beamState.step=0;beamState.running=false;
+
+  // Pre-compute beam search path
+  var visited=new Set();
+  var cur=[0]; // start at medoid-like node 0
+  beamState.hops.push(cur.slice());
+  for(var hop=0;hop<6;hop++){
+    var cands=[];
+    for(var ci=0;ci<cur.length;ci++){
+      visited.add(cur[ci]);
+      var nbs=beamState.nodes[cur[ci]].neighbors;
+      for(var ni=0;ni<nbs.length;ni++){
+        if(!visited.has(nbs[ni]))cands.push(nbs[ni]);
+      }
+    }
+    if(!cands.length)break;
+    // Sort by distance to query, take W best
+    cands=Array.from(new Set(cands));
+    cands.sort(function(a,b){return dist(beamState.nodes[a],beamState.query)-dist(beamState.nodes[b],beamState.query);});
+    cur=cands.slice(0,beamState.beamW);
+    beamState.hops.push(cur.slice());
+  }
+}
+
+function drawBeamSearch(){
+  var o=setupCanvas('archCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim');
+  var pad=30;
+  var ns=beamState.nodes;
+
+  // Draw edges (faint)
+  x.strokeStyle='rgba(128,128,128,.12)';x.lineWidth=1;
+  for(var i=0;i<ns.length;i++){
+    for(var j=0;j<ns[i].neighbors.length;j++){
+      var nb=ns[i].neighbors[j];
+      if(nb>i){
+        x.beginPath();
+        x.moveTo(pad+ns[i].x*(W-2*pad),pad+ns[i].y*(H-2*pad));
+        x.lineTo(pad+ns[nb].x*(W-2*pad),pad+ns[nb].y*(H-2*pad));
+        x.stroke();
+      }
+    }
+  }
+
+  // Highlight visited hops
+  var allVisited=new Set();
+  var hopColors=['rgba(91,91,214,.4)','rgba(13,148,136,.5)','rgba(234,88,12,.5)','rgba(225,29,72,.5)','rgba(91,91,214,.6)','rgba(13,148,136,.6)','rgba(234,88,12,.6)'];
+  var currentHop=Math.min(beamState.step, beamState.hops.length-1);
+  for(var h=0;h<=currentHop;h++){
+    var hop=beamState.hops[h];
+    if(!hop)continue;
+    for(var ci=0;ci<hop.length;ci++){
+      allVisited.add(hop[ci]);
+      // Draw beam read indicator
+      if(h===currentHop&&h>0){
+        var nx=pad+ns[hop[ci]].x*(W-2*pad);
+        var ny=pad+ns[hop[ci]].y*(H-2*pad);
+        x.strokeStyle=hopColors[h%hopColors.length];x.lineWidth=2;
+        x.beginPath();x.arc(nx,ny,16,0,Math.PI*2);x.stroke();
+        // "SSD read" label
+        x.fillStyle=hopColors[h%hopColors.length].replace(/[\d.]+\)$/,'1)');
+        x.font='bold 8px system-ui';x.textAlign='center';
+        x.fillText('SSD',nx,ny-20);
+      }
+    }
+    // Draw hop edges
+    if(h>0&&beamState.hops[h-1]){
+      var prev=beamState.hops[h-1];
+      x.strokeStyle=hopColors[h%hopColors.length];x.lineWidth=2;
+      for(var pi=0;pi<prev.length;pi++){
+        for(var ci=0;ci<hop.length;ci++){
+          if(ns[prev[pi]].neighbors.indexOf(hop[ci])!==-1){
+            x.beginPath();
+            x.moveTo(pad+ns[prev[pi]].x*(W-2*pad),pad+ns[prev[pi]].y*(H-2*pad));
+            x.lineTo(pad+ns[hop[ci]].x*(W-2*pad),pad+ns[hop[ci]].y*(H-2*pad));
+            x.stroke();
+          }
+        }
+      }
+    }
+  }
+
+  // Draw nodes
+  for(var i=0;i<ns.length;i++){
+    var nx=pad+ns[i].x*(W-2*pad);
+    var ny=pad+ns[i].y*(H-2*pad);
+    var isVisited=allVisited.has(i);
+    var isFound=i===beamState.found&&currentHop>=beamState.hops.length-1;
+    var r=isFound?9:isVisited?6:4;
+    x.fillStyle=isFound?'#0d9488':isVisited?'#5b5bd6':'rgba(128,128,128,.4)';
+    x.beginPath();x.arc(nx,ny,r,0,Math.PI*2);x.fill();
+    if(i===0){
+      x.fillStyle=tc;x.font='bold 9px system-ui';x.textAlign='center';
+      x.fillText('entry',nx,ny-10);
+    }
+    if(isFound){
+      x.fillStyle='#0d9488';x.font='bold 10px system-ui';x.textAlign='center';
+      x.fillText('nearest!',nx,ny-14);
+    }
+  }
+
+  // Draw query
+  if(beamState.query){
+    var qx=pad+beamState.query.x*(W-2*pad);
+    var qy=pad+beamState.query.y*(H-2*pad);
+    x.fillStyle='#e11d48';x.beginPath();x.arc(qx,qy,7,0,Math.PI*2);x.fill();
+    x.strokeStyle='#e11d48';x.lineWidth=2;
+    x.beginPath();x.arc(qx,qy,12,0,Math.PI*2);x.stroke();
+    x.fillStyle='#e11d48';x.font='bold 10px system-ui';x.textAlign='center';
+    x.fillText('query',qx,qy-16);
+  }
+
+  // Hop counter
+  x.fillStyle=tc;x.font='bold 12px system-ui';x.textAlign='left';
+  x.fillText('Hop: '+currentHop+'/'+Math.max(0,beamState.hops.length-1)+'  |  Beam width W='+beamState.beamW,12,20);
+}
+
+var beamAnimTimer=null;
+function animateBeamSearch(){
+  beamState.step=0;beamState.running=true;
+  drawBeamSearch();
+  if(beamAnimTimer)clearInterval(beamAnimTimer);
+  beamAnimTimer=setInterval(function(){
+    if(beamState.step>=beamState.hops.length-1){
+      clearInterval(beamAnimTimer);beamAnimTimer=null;beamState.running=false;
+      drawBeamSearch();return;
+    }
+    beamState.step++;
+    drawBeamSearch();
+  },800);
+}
+
+function resetBeam(){
+  if(beamAnimTimer){clearInterval(beamAnimTimer);beamAnimTimer=null;}
+  beamState.step=0;beamState.running=false;
+  drawBeamSearch();
+}
+
+// ==================== Section 4: Benchmark Chart ==================== //
+function drawBenchmark(){
+  var o=setupCanvas('benchCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim'),bc=css('--border');
+  var pad={t:50,r:50,b:60,l:70},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+
+  // Title
+  x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';
+  x.fillText('Recall@1 vs Latency — SIFT1B (1 Billion Vectors)',W/2,28);
+
+  // Axes
+  x.strokeStyle=bc;x.lineWidth=1;
+  x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
+
+  // X axis: latency 0-15ms
+  var maxLat=15;
+  x.fillStyle=dc;x.font='10px monospace';x.textAlign='center';
+  for(var i=0;i<=maxLat;i+=3){
+    var px=pad.l+(i/maxLat)*cW;
+    x.fillText(i+'ms',px,pad.t+cH+18);
+    x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(px,pad.t);x.lineTo(px,pad.t+cH);x.stroke();
+  }
+  x.fillText('Query Latency (ms)',pad.l+cW/2,H-10);
+
+  // Y axis: recall 40%-100%
+  var minR=40,maxR=100;
+  x.textAlign='right';
+  for(var r=40;r<=100;r+=10){
+    var py=pad.t+cH-((r-minR)/(maxR-minR))*cH;
+    x.fillStyle=dc;x.fillText(r+'%',pad.l-8,py+4);
+    x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(pad.l,py);x.lineTo(pad.l+cW,py);x.stroke();
+  }
+  x.save();x.translate(14,pad.t+cH/2);x.rotate(-Math.PI/2);x.fillStyle=dc;x.font='11px system-ui';x.textAlign='center';x.fillText('Recall@1 (%)',0,0);x.restore();
+
+  // Data points: [latency_ms, recall%, label, color]
+  var systems=[
+    // HNSW (in-memory, very fast but huge RAM)
+    {pts:[[0.5,99.2],[0.3,97],[0.2,92]],color:'#e11d48',label:'HNSW (in-memory, 3TB RAM)'},
+    // FAISS IVF
+    {pts:[[2,72],[5,80],[10,85]],color:'#ea580c',label:'FAISS IVF (64GB RAM)'},
+    // DiskANN
+    {pts:[[1,90],[2,95.5],[3,97],[5,98.5]],color:'#0d9488',label:'DiskANN (64GB RAM + SSD)'},
+    // IVFOADC+G+P (baseline SSD)
+    {pts:[[4,60],[8,75],[12,82]],color:'#6c7086',label:'IVFOADC+G+P (SSD)'},
+  ];
+
+  systems.forEach(function(s){
+    // Line
+    x.strokeStyle=s.color;x.lineWidth=2.5;
+    x.beginPath();
+    s.pts.forEach(function(pt,i){
+      var px=pad.l+(pt[0]/maxLat)*cW;
+      var py=pad.t+cH-((pt[1]-minR)/(maxR-minR))*cH;
+      i===0?x.moveTo(px,py):x.lineTo(px,py);
+    });
+    x.stroke();
+    // Points
+    s.pts.forEach(function(pt){
+      var px=pad.l+(pt[0]/maxLat)*cW;
+      var py=pad.t+cH-((pt[1]-minR)/(maxR-minR))*cH;
+      x.fillStyle=s.color;x.beginPath();x.arc(px,py,4,0,Math.PI*2);x.fill();
+    });
+  });
+
+  // Legend
+  var ly=pad.t+10;
+  x.font='11px system-ui';x.textAlign='left';
+  systems.forEach(function(s,i){
+    var lx=pad.l+cW-220;
+    x.fillStyle=s.color;x.fillRect(lx,ly+i*18,12,12);
+    x.fillStyle=tc;x.fillText(s.label,lx+16,ly+i*18+10);
+  });
+
+  // Highlight DiskANN sweet spot
+  x.setLineDash([4,3]);x.strokeStyle='rgba(13,148,136,.4)';x.lineWidth=1.5;
+  var sx=pad.l+(1/maxLat)*cW,sy=pad.t+cH-((88-minR)/(maxR-minR))*cH;
+  var sw=(4/maxLat)*cW,sh=((99-88)/(maxR-minR))*cH;
+  x.beginPath();if(x.roundRect)x.roundRect(sx,sy,sw,sh,8);else x.rect(sx,sy,sw,sh);x.stroke();
+  x.setLineDash([]);
+  x.fillStyle='rgba(13,148,136,.7)';x.font='bold 10px system-ui';x.textAlign='center';
+  x.fillText('DiskANN sweet spot',sx+sw/2,sy-6);
+}
+
+// ==================== Section 5: Quiz ==================== //
+var QUIZ=[
+  {dk:'p17.quiz.q0',ans:1,opts:[
+    {text:'It uses multiple layers of entry points (hierarchical)'},
+    {text:'It uses a single flat graph with one global medoid entry point'},
+    {text:'It builds a random graph without pruning'},
+    {text:'It requires all vectors in memory'}
+  ]},
+  {dk:'p17.quiz.q1',ans:2,opts:[
+    {text:'To store the graph structure compactly'},
+    {text:'PQ codes are more accurate than full vectors'},
+    {text:'To estimate distances cheaply and guide BeamSearch before SSD reads'},
+    {text:'PQ codes are needed for graph construction'}
+  ]},
+  {dk:'p17.quiz.q2',ans:0,opts:[
+    {text:'Trade-off between long-range connectivity and edge count; higher alpha adds more long-range edges'},
+    {text:'The maximum number of neighbors per node'},
+    {text:'The number of SSD reads per query'},
+    {text:'The compression ratio of PQ codes'}
+  ]},
+  {dk:'p17.quiz.q3',ans:3,opts:[
+    {text:'It reads all nodes sequentially from SSD'},
+    {text:'It caches the entire graph in RAM'},
+    {text:'It uses GPUs for parallel distance computation'},
+    {text:'It issues W parallel async SSD reads per hop, exploiting NVMe parallelism'}
+  ]},
+  {dk:'p17.quiz.q4',ans:1,opts:[
+    {text:'Only the adjacency list (neighbor IDs)'},
+    {text:'The full-precision vector AND the adjacency list (neighbor IDs + their vectors)'},
+    {text:'Only the PQ compressed vector'},
+    {text:'The query vector and result set'}
+  ]},
+];
+var qi=0,qs=0;
+
+function renderQuiz(){
+  document.getElementById('qRound').textContent=(qi+1)+'/5';
+  document.getElementById('qScore').textContent=qs;
+  document.getElementById('qDesc').textContent=t(QUIZ[qi].dk);
+  document.getElementById('qFb').textContent='';
+  var o=document.getElementById('qOpts');o.innerHTML='';
+  var opts=QUIZ[qi].opts.slice();
+  // Shuffle while tracking correct answer
+  var indices=[];for(var i=0;i<opts.length;i++)indices.push(i);
+  for(var i=indices.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=indices[i];indices[i]=indices[j];indices[j]=tmp;}
+  indices.forEach(function(idx){
+    var d=document.createElement('div');
+    d.className='game-opt';
+    d.textContent=opts[idx].text;
+    d.onclick=function(){checkQuiz(idx,d);};
+    o.appendChild(d);
+  });
+}
+
+function checkQuiz(pick,el){
+  var all=document.getElementById('qOpts').querySelectorAll('.game-opt');
+  all.forEach(function(d){d.style.pointerEvents='none';});
+  var correctText=QUIZ[qi].opts[QUIZ[qi].ans].text;
+  if(pick===QUIZ[qi].ans){
+    el.classList.add('correct');qs++;
+    document.getElementById('qFb').innerHTML='<span style="color:var(--accent2)">'+t('p17.correct')+'</span>';
+  } else {
+    el.classList.add('wrong');
+    all.forEach(function(d){if(d.textContent===correctText)d.classList.add('correct');});
+    document.getElementById('qFb').innerHTML='<span style="color:var(--accent3)">'+t('p17.wrong')+'</span>';
+  }
+  document.getElementById('qScore').textContent=qs;
+  setTimeout(function(){
+    qi++;
+    if(qi<5) renderQuiz();
+    else {
+      document.getElementById('qFb').innerHTML='<strong>Final: '+qs+'/5</strong>';
+      if(typeof markGameCompleted==='function') markGameCompleted('17');
+    }
+  },2000);
+}
+
+// ==================== Init ==================== //
+window.addEventListener('load',function(){
+  setScale(0);
+  genVamanaPoints();drawVamana();
+  initBeamGraph();drawBeamSearch();
+  drawBenchmark();
+  renderQuiz();
+});
+window.addEventListener('themechange',function(){drawMemChart();drawVamana();drawBeamSearch();drawBenchmark();});
+window.addEventListener('resize',function(){drawMemChart();drawVamana();drawBeamSearch();drawBenchmark();});
+</script>
+</body>
+</html>

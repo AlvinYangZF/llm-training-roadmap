@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p18.title">18. AiSAQ — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .mem-canvas{width:100%;height:340px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .cost-canvas{width:100%;height:360px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .slider-wrap{text-align:center;margin:16px 0}
+    .slider-wrap input[type=range]{width:80%;max-width:500px;accent-color:var(--accent)}
+    .slider-label{font-size:.88rem;color:var(--text-dim);margin-bottom:6px}
+    .slider-value{font-size:1.1rem;font-weight:700;color:var(--accent);margin-top:4px}
+    .arch-diagram{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin:16px 0}
+    .arch-side{flex:1;min-width:280px;max-width:460px;border:2px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--surface)}
+    .arch-side h3{margin:0 0 12px;font-size:.95rem;text-align:center}
+    .chunk-row{display:flex;gap:2px;margin:8px 0;flex-wrap:wrap;align-items:center}
+    .chunk-cell{padding:6px 10px;border-radius:6px;font-size:.72rem;font-weight:600;text-align:center;border:1px solid;line-height:1.3}
+    .anim-btn{padding:8px 20px;border-radius:10px;border:2px solid var(--accent);background:rgba(91,91,214,.08);color:var(--accent);font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s}
+    .anim-btn:hover{background:rgba(91,91,214,.15);transform:translateY(-1px)}
+    .anim-step{min-height:60px;padding:12px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);margin:12px 0;font-size:.85rem;line-height:1.6;transition:all .3s}
+    .switch-demo{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:16px 0}
+    .index-btn{padding:12px 24px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s;text-align:center;min-width:120px}
+    .index-btn:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .index-btn.active{border-color:var(--accent2);background:rgba(13,148,136,.08)}
+    .timing-bar{margin:12px 0;position:relative}
+    .timing-bar-label{font-size:.78rem;color:var(--text-dim);margin-bottom:4px}
+    .timing-bar-track{height:28px;background:var(--bar-track-bg);border-radius:8px;overflow:hidden;position:relative}
+    .timing-bar-fill{height:100%;border-radius:8px;display:flex;align-items:center;padding:0 10px;font-size:.75rem;font-weight:700;color:#fff;transition:width .6s ease;min-width:fit-content}
+    .mem-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.82rem}
+    .mem-table th,.mem-table td{padding:10px 14px;border:1px solid var(--border);text-align:right}
+    .mem-table th{background:var(--formula-bg);font-weight:700;text-align:center}
+    .mem-table td:first-child{text-align:left;font-weight:600}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+    .game-opt{padding:12px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s;text-align:center}
+    .game-opt:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .game-opt.correct{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .game-opt.wrong{border-color:var(--accent3);background:rgba(225,29,72,.08)}
+    .formula-box{padding:14px 20px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);font-family:'Courier New',monospace;font-size:.88rem;text-align:center;margin:12px 0;line-height:1.8}
+    .shared-centroid-note{font-size:.8rem;color:var(--text-dim);text-align:center;margin-top:8px;font-style:italic}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p18.heading">AiSAQ — DRAM-Free Billion-Scale Vector Search</h1>
+<p class="subtitle" data-i18n="p18.subtitle">Approximate nearest-neighbor search at billion scale with only megabytes of memory. Kioxia Corporation, 2024.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p18.heading">AiSAQ</span></p>
+
+<div class="container">
+
+  <!-- Section 1: The DiskANN Memory Problem -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)" data-i18n="p18.s1.badge">Memory</span>
+    <h2 data-i18n="p18.s1.title">The DiskANN Memory Problem</h2>
+    <p data-i18n="p18.s1.desc" data-i18n-html="1">DiskANN stores <strong>all PQ-compressed vectors in DRAM</strong> for distance computation during beam search. For SIFT1B (1 billion vectors), this requires <strong>31 GB</strong> of RAM. AiSAQ eliminates this entirely, using only ~10 MB regardless of dataset size.</p>
+    <div class="slider-wrap">
+      <div class="slider-label" data-i18n="p18.s1.slider">Number of vectors (drag to scale)</div>
+      <input type="range" id="vecSlider" min="0" max="100" value="50">
+      <div class="slider-value" id="vecLabel">1B vectors</div>
+    </div>
+    <canvas id="memCanvas" class="mem-canvas"></canvas>
+    <div class="stat-row">
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent2)">2800x</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p18.s1.stat1">Less Memory</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent3)">27000x</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p18.s1.stat2">Faster Index Load</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">~10 MB</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p18.s1.stat3">AiSAQ at Any Scale</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent4)">31 GB</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p18.s1.stat4">DiskANN for SIFT1B</div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: Node Chunk Architecture -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)" data-i18n="p18.s2.badge">Architecture</span>
+    <h2 data-i18n="p18.s2.title">Node Chunk Architecture</h2>
+    <p data-i18n="p18.s2.desc" data-i18n-html="1">The key insight: AiSAQ embeds <strong>neighbor PQ vectors directly inside each node chunk on SSD</strong>. When a node is read from storage during beam search, all needed PQ vectors arrive with it — no DRAM cache required.</p>
+    <div class="arch-diagram">
+      <div class="arch-side" style="border-color:var(--accent3)">
+        <h3 style="color:var(--accent3)">DiskANN</h3>
+        <div style="font-size:.78rem;color:var(--text-dim);text-align:center;margin-bottom:8px" data-i18n="p18.s2.diskann_ssd">SSD Node Chunk:</div>
+        <div class="chunk-row" style="justify-content:center">
+          <div class="chunk-cell" style="border-color:var(--accent3);background:rgba(225,29,72,.06);flex:2">Full Vector<br><span style="font-size:.65rem;color:var(--text-dim)">128D float</span></div>
+          <div class="chunk-cell" style="border-color:var(--accent3);background:rgba(225,29,72,.06);flex:0.5"># N</div>
+          <div class="chunk-cell" style="border-color:var(--accent3);background:rgba(225,29,72,.06);flex:1.5">Neighbor IDs<br><span style="font-size:.65rem;color:var(--text-dim)">id1, id2, ...</span></div>
+        </div>
+        <div style="font-size:.78rem;color:var(--text-dim);text-align:center;margin:10px 0" data-i18n="p18.s2.diskann_dram">DRAM (all PQ vectors):</div>
+        <div class="chunk-row" style="justify-content:center">
+          <div class="chunk-cell" style="border-color:var(--accent4);background:rgba(234,88,12,.06);flex:1">PQ[0]</div>
+          <div class="chunk-cell" style="border-color:var(--accent4);background:rgba(234,88,12,.06);flex:1">PQ[1]</div>
+          <div class="chunk-cell" style="border-color:var(--accent4);background:rgba(234,88,12,.06);flex:1">...</div>
+          <div class="chunk-cell" style="border-color:var(--accent4);background:rgba(234,88,12,.06);flex:1">PQ[N-1]</div>
+        </div>
+        <div style="text-align:center;margin-top:8px;font-size:.75rem;color:var(--accent3);font-weight:600">31 GB DRAM for 1B vectors</div>
+      </div>
+      <div class="arch-side" style="border-color:var(--accent2)">
+        <h3 style="color:var(--accent2)">AiSAQ</h3>
+        <div style="font-size:.78rem;color:var(--text-dim);text-align:center;margin-bottom:8px" data-i18n="p18.s2.aisaq_ssd">SSD Node Chunk (all-in-one):</div>
+        <div class="chunk-row" style="justify-content:center">
+          <div class="chunk-cell" style="border-color:var(--accent2);background:rgba(13,148,136,.06);flex:2">Full Vector<br><span style="font-size:.65rem;color:var(--text-dim)">128D float</span></div>
+          <div class="chunk-cell" style="border-color:var(--accent2);background:rgba(13,148,136,.06);flex:0.5"># N</div>
+          <div class="chunk-cell" style="border-color:var(--accent2);background:rgba(13,148,136,.06);flex:1.5">Neighbor IDs<br><span style="font-size:.65rem;color:var(--text-dim)">id1, id2, ...</span></div>
+        </div>
+        <div class="chunk-row" style="justify-content:center;margin-top:4px">
+          <div class="chunk-cell" style="border-color:var(--accent);background:rgba(91,91,214,.06);flex:1">PQ[n1]</div>
+          <div class="chunk-cell" style="border-color:var(--accent);background:rgba(91,91,214,.06);flex:1">PQ[n2]</div>
+          <div class="chunk-cell" style="border-color:var(--accent);background:rgba(91,91,214,.06);flex:1">...</div>
+          <div class="chunk-cell" style="border-color:var(--accent);background:rgba(91,91,214,.06);flex:1">PQ[nR]</div>
+        </div>
+        <div style="text-align:center;margin-top:8px;font-size:.75rem;color:var(--accent2);font-weight:600" data-i18n="p18.s2.aisaq_mem">DRAM: ~10 MB (centroids only)</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin:12px 0">
+      <button class="anim-btn" id="beamBtn" onclick="animateBeam()" data-i18n="p18.s2.animate">Animate Beam Search Hop</button>
+    </div>
+    <div class="anim-step" id="beamStep" data-i18n="p18.s2.click_hint">Click the button above to see how a single beam search hop works in DiskANN vs AiSAQ.</div>
+    <div class="formula-box">
+      <span data-i18n="p18.s2.formula_label">AiSAQ Node Chunk Size:</span><br>
+      <strong>|v| + 4 + 4R + M&middot;R</strong><br>
+      <span style="font-size:.78rem;color:var(--text-dim)" data-i18n="p18.s2.formula_note">v = full vector, R = max neighbors, M = PQ code size per vector</span>
+    </div>
+  </div>
+
+  <!-- Section 3: Index Switching for RAG -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)" data-i18n="p18.s3.badge">RAG</span>
+    <h2 data-i18n="p18.s3.title">Index Switching for RAG</h2>
+    <p data-i18n="p18.s3.desc" data-i18n-html="1">Multi-source RAG systems frequently switch knowledge bases. DiskANN must reload <strong>all PQ vectors into DRAM</strong> (119 ms). AiSAQ switches in <strong>0.3 ms</strong> with shared PQ centroids — a 400x improvement.</p>
+    <div style="text-align:center;font-size:.88rem;color:var(--text-dim);margin:8px 0" data-i18n="p18.s3.click_index">Click an index to "switch" to it:</div>
+    <div class="switch-demo">
+      <div class="index-btn active" onclick="switchIndex(0,this)" style="border-color:var(--accent2)">
+        <div style="font-size:.9rem">Medical KB</div>
+        <div style="font-size:.7rem;color:var(--text-dim)">250M vectors</div>
+      </div>
+      <div class="index-btn" onclick="switchIndex(1,this)">
+        <div style="font-size:.9rem">Legal KB</div>
+        <div style="font-size:.7rem;color:var(--text-dim)">180M vectors</div>
+      </div>
+      <div class="index-btn" onclick="switchIndex(2,this)">
+        <div style="font-size:.9rem">Finance KB</div>
+        <div style="font-size:.7rem;color:var(--text-dim)">320M vectors</div>
+      </div>
+      <div class="index-btn" onclick="switchIndex(3,this)">
+        <div style="font-size:.9rem">Science KB</div>
+        <div style="font-size:.7rem;color:var(--text-dim)">500M vectors</div>
+      </div>
+    </div>
+    <div id="switchResult" style="text-align:center;font-size:.92rem;font-weight:600;min-height:28px;margin:8px 0"></div>
+    <div style="max-width:600px;margin:0 auto">
+      <div class="timing-bar">
+        <div class="timing-bar-label">DiskANN <span data-i18n="p18.s3.switch_time">switch time</span>: <strong id="diskannTime">119 ms</strong></div>
+        <div class="timing-bar-track"><div class="timing-bar-fill" id="diskannBar" style="width:0%;background:linear-gradient(90deg,var(--accent3),#ff6b8a)">119 ms</div></div>
+      </div>
+      <div class="timing-bar">
+        <div class="timing-bar-label">AiSAQ <span data-i18n="p18.s3.switch_time">switch time</span>: <strong id="aisaqTime">0.3 ms</strong></div>
+        <div class="timing-bar-track"><div class="timing-bar-fill" id="aisaqBar" style="width:0%;background:linear-gradient(90deg,var(--accent2),#34d399)">0.3 ms</div></div>
+      </div>
+    </div>
+    <div class="shared-centroid-note" data-i18n="p18.s3.centroid_note">With shared PQ centroids, AiSAQ only needs to update the graph file pointer — no data reload needed.</div>
+    <div class="formula-box">
+      <span data-i18n="p18.s3.formula_label">DiskANN switch:</span> <strong>Load all PQ vectors (N * M bytes) into DRAM</strong><br>
+      <span data-i18n="p18.s3.formula_label2">AiSAQ switch:</span> <strong>Update file handle + reuse centroids (< 1 ms)</strong>
+    </div>
+  </div>
+
+  <!-- Section 4: Cost at Scale -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)" data-i18n="p18.s4.badge">Cost</span>
+    <h2 data-i18n="p18.s4.title">Cost at Scale</h2>
+    <p data-i18n="p18.s4.desc" data-i18n-html="1">For SIFT1B with 6 containers, DiskANN costs <strong>$344/month</strong> while AiSAQ costs just <strong>$103/month</strong>. The savings come from eliminating DRAM: AiSAQ needs only <strong>66 MB</strong> versus DiskANN's <strong>183,405 MB</strong>.</p>
+    <canvas id="costCanvas" class="cost-canvas"></canvas>
+    <table class="mem-table">
+      <tr>
+        <th data-i18n="p18.s4.metric">Metric</th>
+        <th style="color:var(--accent3)">DiskANN</th>
+        <th style="color:var(--accent2)">AiSAQ</th>
+        <th data-i18n="p18.s4.savings">Savings</th>
+      </tr>
+      <tr>
+        <td data-i18n="p18.s4.row1">Memory (6 containers)</td>
+        <td>183,405 MB</td>
+        <td>66 MB</td>
+        <td style="color:var(--accent2);font-weight:700">2,779x</td>
+      </tr>
+      <tr>
+        <td data-i18n="p18.s4.row2">Monthly Cost</td>
+        <td>$344</td>
+        <td>$103</td>
+        <td style="color:var(--accent2);font-weight:700">70% less</td>
+      </tr>
+      <tr>
+        <td data-i18n="p18.s4.row3">Index Load Time</td>
+        <td>119 ms</td>
+        <td>0.004 ms</td>
+        <td style="color:var(--accent2);font-weight:700">27,000x</td>
+      </tr>
+      <tr>
+        <td data-i18n="p18.s4.row4">SSD per Node Chunk</td>
+        <td>~560 B</td>
+        <td>~2,080 B</td>
+        <td style="color:var(--text-dim)">3.7x more SSD</td>
+      </tr>
+    </table>
+    <div class="stat-row">
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent2)">$103</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p18.s4.aisaq_cost">AiSAQ / month</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent3)">$344</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p18.s4.diskann_cost">DiskANN / month</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">3.7x</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p18.s4.ssd_tradeoff">SSD Tradeoff</div></div>
+    </div>
+  </div>
+
+  <!-- Section 5: Quiz -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)" data-i18n="p18.s5.badge">Quiz</span>
+    <h2 data-i18n="p18.s5.title">Quiz: DiskANN vs AiSAQ</h2>
+    <p data-i18n="p18.s5.desc">Test your understanding of the key differences between DiskANN and AiSAQ!</p>
+    <div style="text-align:center;margin:8px 0"><span data-i18n="p18.s5.round">Round</span>: <strong id="qRound">1/5</strong> | <span data-i18n="p18.s5.score">Score</span>: <strong id="qScore">0</strong></div>
+    <div id="qDesc" style="text-align:center;padding:16px;background:var(--formula-bg);border-radius:var(--radius);border:1px solid var(--border);margin:12px 0;font-size:.92rem;line-height:1.6;font-style:italic"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="qOpts"></div>
+    <div id="qFb" style="text-align:center;margin-top:12px;font-weight:600;min-height:24px"></div>
+  </div>
+
+</div>
+
+<footer>
+  <p>AiSAQ — Tatsuno et al. (Kioxia Corporation), arXiv 2404.06004 (2024)</p>
+  <p>LLM Algorithm Visualizations v2.1.0</p>
+</footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+i18nRegister({
+  'en':{
+    'p18.title':'18. AiSAQ — LLM Algorithm Visualizations',
+    'p18.heading':'AiSAQ — DRAM-Free Billion-Scale Vector Search',
+    'p18.subtitle':'Approximate nearest-neighbor search at billion scale with only megabytes of memory.',
+    'p18.s1.badge':'Memory',
+    'p18.s1.title':'The DiskANN Memory Problem',
+    'p18.s1.desc':'DiskANN stores <strong>all PQ-compressed vectors in DRAM</strong> for distance computation during beam search. For SIFT1B (1 billion vectors), this requires <strong>31 GB</strong> of RAM. AiSAQ eliminates this entirely, using only ~10 MB regardless of dataset size.',
+    'p18.s1.slider':'Number of vectors (drag to scale)',
+    'p18.s1.stat1':'Less Memory',
+    'p18.s1.stat2':'Faster Index Load',
+    'p18.s1.stat3':'AiSAQ at Any Scale',
+    'p18.s1.stat4':'DiskANN for SIFT1B',
+    'p18.s1.chart_title':'DRAM Usage: DiskANN vs AiSAQ',
+    'p18.s1.diskann':'DiskANN',
+    'p18.s1.aisaq':'AiSAQ',
+    'p18.s2.badge':'Architecture',
+    'p18.s2.title':'Node Chunk Architecture',
+    'p18.s2.desc':'The key insight: AiSAQ embeds <strong>neighbor PQ vectors directly inside each node chunk on SSD</strong>. When a node is read from storage during beam search, all needed PQ vectors arrive with it — no DRAM cache required.',
+    'p18.s2.diskann_ssd':'SSD Node Chunk:',
+    'p18.s2.diskann_dram':'DRAM (all PQ vectors):',
+    'p18.s2.aisaq_ssd':'SSD Node Chunk (all-in-one):',
+    'p18.s2.aisaq_mem':'DRAM: ~10 MB (centroids only)',
+    'p18.s2.animate':'Animate Beam Search Hop',
+    'p18.s2.click_hint':'Click the button above to see how a single beam search hop works in DiskANN vs AiSAQ.',
+    'p18.s2.formula_label':'AiSAQ Node Chunk Size:',
+    'p18.s2.formula_note':'v = full vector, R = max neighbors, M = PQ code size per vector',
+    'p18.s2.step1':'Step 1: Query arrives. Both systems start beam search from entry node.',
+    'p18.s2.step2':'Step 2: DiskANN reads node chunk from SSD (full vector + neighbor IDs). Then looks up PQ vectors of ALL neighbors from DRAM to compute approximate distances.',
+    'p18.s2.step3':'Step 3: AiSAQ reads node chunk from SSD — it already contains neighbor PQ vectors! Compute approximate distances immediately. No DRAM lookup needed.',
+    'p18.s2.step4':'Step 4: Both select best candidates and hop to next node. DiskANN: 1 SSD read + N DRAM lookups. AiSAQ: 1 SSD read only (slightly larger, but no DRAM).',
+    'p18.s2.step5':'Result: AiSAQ trades ~3.7x more SSD space per node for complete elimination of the PQ vector DRAM cache. Discards PQ data after each hop.',
+    'p18.s3.badge':'RAG',
+    'p18.s3.title':'Index Switching for RAG',
+    'p18.s3.desc':'Multi-source RAG systems frequently switch knowledge bases. DiskANN must reload <strong>all PQ vectors into DRAM</strong> (119 ms). AiSAQ switches in <strong>0.3 ms</strong> with shared PQ centroids — a 400x improvement.',
+    'p18.s3.click_index':'Click an index to "switch" to it:',
+    'p18.s3.switch_time':'switch time',
+    'p18.s3.centroid_note':'With shared PQ centroids, AiSAQ only needs to update the graph file pointer — no data reload needed.',
+    'p18.s3.formula_label':'DiskANN switch:',
+    'p18.s3.formula_label2':'AiSAQ switch:',
+    'p18.s3.switching':'Switching to',
+    'p18.s3.switched':'Switched!',
+    'p18.s4.badge':'Cost',
+    'p18.s4.title':'Cost at Scale',
+    'p18.s4.desc':'For SIFT1B with 6 containers, DiskANN costs <strong>$344/month</strong> while AiSAQ costs just <strong>$103/month</strong>. The savings come from eliminating DRAM: AiSAQ needs only <strong>66 MB</strong> versus DiskANN\'s <strong>183,405 MB</strong>.',
+    'p18.s4.metric':'Metric',
+    'p18.s4.savings':'Savings',
+    'p18.s4.row1':'Memory (6 containers)',
+    'p18.s4.row2':'Monthly Cost',
+    'p18.s4.row3':'Index Load Time',
+    'p18.s4.row4':'SSD per Node Chunk',
+    'p18.s4.aisaq_cost':'AiSAQ / month',
+    'p18.s4.diskann_cost':'DiskANN / month',
+    'p18.s4.ssd_tradeoff':'SSD Tradeoff',
+    'p18.s4.chart_title':'Multi-Container Cost Scaling',
+    'p18.s4.containers':'Containers',
+    'p18.s4.cost_label':'Monthly Cost ($)',
+    'p18.s5.badge':'Quiz',
+    'p18.s5.title':'Quiz: DiskANN vs AiSAQ',
+    'p18.s5.desc':'Test your understanding of the key differences between DiskANN and AiSAQ!',
+    'p18.s5.round':'Round',
+    'p18.s5.score':'Score',
+    'p18.s5.correct':'Correct!',
+    'p18.s5.wrong':'Wrong! The answer was',
+    'p18.s5.q0':'Where does AiSAQ store PQ vectors for neighbor distance computation?',
+    'p18.s5.q1':'Why is index switching faster in AiSAQ compared to DiskANN?',
+    'p18.s5.q2':'What is the approximate DRAM usage of AiSAQ for billion-scale search?',
+    'p18.s5.q3':'What is the tradeoff AiSAQ makes to eliminate DRAM usage?',
+    'p18.s5.q4':'How does AiSAQ handle PQ vectors after each beam search hop?',
+    'p18.s5.a0_0':'Inside each node chunk on SSD',
+    'p18.s5.a0_1':'In a separate DRAM cache',
+    'p18.s5.a0_2':'In GPU memory',
+    'p18.s5.a0_3':'In a distributed hash table',
+    'p18.s5.a1_0':'No PQ vectors to reload — only centroids shared across indices',
+    'p18.s5.a1_1':'Uses faster NVMe drives',
+    'p18.s5.a1_2':'Pre-loads all indices at startup',
+    'p18.s5.a1_3':'Uses smaller PQ codes',
+    'p18.s5.a2_0':'~10 MB',
+    'p18.s5.a2_1':'~1 GB',
+    'p18.s5.a2_2':'~31 GB',
+    'p18.s5.a2_3':'~100 MB',
+    'p18.s5.a3_0':'~3.7x more SSD space per node chunk',
+    'p18.s5.a3_1':'Lower search accuracy',
+    'p18.s5.a3_2':'Slower query latency',
+    'p18.s5.a3_3':'Requires special hardware',
+    'p18.s5.a4_0':'Discards them — reads fresh ones at next hop',
+    'p18.s5.a4_1':'Caches them in DRAM for reuse',
+    'p18.s5.a4_2':'Writes them to a log file',
+    'p18.s5.a4_3':'Sends them to the GPU'
+  },
+  'zh-CN':{
+    'p18.title':'18. AiSAQ — 大语言模型算法可视化',
+    'p18.heading':'AiSAQ — 无 DRAM 的十亿级向量搜索',
+    'p18.subtitle':'仅用几兆内存实现十亿级近似最近邻搜索。Kioxia Corporation, 2024。',
+    'p18.s1.badge':'内存',
+    'p18.s1.title':'DiskANN 的内存问题',
+    'p18.s1.desc':'DiskANN 在束搜索期间将<strong>所有 PQ 压缩向量存储在 DRAM</strong> 中用于距离计算。对于 SIFT1B（10 亿向量），这需要 <strong>31 GB</strong> RAM。AiSAQ 完全消除了这一需求，无论数据集大小只需约 10 MB。',
+    'p18.s1.slider':'向量数量（拖动缩放）',
+    'p18.s1.stat1':'更少内存',
+    'p18.s1.stat2':'更快索引加载',
+    'p18.s1.stat3':'AiSAQ 任意规模',
+    'p18.s1.stat4':'DiskANN 用于 SIFT1B',
+    'p18.s1.chart_title':'DRAM 使用量：DiskANN vs AiSAQ',
+    'p18.s1.diskann':'DiskANN',
+    'p18.s1.aisaq':'AiSAQ',
+    'p18.s2.badge':'架构',
+    'p18.s2.title':'节点块架构',
+    'p18.s2.desc':'关键洞察：AiSAQ 将<strong>邻居 PQ 向量直接嵌入 SSD 上的每个节点块中</strong>。束搜索期间读取节点时，所有需要的 PQ 向量随之到达——无需 DRAM 缓存。',
+    'p18.s2.diskann_ssd':'SSD 节点块：',
+    'p18.s2.diskann_dram':'DRAM（所有 PQ 向量）：',
+    'p18.s2.aisaq_ssd':'SSD 节点块（一体化）：',
+    'p18.s2.aisaq_mem':'DRAM：~10 MB（仅质心）',
+    'p18.s2.animate':'演示束搜索跳转',
+    'p18.s2.click_hint':'点击上方按钮查看 DiskANN 和 AiSAQ 中单次束搜索跳转的工作原理。',
+    'p18.s2.formula_label':'AiSAQ 节点块大小：',
+    'p18.s2.formula_note':'v = 完整向量，R = 最大邻居数，M = 每个向量的 PQ 码大小',
+    'p18.s2.step1':'步骤 1：查询到达。两个系统从入口节点开始束搜索。',
+    'p18.s2.step2':'步骤 2：DiskANN 从 SSD 读取节点块（完整向量 + 邻居 ID），然后从 DRAM 查找所有邻居的 PQ 向量来计算近似距离。',
+    'p18.s2.step3':'步骤 3：AiSAQ 从 SSD 读取节点块——它已经包含邻居 PQ 向量！立即计算近似距离，无需 DRAM 查找。',
+    'p18.s2.step4':'步骤 4：两者选择最佳候选并跳转到下一节点。DiskANN：1次 SSD 读取 + N 次 DRAM 查找。AiSAQ：仅 1 次 SSD 读取（稍大，但无 DRAM）。',
+    'p18.s2.step5':'结果：AiSAQ 以每节点约 3.7 倍的 SSD 空间换取完全消除 PQ 向量 DRAM 缓存。每次跳转后丢弃 PQ 数据。',
+    'p18.s3.badge':'RAG',
+    'p18.s3.title':'RAG 的索引切换',
+    'p18.s3.desc':'多源 RAG 系统频繁切换知识库。DiskANN 必须将<strong>所有 PQ 向量重新加载到 DRAM</strong>（119 ms）。AiSAQ 使用共享 PQ 质心仅需 <strong>0.3 ms</strong>——提升 400 倍。',
+    'p18.s3.click_index':'点击索引进行"切换"：',
+    'p18.s3.switch_time':'切换时间',
+    'p18.s3.centroid_note':'使用共享 PQ 质心，AiSAQ 只需更新图文件指针——无需重新加载数据。',
+    'p18.s3.formula_label':'DiskANN 切换：',
+    'p18.s3.formula_label2':'AiSAQ 切换：',
+    'p18.s3.switching':'正在切换到',
+    'p18.s3.switched':'已切换！',
+    'p18.s4.badge':'成本',
+    'p18.s4.title':'规模化成本',
+    'p18.s4.desc':'对于 6 个容器的 SIFT1B，DiskANN 每月 <strong>$344</strong>，而 AiSAQ 仅需 <strong>$103</strong>。节省来自消除 DRAM：AiSAQ 仅需 <strong>66 MB</strong>，而 DiskANN 需要 <strong>183,405 MB</strong>。',
+    'p18.s4.metric':'指标',
+    'p18.s4.savings':'节省',
+    'p18.s4.row1':'内存（6 容器）',
+    'p18.s4.row2':'月度成本',
+    'p18.s4.row3':'索引加载时间',
+    'p18.s4.row4':'每节点块 SSD',
+    'p18.s4.aisaq_cost':'AiSAQ / 月',
+    'p18.s4.diskann_cost':'DiskANN / 月',
+    'p18.s4.ssd_tradeoff':'SSD 折中',
+    'p18.s4.chart_title':'多容器成本缩放',
+    'p18.s4.containers':'容器数',
+    'p18.s4.cost_label':'月成本（$）',
+    'p18.s5.badge':'测验',
+    'p18.s5.title':'测验：DiskANN vs AiSAQ',
+    'p18.s5.desc':'测试你对 DiskANN 和 AiSAQ 关键差异的理解！',
+    'p18.s5.round':'轮次',
+    'p18.s5.score':'得分',
+    'p18.s5.correct':'正确！',
+    'p18.s5.wrong':'错误！答案是',
+    'p18.s5.q0':'AiSAQ 将邻居距离计算的 PQ 向量存储在哪里？',
+    'p18.s5.q1':'为什么 AiSAQ 的索引切换比 DiskANN 更快？',
+    'p18.s5.q2':'AiSAQ 在十亿级搜索中的大约 DRAM 使用量是多少？',
+    'p18.s5.q3':'AiSAQ 为消除 DRAM 使用做出了什么折中？',
+    'p18.s5.q4':'AiSAQ 在每次束搜索跳转后如何处理 PQ 向量？',
+    'p18.s5.a0_0':'在 SSD 上的每个节点块内',
+    'p18.s5.a0_1':'在单独的 DRAM 缓存中',
+    'p18.s5.a0_2':'在 GPU 内存中',
+    'p18.s5.a0_3':'在分布式哈希表中',
+    'p18.s5.a1_0':'无需重新加载 PQ 向量——仅共享质心',
+    'p18.s5.a1_1':'使用更快的 NVMe 驱动器',
+    'p18.s5.a1_2':'启动时预加载所有索引',
+    'p18.s5.a1_3':'使用更小的 PQ 码',
+    'p18.s5.a2_0':'~10 MB',
+    'p18.s5.a2_1':'~1 GB',
+    'p18.s5.a2_2':'~31 GB',
+    'p18.s5.a2_3':'~100 MB',
+    'p18.s5.a3_0':'每节点块约 3.7 倍 SSD 空间',
+    'p18.s5.a3_1':'搜索精度降低',
+    'p18.s5.a3_2':'查询延迟增加',
+    'p18.s5.a3_3':'需要专用硬件',
+    'p18.s5.a4_0':'丢弃它们——在下一跳时重新读取',
+    'p18.s5.a4_1':'缓存到 DRAM 中重用',
+    'p18.s5.a4_2':'写入日志文件',
+    'p18.s5.a4_3':'发送到 GPU'
+  },
+  'zh-TW':{
+    'p18.title':'18. AiSAQ — 大語言模型演算法視覺化',
+    'p18.heading':'AiSAQ — 無 DRAM 的十億級向量搜尋',
+    'p18.subtitle':'僅用幾兆記憶體實現十億級近似最近鄰搜尋。Kioxia Corporation, 2024。',
+    'p18.s1.badge':'記憶體',
+    'p18.s1.title':'DiskANN 的記憶體問題',
+    'p18.s1.desc':'DiskANN 在束搜尋期間將<strong>所有 PQ 壓縮向量儲存在 DRAM</strong> 中用於距離計算。對於 SIFT1B（10 億向量），這需要 <strong>31 GB</strong> RAM。AiSAQ 完全消除了這一需求，無論資料集大小只需約 10 MB。',
+    'p18.s1.slider':'向量數量（拖動縮放）',
+    'p18.s1.stat1':'更少記憶體',
+    'p18.s1.stat2':'更快索引載入',
+    'p18.s1.stat3':'AiSAQ 任意規模',
+    'p18.s1.stat4':'DiskANN 用於 SIFT1B',
+    'p18.s1.chart_title':'DRAM 使用量：DiskANN vs AiSAQ',
+    'p18.s1.diskann':'DiskANN',
+    'p18.s1.aisaq':'AiSAQ',
+    'p18.s2.badge':'架構',
+    'p18.s2.title':'節點塊架構',
+    'p18.s2.desc':'關鍵洞察：AiSAQ 將<strong>鄰居 PQ 向量直接嵌入 SSD 上的每個節點塊中</strong>。束搜尋期間讀取節點時，所有需要的 PQ 向量隨之到達——無需 DRAM 快取。',
+    'p18.s2.diskann_ssd':'SSD 節點塊：',
+    'p18.s2.diskann_dram':'DRAM（所有 PQ 向量）：',
+    'p18.s2.aisaq_ssd':'SSD 節點塊（一體化）：',
+    'p18.s2.aisaq_mem':'DRAM：~10 MB（僅質心）',
+    'p18.s2.animate':'演示束搜尋跳轉',
+    'p18.s2.click_hint':'點擊上方按鈕查看 DiskANN 和 AiSAQ 中單次束搜尋跳轉的工作原理。',
+    'p18.s2.formula_label':'AiSAQ 節點塊大小：',
+    'p18.s2.formula_note':'v = 完整向量，R = 最大鄰居數，M = 每個向量的 PQ 碼大小',
+    'p18.s2.step1':'步驟 1：查詢到達。兩個系統從入口節點開始束搜尋。',
+    'p18.s2.step2':'步驟 2：DiskANN 從 SSD 讀取節點塊（完整向量 + 鄰居 ID），然後從 DRAM 查找所有鄰居的 PQ 向量來計算近似距離。',
+    'p18.s2.step3':'步驟 3：AiSAQ 從 SSD 讀取節點塊——它已經包含鄰居 PQ 向量！立即計算近似距離，無需 DRAM 查找。',
+    'p18.s2.step4':'步驟 4：兩者選擇最佳候選並跳轉到下一節點。DiskANN：1次 SSD 讀取 + N 次 DRAM 查找。AiSAQ：僅 1 次 SSD 讀取（稍大，但無 DRAM）。',
+    'p18.s2.step5':'結果：AiSAQ 以每節點約 3.7 倍的 SSD 空間換取完全消除 PQ 向量 DRAM 快取。每次跳轉後丟棄 PQ 資料。',
+    'p18.s3.badge':'RAG',
+    'p18.s3.title':'RAG 的索引切換',
+    'p18.s3.desc':'多源 RAG 系統頻繁切換知識庫。DiskANN 必須將<strong>所有 PQ 向量重新載入 DRAM</strong>（119 ms）。AiSAQ 使用共享 PQ 質心僅需 <strong>0.3 ms</strong>——提升 400 倍。',
+    'p18.s3.click_index':'點擊索引進行「切換」：',
+    'p18.s3.switch_time':'切換時間',
+    'p18.s3.centroid_note':'使用共享 PQ 質心，AiSAQ 只需更新圖檔案指標——無需重新載入資料。',
+    'p18.s3.formula_label':'DiskANN 切換：',
+    'p18.s3.formula_label2':'AiSAQ 切換：',
+    'p18.s3.switching':'正在切換到',
+    'p18.s3.switched':'已切換！',
+    'p18.s4.badge':'成本',
+    'p18.s4.title':'規模化成本',
+    'p18.s4.desc':'對於 6 個容器的 SIFT1B，DiskANN 每月 <strong>$344</strong>，而 AiSAQ 僅需 <strong>$103</strong>。節省來自消除 DRAM：AiSAQ 僅需 <strong>66 MB</strong>，而 DiskANN 需要 <strong>183,405 MB</strong>。',
+    'p18.s4.metric':'指標',
+    'p18.s4.savings':'節省',
+    'p18.s4.row1':'記憶體（6 容器）',
+    'p18.s4.row2':'月度成本',
+    'p18.s4.row3':'索引載入時間',
+    'p18.s4.row4':'每節點塊 SSD',
+    'p18.s4.aisaq_cost':'AiSAQ / 月',
+    'p18.s4.diskann_cost':'DiskANN / 月',
+    'p18.s4.ssd_tradeoff':'SSD 折衷',
+    'p18.s4.chart_title':'多容器成本縮放',
+    'p18.s4.containers':'容器數',
+    'p18.s4.cost_label':'月成本（$）',
+    'p18.s5.badge':'測驗',
+    'p18.s5.title':'測驗：DiskANN vs AiSAQ',
+    'p18.s5.desc':'測試你對 DiskANN 和 AiSAQ 關鍵差異的理解！',
+    'p18.s5.round':'輪次',
+    'p18.s5.score':'得分',
+    'p18.s5.correct':'正確！',
+    'p18.s5.wrong':'錯誤！答案是',
+    'p18.s5.q0':'AiSAQ 將鄰居距離計算的 PQ 向量儲存在哪裡？',
+    'p18.s5.q1':'為什麼 AiSAQ 的索引切換比 DiskANN 更快？',
+    'p18.s5.q2':'AiSAQ 在十億級搜尋中的大約 DRAM 使用量是多少？',
+    'p18.s5.q3':'AiSAQ 為消除 DRAM 使用做出了什麼折衷？',
+    'p18.s5.q4':'AiSAQ 在每次束搜尋跳轉後如何處理 PQ 向量？',
+    'p18.s5.a0_0':'在 SSD 上的每個節點塊內',
+    'p18.s5.a0_1':'在單獨的 DRAM 快取中',
+    'p18.s5.a0_2':'在 GPU 記憶體中',
+    'p18.s5.a0_3':'在分散式雜湊表中',
+    'p18.s5.a1_0':'無需重新載入 PQ 向量——僅共享質心',
+    'p18.s5.a1_1':'使用更快的 NVMe 驅動器',
+    'p18.s5.a1_2':'啟動時預載入所有索引',
+    'p18.s5.a1_3':'使用更小的 PQ 碼',
+    'p18.s5.a2_0':'~10 MB',
+    'p18.s5.a2_1':'~1 GB',
+    'p18.s5.a2_2':'~31 GB',
+    'p18.s5.a2_3':'~100 MB',
+    'p18.s5.a3_0':'每節點塊約 3.7 倍 SSD 空間',
+    'p18.s5.a3_1':'搜尋精度降低',
+    'p18.s5.a3_2':'查詢延遲增加',
+    'p18.s5.a3_3':'需要專用硬體',
+    'p18.s5.a4_0':'丟棄它們——在下一跳時重新讀取',
+    'p18.s5.a4_1':'快取到 DRAM 中重用',
+    'p18.s5.a4_2':'寫入日誌檔案',
+    'p18.s5.a4_3':'傳送到 GPU'
+  }
+});
+
+// ===== Section 1: Memory Comparison Canvas =====
+var vecSlider=document.getElementById('vecSlider');
+var vecLabel=document.getElementById('vecLabel');
+
+function sliderToVecs(v){
+  // 0-100 maps to 1M - 10B exponentially
+  return Math.round(Math.pow(10, 6 + v/100 * 4));
+}
+
+function formatVecs(n){
+  if(n>=1e9) return (n/1e9).toFixed(n%1e9===0?0:1)+'B';
+  if(n>=1e6) return (n/1e6).toFixed(n%1e6===0?0:0)+'M';
+  return n.toString();
+}
+
+function diskannMem(n){
+  // DiskANN: ~31 bytes per vector for PQ (SIFT1B=31GB for 1B)
+  return n * 31 / (1024*1024*1024); // GB
+}
+
+function aisaqMem(n){
+  // AiSAQ: ~10MB constant (PQ centroids + metadata)
+  return 0.01; // GB, constant ~10MB
+}
+
+function drawMemChart(){
+  var c=document.getElementById('memCanvas');if(!c)return;
+  var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;
+  var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();
+
+  var nVecs=sliderToVecs(parseInt(vecSlider.value));
+  vecLabel.textContent=formatVecs(nVecs)+' vectors';
+
+  var dMem=diskannMem(nVecs);
+  var aMem=aisaqMem(nVecs);
+  var maxMem=Math.max(dMem, 1); // at least 1GB for scale
+
+  var pad={t:50,r:40,b:60,l:80},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+
+  // Title
+  x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';x.fillText(t('p18.s1.chart_title'),W/2,26);
+
+  // Bars
+  var barW=Math.min(cW*0.3, 140);
+  var gap=cW*0.15;
+  var cx1=pad.l+cW/2-gap/2-barW/2;
+  var cx2=pad.l+cW/2+gap/2+barW/2-barW;
+
+  // Y axis
+  x.strokeStyle=bc;x.lineWidth=1;x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
+
+  // Y scale labels
+  var ySteps=5;
+  x.fillStyle=dc;x.font='10px monospace';x.textAlign='right';
+  for(var i=0;i<=ySteps;i++){
+    var val=maxMem*(i/ySteps);
+    var py=pad.t+cH-((i/ySteps)*cH);
+    var label;
+    if(val>=1) label=val.toFixed(val>=10?0:1)+' GB';
+    else label=(val*1024).toFixed(0)+' MB';
+    x.fillText(label,pad.l-8,py+4);
+    x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(pad.l,py);x.lineTo(pad.l+cW,py);x.stroke();
+  }
+
+  // DiskANN bar
+  var dH=Math.min((dMem/maxMem)*cH, cH);
+  var grad1=x.createLinearGradient(0,pad.t+cH-dH,0,pad.t+cH);
+  grad1.addColorStop(0,'#e11d48');grad1.addColorStop(1,'#ff6b8a');
+  x.fillStyle=grad1;
+  x.beginPath();if(x.roundRect)x.roundRect(cx1,pad.t+cH-dH,barW,dH,6);else x.fillRect(cx1,pad.t+cH-dH,barW,dH);x.fill();
+
+  // DiskANN label
+  x.fillStyle=tc;x.font='bold 12px system-ui';x.textAlign='center';
+  var dLabel=dMem>=1?dMem.toFixed(1)+' GB':(dMem*1024).toFixed(0)+' MB';
+  x.fillText(dLabel,cx1+barW/2,pad.t+cH-dH-8);
+  x.fillStyle=dc;x.font='11px system-ui';
+  x.fillText(t('p18.s1.diskann'),cx1+barW/2,pad.t+cH+18);
+
+  // AiSAQ bar (ensure visible min height)
+  var aH=Math.max((aMem/maxMem)*cH, 4);
+  var grad2=x.createLinearGradient(0,pad.t+cH-aH,0,pad.t+cH);
+  grad2.addColorStop(0,'#0d9488');grad2.addColorStop(1,'#34d399');
+  x.fillStyle=grad2;
+  x.beginPath();if(x.roundRect)x.roundRect(cx2,pad.t+cH-aH,barW,aH,6);else x.fillRect(cx2,pad.t+cH-aH,barW,aH);x.fill();
+
+  // AiSAQ label
+  x.fillStyle=tc;x.font='bold 12px system-ui';x.textAlign='center';
+  x.fillText('~10 MB',cx2+barW/2,pad.t+cH-aH-8);
+  x.fillStyle=dc;x.font='11px system-ui';
+  x.fillText(t('p18.s1.aisaq'),cx2+barW/2,pad.t+cH+18);
+
+  // Ratio annotation
+  if(dMem>0.001){
+    var ratio=Math.round(dMem/aMem);
+    x.fillStyle=tc;x.font='bold 16px system-ui';x.textAlign='center';
+    x.fillText(ratio+'x',W/2,pad.t+cH+42);
+    x.fillStyle=dc;x.font='11px system-ui';
+    x.fillText('less memory',W/2,pad.t+cH+56);
+  }
+}
+
+vecSlider.addEventListener('input',drawMemChart);
+
+// ===== Section 2: Beam Search Animation =====
+var beamStepIdx=0;
+var beamSteps=['p18.s2.step1','p18.s2.step2','p18.s2.step3','p18.s2.step4','p18.s2.step5'];
+
+function animateBeam(){
+  var el=document.getElementById('beamStep');
+  el.style.opacity='0';
+  setTimeout(function(){
+    el.textContent=t(beamSteps[beamStepIdx]);
+    // Highlight colors based on step
+    var colors=['var(--accent)','var(--accent3)','var(--accent2)','var(--accent4)','var(--accent)'];
+    el.style.borderColor=colors[beamStepIdx];
+    el.style.opacity='1';
+    beamStepIdx=(beamStepIdx+1)%beamSteps.length;
+  },200);
+}
+
+// ===== Section 3: Index Switching Demo =====
+var indexNames=['Medical KB','Legal KB','Finance KB','Science KB'];
+var indexSizes=[250,180,320,500]; // millions
+var currentIdx=0;
+var switching=false;
+
+function switchIndex(idx,el){
+  if(switching||idx===currentIdx) return;
+  switching=true;
+  var btns=document.querySelectorAll('.index-btn');
+  btns.forEach(function(b){b.classList.remove('active');b.style.borderColor='';});
+
+  // Show switching text
+  var res=document.getElementById('switchResult');
+  res.innerHTML='<span style="color:var(--accent4)">'+t('p18.s3.switching')+' '+indexNames[idx]+'...</span>';
+
+  // DiskANN time scales with vector count
+  var dTime=Math.round(119*(indexSizes[idx]/250));
+  var aTime=0.3;
+
+  document.getElementById('diskannTime').textContent=dTime+' ms';
+  document.getElementById('aisaqTime').textContent=aTime+' ms';
+
+  // Animate bars
+  var dBar=document.getElementById('diskannBar');
+  var aBar=document.getElementById('aisaqBar');
+  dBar.style.width='0%';
+  aBar.style.width='0%';
+  dBar.textContent=dTime+' ms';
+  aBar.textContent=aTime.toFixed(1)+' ms';
+
+  setTimeout(function(){
+    // AiSAQ finishes almost instantly
+    aBar.style.width='2%';
+    res.innerHTML='<span style="color:var(--accent2)">AiSAQ: '+t('p18.s3.switched')+' ('+aTime+' ms)</span>';
+  },100);
+
+  setTimeout(function(){
+    // DiskANN finishes much later
+    dBar.style.width=Math.min(dTime/600*100,100)+'%';
+  },200);
+
+  setTimeout(function(){
+    res.innerHTML='<span style="color:var(--accent2)">'+t('p18.s3.switched')+' DiskANN: '+dTime+'ms vs AiSAQ: '+aTime+'ms ('+Math.round(dTime/aTime)+'x faster)</span>';
+    el.classList.add('active');
+    el.style.borderColor='var(--accent2)';
+    currentIdx=idx;
+    switching=false;
+  },1200);
+}
+
+// ===== Section 4: Cost Scaling Canvas =====
+function drawCostChart(){
+  var c=document.getElementById('costCanvas');if(!c)return;
+  var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;
+  var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();
+
+  var pad={t:50,r:40,b:60,l:70},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+
+  // Title
+  x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';x.fillText(t('p18.s4.chart_title'),W/2,26);
+
+  // Data: containers 1-12
+  // DiskANN: ~57/container (DRAM dominated) -> 344 for 6
+  // AiSAQ: ~17/container (storage only) -> 103 for 6
+  var containers=[1,2,3,4,6,8,10,12];
+  var diskannCosts=containers.map(function(n){return Math.round(57.3*n);});
+  var aisaqCosts=containers.map(function(n){return Math.round(17.2*n);});
+  var maxCost=diskannCosts[diskannCosts.length-1];
+
+  // Axes
+  x.strokeStyle=bc;x.lineWidth=1;x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
+
+  // Y labels
+  x.fillStyle=dc;x.font='10px monospace';x.textAlign='right';
+  for(var i=0;i<=5;i++){
+    var val=Math.round(maxCost*(i/5));
+    var py=pad.t+cH-((i/5)*cH);
+    x.fillText('$'+val,pad.l-8,py+4);
+    x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(pad.l,py);x.lineTo(pad.l+cW,py);x.stroke();
+  }
+  // Y axis label
+  x.save();x.translate(14,pad.t+cH/2);x.rotate(-Math.PI/2);x.fillStyle=dc;x.font='11px system-ui';x.textAlign='center';x.fillText(t('p18.s4.cost_label'),0,0);x.restore();
+
+  // X labels
+  x.fillStyle=dc;x.font='10px monospace';x.textAlign='center';
+  containers.forEach(function(n,i){
+    var px=pad.l+((i)/(containers.length-1))*cW;
+    x.fillText(n.toString(),px,pad.t+cH+16);
+  });
+  x.fillText(t('p18.s4.containers'),pad.l+cW/2,pad.t+cH+40);
+
+  // DiskANN line
+  x.strokeStyle='#e11d48';x.lineWidth=2.5;x.beginPath();
+  containers.forEach(function(n,i){
+    var px=pad.l+((i)/(containers.length-1))*cW;
+    var py=pad.t+cH-((diskannCosts[i]/maxCost)*cH);
+    i===0?x.moveTo(px,py):x.lineTo(px,py);
+  });x.stroke();
+  // Points
+  containers.forEach(function(n,i){
+    var px=pad.l+((i)/(containers.length-1))*cW;
+    var py=pad.t+cH-((diskannCosts[i]/maxCost)*cH);
+    x.fillStyle='#e11d48';x.beginPath();x.arc(px,py,4,0,Math.PI*2);x.fill();
+  });
+
+  // AiSAQ line
+  x.strokeStyle='#0d9488';x.lineWidth=2.5;x.beginPath();
+  containers.forEach(function(n,i){
+    var px=pad.l+((i)/(containers.length-1))*cW;
+    var py=pad.t+cH-((aisaqCosts[i]/maxCost)*cH);
+    i===0?x.moveTo(px,py):x.lineTo(px,py);
+  });x.stroke();
+  containers.forEach(function(n,i){
+    var px=pad.l+((i)/(containers.length-1))*cW;
+    var py=pad.t+cH-((aisaqCosts[i]/maxCost)*cH);
+    x.fillStyle='#0d9488';x.beginPath();x.arc(px,py,4,0,Math.PI*2);x.fill();
+  });
+
+  // Highlight 6-container point
+  var idx6=containers.indexOf(6);
+  if(idx6>=0){
+    var px6=pad.l+((idx6)/(containers.length-1))*cW;
+    var pyD=pad.t+cH-((diskannCosts[idx6]/maxCost)*cH);
+    var pyA=pad.t+cH-((aisaqCosts[idx6]/maxCost)*cH);
+    x.setLineDash([4,3]);x.strokeStyle='rgba(128,128,128,.4)';x.lineWidth=1;
+    x.beginPath();x.moveTo(px6,pyD);x.lineTo(px6,pyA);x.stroke();x.setLineDash([]);
+    x.fillStyle=tc;x.font='bold 11px system-ui';x.textAlign='left';
+    x.fillText('$344',px6+8,pyD+4);
+    x.fillText('$103',px6+8,pyA+4);
+    x.fillStyle=dc;x.font='10px system-ui';
+    x.fillText('70% savings',px6+8,(pyD+pyA)/2+4);
+  }
+
+  // Legend
+  x.fillStyle='#e11d48';x.fillRect(W-170,pad.t+8,12,12);x.fillStyle=tc;x.font='11px system-ui';x.textAlign='left';x.fillText('DiskANN (DRAM-heavy)',W-154,pad.t+18);
+  x.fillStyle='#0d9488';x.fillRect(W-170,pad.t+26,12,12);x.fillText('AiSAQ (storage-only)',W-154,pad.t+36);
+}
+
+// ===== Section 5: Quiz =====
+var QUIZ=[
+  {qk:'p18.s5.q0',ans:0,opts:['p18.s5.a0_0','p18.s5.a0_1','p18.s5.a0_2','p18.s5.a0_3']},
+  {qk:'p18.s5.q1',ans:0,opts:['p18.s5.a1_0','p18.s5.a1_1','p18.s5.a1_2','p18.s5.a1_3']},
+  {qk:'p18.s5.q2',ans:0,opts:['p18.s5.a2_0','p18.s5.a2_1','p18.s5.a2_2','p18.s5.a2_3']},
+  {qk:'p18.s5.q3',ans:0,opts:['p18.s5.a3_0','p18.s5.a3_1','p18.s5.a3_2','p18.s5.a3_3']},
+  {qk:'p18.s5.q4',ans:0,opts:['p18.s5.a4_0','p18.s5.a4_1','p18.s5.a4_2','p18.s5.a4_3']}
+];
+var qi=0,qs=0;
+
+function renderQuiz(){
+  document.getElementById('qRound').textContent=(qi+1)+'/5';
+  document.getElementById('qScore').textContent=qs;
+  document.getElementById('qDesc').textContent=t(QUIZ[qi].qk);
+  document.getElementById('qFb').textContent='';
+  var o=document.getElementById('qOpts');o.innerHTML='';
+  // Shuffle options but track correct answer
+  var indices=[0,1,2,3];
+  indices.sort(function(){return Math.random()-.5;});
+  indices.forEach(function(oi){
+    var d=document.createElement('div');
+    d.className='game-opt';
+    d.textContent=t(QUIZ[qi].opts[oi]);
+    d.setAttribute('data-idx',oi);
+    d.onclick=function(){checkQuiz(oi,d);};
+    o.appendChild(d);
+  });
+}
+
+function checkQuiz(pick,el){
+  var all=document.getElementById('qOpts').querySelectorAll('.game-opt');
+  all.forEach(function(d){d.style.pointerEvents='none';});
+  if(pick===QUIZ[qi].ans){
+    el.classList.add('correct');
+    qs++;
+    document.getElementById('qFb').innerHTML='<span style="color:var(--accent2)">'+t('p18.s5.correct')+'</span>';
+  }else{
+    el.classList.add('wrong');
+    all.forEach(function(d){if(parseInt(d.getAttribute('data-idx'))===QUIZ[qi].ans)d.classList.add('correct');});
+    document.getElementById('qFb').innerHTML='<span style="color:var(--accent3)">'+t('p18.s5.wrong')+' '+t(QUIZ[qi].opts[QUIZ[qi].ans])+'</span>';
+  }
+  document.getElementById('qScore').textContent=qs;
+  setTimeout(function(){
+    qi++;
+    if(qi<5) renderQuiz();
+    else{
+      document.getElementById('qFb').innerHTML='<strong>Final: '+qs+'/5</strong>';
+      if(typeof markGameCompleted==='function') markGameCompleted('18');
+    }
+  },2000);
+}
+
+// Init
+window.addEventListener('load',function(){
+  drawMemChart();
+  drawCostChart();
+  renderQuiz();
+  // Trigger initial index switching bars
+  setTimeout(function(){
+    document.getElementById('diskannBar').style.width=Math.min(119/600*100,100)+'%';
+    document.getElementById('aisaqBar').style.width='2%';
+  },300);
+});
+window.addEventListener('themechange',function(){drawMemChart();drawCostChart();});
+window.addEventListener('resize',function(){drawMemChart();drawCostChart();});
+</script>
+</body>
+</html>

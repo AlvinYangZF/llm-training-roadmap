@@ -30,6 +30,10 @@ const NAV_TOPICS = [
     { num: '15', title: 'GraphRAG', file: '15-graph-rag.html', year: '2024' },
     { num: '16', title: 'RAG at Scale', file: '16-rag-at-scale.html', year: '2022' },
   ]},
+  { cat: 'Vector Search', items: [
+    { num: '17', title: 'DiskANN', file: '17-diskann.html', year: '2019' },
+    { num: '18', title: 'AiSAQ', file: '18-aisaq.html', year: '2024' },
+  ]},
 ];
 
 // Flat ordered list for prev/next navigation (chronological)
@@ -51,6 +55,8 @@ const NAV_ORDERED = [
   '14-adaptive-rag.html',
   '15-graph-rag.html',
   '16-rag-at-scale.html',
+  '17-diskann.html',
+  '18-aisaq.html',
 ];
 
 function getCurrentPage() {
@@ -103,6 +109,7 @@ function buildNav() {
     'nav.cat.memory',
     'nav.cat.advanced',
     'nav.cat.rag',
+    'nav.cat.vectorsearch',
   ];
 
   let html = '';
