@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p15.title">15. GraphRAG — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0}
+    .compare-col{background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .graph-canvas{width:100%;height:380px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .community-legend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+    .legend-item{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--text-dim)}
+    .legend-dot{width:12px;height:12px;border-radius:50%}
+    .map-step{display:flex;gap:8px;align-items:center;justify-content:center;padding:12px;margin:8px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--canvas-bg);transition:all .4s;font-size:.85rem}
+    .map-step.active{border-color:var(--accent);background:rgba(91,91,214,.06)}
+    .map-step .step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;border:2px solid var(--border);color:var(--text-dim);flex-shrink:0}
+    .map-step.active .step-num{border-color:var(--accent);color:var(--accent);background:rgba(91,91,214,.1)}
+    .game-opt{padding:12px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.88rem;color:var(--text);transition:all .2s;text-align:center}
+    .game-opt:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .game-opt.correct{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .game-opt.wrong{border-color:var(--accent3);background:rgba(225,29,72,.08)}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+    @media(max-width:700px){.compare-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p15.heading">GraphRAG — Knowledge Graph Communities</h1>
+<p class="subtitle" data-i18n="p15.subtitle">From scattered chunks to structured reasoning. How knowledge graphs enable corpus-level sensemaking.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p15.heading">GraphRAG</span></p>
+
+<div class="container">
+
+  <!-- Section 1: Vector vs Graph RAG -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Problem</span>
+    <h2 data-i18n="p15.s1.title">Why Vector RAG Fails on Global Questions</h2>
+    <p data-i18n="p15.s1.desc" data-i18n-html="1">Vector RAG retrieves chunks similar to the query. But for questions like <strong>"What are the main themes?"</strong>, no single chunk contains the answer — it requires reasoning across the entire corpus.</p>
+    <div class="compare-grid">
+      <div class="compare-col">
+        <h3 style="margin-top:0;color:var(--accent3);font-size:.92rem">Vector RAG</h3>
+        <div style="padding:8px;background:var(--formula-bg);border-radius:8px;font-size:.82rem;margin-bottom:8px;border:1px solid var(--border)">Q: "What are the main themes in this dataset?"</div>
+        <div style="font-size:.82rem;color:var(--text-dim);line-height:1.6">
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent3);padding-left:8px;opacity:.6">Chunk 47: "...meeting discussed budget cuts..."</div>
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent3);padding-left:8px;opacity:.6">Chunk 231: "...quarterly revenue increased..."</div>
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent3);padding-left:8px;opacity:.6">Chunk 89: "...new product launch planned..."</div>
+        </div>
+        <div style="margin-top:8px;padding:8px;background:rgba(225,29,72,.06);border-radius:8px;font-size:.82rem;color:var(--accent3)">Random chunks — no global view. Answer is incomplete and unfocused.</div>
+      </div>
+      <div class="compare-col">
+        <h3 style="margin-top:0;color:var(--accent2);font-size:.92rem">GraphRAG</h3>
+        <div style="padding:8px;background:var(--formula-bg);border-radius:8px;font-size:.82rem;margin-bottom:8px;border:1px solid var(--border)">Q: "What are the main themes in this dataset?"</div>
+        <div style="font-size:.82rem;color:var(--text-dim);line-height:1.6">
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent2);padding-left:8px">Community A: "Financial performance and revenue trends"</div>
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent2);padding-left:8px">Community B: "Product strategy and market expansion"</div>
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent2);padding-left:8px">Community C: "Organizational restructuring and cost optimization"</div>
+        </div>
+        <div style="margin-top:8px;padding:8px;background:rgba(13,148,136,.06);border-radius:8px;font-size:.82rem;color:var(--accent2)">Community summaries capture global themes. Answer is comprehensive and structured.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Knowledge Graph Canvas -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)">Visualization</span>
+    <h2 data-i18n="p15.s2.title">Knowledge Graph — Entity Extraction</h2>
+    <p data-i18n="p15.s2.desc" data-i18n-html="1">An LLM extracts <strong>entities</strong> (nodes) and <strong>relationships</strong> (edges) from text. Click "Extract" to build the graph sentence by sentence.</p>
+    <canvas id="kgCanvas" class="graph-canvas"></canvas>
+    <div style="text-align:center;margin-top:12px">
+      <button onclick="kgExtract()" style="padding:8px 24px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-weight:600" id="kgBtn">Extract Next Sentence</button>
+      <button onclick="kgReset()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;color:var(--text)">Reset</button>
+    </div>
+    <div id="kgSentence" style="text-align:center;margin-top:8px;font-size:.85rem;color:var(--text-dim);min-height:20px;font-style:italic"></div>
+  </div>
+
+  <!-- Section 3: Community Detection -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)">Algorithm</span>
+    <h2 data-i18n="p15.s3.title">Leiden Community Detection</h2>
+    <p data-i18n="p15.s3.desc" data-i18n-html="1">The Leiden algorithm clusters graph nodes into <strong>communities</strong> of related entities. GraphRAG uses hierarchical levels — zoom out for broader themes, zoom in for details.</p>
+    <canvas id="commCanvas" class="graph-canvas"></canvas>
+    <div class="community-legend" id="commLegend"></div>
+    <div style="text-align:center;margin:8px 0">
+      <button onclick="setLevel(0)" id="lvl0" style="padding:6px 16px;border-radius:8px;border:1px solid var(--accent);background:rgba(91,91,214,.1);color:var(--accent);cursor:pointer;font-weight:600;font-size:.82rem">C0 — Root (3 communities)</button>
+      <button onclick="setLevel(1)" id="lvl1" style="padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-weight:600;font-size:.82rem;margin-left:8px">C1 — Detail (6 sub-communities)</button>
+    </div>
+  </div>
+
+  <!-- Section 4: Map-Reduce Pipeline -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)">Pipeline</span>
+    <h2 data-i18n="p15.s4.title">Map-Reduce Answer Generation</h2>
+    <p data-i18n="p15.s4.desc" data-i18n-html="1">GraphRAG uses a <strong>map-reduce</strong> pipeline: each community generates a partial answer, then they're combined into a comprehensive global answer.</p>
+    <div id="mapReduceSteps">
+      <div class="map-step" id="mr0"><div class="step-num">1</div><div>Query: "What are the main themes?"</div></div>
+      <div class="map-step" id="mr1"><div class="step-num">2</div><div>MAP: Community A → "Financial trends: revenue up 15%, Q3 record..."</div></div>
+      <div class="map-step" id="mr2"><div class="step-num">3</div><div>MAP: Community B → "Product strategy: 3 new launches, expansion to Asia..."</div></div>
+      <div class="map-step" id="mr3"><div class="step-num">4</div><div>MAP: Community C → "Restructuring: 2 divisions merged, 20% cost reduction..."</div></div>
+      <div class="map-step" id="mr4"><div class="step-num">5</div><div>REDUCE: Rank partial answers by helpfulness → Combine into global response</div></div>
+      <div class="map-step" id="mr5"><div class="step-num">6</div><div><strong>Final Answer:</strong> Three main themes emerged: (1) Strong financial performance, (2) Aggressive product expansion, (3) Organizational efficiency...</div></div>
+    </div>
+    <div style="text-align:center;margin:12px 0">
+      <button onclick="mrStep()" style="padding:8px 24px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-weight:600">Step Through</button>
+      <button onclick="mrReset()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;color:var(--text)">Reset</button>
+    </div>
+    <div class="stat-row">
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent2)">97%</div><div style="font-size:.72rem;color:var(--text-dim)">Token Reduction vs Full Text</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">72-83%</div><div style="font-size:.72rem;color:var(--text-dim)">Comprehensiveness Win Rate</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent4)">75-82%</div><div style="font-size:.72rem;color:var(--text-dim)">Diversity Win Rate</div></div>
+    </div>
+  </div>
+
+  <!-- Section 5: Game -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Game</span>
+    <h2 data-i18n="p15.s5.title">Local vs Global — Which RAG Wins?</h2>
+    <p data-i18n="p15.s5.desc">Some questions are local (fact lookup), others are global (sensemaking). Predict which RAG approach wins!</p>
+    <div style="text-align:center;margin:8px 0">Round: <strong id="gRound">1/6</strong> | Score: <strong id="gScore">0</strong></div>
+    <div id="gQ" style="text-align:center;font-weight:600;padding:12px;background:var(--formula-bg);border-radius:8px;border:1px solid var(--border);margin:12px 0"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="gOpts"></div>
+    <div id="gFb" style="text-align:center;margin-top:12px;font-weight:600;min-height:24px"></div>
+  </div>
+
+</div>
+<footer><small data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</small></footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+i18nRegister({
+  'en':{'p15.title':'15. GraphRAG — LLM Algorithm Visualizations','p15.heading':'GraphRAG — Knowledge Graph Communities','p15.subtitle':'From scattered chunks to structured reasoning.','p15.s1.title':'Why Vector RAG Fails on Global Questions','p15.s1.desc':'Vector RAG retrieves chunks similar to the query. But for questions like <strong>"What are the main themes?"</strong>, no single chunk contains the answer.','p15.s2.title':'Knowledge Graph — Entity Extraction','p15.s2.desc':'An LLM extracts <strong>entities</strong> (nodes) and <strong>relationships</strong> (edges) from text.','p15.s3.title':'Leiden Community Detection','p15.s3.desc':'The Leiden algorithm clusters graph nodes into <strong>communities</strong> of related entities.','p15.s4.title':'Map-Reduce Answer Generation','p15.s4.desc':'GraphRAG uses a <strong>map-reduce</strong> pipeline: each community generates a partial answer.','p15.s5.title':'Local vs Global — Which RAG Wins?','p15.s5.desc':'Some questions are local, others global. Predict which RAG wins!',
+    'p15.kgs.0':'Apple Inc. was founded by Steve Jobs in Cupertino, California.','p15.kgs.1':'Tim Cook became CEO of Apple in 2011 after Steve Jobs resigned.','p15.kgs.2':'Apple launched the iPhone in 2007, revolutionizing the smartphone industry.','p15.kgs.3':'The App Store, created by Apple, hosts millions of applications.',
+    'p15.kg.empty':'Click "Extract" to build the knowledge graph',
+    'p15.comm.c0':['Tech Companies','Search & Web','Enterprise'],'p15.comm.c1':['Apple People','Apple Mgmt','Apple Products','Google Core','Google Products','Microsoft'],
+    'p15.gq.0':'"What year was Apple founded?"','p15.gq.1':'"What are the key trends across all quarterly reports?"','p15.gq.2':'"Who is the CEO of Google?"','p15.gq.3':'"How do the strategies of Apple, Google, and Microsoft compare?"','p15.gq.4':'"What is the price of iPhone 15?"','p15.gq.5':'"What organizational changes occurred across the industry?"',
+    'p15.ge.0':'Local fact lookup — vector RAG excels at finding specific passages.','p15.ge.1':'Global sensemaking — needs corpus-level reasoning across communities.','p15.ge.2':'Simple factual query — single chunk has the answer.','p15.ge.3':'Cross-entity comparison — GraphRAG\'s communities capture each company\'s strategy.','p15.ge.4':'Specific data point — vector retrieval finds the exact passage.','p15.ge.5':'Corpus-level pattern — requires aggregating across multiple companies and events.',
+    'p15.correct':'Correct!'},
+  'zh-CN':{'p15.title':'15. GraphRAG — 大语言模型算法可视化','p15.heading':'GraphRAG — 知识图谱社区','p15.subtitle':'从分散的文本块到结构化推理。','p15.s1.title':'为什么向量 RAG 在全局问题上失败','p15.s1.desc':'向量 RAG 检索与查询相似的文本块。但对于"<strong>主要主题是什么？</strong>"这样的问题，没有单个文本块包含答案。','p15.s2.title':'知识图谱 — 实体提取','p15.s2.desc':'LLM 从文本中提取<strong>实体</strong>（节点）和<strong>关系</strong>（边）。','p15.s3.title':'Leiden 社区检测','p15.s3.desc':'Leiden 算法将图节点聚类为相关实体的<strong>社区</strong>。','p15.s4.title':'Map-Reduce 答案生成','p15.s4.desc':'GraphRAG 使用 <strong>map-reduce</strong> 流水线：每个社区生成部分答案。','p15.s5.title':'局部 vs 全局 — 哪种 RAG 赢？','p15.s5.desc':'有些问题是局部的，有些是全局的。预测哪种 RAG 赢！',
+    'p15.kgs.0':'苹果公司由 Steve Jobs 在加州库比蒂诺创立。','p15.kgs.1':'Tim Cook 在 2011 年 Steve Jobs 辞职后成为苹果 CEO。','p15.kgs.2':'苹果于 2007 年推出 iPhone，革新了智能手机行业。','p15.kgs.3':'苹果创建的 App Store 拥有数百万应用程序。',
+    'p15.kg.empty':'点击"提取"构建知识图谱',
+    'p15.gq.0':'"苹果是哪年创立的？"','p15.gq.1':'"所有季度报告的关键趋势是什么？"','p15.gq.2':'"谁是 Google 的 CEO？"','p15.gq.3':'"苹果、Google 和微软的战略如何对比？"','p15.gq.4':'"iPhone 15 的价格是多少？"','p15.gq.5':'"行业内发生了哪些组织变革？"',
+    'p15.ge.0':'局部事实查找 — 向量 RAG 擅长找到特定段落。','p15.ge.1':'全局理解 — 需要跨社区的语料级推理。','p15.ge.2':'简单事实查询 — 单个文本块有答案。','p15.ge.3':'跨实体对比 — GraphRAG 的社区捕捉每个公司的战略。','p15.ge.4':'特定数据点 — 向量检索找到精确段落。','p15.ge.5':'语料级模式 — 需要跨多个公司和事件聚合。',
+    'p15.correct':'正确！'},
+  'zh-TW':{'p15.title':'15. GraphRAG — 大語言模型演算法視覺化','p15.heading':'GraphRAG — 知識圖譜社群','p15.subtitle':'從分散的文字塊到結構化推理。','p15.s1.title':'為什麼向量 RAG 在全域問題上失敗','p15.s1.desc':'向量 RAG 檢索與查詢相似的文字塊。但對於「<strong>主要主題是什麼？</strong>」這樣的問題，沒有單一文字塊包含答案。','p15.s2.title':'知識圖譜 — 實體擷取','p15.s2.desc':'LLM 從文字中擷取<strong>實體</strong>（節點）和<strong>關係</strong>（邊）。','p15.s3.title':'Leiden 社群偵測','p15.s3.desc':'Leiden 演算法將圖節點聚類為相關實體的<strong>社群</strong>。','p15.s4.title':'Map-Reduce 答案生成','p15.s4.desc':'GraphRAG 使用 <strong>map-reduce</strong> 管線：每個社群生成部分答案。','p15.s5.title':'局部 vs 全域 — 哪種 RAG 贏？','p15.s5.desc':'有些問題是局部的，有些是全域的。預測哪種 RAG 贏！',
+    'p15.kgs.0':'蘋果公司由 Steve Jobs 在加州庫比蒂諾創立。','p15.kgs.1':'Tim Cook 在 2011 年 Steve Jobs 辭職後成為蘋果 CEO。','p15.kgs.2':'蘋果於 2007 年推出 iPhone，革新了智慧型手機產業。','p15.kgs.3':'蘋果建立的 App Store 擁有數百萬應用程式。',
+    'p15.kg.empty':'點擊「擷取」建構知識圖譜',
+    'p15.gq.0':'「蘋果是哪年創立的？」','p15.gq.1':'「所有季度報告的關鍵趨勢是什麼？」','p15.gq.2':'「誰是 Google 的 CEO？」','p15.gq.3':'「蘋果、Google 和微軟的策略如何對比？」','p15.gq.4':'「iPhone 15 的價格是多少？」','p15.gq.5':'「產業內發生了哪些組織變革？」',
+    'p15.ge.0':'局部事實查找 — 向量 RAG 擅長找到特定段落。','p15.ge.1':'全域理解 — 需要跨社群的語料級推理。','p15.ge.2':'簡單事實查詢 — 單一文字塊有答案。','p15.ge.3':'跨實體對比 — GraphRAG 的社群捕捉每間公司的策略。','p15.ge.4':'特定資料點 — 向量檢索找到精確段落。','p15.ge.5':'語料級模式 — 需要跨多間公司和事件彙總。',
+    'p15.correct':'正確！'}
+});
+
+// ===== Section 2: KG Canvas =====
+function getKGSents(){return [t('p15.kgs.0'),t('p15.kgs.1'),t('p15.kgs.2'),t('p15.kgs.3')];}
+var KG_NODES_PER=[
+  [{id:'apple',label:'Apple Inc.',x:.5,y:.3,c:'#5b5bd6'},{id:'jobs',label:'Steve Jobs',x:.2,y:.5,c:'#0d9488'},{id:'cupertino',label:'Cupertino',x:.8,y:.5,c:'#ea580c'}],
+  [{id:'cook',label:'Tim Cook',x:.2,y:.7,c:'#0d9488'}],
+  [{id:'iphone',label:'iPhone',x:.7,y:.2,c:'#e11d48'},{id:'smartphone',label:'Smartphone',x:.9,y:.35,c:'#8b5cf6'}],
+  [{id:'appstore',label:'App Store',x:.6,y:.7,c:'#e11d48'}],
+];
+var KG_EDGES_PER=[
+  [['jobs','apple','founded'],['apple','cupertino','located_in']],
+  [['cook','apple','CEO_of'],['cook','jobs','succeeded']],
+  [['apple','iphone','created'],['iphone','smartphone','is_a']],
+  [['apple','appstore','created']],
+];
+var kgStep=-1,allNodes=[],allEdges=[];
+function drawKG(){
+  var c=document.getElementById('kgCanvas');if(!c)return;
+  var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;
+  var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();
+  // Edges
+  allEdges.forEach(function(e){var f=allNodes.find(function(n){return n.id===e[0];}),t=allNodes.find(function(n){return n.id===e[1];});if(!f||!t)return;x.strokeStyle='rgba(128,128,128,.4)';x.lineWidth=2;x.beginPath();x.moveTo(f.x*W,f.y*H);x.lineTo(t.x*W,t.y*H);x.stroke();x.fillStyle=dc;x.font='10px system-ui';x.textAlign='center';x.fillText(e[2],(f.x+t.x)/2*W,(f.y+t.y)/2*H-6);});
+  // Nodes
+  allNodes.forEach(function(n){x.fillStyle=n.c+'33';x.strokeStyle=n.c;x.lineWidth=2;x.beginPath();x.arc(n.x*W,n.y*H,22,0,Math.PI*2);x.fill();x.stroke();x.fillStyle=tc;x.font='bold 11px system-ui';x.textAlign='center';x.textBaseline='middle';x.fillText(n.label,n.x*W,n.y*H);});
+  if(allNodes.length===0){x.fillStyle=dc;x.font='14px system-ui';x.textAlign='center';x.fillText(t('p15.kg.empty'),W/2,H/2);}
+}
+function kgExtract(){var sents=getKGSents();kgStep++;if(kgStep>=sents.length){kgStep=sents.length-1;return;}allNodes=allNodes.concat(KG_NODES_PER[kgStep]);allEdges=allEdges.concat(KG_EDGES_PER[kgStep]);document.getElementById('kgSentence').textContent='"'+sents[kgStep]+'"';drawKG();}
+function kgReset(){kgStep=-1;allNodes=[];allEdges=[];document.getElementById('kgSentence').textContent='';drawKG();}
+
+// ===== Section 3: Community Detection =====
+var COMM_NODES=[
+  {id:0,label:'Apple',x:.4,y:.3,c0:0,c1:0},{id:1,label:'Jobs',x:.2,y:.2,c0:0,c1:0},{id:2,label:'Cook',x:.15,y:.45,c0:0,c1:1},
+  {id:3,label:'iPhone',x:.6,y:.15,c0:0,c1:2},{id:4,label:'iPad',x:.75,y:.25,c0:0,c1:2},{id:5,label:'Mac',x:.85,y:.15,c0:0,c1:2},
+  {id:6,label:'Google',x:.5,y:.65,c0:1,c1:3},{id:7,label:'Pichai',x:.35,y:.75,c0:1,c1:3},{id:8,label:'Android',x:.65,y:.55,c0:1,c1:4},
+  {id:9,label:'Search',x:.75,y:.7,c0:1,c1:4},{id:10,label:'Chrome',x:.85,y:.6,c0:1,c1:4},
+  {id:11,label:'Microsoft',x:.2,y:.7,c0:2,c1:5},{id:12,label:'Windows',x:.1,y:.85,c0:2,c1:5},{id:13,label:'Azure',x:.3,y:.85,c0:2,c1:5},
+];
+var COMM_EDGES=[[0,1],[0,2],[0,3],[0,4],[0,5],[3,4],[4,5],[6,7],[6,8],[6,9],[6,10],[8,9],[9,10],[11,12],[11,13],[12,13]];
+var C_COLORS=[['#5b5bd6','#0d9488','#e11d48'],['#5b5bd6','#8b5cf6','#61afef','#0d9488','#ea580c','#e11d48']];
+var commLevel=0;
+function drawComm(){
+  var c=document.getElementById('commCanvas');if(!c)return;
+  var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;
+  var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim();
+  var cols=C_COLORS[commLevel];
+  COMM_EDGES.forEach(function(e){var a=COMM_NODES[e[0]],b=COMM_NODES[e[1]];x.strokeStyle='rgba(128,128,128,.25)';x.lineWidth=1;x.beginPath();x.moveTo(a.x*W,a.y*H);x.lineTo(b.x*W,b.y*H);x.stroke();});
+  COMM_NODES.forEach(function(n){var ci=commLevel===0?n.c0:n.c1;var col=cols[ci]||'#6c7086';x.fillStyle=col+'33';x.strokeStyle=col;x.lineWidth=2;x.beginPath();x.arc(n.x*W,n.y*H,20,0,Math.PI*2);x.fill();x.stroke();x.fillStyle=tc;x.font='bold 10px system-ui';x.textAlign='center';x.textBaseline='middle';x.fillText(n.label,n.x*W,n.y*H);});
+  var leg=document.getElementById('commLegend');leg.innerHTML='';var names=commLevel===0?['Tech Companies','Search & Web','Enterprise']:['Apple People','Apple Mgmt','Apple Products','Google Core','Google Products','Microsoft'];
+  cols.forEach(function(c,i){leg.innerHTML+='<div class="legend-item"><div class="legend-dot" style="background:'+c+'"></div>'+names[i]+'</div>';});
+}
+function setLevel(l){commLevel=l;document.getElementById('lvl0').style.borderColor=l===0?'var(--accent)':'var(--border)';document.getElementById('lvl0').style.background=l===0?'rgba(91,91,214,.1)':'var(--surface)';document.getElementById('lvl1').style.borderColor=l===1?'var(--accent)':'var(--border)';document.getElementById('lvl1').style.background=l===1?'rgba(91,91,214,.1)':'var(--surface)';drawComm();}
+
+// ===== Section 4: Map-Reduce =====
+var mrS=-1;
+function mrStep(){mrS++;if(mrS>5)mrS=5;for(var i=0;i<=5;i++){document.getElementById('mr'+i).className='map-step'+(i<=mrS?' active':'');}}
+function mrReset(){mrS=-1;for(var i=0;i<=5;i++)document.getElementById('mr'+i).className='map-step';}
+
+// ===== Section 5: Game =====
+var GR=[
+  {qk:'p15.gq.0',best:'Vector RAG',ek:'p15.ge.0'},
+  {qk:'p15.gq.1',best:'GraphRAG',ek:'p15.ge.1'},
+  {qk:'p15.gq.2',best:'Vector RAG',ek:'p15.ge.2'},
+  {qk:'p15.gq.3',best:'GraphRAG',ek:'p15.ge.3'},
+  {qk:'p15.gq.4',best:'Vector RAG',ek:'p15.ge.4'},
+  {qk:'p15.gq.5',best:'GraphRAG',ek:'p15.ge.5'},
+];
+var gi=0,gs=0;
+function renderG(){document.getElementById('gRound').textContent=(gi+1)+'/6';document.getElementById('gScore').textContent=gs;document.getElementById('gQ').textContent=t(GR[gi].qk);document.getElementById('gFb').textContent='';var o=document.getElementById('gOpts');o.innerHTML='';['Vector RAG','GraphRAG'].forEach(function(opt){var d=document.createElement('div');d.className='game-opt';d.textContent=opt;d.onclick=function(){checkG(opt,d);};o.appendChild(d);});}
+function checkG(pick,el){var all=document.getElementById('gOpts').querySelectorAll('.game-opt');all.forEach(function(d){d.style.pointerEvents='none';});if(pick===GR[gi].best){el.classList.add('correct');gs++;document.getElementById('gFb').innerHTML='<span style="color:var(--accent2)">'+t('p15.correct')+'</span> '+t(GR[gi].ek);}else{el.classList.add('wrong');all.forEach(function(d){if(d.textContent===GR[gi].best)d.classList.add('correct');});document.getElementById('gFb').innerHTML='<span style="color:var(--accent3)">'+GR[gi].best+' wins.</span> '+t(GR[gi].ek);}document.getElementById('gScore').textContent=gs;setTimeout(function(){gi++;if(gi<6)renderG();else{document.getElementById('gFb').innerHTML='<strong>Final: '+gs+'/6</strong>';if(typeof markGameCompleted==='function')markGameCompleted('15');}},2500);}
+
+window.addEventListener('load',function(){drawKG();drawComm();renderG();});
+window.addEventListener('themechange',function(){drawKG();drawComm();});
+window.addEventListener('resize',function(){drawKG();drawComm();});
+</script>
+</body>
+</html>
