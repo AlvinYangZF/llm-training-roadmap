@@ -1,0 +1,917 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p24.title">24. Tokenization — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css"><script src="../shared/theme.js"></script>
+  <style>
+    /* ===== Token Pills ===== */
+    .token-pills{display:flex;flex-wrap:wrap;gap:6px;min-height:48px;padding:12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--canvas-bg);margin:12px 0}
+    .token-pill{display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;font-size:.88rem;font-weight:600;transition:transform .2s,box-shadow .2s;cursor:default;border:1px solid rgba(0,0,0,.08)}
+    .token-pill:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+    .token-pill .tok-id{font-size:.65rem;opacity:.6;margin-left:6px}
+    /* ===== Stats Row ===== */
+    .stats-row{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;justify-content:center}
+    .stat-item{text-align:center;padding:10px 20px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);min-width:100px}
+    .stat-val{font-size:1.4rem;font-weight:800;color:var(--accent)}
+    .stat-label{font-size:.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
+    /* ===== Input Area ===== */
+    .tok-input{width:100%;min-height:80px;padding:14px;border:2px solid var(--border);border-radius:var(--radius);background:var(--game-input-bg);color:var(--text);font-size:1rem;font-family:inherit;resize:vertical;outline:none;transition:border-color .2s}
+    .tok-input:focus{border-color:var(--accent)}
+    /* ===== Example Buttons ===== */
+    .example-btns{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+    .example-btn{padding:6px 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s}
+    .example-btn:hover{border-color:var(--accent);color:var(--accent)}
+    .example-btn.active{border-color:var(--accent);background:rgba(91,91,214,.08);color:var(--accent)}
+    /* ===== BPE Animation ===== */
+    .bpe-vocab{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0;padding:12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--formula-bg);min-height:40px}
+    .bpe-token{padding:4px 10px;border-radius:6px;font-size:.82rem;font-weight:600;font-family:'Courier New',monospace;background:rgba(91,91,214,.1);color:var(--accent);border:1px solid rgba(91,91,214,.2);transition:all .3s}
+    .bpe-token.new-merge{background:rgba(13,148,136,.15);color:var(--accent2);border-color:rgba(13,148,136,.3);animation:mergeFlash .6s ease}
+    @keyframes mergeFlash{0%{transform:scale(1.3);box-shadow:0 0 12px rgba(13,148,136,.4)}100%{transform:scale(1);box-shadow:none}}
+    .bpe-corpus{font-family:'Courier New',monospace;font-size:.95rem;padding:12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--canvas-bg);margin:10px 0;line-height:2;word-spacing:8px}
+    .bpe-corpus .merged{background:rgba(13,148,136,.15);border-radius:4px;padding:2px 4px}
+    .merge-step-box{padding:14px;border:2px solid var(--accent2);border-radius:var(--radius);background:rgba(13,148,136,.04);text-align:center;margin:10px 0;font-size:.95rem;font-weight:600;min-height:50px}
+    /* ===== Comparison Table ===== */
+    .comp-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.85rem}
+    .comp-table th{padding:10px 12px;text-align:left;border-bottom:2px solid var(--accent);font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim)}
+    .comp-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+    .comp-table tr:hover td{background:rgba(91,91,214,.03)}
+    .comp-tokens{display:flex;flex-wrap:wrap;gap:3px}
+    .comp-tok{padding:2px 8px;border-radius:4px;font-size:.78rem;font-weight:600;font-family:'Courier New',monospace}
+    .comp-count{font-weight:800;font-size:1.1rem}
+    .special-tok{padding:2px 8px;border-radius:4px;font-size:.78rem;font-weight:600;font-family:'Courier New',monospace;background:rgba(225,29,72,.08);color:var(--accent3);border:1px dashed rgba(225,29,72,.3)}
+    /* ===== Gotcha Cards ===== */
+    .gotcha-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+    .gotcha-card{padding:16px;border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .3s;background:var(--surface)}
+    .gotcha-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+    .gotcha-card.open{border-color:var(--accent3)}
+    .gotcha-card h4{font-size:.9rem;margin:0 0 4px;color:var(--text)}
+    .gotcha-card .gotcha-hint{font-size:.78rem;color:var(--text-dim);margin:0}
+    .gotcha-reveal{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+    .gotcha-card.open .gotcha-reveal{display:block}
+    /* ===== Quiz ===== */
+    .quiz-prompt{font-size:1.3rem;font-weight:700;text-align:center;padding:20px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);font-family:'Courier New',monospace;margin:16px 0;word-break:break-all}
+    .quiz-options{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .quiz-opt{padding:12px 24px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:700;font-size:1.1rem;transition:all .2s;min-width:60px;text-align:center}
+    .quiz-opt:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+    .quiz-opt.correct{border-color:var(--accent2);background:rgba(13,148,136,.1);color:var(--accent2)}
+    .quiz-opt.wrong{border-color:var(--accent3);background:rgba(225,29,72,.06);color:var(--accent3)}
+    .quiz-opt.disabled{pointer-events:none;opacity:.7}
+    /* ===== Responsive ===== */
+    @media(max-width:700px){.gotcha-grid{grid-template-columns:1fr}}
+  </style>
+</head><body>
+
+<h1 data-i18n="p24.heading">Tokenization — How Models See Text</h1>
+<p class="subtitle" data-i18n="p24.subtitle">Before an LLM reads a single word, it must first break text into tokens. This fundamental step shapes what the model can understand, how fast it runs, and why some text costs more than others.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span>Tokenization</span></p>
+
+<div class="container">
+
+  <!-- ===== Section 1: Live Tokenizer ===== -->
+  <div class="card">
+    <span class="badge badge-purple" data-i18n="p24.s1.badge">Main Demo</span>
+    <h2 data-i18n="p24.s1.title">Live Tokenizer</h2>
+    <p data-i18n="p24.s1.desc">Type anything below and watch it split into tokens in real time. Common English words are usually 1 token. Rare words, code identifiers, and non-Latin scripts get split into multiple subword pieces.</p>
+
+    <textarea class="tok-input" id="tokInput" placeholder="Type or paste text here...">Hello, world! Tokenization is fascinating.</textarea>
+
+    <div class="example-btns" id="exampleBtns">
+      <button class="example-btn active" data-text="Hello, world! Tokenization is fascinating." data-i18n="p24.s1.ex_en">English</button>
+      <button class="example-btn" data-text="function fibonacci(n) {\n  if (n <= 1) return n;\n  return fibonacci(n-1) + fibonacci(n-2);\n}" data-i18n="p24.s1.ex_code">Code</button>
+      <button class="example-btn" data-text="大型语言模型通过分词器将文本转换为数字序列。" data-i18n="p24.s1.ex_zh">Chinese</button>
+      <button class="example-btn" data-text="🤖🧠💡🚀✨ AI is amazing! 🎉" data-i18n="p24.s1.ex_emoji">Emoji</button>
+      <button class="example-btn" data-text="https://api.example.com/v2/users?page=1&limit=50" data-i18n="p24.s1.ex_url">URL</button>
+    </div>
+
+    <div class="token-pills" id="tokenDisplay"></div>
+
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-val" id="statTokens">0</div><div class="stat-label" data-i18n="p24.s1.tokens">Tokens</div></div>
+      <div class="stat-item"><div class="stat-val" id="statChars">0</div><div class="stat-label" data-i18n="p24.s1.chars">Characters</div></div>
+      <div class="stat-item"><div class="stat-val" id="statRatio">0</div><div class="stat-label" data-i18n="p24.s1.ratio">Tokens/Word</div></div>
+    </div>
+
+    <div class="formula-box" data-i18n="p24.s1.insight">KEY INSIGHT: Common words = 1 token | Rare words = split into subwords | Spaces often attach to the next token</div>
+  </div>
+
+  <!-- ===== Section 2: BPE Step-by-Step ===== -->
+  <div class="card">
+    <span class="badge badge-green" data-i18n="p24.s2.badge">Algorithm</span>
+    <h2 data-i18n="p24.s2.title">BPE Algorithm Step-by-Step</h2>
+    <p data-i18n="p24.s2.desc">Byte Pair Encoding starts with individual characters and iteratively merges the most frequent adjacent pair. Watch the vocabulary build up from the corpus: "low lower lowest new newer newest".</p>
+
+    <h3 data-i18n="p24.s2.corpus_label">Corpus (split into characters)</h3>
+    <div class="bpe-corpus" id="bpeCorpus"></div>
+
+    <h3 data-i18n="p24.s2.merge_label">Current Merge Step</h3>
+    <div class="merge-step-box" id="mergeStepBox" data-i18n="p24.s2.ready">Press Play or Step to begin</div>
+
+    <div class="anim-controls" style="margin:16px 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-surface" id="bpeReset" data-i18n="p24.s2.reset">Reset</button>
+      <button class="btn btn-surface" id="bpeStep" data-i18n="p24.s2.step">Step</button>
+      <button class="btn btn-accent" id="bpePlay" data-i18n="p24.s2.play">Play</button>
+      <button class="btn btn-surface" id="bpePause" style="display:none" data-i18n="p24.s2.pause">Pause</button>
+    </div>
+
+    <h3 data-i18n="p24.s2.vocab_label">Vocabulary</h3>
+    <div class="bpe-vocab" id="bpeVocab"></div>
+
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-val" id="bpeInitSize">0</div><div class="stat-label" data-i18n="p24.s2.init_size">Initial Vocab</div></div>
+      <div class="stat-item"><div class="stat-val" id="bpeCurSize">0</div><div class="stat-label" data-i18n="p24.s2.cur_size">Current Vocab</div></div>
+      <div class="stat-item"><div class="stat-val" id="bpeMergeNum">0</div><div class="stat-label" data-i18n="p24.s2.merge_num">Merges Done</div></div>
+    </div>
+  </div>
+
+  <!-- ===== Section 3: Tokenizer Comparison ===== -->
+  <div class="card">
+    <span class="badge badge-orange" data-i18n="p24.s3.badge">Compare</span>
+    <h2 data-i18n="p24.s3.title">Tokenizer Comparison</h2>
+    <p data-i18n="p24.s3.desc">The same text tokenized by different models produces different token sequences. Smaller vocabularies mean more tokens per sentence and slower processing.</p>
+
+    <div style="margin:12px 0">
+      <label style="font-size:.85rem;font-weight:600;color:var(--text-dim)" data-i18n="p24.s3.input_label">Input text:</label>
+      <input type="text" class="tok-input" id="compInput" style="min-height:auto;padding:10px 14px" value="The quick brown fox jumps over the lazy dog">
+    </div>
+
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th data-i18n="p24.s3.th_model">Model</th>
+          <th data-i18n="p24.s3.th_vocab">Vocab Size</th>
+          <th data-i18n="p24.s3.th_tokens">Tokens</th>
+          <th data-i18n="p24.s3.th_count">Count</th>
+          <th data-i18n="p24.s3.th_special">Special Tokens</th>
+        </tr>
+      </thead>
+      <tbody id="compBody"></tbody>
+    </table>
+
+    <div class="formula-box" data-i18n="p24.s3.formula">Smaller vocab = more tokens per text = more compute per inference</div>
+  </div>
+
+  <!-- ===== Section 4: Tokenization Traps ===== -->
+  <div class="card">
+    <span class="badge badge-red" data-i18n="p24.s4.badge">Gotchas</span>
+    <h2 data-i18n="p24.s4.title">The Tokenization Trap</h2>
+    <p data-i18n="p24.s4.desc">Tokenization has many surprises. Click each card to see how the text is actually tokenized and why it matters.</p>
+
+    <div class="gotcha-grid" id="gotchaGrid"></div>
+  </div>
+
+  <!-- ===== Section 5: Tokenizer Quiz ===== -->
+  <div class="card">
+    <span class="badge badge-purple" data-i18n="p24.s5.badge">Game</span>
+    <h2 data-i18n="p24.s5.title">Guess the Token Count</h2>
+    <p data-i18n="p24.s5.desc">How well do you understand tokenization? Guess how many tokens each string will produce. 5 rounds!</p>
+
+    <div class="game-score">
+      <div class="game-score-item"><div class="score-val" id="quizRound">1</div><div class="score-label" data-i18n="p24.s5.round">Round</div></div>
+      <div class="game-score-item"><div class="score-val" id="quizScore">0</div><div class="score-label" data-i18n="p24.s5.score">Score</div></div>
+    </div>
+
+    <div class="quiz-prompt" id="quizPrompt"></div>
+    <div class="quiz-options" id="quizOpts"></div>
+    <div class="game-feedback" id="quizFb"></div>
+    <button class="btn btn-accent" id="quizRestart" style="display:none;margin:12px auto" data-i18n="p24.s5.restart">Play Again</button>
+  </div>
+
+</div>
+
+<footer>
+  <p>Tokenization — BPE (Sennrich 2016), SentencePiece (Kudo 2018)</p>
+  <p>LLM Algorithm Visualizations v2.1.0</p>
+</footer>
+
+<script src="../shared/i18n.js"></script><script src="../shared/nav.js"></script><script src="../shared/animations.js"></script><script src="../shared/progress.js"></script>
+<script>
+i18nRegister({
+  'en':{
+    'p24.title':'24. Tokenization — LLM Algorithm Visualizations',
+    'p24.heading':'Tokenization — How Models See Text',
+    'p24.subtitle':'Before an LLM reads a single word, it must first break text into tokens. This fundamental step shapes what the model can understand, how fast it runs, and why some text costs more than others.',
+    'p24.s1.badge':'Main Demo',
+    'p24.s1.title':'Live Tokenizer',
+    'p24.s1.desc':'Type anything below and watch it split into tokens in real time. Common English words are usually 1 token. Rare words, code identifiers, and non-Latin scripts get split into multiple subword pieces.',
+    'p24.s1.ex_en':'English',
+    'p24.s1.ex_code':'Code',
+    'p24.s1.ex_zh':'Chinese',
+    'p24.s1.ex_emoji':'Emoji',
+    'p24.s1.ex_url':'URL',
+    'p24.s1.tokens':'Tokens',
+    'p24.s1.chars':'Characters',
+    'p24.s1.ratio':'Tokens/Word',
+    'p24.s1.insight':'KEY INSIGHT: Common words = 1 token | Rare words = split into subwords | Spaces often attach to the next token',
+    'p24.s2.badge':'Algorithm',
+    'p24.s2.title':'BPE Algorithm Step-by-Step',
+    'p24.s2.desc':'Byte Pair Encoding starts with individual characters and iteratively merges the most frequent adjacent pair. Watch the vocabulary build up from the corpus: "low lower lowest new newer newest".',
+    'p24.s2.corpus_label':'Corpus (split into characters)',
+    'p24.s2.merge_label':'Current Merge Step',
+    'p24.s2.ready':'Press Play or Step to begin',
+    'p24.s2.reset':'Reset',
+    'p24.s2.step':'Step',
+    'p24.s2.play':'Play',
+    'p24.s2.pause':'Pause',
+    'p24.s2.vocab_label':'Vocabulary',
+    'p24.s2.init_size':'Initial Vocab',
+    'p24.s2.cur_size':'Current Vocab',
+    'p24.s2.merge_num':'Merges Done',
+    'p24.s2.merge_msg':'Merge: "{a}" + "{b}" → "{ab}" (frequency: {freq})',
+    'p24.s2.done':'All merges complete!',
+    'p24.s3.badge':'Compare',
+    'p24.s3.title':'Tokenizer Comparison',
+    'p24.s3.desc':'The same text tokenized by different models produces different token sequences. Smaller vocabularies mean more tokens per sentence and slower processing.',
+    'p24.s3.input_label':'Input text:',
+    'p24.s3.th_model':'Model',
+    'p24.s3.th_vocab':'Vocab Size',
+    'p24.s3.th_tokens':'Tokens',
+    'p24.s3.th_count':'Count',
+    'p24.s3.th_special':'Special Tokens',
+    'p24.s3.formula':'Smaller vocab = more tokens per text = more compute per inference',
+    'p24.s4.badge':'Gotchas',
+    'p24.s4.title':'The Tokenization Trap',
+    'p24.s4.desc':'Tokenization has many surprises. Click each card to see how the text is actually tokenized and why it matters.',
+    'p24.s5.badge':'Game',
+    'p24.s5.title':'Guess the Token Count',
+    'p24.s5.desc':'How well do you understand tokenization? Guess how many tokens each string will produce. 5 rounds!',
+    'p24.s5.round':'Round',
+    'p24.s5.score':'Score',
+    'p24.s5.correct':'Correct!',
+    'p24.s5.close':'Close! The answer was {ans}.',
+    'p24.s5.wrong':'Not quite. The answer was {ans}.',
+    'p24.s5.restart':'Play Again',
+    'p24.s5.final':'Final Score: {score}/5'
+  },
+  'zh-CN':{
+    'p24.title':'24. 分词 — LLM 算法可视化',
+    'p24.heading':'分词 — 模型如何看待文本',
+    'p24.subtitle':'在 LLM 读取任何一个词之前，它必须先将文本分解为 token。这一基本步骤决定了模型能理解什么、运行速度多快，以及为什么有些文本成本更高。',
+    'p24.s1.badge':'主演示',
+    'p24.s1.title':'实时分词器',
+    'p24.s1.desc':'在下方输入任意文本，实时观察其被拆分为 token。常见英文词通常是 1 个 token。罕见词、代码标识符和非拉丁文字会被拆分为多个子词片段。',
+    'p24.s1.ex_en':'英文',
+    'p24.s1.ex_code':'代码',
+    'p24.s1.ex_zh':'中文',
+    'p24.s1.ex_emoji':'表情符号',
+    'p24.s1.ex_url':'URL',
+    'p24.s1.tokens':'Token 数',
+    'p24.s1.chars':'字符数',
+    'p24.s1.ratio':'Token/词',
+    'p24.s1.insight':'关键洞察：常见词 = 1 个 token | 罕见词 = 被拆分为子词 | 空格通常附加到下一个 token',
+    'p24.s2.badge':'算法',
+    'p24.s2.title':'BPE 算法逐步演示',
+    'p24.s2.desc':'字节对编码从单个字符开始，迭代地合并最频繁的相邻对。观察词汇表从语料库 "low lower lowest new newer newest" 逐步构建。',
+    'p24.s2.corpus_label':'语料库（拆分为字符）',
+    'p24.s2.merge_label':'当前合并步骤',
+    'p24.s2.ready':'按播放或步进开始',
+    'p24.s2.reset':'重置',
+    'p24.s2.step':'步进',
+    'p24.s2.play':'播放',
+    'p24.s2.pause':'暂停',
+    'p24.s2.vocab_label':'词汇表',
+    'p24.s2.init_size':'初始词汇量',
+    'p24.s2.cur_size':'当前词汇量',
+    'p24.s2.merge_num':'已合并次数',
+    'p24.s2.merge_msg':'合并："{a}" + "{b}" → "{ab}"（频率：{freq}）',
+    'p24.s2.done':'所有合并完成！',
+    'p24.s3.badge':'对比',
+    'p24.s3.title':'分词器对比',
+    'p24.s3.desc':'相同文本经不同模型分词器处理会产生不同的 token 序列。词汇表越小意味着每句话的 token 越多，处理越慢。',
+    'p24.s3.input_label':'输入文本：',
+    'p24.s3.th_model':'模型',
+    'p24.s3.th_vocab':'词汇量',
+    'p24.s3.th_tokens':'Token',
+    'p24.s3.th_count':'数量',
+    'p24.s3.th_special':'特殊 Token',
+    'p24.s3.formula':'词汇表越小 = 每段文本 token 越多 = 推理计算量越大',
+    'p24.s4.badge':'陷阱',
+    'p24.s4.title':'分词陷阱',
+    'p24.s4.desc':'分词有很多令人意外之处。点击每张卡片查看文本实际如何被分词以及为什么这很重要。',
+    'p24.s5.badge':'游戏',
+    'p24.s5.title':'猜 Token 数',
+    'p24.s5.desc':'你对分词的理解有多好？猜猜每个字符串会产生多少个 token。5 轮！',
+    'p24.s5.round':'轮次',
+    'p24.s5.score':'得分',
+    'p24.s5.correct':'正确！',
+    'p24.s5.close':'接近！答案是 {ans}。',
+    'p24.s5.wrong':'不太对。答案是 {ans}。',
+    'p24.s5.restart':'再玩一次',
+    'p24.s5.final':'最终得分：{score}/5'
+  },
+  'zh-TW':{
+    'p24.title':'24. 分詞 — LLM 演算法視覺化',
+    'p24.heading':'分詞 — 模型如何看待文字',
+    'p24.subtitle':'在 LLM 讀取任何一個詞之前，它必須先將文字分解為 token。這一基本步驟決定了模型能理解什麼、運行速度多快，以及為什麼有些文字成本更高。',
+    'p24.s1.badge':'主演示',
+    'p24.s1.title':'即時分詞器',
+    'p24.s1.desc':'在下方輸入任意文字，即時觀察其被拆分為 token。常見英文詞通常是 1 個 token。罕見詞、程式碼識別符和非拉丁文字會被拆分為多個子詞片段。',
+    'p24.s1.ex_en':'英文',
+    'p24.s1.ex_code':'程式碼',
+    'p24.s1.ex_zh':'中文',
+    'p24.s1.ex_emoji':'表情符號',
+    'p24.s1.ex_url':'URL',
+    'p24.s1.tokens':'Token 數',
+    'p24.s1.chars':'字元數',
+    'p24.s1.ratio':'Token/詞',
+    'p24.s1.insight':'關鍵洞察：常見詞 = 1 個 token | 罕見詞 = 被拆分為子詞 | 空格通常附加到下一個 token',
+    'p24.s2.badge':'演算法',
+    'p24.s2.title':'BPE 演算法逐步演示',
+    'p24.s2.desc':'位元組對編碼從單個字元開始，迭代地合併最頻繁的相鄰對。觀察詞彙表從語料庫 "low lower lowest new newer newest" 逐步構建。',
+    'p24.s2.corpus_label':'語料庫（拆分為字元）',
+    'p24.s2.merge_label':'當前合併步驟',
+    'p24.s2.ready':'按播放或步進開始',
+    'p24.s2.reset':'重置',
+    'p24.s2.step':'步進',
+    'p24.s2.play':'播放',
+    'p24.s2.pause':'暫停',
+    'p24.s2.vocab_label':'詞彙表',
+    'p24.s2.init_size':'初始詞彙量',
+    'p24.s2.cur_size':'當前詞彙量',
+    'p24.s2.merge_num':'已合併次數',
+    'p24.s2.merge_msg':'合併："{a}" + "{b}" → "{ab}"（頻率：{freq}）',
+    'p24.s2.done':'所有合併完成！',
+    'p24.s3.badge':'對比',
+    'p24.s3.title':'分詞器對比',
+    'p24.s3.desc':'相同文字經不同模型分詞器處理會產生不同的 token 序列。詞彙表越小意味著每句話的 token 越多，處理越慢。',
+    'p24.s3.input_label':'輸入文字：',
+    'p24.s3.th_model':'模型',
+    'p24.s3.th_vocab':'詞彙量',
+    'p24.s3.th_tokens':'Token',
+    'p24.s3.th_count':'數量',
+    'p24.s3.th_special':'特殊 Token',
+    'p24.s3.formula':'詞彙表越小 = 每段文字 token 越多 = 推理計算量越大',
+    'p24.s4.badge':'陷阱',
+    'p24.s4.title':'分詞陷阱',
+    'p24.s4.desc':'分詞有很多令人意外之處。點擊每張卡片查看文字實際如何被分詞以及為什麼這很重要。',
+    'p24.s5.badge':'遊戲',
+    'p24.s5.title':'猜 Token 數',
+    'p24.s5.desc':'你對分詞的理解有多好？猜猜每個字串會產生多少個 token。5 輪！',
+    'p24.s5.round':'輪次',
+    'p24.s5.score':'得分',
+    'p24.s5.correct':'正確！',
+    'p24.s5.close':'接近！答案是 {ans}。',
+    'p24.s5.wrong':'不太對。答案是 {ans}。',
+    'p24.s5.restart':'再玩一次',
+    'p24.s5.final':'最終得分：{score}/5'
+  }
+});
+</script>
+
+<script>
+// ===================== UTILITIES =====================
+var PASTEL_COLORS = [
+  {bg:'rgba(91,91,214,.12)',border:'rgba(91,91,214,.3)',color:'var(--accent)'},
+  {bg:'rgba(13,148,136,.12)',border:'rgba(13,148,136,.3)',color:'var(--accent2)'},
+  {bg:'rgba(225,29,72,.08)',border:'rgba(225,29,72,.25)',color:'var(--accent3)'},
+  {bg:'rgba(234,88,12,.1)',border:'rgba(234,88,12,.3)',color:'var(--accent4)'},
+  {bg:'rgba(124,58,237,.1)',border:'rgba(124,58,237,.25)',color:'#7c3aed'},
+  {bg:'rgba(59,130,246,.1)',border:'rgba(59,130,246,.25)',color:'#3b82f6'},
+  {bg:'rgba(236,72,153,.1)',border:'rgba(236,72,153,.25)',color:'#ec4899'},
+  {bg:'rgba(34,197,94,.1)',border:'rgba(34,197,94,.25)',color:'#22c55e'},
+  {bg:'rgba(245,158,11,.1)',border:'rgba(245,158,11,.25)',color:'#f59e0b'},
+  {bg:'rgba(99,102,241,.1)',border:'rgba(99,102,241,.25)',color:'#6366f1'}
+];
+
+function t(key) {
+  if (typeof i18n === 'function') return i18n(key);
+  return key;
+}
+
+function hashStr(s) {
+  var h = 0;
+  for (var i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+  return Math.abs(h);
+}
+
+function getColor(token) {
+  return PASTEL_COLORS[hashStr(token) % PASTEL_COLORS.length];
+}
+
+// ===================== SIMULATED BPE TOKENIZER =====================
+// A simplified BPE-style tokenizer that gives realistic results
+var COMMON_TOKENS = [
+  'the','of','and','in','to','is','it','that','was','for','on','are','with','as','at','be','this',
+  'have','from','or','an','by','not','but','what','all','were','we','when','your','can','had',
+  'each','which','their','if','will','do','said','about','up','out','them','then','she','many',
+  'some','so','these','would','other','into','has','her','two','like','him','see','time','could',
+  'no','make','than','first','been','its','who','now','people','my','made','over','did','down',
+  'only','way','find','use','may','water','long','little','very','after','words','called','just',
+  'where','most','know','Hello','hello','world','function','return','The','quick','brown','fox',
+  'jumps','over','lazy','dog','Tokenization','tokenization','fascinating','is','a','I','you',
+  'how','new','low','lower','lowest','newer','newest'
+];
+var COMMON_SET = {};
+COMMON_TOKENS.forEach(function(w){ COMMON_SET[w] = true; });
+
+function simulateTokenize(text) {
+  if (!text) return [];
+  var tokens = [];
+  // Split by whitespace boundaries, keeping spaces attached to following words
+  var parts = text.match(/\s*\S+|\s+$/g) || [];
+  parts.forEach(function(part) {
+    var leading = part.match(/^(\s*)/)[1];
+    var word = part.slice(leading.length);
+    if (leading && word) {
+      // Space + word: common pattern in BPE is space attached to word
+      var combined = leading + word;
+      if (COMMON_SET[word] && leading === ' ') {
+        tokens.push(combined);
+      } else {
+        tokens = tokens.concat(splitSubword(combined));
+      }
+    } else if (word) {
+      if (COMMON_SET[word]) {
+        tokens.push(word);
+      } else {
+        tokens = tokens.concat(splitSubword(word));
+      }
+    } else if (leading) {
+      tokens.push(leading);
+    }
+  });
+  return tokens;
+}
+
+function splitSubword(word) {
+  var result = [];
+  var i = 0;
+  while (i < word.length) {
+    // Try to match longest known prefix
+    var best = '';
+    for (var len = Math.min(word.length - i, 8); len >= 1; len--) {
+      var sub = word.slice(i, i + len);
+      if (COMMON_SET[sub] || len >= 3 && /^[a-z]+$/i.test(sub)) {
+        best = sub;
+        break;
+      }
+    }
+    if (!best) {
+      // Handle CJK characters (each is its own token, often 2-3 tokens for encoding)
+      var code = word.charCodeAt(i);
+      if (code >= 0x4E00 && code <= 0x9FFF) {
+        // CJK: simulate multi-byte token
+        result.push(word[i]);
+        i++;
+        continue;
+      }
+      // Emoji detection (simplified)
+      var emojiMatch = word.slice(i).match(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}]+/u);
+      if (emojiMatch) {
+        result.push(emojiMatch[0]);
+        i += emojiMatch[0].length;
+        continue;
+      }
+      // Numbers: split in groups of 1-3 digits
+      var numMatch = word.slice(i).match(/^\d{1,3}/);
+      if (numMatch) {
+        result.push(numMatch[0]);
+        i += numMatch[0].length;
+        continue;
+      }
+      // Punctuation / special char
+      result.push(word[i]);
+      i++;
+    } else {
+      result.push(word.slice(i, i + best.length));
+      i += best.length;
+    }
+  }
+  return result;
+}
+
+// ===================== SECTION 1: LIVE TOKENIZER =====================
+var tokInput = document.getElementById('tokInput');
+var tokenDisplay = document.getElementById('tokenDisplay');
+
+function renderTokens() {
+  var text = tokInput.value;
+  var tokens = simulateTokenize(text);
+  tokenDisplay.innerHTML = '';
+  tokens.forEach(function(tok, i) {
+    var c = getColor(tok);
+    var pill = document.createElement('span');
+    pill.className = 'token-pill';
+    pill.style.background = c.bg;
+    pill.style.borderColor = c.border;
+    pill.style.color = c.color;
+    var display = tok.replace(/ /g, '\u2423'); // show spaces as visible
+    pill.innerHTML = display + '<span class="tok-id">#' + (i+1) + '</span>';
+    tokenDisplay.appendChild(pill);
+  });
+
+  document.getElementById('statTokens').textContent = tokens.length;
+  document.getElementById('statChars').textContent = text.length;
+  var words = text.trim().split(/\s+/).filter(function(w){return w.length > 0;});
+  var ratio = words.length > 0 ? (tokens.length / words.length).toFixed(2) : '0';
+  document.getElementById('statRatio').textContent = ratio;
+}
+
+tokInput.addEventListener('input', renderTokens);
+
+// Example buttons
+document.getElementById('exampleBtns').addEventListener('click', function(e) {
+  var btn = e.target.closest('.example-btn');
+  if (!btn) return;
+  document.querySelectorAll('.example-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  tokInput.value = btn.getAttribute('data-text');
+  renderTokens();
+});
+
+// ===================== SECTION 2: BPE ALGORITHM =====================
+var BPE_CORPUS_WORDS = ['low','lower','lowest','new','newer','newest'];
+var bpeState, bpePlaying, bpeTimer;
+
+function bpeInit() {
+  bpePlaying = false;
+  if (bpeTimer) clearInterval(bpeTimer);
+  // Each word becomes a list of characters + end-of-word marker
+  bpeState = {
+    words: BPE_CORPUS_WORDS.map(function(w) {
+      return w.split('').concat(['_']);
+    }),
+    vocab: new Set(),
+    merges: 0,
+    mergesDone: []
+  };
+  // Build initial vocab
+  bpeState.words.forEach(function(w) {
+    w.forEach(function(ch) { bpeState.vocab.add(ch); });
+  });
+  bpeState.initSize = bpeState.vocab.size;
+  renderBpe();
+  document.getElementById('mergeStepBox').textContent = t('p24.s2.ready');
+  document.getElementById('bpePlay').style.display = '';
+  document.getElementById('bpePause').style.display = 'none';
+}
+
+function bpeFindBestPair() {
+  var freq = {};
+  bpeState.words.forEach(function(w) {
+    for (var i = 0; i < w.length - 1; i++) {
+      var pair = w[i] + '|||' + w[i+1];
+      freq[pair] = (freq[pair] || 0) + 1;
+    }
+  });
+  var best = null, bestFreq = 0;
+  for (var p in freq) {
+    if (freq[p] > bestFreq) { bestFreq = freq[p]; best = p; }
+  }
+  if (!best || bestFreq < 2) return null;
+  return { a: best.split('|||')[0], b: best.split('|||')[1], freq: bestFreq };
+}
+
+function bpeMerge(pair) {
+  var merged = pair.a + pair.b;
+  bpeState.words = bpeState.words.map(function(w) {
+    var newW = [];
+    var i = 0;
+    while (i < w.length) {
+      if (i < w.length - 1 && w[i] === pair.a && w[i+1] === pair.b) {
+        newW.push(merged);
+        i += 2;
+      } else {
+        newW.push(w[i]);
+        i++;
+      }
+    }
+    return newW;
+  });
+  bpeState.vocab.add(merged);
+  bpeState.merges++;
+  bpeState.mergesDone.push(pair);
+}
+
+function bpeDoStep() {
+  var pair = bpeFindBestPair();
+  if (!pair) {
+    document.getElementById('mergeStepBox').textContent = t('p24.s2.done');
+    bpePlaying = false;
+    if (bpeTimer) clearInterval(bpeTimer);
+    document.getElementById('bpePlay').style.display = '';
+    document.getElementById('bpePause').style.display = 'none';
+    return false;
+  }
+  bpeMerge(pair);
+  var msg = t('p24.s2.merge_msg')
+    .replace('{a}', pair.a).replace('{b}', pair.b)
+    .replace('{ab}', pair.a + pair.b).replace('{freq}', pair.freq);
+  document.getElementById('mergeStepBox').textContent = msg;
+  renderBpe(pair.a + pair.b);
+  return true;
+}
+
+function renderBpe(newMerge) {
+  // Corpus display
+  var corpus = document.getElementById('bpeCorpus');
+  corpus.innerHTML = bpeState.words.map(function(w) {
+    return w.map(function(tok) {
+      if (tok === newMerge) return '<span class="merged">' + tok + '</span>';
+      return tok;
+    }).join(' ');
+  }).join('&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;');
+
+  // Vocab display
+  var vocabEl = document.getElementById('bpeVocab');
+  var vocabArr = Array.from(bpeState.vocab).sort(function(a,b){return a.length - b.length || a.localeCompare(b);});
+  vocabEl.innerHTML = vocabArr.map(function(v) {
+    var cls = v === newMerge ? 'bpe-token new-merge' : 'bpe-token';
+    return '<span class="' + cls + '">' + v + '</span>';
+  }).join('');
+
+  // Stats
+  document.getElementById('bpeInitSize').textContent = bpeState.initSize;
+  document.getElementById('bpeCurSize').textContent = bpeState.vocab.size;
+  document.getElementById('bpeMergeNum').textContent = bpeState.merges;
+}
+
+document.getElementById('bpeReset').addEventListener('click', bpeInit);
+document.getElementById('bpeStep').addEventListener('click', function() {
+  bpePlaying = false;
+  if (bpeTimer) clearInterval(bpeTimer);
+  document.getElementById('bpePlay').style.display = '';
+  document.getElementById('bpePause').style.display = 'none';
+  bpeDoStep();
+});
+document.getElementById('bpePlay').addEventListener('click', function() {
+  bpePlaying = true;
+  document.getElementById('bpePlay').style.display = 'none';
+  document.getElementById('bpePause').style.display = '';
+  bpeTimer = setInterval(function() {
+    if (!bpeDoStep()) {
+      clearInterval(bpeTimer);
+      document.getElementById('bpePlay').style.display = '';
+      document.getElementById('bpePause').style.display = 'none';
+    }
+  }, 1200);
+});
+document.getElementById('bpePause').addEventListener('click', function() {
+  bpePlaying = false;
+  if (bpeTimer) clearInterval(bpeTimer);
+  document.getElementById('bpePlay').style.display = '';
+  document.getElementById('bpePause').style.display = 'none';
+});
+
+// ===================== SECTION 3: TOKENIZER COMPARISON =====================
+var TOKENIZERS = [
+  {
+    name: 'GPT-4 (cl100k)',
+    vocab: '~100K',
+    special: ['<|endoftext|>','<|im_start|>','<|im_end|>'],
+    // Simulates a large vocab tokenizer - fewer tokens
+    split: function(text) {
+      return simulateTokenize(text);
+    }
+  },
+  {
+    name: 'LLaMA (SP)',
+    vocab: '~32K',
+    special: ['<s>','</s>','[INST]','[/INST]'],
+    // Smaller vocab = slightly more tokens
+    split: function(text) {
+      var base = simulateTokenize(text);
+      var result = [];
+      base.forEach(function(tok) {
+        if (tok.length > 5 && !/^\s/.test(tok)) {
+          // Split long tokens further to simulate smaller vocab
+          var mid = Math.ceil(tok.length * 0.6);
+          result.push(tok.slice(0, mid));
+          result.push(tok.slice(mid));
+        } else {
+          result.push(tok);
+        }
+      });
+      return result;
+    }
+  },
+  {
+    name: 'Character-level',
+    vocab: '~256',
+    special: ['[CLS]','[SEP]','[PAD]','[UNK]'],
+    split: function(text) {
+      return text.split('');
+    }
+  }
+];
+
+var TOKENIZER_COLORS = [
+  {bg:'rgba(91,91,214,.08)',color:'var(--accent)'},
+  {bg:'rgba(13,148,136,.08)',color:'var(--accent2)'},
+  {bg:'rgba(234,88,12,.08)',color:'var(--accent4)'}
+];
+
+function renderComparison() {
+  var text = document.getElementById('compInput').value;
+  var body = document.getElementById('compBody');
+  body.innerHTML = '';
+  TOKENIZERS.forEach(function(tok, ti) {
+    var tokens = tok.split(text);
+    var tr = document.createElement('tr');
+    var tc = TOKENIZER_COLORS[ti];
+    // Model name
+    tr.innerHTML = '<td style="font-weight:700">' + tok.name + '</td>' +
+      '<td>' + tok.vocab + '</td>' +
+      '<td><div class="comp-tokens">' + tokens.map(function(t) {
+        var display = t.replace(/ /g, '\u2423').replace(/\n/g, '\u21B5');
+        return '<span class="comp-tok" style="background:' + tc.bg + ';color:' + tc.color + '">' + escHtml(display) + '</span>';
+      }).join('') + '</div></td>' +
+      '<td><span class="comp-count" style="color:' + tc.color + '">' + tokens.length + '</span></td>' +
+      '<td>' + tok.special.map(function(s) { return '<span class="special-tok">' + escHtml(s) + '</span> '; }).join('') + '</td>';
+    body.appendChild(tr);
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.getElementById('compInput').addEventListener('input', renderComparison);
+
+// ===================== SECTION 4: GOTCHAS =====================
+var GOTCHAS = [
+  {
+    title: '" Hello" vs "Hello"',
+    hint: 'Leading space matters!',
+    input1: ' Hello',
+    input2: 'Hello',
+    explain: 'Most BPE tokenizers treat " Hello" (with leading space) as a single token, but "Hello" at the start of text is a different token. This is because spaces are typically attached to the following word during tokenization.'
+  },
+  {
+    title: 'Numbers: "123456"',
+    hint: 'Numbers get split into chunks',
+    input1: '123456',
+    input2: '42',
+    explain: 'Large numbers are split into groups of 1-3 digits: "123" + "456". Small numbers like "42" are often single tokens. This means arithmetic with large numbers is harder for LLMs.'
+  },
+  {
+    title: 'Code: function vs myVariable',
+    hint: 'Common keywords = 1 token, identifiers = many',
+    input1: 'function',
+    input2: 'myCustomVariable',
+    explain: 'Common programming keywords like "function", "return", "class" are single tokens because they appear so frequently in training data. But custom identifiers like "myCustomVariable" get split into "my" + "Custom" + "Variable" or similar subwords.'
+  },
+  {
+    title: 'Chinese Characters',
+    hint: 'Each character can be 2-3 tokens',
+    input1: 'hello',
+    input2: '\u4F60\u597D',
+    explain: 'English "hello" is often 1 token, but Chinese "\u4F60\u597D" (hello) may be 2-3 tokens because CJK characters have multi-byte UTF-8 encodings. This makes non-English text more "expensive" in terms of tokens.'
+  },
+  {
+    title: 'Emoji: \uD83E\uDD16',
+    hint: 'Emoji can be 1-3 tokens each',
+    input1: 'robot',
+    input2: '\uD83E\uDD16',
+    explain: 'The word "robot" is 1-2 tokens, but the robot emoji \uD83E\uDD16 can be 1-3 tokens depending on the tokenizer. Compound emoji (like \uD83D\uDC68\u200D\uD83D\uDCBB man-technologist) can be 5+ tokens because they combine multiple Unicode codepoints with zero-width joiners.'
+  },
+  {
+    title: 'Whitespace Variations',
+    hint: 'Tabs, newlines, multiple spaces',
+    input1: 'a b',
+    input2: 'a    b',
+    explain: '"a b" with one space is typically 3 tokens. But "a    b" with four spaces may be 4-5 tokens because repeated whitespace is split differently. Indented code can use surprising numbers of tokens just for whitespace!'
+  }
+];
+
+function renderGotchas() {
+  var grid = document.getElementById('gotchaGrid');
+  grid.innerHTML = '';
+  GOTCHAS.forEach(function(g, i) {
+    var card = document.createElement('div');
+    card.className = 'gotcha-card';
+    card.innerHTML = '<h4>' + escHtml(g.title) + '</h4>' +
+      '<p class="gotcha-hint">' + escHtml(g.hint) + '</p>' +
+      '<div class="gotcha-reveal">' +
+        '<div style="margin-bottom:8px"><strong>"' + escHtml(g.input1) + '"</strong> \u2192</div>' +
+        '<div class="token-pills" id="gotcha1-' + i + '"></div>' +
+        '<div style="margin:8px 0"><strong>"' + escHtml(g.input2) + '"</strong> \u2192</div>' +
+        '<div class="token-pills" id="gotcha2-' + i + '"></div>' +
+        '<p style="margin-top:10px;font-size:.85rem;color:var(--text-dim)">' + escHtml(g.explain) + '</p>' +
+      '</div>';
+    card.addEventListener('click', function() {
+      card.classList.toggle('open');
+      if (card.classList.contains('open')) {
+        renderGotchaTokens('gotcha1-' + i, g.input1);
+        renderGotchaTokens('gotcha2-' + i, g.input2);
+      }
+    });
+    grid.appendChild(card);
+  });
+}
+
+function renderGotchaTokens(elId, text) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  var tokens = simulateTokenize(text);
+  el.innerHTML = '';
+  tokens.forEach(function(tok) {
+    var c = getColor(tok);
+    var pill = document.createElement('span');
+    pill.className = 'token-pill';
+    pill.style.background = c.bg;
+    pill.style.borderColor = c.border;
+    pill.style.color = c.color;
+    pill.style.fontSize = '.82rem';
+    pill.textContent = tok.replace(/ /g, '\u2423');
+    el.appendChild(pill);
+  });
+  // Show count
+  var countSpan = document.createElement('span');
+  countSpan.style.cssText = 'font-size:.78rem;color:var(--text-dim);margin-left:8px;font-weight:600';
+  countSpan.textContent = '= ' + tokens.length + ' token' + (tokens.length !== 1 ? 's' : '');
+  el.appendChild(countSpan);
+}
+
+// ===================== SECTION 5: QUIZ =====================
+var QUIZ_ITEMS = [
+  { text: 'Hello, world!', answer: 4, options: [2, 3, 4, 6] },
+  { text: 'antidisestablishmentarianism', answer: 7, options: [1, 4, 7, 12] },
+  { text: 'GPT-4 is amazing', answer: 5, options: [3, 4, 5, 7] },
+  { text: '\u4F60\u597D\u4E16\u754C', answer: 4, options: [2, 4, 6, 8] },
+  { text: '{"key": "value", "num": 42}', answer: 11, options: [6, 8, 11, 15] },
+  { text: 'https://example.com/path?q=1', answer: 10, options: [1, 5, 10, 14] },
+  { text: '\uD83E\uDD16\uD83E\uDDE0\uD83D\uDCA1', answer: 3, options: [1, 3, 6, 9] },
+  { text: 'def fibonacci(n):', answer: 6, options: [3, 4, 6, 8] },
+  { text: '    return x + y', answer: 6, options: [4, 5, 6, 9] },
+  { text: 'Pneumonoultramicroscopicsilicovolcanoconiosis', answer: 10, options: [1, 5, 10, 15] }
+];
+
+var quizOrder, quizIdx, quizScoreVal;
+
+function quizInit() {
+  // Shuffle and pick 5
+  quizOrder = QUIZ_ITEMS.slice().sort(function(){ return Math.random() - 0.5; }).slice(0, 5);
+  quizIdx = 0;
+  quizScoreVal = 0;
+  document.getElementById('quizScore').textContent = '0';
+  document.getElementById('quizRestart').style.display = 'none';
+  document.getElementById('quizFb').textContent = '';
+  renderQuizRound();
+}
+
+function renderQuizRound() {
+  if (quizIdx >= 5) {
+    document.getElementById('quizPrompt').textContent = '';
+    document.getElementById('quizOpts').innerHTML = '';
+    var msg = t('p24.s5.final').replace('{score}', quizScoreVal);
+    document.getElementById('quizFb').innerHTML = '<strong>' + msg + '</strong>';
+    document.getElementById('quizRestart').style.display = 'block';
+    if (typeof markGameCompleted === 'function') markGameCompleted('24');
+    return;
+  }
+  var item = quizOrder[quizIdx];
+  document.getElementById('quizRound').textContent = (quizIdx + 1);
+  document.getElementById('quizPrompt').textContent = item.text;
+  document.getElementById('quizFb').textContent = '';
+
+  var opts = document.getElementById('quizOpts');
+  opts.innerHTML = '';
+  item.options.forEach(function(opt) {
+    var btn = document.createElement('div');
+    btn.className = 'quiz-opt';
+    btn.textContent = opt;
+    btn.addEventListener('click', function() { handleQuizAnswer(opt, item.answer, btn); });
+    opts.appendChild(btn);
+  });
+}
+
+function handleQuizAnswer(picked, answer, btn) {
+  var allOpts = document.querySelectorAll('.quiz-opt');
+  allOpts.forEach(function(o) { o.classList.add('disabled'); });
+
+  if (picked === answer) {
+    btn.classList.add('correct');
+    quizScoreVal++;
+    document.getElementById('quizScore').textContent = quizScoreVal;
+    document.getElementById('quizFb').className = 'game-feedback correct';
+    document.getElementById('quizFb').textContent = t('p24.s5.correct');
+  } else {
+    btn.classList.add('wrong');
+    // Highlight correct answer
+    allOpts.forEach(function(o) {
+      if (parseInt(o.textContent) === answer) o.classList.add('correct');
+    });
+    var fb = Math.abs(picked - answer) <= 1
+      ? t('p24.s5.close').replace('{ans}', answer)
+      : t('p24.s5.wrong').replace('{ans}', answer);
+    document.getElementById('quizFb').className = 'game-feedback wrong';
+    document.getElementById('quizFb').textContent = fb;
+  }
+
+  setTimeout(function() {
+    quizIdx++;
+    renderQuizRound();
+  }, 1800);
+}
+
+document.getElementById('quizRestart').addEventListener('click', quizInit);
+
+// ===================== INIT =====================
+window.addEventListener('load', function() {
+  renderTokens();
+  bpeInit();
+  renderComparison();
+  renderGotchas();
+  quizInit();
+});
+</script>
+</body></html>

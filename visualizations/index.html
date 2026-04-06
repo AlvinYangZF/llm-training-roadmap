@@ -624,6 +624,24 @@ const GRAPH_NODES = [
   { id: '22', title: 'CAG vs RAG', cat: 'system', year: '2025',
     desc: 'Cache-Augmented Generation: preload KV cache vs retrieve. When to use which.',
     file: 'pages/22-cag-vs-rag.html' },
+  { id: '23', title: 'Embeddings', cat: 'foundation', year: 'Core',
+    desc: 'How text becomes vectors. Word2Vec, sentence transformers, similarity in vector space.',
+    file: 'pages/23-embeddings.html' },
+  { id: '24', title: 'Tokenization', cat: 'foundation', year: 'Core',
+    desc: 'BPE, SentencePiece, how models see text. Vocabulary design and subword splitting.',
+    file: 'pages/24-tokenization.html' },
+  { id: '25', title: 'Training & Loss', cat: 'compute', year: 'Core',
+    desc: 'Cross-entropy loss, backprop, learning rate schedules, gradient descent visualized.',
+    file: 'pages/25-training-loss.html' },
+  { id: '26', title: 'Quantization', cat: 'memory', year: '2023',
+    desc: 'FP32→INT8→INT4. GPTQ, AWQ, GGUF. How 70B models fit on consumer hardware.',
+    file: 'pages/26-quantization.html' },
+  { id: '27', title: 'LoRA', cat: 'compute', year: '2021',
+    desc: 'Low-Rank Adaptation. Fine-tune billion-parameter models with <1% trainable params.',
+    file: 'pages/27-lora.html' },
+  { id: '28', title: 'Decoding', cat: 'foundation', year: 'Core',
+    desc: 'Temperature, top-k, top-p, beam search. How models choose the next token.',
+    file: 'pages/28-decoding.html' },
 ];
 
 // Edges: [from, to] — "from" depends on "to"
@@ -661,6 +679,16 @@ const GRAPH_EDGES = [
   ['21', '15'], // KG Construction extends GraphRAG concepts
   ['22', '13'], // CAG is alternative to RAG pipeline
   ['22', '16'], // CAG vs RAG at Scale tradeoffs
+  ['23', '00'], // Embeddings build on linear algebra (vectors, dot products)
+  ['12', '23'], // Dense Retrieval uses embeddings
+  ['24', '01'], // Tokenization is input to Transformer
+  ['25', '00'], // Training uses linear algebra (gradients)
+  ['25', '01'], // Training trains Transformers
+  ['26', '06'], // Quantization compresses KV cache (PagedAttention context)
+  ['27', '25'], // LoRA is a fine-tuning technique (requires training knowledge)
+  ['27', '01'], // LoRA adapts Transformer weights
+  ['28', '01'], // Decoding is output of Transformer
+  ['28', '04'], // Decoding relates to prefill/decode phases
 ];
 
 const CAT_COLORS = {

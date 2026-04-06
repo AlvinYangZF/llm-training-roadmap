@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p25.title">25. Training & Loss — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .loss-canvas{width:100%;height:400px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .lr-canvas{width:100%;height:300px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .slider-wrap{text-align:center;margin:12px 0}
+    .slider-wrap input[type=range]{width:80%;max-width:500px;accent-color:var(--accent)}
+    .slider-label{font-size:.88rem;color:var(--text-dim);margin-bottom:4px}
+    .slider-value{font-size:1.05rem;font-weight:700;color:var(--accent);margin-top:2px}
+    .anim-btn{padding:8px 20px;border-radius:10px;border:2px solid var(--accent);background:rgba(91,91,214,.08);color:var(--accent);font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s;display:inline-block;margin:8px 6px}
+    .anim-btn:hover{background:rgba(91,91,214,.15);transform:translateY(-1px)}
+    .anim-btn.active{background:var(--accent);color:#fff}
+    .btn-row{text-align:center;margin:12px 0;display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+    .prob-bar{height:36px;border-radius:8px;transition:width .3s;display:flex;align-items:center;padding:0 12px;font-weight:700;font-size:.82rem;color:#fff;min-width:40px}
+    .prob-container{background:var(--bar-track-bg);border-radius:8px;margin:8px 0;overflow:hidden}
+    .loss-example{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:16px 0}
+    .loss-card{padding:14px 18px;border-radius:12px;border:2px solid var(--border);background:var(--surface);text-align:center;min-width:120px;transition:all .3s}
+    .loss-card.highlight{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,91,214,.15)}
+    .loss-card .val{font-size:1.4rem;font-weight:800;color:var(--accent)}
+    .loss-card .lbl{font-size:.75rem;color:var(--text-dim);margin-top:4px}
+    .calc-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:center;margin:12px 0}
+    .calc-box{padding:16px 20px;border-radius:12px;border:2px solid var(--border);background:var(--surface);text-align:center;min-width:140px}
+    .calc-box .val{font-size:1.6rem;font-weight:800;color:var(--accent)}
+    .calc-box .lbl{font-size:.78rem;color:var(--text-dim);margin-top:4px}
+    .calc-op{font-size:1.6rem;font-weight:800;color:var(--text-dim)}
+    .formula-box{padding:14px 20px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);font-family:'Courier New',monospace;font-size:.88rem;text-align:center;margin:12px 0;line-height:1.8}
+    .schedule-btn{padding:8px 18px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.82rem;color:var(--text);transition:all .2s}
+    .schedule-btn:hover{border-color:var(--accent);transform:translateY(-1px)}
+    .schedule-btn.active{border-color:var(--accent);background:rgba(91,91,214,.08);color:var(--accent)}
+    .grad-visual{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+    .grad-block{width:28px;height:28px;border-radius:4px;transition:all .3s}
+    .mem-bar{height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;transition:width .4s}
+    .game-opt{padding:12px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s;text-align:center}
+    .game-opt:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .game-opt.correct{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .game-opt.wrong{border-color:var(--accent3);background:rgba(225,29,72,.08)}
+    .path-info{text-align:center;font-size:.82rem;color:var(--text-dim);min-height:20px;margin-top:8px}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p25.heading">Training & Loss — How Models Learn</h1>
+<p class="subtitle" data-i18n="p25.subtitle">Visualize gradient descent, loss functions, learning rate schedules, and batch training — the core mechanics behind every neural network.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span>Training & Loss</span></p>
+
+<div class="container">
+
+  <!-- ===== Section 1: Gradient Descent ===== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)" data-i18n="p25.s1.badge">Core</span>
+    <h2 data-i18n="p25.s1.title">Gradient Descent Visualized</h2>
+    <p data-i18n="p25.s1.desc" data-i18n-html="1">The model's weights are like a ball on a hilly landscape. Training pushes the ball <strong>downhill</strong> toward the lowest point (minimum loss). The learning rate controls step size; momentum helps roll through small bumps.</p>
+
+    <canvas id="gdCanvas" class="loss-canvas" style="cursor:crosshair"></canvas>
+    <p class="path-info" id="gdInfo"></p>
+
+    <div class="slider-wrap">
+      <div class="slider-label" data-i18n="p25.s1.lr_label">Learning Rate</div>
+      <input type="range" id="lrSlider" min="0" max="100" value="30">
+      <div class="slider-value" id="lrVal">0.10</div>
+    </div>
+    <div class="slider-wrap">
+      <div class="slider-label" data-i18n="p25.s1.mom_label">Momentum</div>
+      <input type="range" id="momSlider" min="0" max="99" value="50">
+      <div class="slider-value" id="momVal">0.50</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="anim-btn" id="trainBtn" data-i18n="p25.s1.train">Train</button>
+      <button class="anim-btn" id="resetBtn" data-i18n="p25.s1.reset">Reset</button>
+    </div>
+  </div>
+
+  <!-- ===== Section 2: What Loss Means ===== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)" data-i18n="p25.s2.badge">Fundamentals</span>
+    <h2 data-i18n="p25.s2.title">What Loss Means</h2>
+    <p data-i18n="p25.s2.desc" data-i18n-html="1">Cross-entropy loss measures how surprised the model is by the correct answer. <strong>Loss = -log(probability of correct token)</strong>. Lower loss means higher confidence in the right prediction.</p>
+
+    <div class="loss-example" id="lossCards">
+      <div class="loss-card" id="lc0"><div class="val">3.0</div><div class="lbl">5% correct (bad)</div></div>
+      <div class="loss-card" id="lc1"><div class="val">2.0</div><div class="lbl">13% correct</div></div>
+      <div class="loss-card" id="lc2"><div class="val">1.0</div><div class="lbl">37% correct</div></div>
+      <div class="loss-card" id="lc3"><div class="val">0.1</div><div class="lbl">90% correct!</div></div>
+    </div>
+
+    <div class="slider-wrap">
+      <div class="slider-label" data-i18n="p25.s2.loss_label">Loss Value</div>
+      <input type="range" id="lossSlider" min="1" max="500" value="200">
+      <div class="slider-value" id="lossVal">2.00</div>
+    </div>
+
+    <div style="max-width:500px;margin:0 auto">
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--text-dim);margin-bottom:2px">
+        <span data-i18n="p25.s2.prob_label">P(correct token)</span>
+        <span id="probPct">13.5%</span>
+      </div>
+      <div class="prob-container">
+        <div class="prob-bar" id="probBar" style="width:13.5%;background:var(--accent3)">13.5%</div>
+      </div>
+      <p id="probExplain" style="text-align:center;font-size:.82rem;color:var(--text-dim);margin-top:8px"></p>
+    </div>
+
+    <h3 style="margin-top:24px;text-align:center;font-size:.95rem" data-i18n="p25.s2.curve_title">Loss Curve Over Training</h3>
+    <canvas id="lossCurveCanvas" class="loss-canvas" style="height:280px"></canvas>
+  </div>
+
+  <!-- ===== Section 3: Learning Rate Schedule ===== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.1);color:var(--accent4)" data-i18n="p25.s3.badge">Strategy</span>
+    <h2 data-i18n="p25.s3.title">Learning Rate Schedule</h2>
+    <p data-i18n="p25.s3.desc" data-i18n-html="1">The learning rate isn't fixed — it follows a <strong>schedule</strong>. Warmup prevents early large updates from destroying weights. Cosine annealing smoothly reduces LR for fine-grained convergence.</p>
+
+    <div class="btn-row">
+      <button class="schedule-btn active" data-sched="constant" data-i18n="p25.s3.constant">Constant</button>
+      <button class="schedule-btn" data-sched="step" data-i18n="p25.s3.step">Step Decay</button>
+      <button class="schedule-btn" data-sched="cosine" data-i18n="p25.s3.cosine">Cosine Annealing</button>
+      <button class="schedule-btn" data-sched="warmup_cosine" data-i18n="p25.s3.warmup_cosine">Warmup + Cosine</button>
+    </div>
+
+    <canvas id="lrScheduleCanvas" class="lr-canvas"></canvas>
+
+    <div class="formula-box" id="scheduleInfo">
+      <span data-i18n="p25.s3.warmup_info">Typical: warmup 2000 steps, peak LR = 3e-4, min LR = 3e-5</span>
+    </div>
+    <p style="text-align:center;font-size:.82rem;color:var(--text-dim)" data-i18n="p25.s3.warmup_why">Warmup helps because large early gradients can destroy pre-trained weight structure. Starting with small updates lets the optimizer find a safe direction first.</p>
+  </div>
+
+  <!-- ===== Section 4: Batch Size & Gradient Accumulation ===== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)" data-i18n="p25.s4.badge">Hardware</span>
+    <h2 data-i18n="p25.s4.title">Batch Size & Gradient Accumulation</h2>
+    <p data-i18n="p25.s4.desc" data-i18n-html="1">You can't always fit large batches in GPU memory. <strong>Gradient accumulation</strong> simulates larger batches by summing gradients over multiple forward passes before updating weights.</p>
+
+    <div class="formula-box">effective_batch = micro_batch &times; accum_steps &times; num_GPUs</div>
+
+    <div class="slider-wrap">
+      <div class="slider-label" data-i18n="p25.s4.micro_label">Micro Batch Size</div>
+      <input type="range" id="microSlider" min="1" max="32" value="4">
+      <div class="slider-value" id="microVal">4</div>
+    </div>
+    <div class="slider-wrap">
+      <div class="slider-label" data-i18n="p25.s4.accum_label">Accumulation Steps</div>
+      <input type="range" id="accumSlider" min="1" max="16" value="4">
+      <div class="slider-value" id="accumVal">4</div>
+    </div>
+    <div class="slider-wrap">
+      <div class="slider-label" data-i18n="p25.s4.gpu_label">Number of GPUs</div>
+      <input type="range" id="gpuSlider" min="1" max="8" value="1">
+      <div class="slider-value" id="gpuVal">1</div>
+    </div>
+
+    <div class="calc-row">
+      <div class="calc-box"><div class="val" id="calcMicro">4</div><div class="lbl">Micro Batch</div></div>
+      <div class="calc-op">&times;</div>
+      <div class="calc-box"><div class="val" id="calcAccum">4</div><div class="lbl">Accum Steps</div></div>
+      <div class="calc-op">&times;</div>
+      <div class="calc-box"><div class="val" id="calcGpu">1</div><div class="lbl">GPUs</div></div>
+      <div class="calc-op">=</div>
+      <div class="calc-box" style="border-color:var(--accent)"><div class="val" id="calcTotal" style="color:var(--accent)">16</div><div class="lbl">Effective Batch</div></div>
+    </div>
+
+    <div style="max-width:500px;margin:16px auto 0">
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--text-dim);margin-bottom:2px">
+        <span data-i18n="p25.s4.mem_label">GPU Memory Usage (est.)</span>
+        <span id="memPct">8 GB</span>
+      </div>
+      <div class="prob-container">
+        <div class="mem-bar" id="memBar" style="width:10%;background:var(--accent2)">8 GB</div>
+      </div>
+      <p style="text-align:center;font-size:.78rem;color:var(--text-dim);margin-top:4px" id="speedNote"></p>
+    </div>
+
+    <h3 style="margin-top:20px;text-align:center;font-size:.9rem" data-i18n="p25.s4.noise_title">Gradient Noise Averaging</h3>
+    <p style="text-align:center;font-size:.82rem;color:var(--text-dim);margin-bottom:8px" data-i18n="p25.s4.noise_desc">Each mini-batch gradient is noisy. Averaging over more samples smooths the signal.</p>
+    <div class="grad-visual" id="gradVisual"></div>
+    <div style="text-align:center;margin-top:8px">
+      <button class="anim-btn" id="gradAnimBtn" data-i18n="p25.s4.show_avg">Show Averaging</button>
+    </div>
+  </div>
+
+  <!-- ===== Section 5: Training Quiz ===== -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)" data-i18n="p25.s5.badge">Quiz</span>
+    <h2 data-i18n="p25.s5.title">Training Quiz</h2>
+    <p data-i18n="p25.s5.desc">"What happens if..." — test your understanding of training dynamics!</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0">
+      <span style="font-size:.85rem;color:var(--text-dim)">Round <span id="qRound">1/5</span></span>
+      <span style="font-size:.85rem;color:var(--accent);font-weight:700">Score: <span id="qScore">0</span></span>
+    </div>
+    <div style="padding:16px;background:var(--formula-bg);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:12px">
+      <p id="qDesc" style="font-weight:600;text-align:center"></p>
+    </div>
+    <div id="qOpts" style="display:flex;flex-direction:column;gap:8px"></div>
+    <p id="qFb" style="text-align:center;margin-top:12px;font-weight:600;min-height:24px"></p>
+  </div>
+
+</div>
+
+<footer>
+  <p>Training — Cross-Entropy Loss, SGD, Adam Optimizer, Cosine LR Schedule</p>
+  <p>LLM Algorithm Visualizations v2.1.0</p>
+</footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+
+<script>
+// ==================== i18n ====================
+i18nRegister({
+  'en':{
+    'p25.title':'25. Training & Loss — LLM Algorithm Visualizations',
+    'p25.heading':'Training & Loss — How Models Learn',
+    'p25.subtitle':'Visualize gradient descent, loss functions, learning rate schedules, and batch training — the core mechanics behind every neural network.',
+    'p25.s1.badge':'Core',
+    'p25.s1.title':'Gradient Descent Visualized',
+    'p25.s1.desc':'The model\'s weights are like a ball on a hilly landscape. Training pushes the ball <strong>downhill</strong> toward the lowest point (minimum loss). The learning rate controls step size; momentum helps roll through small bumps.',
+    'p25.s1.lr_label':'Learning Rate',
+    'p25.s1.mom_label':'Momentum',
+    'p25.s1.train':'Train',
+    'p25.s1.reset':'Reset',
+    'p25.s1.converged':'Converged! Loss reached minimum.',
+    'p25.s1.diverged':'Diverged! Learning rate too high — loss exploded.',
+    'p25.s1.training':'Training... step',
+    'p25.s2.badge':'Fundamentals',
+    'p25.s2.title':'What Loss Means',
+    'p25.s2.desc':'Cross-entropy loss measures how surprised the model is by the correct answer. <strong>Loss = -log(probability of correct token)</strong>. Lower loss means higher confidence in the right prediction.',
+    'p25.s2.loss_label':'Loss Value',
+    'p25.s2.prob_label':'P(correct token)',
+    'p25.s2.curve_title':'Loss Curve Over Training',
+    'p25.s2.bad':'Model is mostly guessing randomly.',
+    'p25.s2.learning':'Model is learning — starting to predict better.',
+    'p25.s2.good':'Model predicts the correct token with decent confidence.',
+    'p25.s2.excellent':'Model is very confident in the correct token!',
+    'p25.s3.badge':'Strategy',
+    'p25.s3.title':'Learning Rate Schedule',
+    'p25.s3.desc':'The learning rate isn\'t fixed — it follows a <strong>schedule</strong>. Warmup prevents early large updates from destroying weights. Cosine annealing smoothly reduces LR for fine-grained convergence.',
+    'p25.s3.constant':'Constant',
+    'p25.s3.step':'Step Decay',
+    'p25.s3.cosine':'Cosine Annealing',
+    'p25.s3.warmup_cosine':'Warmup + Cosine',
+    'p25.s3.warmup_info':'Typical: warmup 2000 steps, peak LR = 3e-4, min LR = 3e-5',
+    'p25.s3.warmup_why':'Warmup helps because large early gradients can destroy pre-trained weight structure. Starting with small updates lets the optimizer find a safe direction first.',
+    'p25.s3.info_constant':'Constant LR: simple but often suboptimal. No adaptation during training.',
+    'p25.s3.info_step':'Step Decay: LR drops by factor at fixed milestones (e.g., 0.1x every 30 epochs).',
+    'p25.s3.info_cosine':'Cosine Annealing: smoothly decays LR following a cosine curve to min value.',
+    'p25.s3.info_warmup_cosine':'Warmup + Cosine: linear warmup for 2000 steps, then cosine decay. Most popular for LLMs.',
+    'p25.s4.badge':'Hardware',
+    'p25.s4.title':'Batch Size & Gradient Accumulation',
+    'p25.s4.desc':'You can\'t always fit large batches in GPU memory. <strong>Gradient accumulation</strong> simulates larger batches by summing gradients over multiple forward passes before updating weights.',
+    'p25.s4.micro_label':'Micro Batch Size',
+    'p25.s4.accum_label':'Accumulation Steps',
+    'p25.s4.gpu_label':'Number of GPUs',
+    'p25.s4.mem_label':'GPU Memory Usage (est.)',
+    'p25.s4.noise_title':'Gradient Noise Averaging',
+    'p25.s4.noise_desc':'Each mini-batch gradient is noisy. Averaging over more samples smooths the signal.',
+    'p25.s4.show_avg':'Show Averaging',
+    'p25.s5.badge':'Quiz',
+    'p25.s5.title':'Training Quiz',
+    'p25.s5.desc':'"What happens if..." — test your understanding of training dynamics!',
+    'p25.s5.q0':'What happens if the learning rate is too high?',
+    'p25.s5.a0_0':'Loss explodes and training diverges',
+    'p25.s5.a0_1':'Training converges faster',
+    'p25.s5.a0_2':'Model immediately overfits',
+    'p25.s5.a0_3':'Gradients vanish to zero',
+    'p25.s5.q1':'Loss is stuck at ln(vocab_size) = ~10.8 for a 50K vocabulary. What does this mean?',
+    'p25.s5.a1_0':'Random guessing — the model isn\'t learning',
+    'p25.s5.a1_1':'Perfect convergence',
+    'p25.s5.a1_2':'Overfitting to training data',
+    'p25.s5.a1_3':'Learning rate is too low',
+    'p25.s5.q2':'Training loss goes down but validation loss goes up. What\'s happening?',
+    'p25.s5.a2_0':'Overfitting — model memorizes training data',
+    'p25.s5.a2_1':'Underfitting — model is too simple',
+    'p25.s5.a2_2':'Learning rate is perfect',
+    'p25.s5.a2_3':'Need more training epochs',
+    'p25.s5.q3':'Gradient norm suddenly explodes during training. What should you do?',
+    'p25.s5.a3_0':'Apply gradient clipping',
+    'p25.s5.a3_1':'Increase the learning rate',
+    'p25.s5.a3_2':'Remove all regularization',
+    'p25.s5.a3_3':'Double the batch size immediately',
+    'p25.s5.q4':'Loss becomes NaN during training. What is the most likely cause?',
+    'p25.s5.a4_0':'Numerical instability — try lower LR or mixed precision',
+    'p25.s5.a4_1':'Model has too many parameters',
+    'p25.s5.a4_2':'Training data is too clean',
+    'p25.s5.a4_3':'Batch size is too large',
+    'p25.s5.correct':'Correct!',
+    'p25.s5.wrong':'Wrong. Answer:'
+  },
+  'zh-CN':{
+    'p25.title':'25. 训练与损失 — LLM 算法可视化',
+    'p25.heading':'训练与损失 — 模型如何学习',
+    'p25.subtitle':'可视化梯度下降、损失函数、学习率调度和批量训练 — 每个神经网络背后的核心机制。',
+    'p25.s1.badge':'核心',
+    'p25.s1.title':'梯度下降可视化',
+    'p25.s1.desc':'模型的权重就像山丘景观上的一个球。训练将球<strong>推向低处</strong>（最小损失点）。学习率控制步长；动量帮助穿越小起伏。',
+    'p25.s1.lr_label':'学习率',
+    'p25.s1.mom_label':'动量',
+    'p25.s1.train':'开始训练',
+    'p25.s1.reset':'重置',
+    'p25.s1.converged':'已收敛！损失达到最小值。',
+    'p25.s1.diverged':'已发散！学习率过高 — 损失爆炸。',
+    'p25.s1.training':'训练中... 步骤',
+    'p25.s2.badge':'基础',
+    'p25.s2.title':'损失的含义',
+    'p25.s2.desc':'交叉熵损失衡量模型对正确答案的"惊讶"程度。<strong>损失 = -log(正确token的概率)</strong>。损失越低意味着对正确预测的信心越高。',
+    'p25.s2.loss_label':'损失值',
+    'p25.s2.prob_label':'正确token概率',
+    'p25.s2.curve_title':'训练过程中的损失曲线',
+    'p25.s2.bad':'模型基本在随机猜测。',
+    'p25.s2.learning':'模型正在学习 — 开始预测得更好。',
+    'p25.s2.good':'模型以不错的信心预测正确token。',
+    'p25.s2.excellent':'模型对正确token非常有信心！',
+    'p25.s3.badge':'策略',
+    'p25.s3.title':'学习率调度',
+    'p25.s3.desc':'学习率不是固定的 — 它遵循一个<strong>调度策略</strong>。预热防止早期大梯度破坏权重。余弦退火平滑地降低学习率以实现细粒度收敛。',
+    'p25.s3.constant':'恒定',
+    'p25.s3.step':'阶梯衰减',
+    'p25.s3.cosine':'余弦退火',
+    'p25.s3.warmup_cosine':'预热 + 余弦',
+    'p25.s3.warmup_info':'典型值：预热 2000 步，峰值 LR = 3e-4，最小 LR = 3e-5',
+    'p25.s3.warmup_why':'预热有帮助，因为早期的大梯度可能破坏预训练权重结构。从小更新开始让优化器先找到安全方向。',
+    'p25.s3.info_constant':'恒定 LR：简单但通常次优。训练期间无自适应。',
+    'p25.s3.info_step':'阶梯衰减：在固定里程碑处按因子降低 LR（如每30个epoch降为0.1倍）。',
+    'p25.s3.info_cosine':'余弦退火：沿余弦曲线平滑衰减 LR 至最小值。',
+    'p25.s3.info_warmup_cosine':'预热 + 余弦：线性预热 2000 步，然后余弦衰减。LLM 训练最常用。',
+    'p25.s4.badge':'硬件',
+    'p25.s4.title':'批量大小与梯度累积',
+    'p25.s4.desc':'并非总能在 GPU 显存中放入大批量。<strong>梯度累积</strong>通过在多次前向传递中累加梯度来模拟更大的批量。',
+    'p25.s4.micro_label':'微批量大小',
+    'p25.s4.accum_label':'累积步数',
+    'p25.s4.gpu_label':'GPU 数量',
+    'p25.s4.mem_label':'GPU 显存使用（估算）',
+    'p25.s4.noise_title':'梯度噪声平均化',
+    'p25.s4.noise_desc':'每个小批量的梯度都有噪声。对更多样本取平均可以平滑信号。',
+    'p25.s4.show_avg':'显示平均过程',
+    'p25.s5.badge':'测验',
+    'p25.s5.title':'训练测验',
+    'p25.s5.desc':'"如果...会怎样" — 测试你对训练动态的理解！',
+    'p25.s5.q0':'如果学习率过高会怎样？',
+    'p25.s5.a0_0':'损失爆炸，训练发散',
+    'p25.s5.a0_1':'训练收敛更快',
+    'p25.s5.a0_2':'模型立即过拟合',
+    'p25.s5.a0_3':'梯度消失为零',
+    'p25.s5.q1':'损失卡在 ln(vocab_size) = ~10.8（词汇表50K），这意味着什么？',
+    'p25.s5.a1_0':'随机猜测 — 模型没有在学习',
+    'p25.s5.a1_1':'完美收敛',
+    'p25.s5.a1_2':'对训练数据过拟合',
+    'p25.s5.a1_3':'学习率太低',
+    'p25.s5.q2':'训练损失下降但验证损失上升，发生了什么？',
+    'p25.s5.a2_0':'过拟合 — 模型在记忆训练数据',
+    'p25.s5.a2_1':'欠拟合 — 模型太简单',
+    'p25.s5.a2_2':'学习率恰到好处',
+    'p25.s5.a2_3':'需要更多训练轮次',
+    'p25.s5.q3':'训练中梯度范数突然爆炸，你应该怎么做？',
+    'p25.s5.a3_0':'应用梯度裁剪',
+    'p25.s5.a3_1':'增加学习率',
+    'p25.s5.a3_2':'移除所有正则化',
+    'p25.s5.a3_3':'立即加倍批量大小',
+    'p25.s5.q4':'训练中损失变成 NaN，最可能的原因是什么？',
+    'p25.s5.a4_0':'数值不稳定 — 尝试降低 LR 或使用混合精度',
+    'p25.s5.a4_1':'模型参数太多',
+    'p25.s5.a4_2':'训练数据太干净',
+    'p25.s5.a4_3':'批量大小太大',
+    'p25.s5.correct':'正确！',
+    'p25.s5.wrong':'错误。答案：'
+  },
+  'zh-TW':{
+    'p25.title':'25. 訓練與損失 — LLM 演算法視覺化',
+    'p25.heading':'訓練與損失 — 模型如何學習',
+    'p25.subtitle':'視覺化梯度下降、損失函數、學習率排程和批次訓練 — 每個神經網路背後的核心機制。',
+    'p25.s1.badge':'核心',
+    'p25.s1.title':'梯度下降視覺化',
+    'p25.s1.desc':'模型的權重就像山丘地形上的一顆球。訓練將球<strong>推向低處</strong>（最小損失點）。學習率控制步長；動量幫助穿越小起伏。',
+    'p25.s1.lr_label':'學習率',
+    'p25.s1.mom_label':'動量',
+    'p25.s1.train':'開始訓練',
+    'p25.s1.reset':'重置',
+    'p25.s1.converged':'已收斂！損失達到最小值。',
+    'p25.s1.diverged':'已發散！學習率過高 — 損失爆炸。',
+    'p25.s1.training':'訓練中... 步驟',
+    'p25.s2.badge':'基礎',
+    'p25.s2.title':'損失的含義',
+    'p25.s2.desc':'交叉熵損失衡量模型對正確答案的「驚訝」程度。<strong>損失 = -log(正確token的機率)</strong>。損失越低意味著對正確預測的信心越高。',
+    'p25.s2.loss_label':'損失值',
+    'p25.s2.prob_label':'正確token機率',
+    'p25.s2.curve_title':'訓練過程中的損失曲線',
+    'p25.s2.bad':'模型基本在隨機猜測。',
+    'p25.s2.learning':'模型正在學習 — 開始預測得更好。',
+    'p25.s2.good':'模型以不錯的信心預測正確token。',
+    'p25.s2.excellent':'模型對正確token非常有信心！',
+    'p25.s3.badge':'策略',
+    'p25.s3.title':'學習率排程',
+    'p25.s3.desc':'學習率不是固定的 — 它遵循一個<strong>排程策略</strong>。預熱防止早期大梯度破壞權重。餘弦退火平滑地降低學習率以實現細粒度收斂。',
+    'p25.s3.constant':'恆定',
+    'p25.s3.step':'階梯衰減',
+    'p25.s3.cosine':'餘弦退火',
+    'p25.s3.warmup_cosine':'預熱 + 餘弦',
+    'p25.s3.warmup_info':'典型值：預熱 2000 步，峰值 LR = 3e-4，最小 LR = 3e-5',
+    'p25.s3.warmup_why':'預熱有幫助，因為早期的大梯度可能破壞預訓練權重結構。從小更新開始讓優化器先找到安全方向。',
+    'p25.s3.info_constant':'恆定 LR：簡單但通常次優。訓練期間無自適應。',
+    'p25.s3.info_step':'階梯衰減：在固定里程碑處按因子降低 LR（如每30個epoch降為0.1倍）。',
+    'p25.s3.info_cosine':'餘弦退火：沿餘弦曲線平滑衰減 LR 至最小值。',
+    'p25.s3.info_warmup_cosine':'預熱 + 餘弦：線性預熱 2000 步，然後餘弦衰減。LLM 訓練最常用。',
+    'p25.s4.badge':'硬體',
+    'p25.s4.title':'批次大小與梯度累積',
+    'p25.s4.desc':'並非總能在 GPU 記憶體中放入大批次。<strong>梯度累積</strong>透過在多次前向傳遞中累加梯度來模擬更大的批次。',
+    'p25.s4.micro_label':'微批次大小',
+    'p25.s4.accum_label':'累積步數',
+    'p25.s4.gpu_label':'GPU 數量',
+    'p25.s4.mem_label':'GPU 記憶體使用（估算）',
+    'p25.s4.noise_title':'梯度雜訊平均化',
+    'p25.s4.noise_desc':'每個小批次的梯度都有雜訊。對更多樣本取平均可以平滑訊號。',
+    'p25.s4.show_avg':'顯示平均過程',
+    'p25.s5.badge':'測驗',
+    'p25.s5.title':'訓練測驗',
+    'p25.s5.desc':'"如果...會怎樣" — 測試你對訓練動態的理解！',
+    'p25.s5.q0':'如果學習率過高會怎樣？',
+    'p25.s5.a0_0':'損失爆炸，訓練發散',
+    'p25.s5.a0_1':'訓練收斂更快',
+    'p25.s5.a0_2':'模型立即過擬合',
+    'p25.s5.a0_3':'梯度消失為零',
+    'p25.s5.q1':'損失卡在 ln(vocab_size) = ~10.8（詞彙表50K），這意味著什麼？',
+    'p25.s5.a1_0':'隨機猜測 — 模型沒有在學習',
+    'p25.s5.a1_1':'完美收斂',
+    'p25.s5.a1_2':'對訓練資料過擬合',
+    'p25.s5.a1_3':'學習率太低',
+    'p25.s5.q2':'訓練損失下降但驗證損失上升，發生了什麼？',
+    'p25.s5.a2_0':'過擬合 — 模型在記憶訓練資料',
+    'p25.s5.a2_1':'欠擬合 — 模型太簡單',
+    'p25.s5.a2_2':'學習率恰到好處',
+    'p25.s5.a2_3':'需要更多訓練輪次',
+    'p25.s5.q3':'訓練中梯度範數突然爆炸，你應該怎麼做？',
+    'p25.s5.a3_0':'應用梯度裁剪',
+    'p25.s5.a3_1':'增加學習率',
+    'p25.s5.a3_2':'移除所有正則化',
+    'p25.s5.a3_3':'立即加倍批次大小',
+    'p25.s5.q4':'訓練中損失變成 NaN，最可能的原因是什麼？',
+    'p25.s5.a4_0':'數值不穩定 — 嘗試降低 LR 或使用混合精度',
+    'p25.s5.a4_1':'模型參數太多',
+    'p25.s5.a4_2':'訓練資料太乾淨',
+    'p25.s5.a4_3':'批次大小太大',
+    'p25.s5.correct':'正確！',
+    'p25.s5.wrong':'錯誤。答案：'
+  }
+});
+
+// ==================== Section 1: Gradient Descent ====================
+(function(){
+  var canvas=document.getElementById('gdCanvas');
+  var ctx,W,H;
+  var ball={x:0,y:0,vx:0,vy:0};
+  var path=[];
+  var training=false;
+  var animId=null;
+  var step=0;
+
+  // Loss landscape: sum of two Gaussians creating valleys
+  // Returns loss value at normalized coordinates (0-1, 0-1)
+  function lossAt(nx,ny){
+    // Two minima to make it interesting
+    var d1=Math.pow(nx-0.3,2)+Math.pow(ny-0.7,2);
+    var d2=Math.pow(nx-0.75,2)+Math.pow(ny-0.35,2);
+    // Global minimum at (0.75, 0.35), local at (0.3, 0.7)
+    var v=4-2.5*Math.exp(-d1*12)-3.5*Math.exp(-d2*14);
+    // Add some ridges
+    v+=0.3*Math.sin(nx*8)*Math.sin(ny*8);
+    return v;
+  }
+
+  function gradient(nx,ny){
+    var eps=0.002;
+    var dx=(lossAt(nx+eps,ny)-lossAt(nx-eps,ny))/(2*eps);
+    var dy=(lossAt(nx,ny+eps)-lossAt(nx,ny-eps))/(2*eps);
+    return {dx:dx,dy:dy};
+  }
+
+  function resize(){
+    var r=canvas.getBoundingClientRect();
+    var d=window.devicePixelRatio||1;
+    canvas.width=r.width*d;canvas.height=r.height*d;
+    ctx=canvas.getContext('2d');ctx.scale(d,d);
+    W=r.width;H=r.height;
+    draw();
+  }
+
+  function draw(){
+    if(!ctx)return;
+    var s=getComputedStyle(document.documentElement);
+    var tc=s.getPropertyValue('--text').trim();
+    var bg=s.getPropertyValue('--canvas-bg').trim();
+
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+    var pad=20;
+    var cW=W-2*pad,cH=H-2*pad;
+
+    // Draw contour plot
+    var res=3;
+    for(var px=0;px<cW;px+=res){
+      for(var py=0;py<cH;py+=res){
+        var nx=px/cW,ny=py/cH;
+        var v=lossAt(nx,ny);
+        // Map loss to color: low=dark blue/purple, high=yellow/red
+        var norm=Math.max(0,Math.min(1,(v-0.2)/4));
+        var r2=Math.floor(40+norm*200);
+        var g=Math.floor(20+80*(1-norm));
+        var b=Math.floor(180-norm*120);
+        ctx.fillStyle='rgb('+r2+','+g+','+b+')';
+        ctx.fillRect(pad+px,pad+py,res,res);
+      }
+    }
+
+    // Draw contour lines
+    ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=0.5;
+    for(var level=0.5;level<4;level+=0.4){
+      ctx.beginPath();
+      for(var px=0;px<cW;px+=4){
+        for(var py=0;py<cH;py+=4){
+          var nx=px/cW,ny=py/cH;
+          var v=lossAt(nx,ny);
+          if(Math.abs(v-level)<0.1){
+            ctx.moveTo(pad+px,pad+py);ctx.lineTo(pad+px+1,pad+py+1);
+          }
+        }
+      }
+      ctx.stroke();
+    }
+
+    // Mark minima with stars
+    var minima=[{nx:0.75,ny:0.35,label:'Global Min'},{nx:0.3,ny:0.7,label:'Local Min'}];
+    minima.forEach(function(m){
+      var mx=pad+m.nx*cW,my=pad+m.ny*cH;
+      ctx.fillStyle='#fbbf24';ctx.font='bold 16px system-ui';ctx.textAlign='center';
+      ctx.fillText('\u2605',mx,my+5);
+      ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='bold 10px system-ui';
+      ctx.fillText(m.label,mx,my-10);
+    });
+
+    // Draw path
+    if(path.length>1){
+      ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=2;ctx.setLineDash([3,3]);
+      ctx.beginPath();
+      ctx.moveTo(pad+path[0].x*cW,pad+path[0].y*cH);
+      for(var i=1;i<path.length;i++){
+        ctx.lineTo(pad+path[i].x*cW,pad+path[i].y*cH);
+      }
+      ctx.stroke();ctx.setLineDash([]);
+    }
+
+    // Draw ball
+    var bx=pad+ball.x*cW,by=pad+ball.y*cH;
+    ctx.beginPath();ctx.arc(bx,by,8,0,Math.PI*2);
+    ctx.fillStyle='#fff';ctx.fill();
+    ctx.strokeStyle='#e11d48';ctx.lineWidth=2.5;ctx.stroke();
+
+    // Loss value label
+    var lv=lossAt(ball.x,ball.y).toFixed(2);
+    ctx.fillStyle='#fff';ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText('Loss: '+lv,bx,by-14);
+  }
+
+  function getLR(){
+    var v=parseInt(document.getElementById('lrSlider').value);
+    // Map 0-100 to 0.001-1.0 exponentially
+    return 0.001*Math.pow(1000,v/100);
+  }
+  function getMom(){return parseInt(document.getElementById('momSlider').value)/100;}
+
+  function updateSliderDisplays(){
+    document.getElementById('lrVal').textContent=getLR().toFixed(4);
+    document.getElementById('momVal').textContent=getMom().toFixed(2);
+  }
+
+  function resetBall(){
+    if(animId){cancelAnimationFrame(animId);animId=null;}
+    training=false;step=0;
+    ball.x=0.1+Math.random()*0.8;
+    ball.y=0.1+Math.random()*0.8;
+    ball.vx=0;ball.vy=0;
+    path=[{x:ball.x,y:ball.y}];
+    document.getElementById('gdInfo').textContent='';
+    draw();
+  }
+
+  function trainStep(){
+    var lr=getLR();
+    var mom=getMom();
+    var g=gradient(ball.x,ball.y);
+
+    ball.vx=mom*ball.vx-lr*g.dx;
+    ball.vy=mom*ball.vy-lr*g.dy;
+
+    ball.x+=ball.vx;
+    ball.y+=ball.vy;
+
+    // Clamp to canvas
+    ball.x=Math.max(0.01,Math.min(0.99,ball.x));
+    ball.y=Math.max(0.01,Math.min(0.99,ball.y));
+
+    path.push({x:ball.x,y:ball.y});
+    if(path.length>500)path.shift();
+    step++;
+
+    var loss=lossAt(ball.x,ball.y);
+    document.getElementById('gdInfo').textContent=t('p25.s1.training')+' '+step+' | Loss: '+loss.toFixed(3);
+
+    // Check convergence
+    if(step>10&&Math.abs(ball.vx)<0.0001&&Math.abs(ball.vy)<0.0001){
+      training=false;
+      document.getElementById('gdInfo').textContent=t('p25.s1.converged')+' ('+loss.toFixed(3)+')';
+      return;
+    }
+    // Check divergence
+    if(loss>10||isNaN(loss)){
+      training=false;
+      document.getElementById('gdInfo').textContent=t('p25.s1.diverged');
+      return;
+    }
+
+    draw();
+    if(training) animId=requestAnimationFrame(trainStep);
+  }
+
+  document.getElementById('trainBtn').onclick=function(){
+    if(training){training=false;return;}
+    training=true;
+    trainStep();
+  };
+  document.getElementById('resetBtn').onclick=resetBall;
+  document.getElementById('lrSlider').addEventListener('input',updateSliderDisplays);
+  document.getElementById('momSlider').addEventListener('input',updateSliderDisplays);
+
+  // Click on canvas to place ball
+  canvas.addEventListener('click',function(e){
+    if(training)return;
+    var r=canvas.getBoundingClientRect();
+    var pad=20;
+    var nx=(e.clientX-r.left-pad)/(r.width-2*pad);
+    var ny=(e.clientY-r.top-pad)/(r.height-2*pad);
+    if(nx>=0&&nx<=1&&ny>=0&&ny<=1){
+      ball.x=nx;ball.y=ny;ball.vx=0;ball.vy=0;
+      path=[{x:ball.x,y:ball.y}];step=0;
+      document.getElementById('gdInfo').textContent='';
+      draw();
+    }
+  });
+
+  window.addEventListener('load',function(){resetBall();updateSliderDisplays();});
+  window.addEventListener('resize',resize);
+  window.addEventListener('themechange',function(){draw();});
+})();
+
+// ==================== Section 2: What Loss Means ====================
+(function(){
+  var lossSlider=document.getElementById('lossSlider');
+  var lossCurveCanvas=document.getElementById('lossCurveCanvas');
+
+  function updateLoss(){
+    var lossVal=parseInt(lossSlider.value)/100;
+    document.getElementById('lossVal').textContent=lossVal.toFixed(2);
+    var prob=Math.exp(-lossVal)*100;
+    document.getElementById('probPct').textContent=prob.toFixed(1)+'%';
+    var bar=document.getElementById('probBar');
+    bar.style.width=Math.max(3,prob)+'%';
+    bar.textContent=prob.toFixed(1)+'%';
+
+    // Color based on probability
+    if(prob>=60) bar.style.background='var(--accent2)';
+    else if(prob>=25) bar.style.background='var(--accent)';
+    else if(prob>=10) bar.style.background='var(--accent4)';
+    else bar.style.background='var(--accent3)';
+
+    // Explanation text
+    var explain='';
+    if(lossVal>=2.5) explain=t('p25.s2.bad');
+    else if(lossVal>=1.5) explain=t('p25.s2.learning');
+    else if(lossVal>=0.5) explain=t('p25.s2.good');
+    else explain=t('p25.s2.excellent');
+    document.getElementById('probExplain').textContent=explain;
+
+    // Highlight matching card
+    var cards=[
+      {id:'lc0',lo:2.5,hi:5},
+      {id:'lc1',lo:1.5,hi:2.5},
+      {id:'lc2',lo:0.5,hi:1.5},
+      {id:'lc3',lo:0,hi:0.5}
+    ];
+    cards.forEach(function(c){
+      var el=document.getElementById(c.id);
+      if(lossVal>=c.lo&&lossVal<c.hi) el.classList.add('highlight');
+      else el.classList.remove('highlight');
+    });
+  }
+
+  function drawLossCurve(){
+    var c=lossCurveCanvas;if(!c)return;
+    var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;
+    c.width=r.width*d;c.height=r.height*d;
+    var x=c.getContext('2d');x.scale(d,d);
+    var W=r.width,H=r.height;
+    var s=getComputedStyle(document.documentElement);
+    var tc=s.getPropertyValue('--text').trim();
+    var dc=s.getPropertyValue('--text-dim').trim();
+    var bc=s.getPropertyValue('--border').trim();
+
+    var pad={t:30,r:30,b:50,l:60},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+
+    // Title
+    x.fillStyle=tc;x.font='bold 13px system-ui';x.textAlign='center';
+    x.fillText(t('p25.s2.curve_title'),W/2,18);
+
+    // Axes
+    x.strokeStyle=bc;x.lineWidth=1;x.beginPath();
+    x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
+
+    // Y axis labels (loss 0-4)
+    x.fillStyle=dc;x.font='10px monospace';x.textAlign='right';
+    for(var i=0;i<=4;i++){
+      var val=4-i;
+      var py=pad.t+(i/4)*cH;
+      x.fillText(val.toFixed(1),pad.l-8,py+4);
+      if(i>0){x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(pad.l,py);x.lineTo(pad.l+cW,py);x.stroke();}
+    }
+    x.save();x.translate(14,pad.t+cH/2);x.rotate(-Math.PI/2);
+    x.fillStyle=dc;x.font='11px system-ui';x.textAlign='center';x.fillText('Loss',0,0);x.restore();
+
+    // X axis labels (epochs)
+    var epochs=[0,20,40,60,80,100];
+    epochs.forEach(function(e){
+      var px=pad.l+(e/100)*cW;
+      x.fillStyle=dc;x.font='10px monospace';x.textAlign='center';
+      x.fillText(e,px,pad.t+cH+16);
+    });
+    x.fillText('Epoch',pad.l+cW/2,pad.t+cH+38);
+
+    // Draw training loss curve: exponential-ish decay with noise
+    var pts=200;
+    // Training loss
+    x.strokeStyle='var(--accent)';x.lineWidth=2.5;x.beginPath();
+    for(var i=0;i<=pts;i++){
+      var t2=i/pts;
+      var loss=3.5*Math.exp(-3*t2)+0.3+0.15*Math.sin(t2*40)*Math.exp(-2*t2);
+      var px=pad.l+t2*cW;
+      var py=pad.t+cH-((loss/4)*cH);
+      i===0?x.moveTo(px,py):x.lineTo(px,py);
+    }
+    x.stroke();
+
+    // Validation loss (slightly higher, diverges at end)
+    x.strokeStyle='var(--accent3)';x.lineWidth=2;x.setLineDash([5,3]);x.beginPath();
+    for(var i=0;i<=pts;i++){
+      var t2=i/pts;
+      var loss=3.5*Math.exp(-2.8*t2)+0.5+0.1*Math.sin(t2*35)*Math.exp(-1.5*t2);
+      // Slight uptick at end (overfitting)
+      if(t2>0.7) loss+=0.3*(t2-0.7);
+      var px=pad.l+t2*cW;
+      var py=pad.t+cH-((loss/4)*cH);
+      i===0?x.moveTo(px,py):x.lineTo(px,py);
+    }
+    x.stroke();x.setLineDash([]);
+
+    // Legend
+    x.fillStyle='var(--accent)';x.fillRect(pad.l+cW-160,pad.t+8,16,3);
+    x.fillStyle=tc;x.font='11px system-ui';x.textAlign='left';
+    x.fillText('Training Loss',pad.l+cW-140,pad.t+13);
+    x.strokeStyle='var(--accent3)';x.lineWidth=2;x.setLineDash([5,3]);
+    x.beginPath();x.moveTo(pad.l+cW-160,pad.t+28);x.lineTo(pad.l+cW-144,pad.t+28);x.stroke();x.setLineDash([]);
+    x.fillStyle=tc;x.fillText('Validation Loss',pad.l+cW-140,pad.t+32);
+
+    // Mark overfitting region
+    var ofx=pad.l+0.7*cW;
+    x.fillStyle='rgba(225,29,72,.06)';x.fillRect(ofx,pad.t,cW*0.3,cH);
+    x.fillStyle='var(--accent3)';x.font='bold 10px system-ui';x.textAlign='center';
+    x.fillText('Overfitting',ofx+cW*0.15,pad.t+cH-8);
+  }
+
+  lossSlider.addEventListener('input',updateLoss);
+  window.addEventListener('load',function(){updateLoss();drawLossCurve();});
+  window.addEventListener('resize',drawLossCurve);
+  window.addEventListener('themechange',drawLossCurve);
+})();
+
+// ==================== Section 3: LR Schedule ====================
+(function(){
+  var currentSched='constant';
+  var schedCanvas=document.getElementById('lrScheduleCanvas');
+
+  function schedLR(type,step,totalSteps){
+    var warmupSteps=2000;
+    var peakLR=3e-4;
+    var minLR=3e-5;
+    switch(type){
+      case 'constant': return peakLR;
+      case 'step':
+        if(step<totalSteps*0.33) return peakLR;
+        if(step<totalSteps*0.66) return peakLR*0.1;
+        return peakLR*0.01;
+      case 'cosine':
+        return minLR+(peakLR-minLR)*0.5*(1+Math.cos(Math.PI*step/totalSteps));
+      case 'warmup_cosine':
+        if(step<warmupSteps) return minLR+(peakLR-minLR)*(step/warmupSteps);
+        var cosStep=step-warmupSteps;
+        var cosTotal=totalSteps-warmupSteps;
+        return minLR+(peakLR-minLR)*0.5*(1+Math.cos(Math.PI*cosStep/cosTotal));
+      default: return peakLR;
+    }
+  }
+
+  function drawSchedule(){
+    var c=schedCanvas;if(!c)return;
+    var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;
+    c.width=r.width*d;c.height=r.height*d;
+    var x=c.getContext('2d');x.scale(d,d);
+    var W=r.width,H=r.height;
+    var s=getComputedStyle(document.documentElement);
+    var tc=s.getPropertyValue('--text').trim();
+    var dc=s.getPropertyValue('--text-dim').trim();
+    var bc=s.getPropertyValue('--border').trim();
+
+    var pad={t:30,r:30,b:50,l:70},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+    var totalSteps=20000;
+
+    // Axes
+    x.strokeStyle=bc;x.lineWidth=1;x.beginPath();
+    x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
+
+    // Y labels
+    var maxLR=3.5e-4;
+    x.fillStyle=dc;x.font='10px monospace';x.textAlign='right';
+    for(var i=0;i<=5;i++){
+      var val=maxLR*(1-i/5);
+      var py=pad.t+(i/5)*cH;
+      x.fillText(val.toExponential(1),pad.l-8,py+4);
+      if(i>0){x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(pad.l,py);x.lineTo(pad.l+cW,py);x.stroke();}
+    }
+    x.save();x.translate(12,pad.t+cH/2);x.rotate(-Math.PI/2);
+    x.fillStyle=dc;x.font='11px system-ui';x.textAlign='center';x.fillText('Learning Rate',0,0);x.restore();
+
+    // X labels
+    var steps=[0,5000,10000,15000,20000];
+    steps.forEach(function(st){
+      var px=pad.l+(st/totalSteps)*cW;
+      x.fillStyle=dc;x.font='10px monospace';x.textAlign='center';
+      x.fillText(st>=1000?(st/1000)+'K':st,px,pad.t+cH+16);
+    });
+    x.fillText('Training Step',pad.l+cW/2,pad.t+cH+38);
+
+    // Draw all schedules faded
+    var types=['constant','step','cosine','warmup_cosine'];
+    var colors={'constant':'#64748b','step':'#ea580c','cosine':'#0d9488','warmup_cosine':'#5b5bd6'};
+    types.forEach(function(type){
+      var isCurrent=type===currentSched;
+      x.strokeStyle=isCurrent?colors[type]:'rgba(128,128,128,.2)';
+      x.lineWidth=isCurrent?3:1.5;
+      if(!isCurrent)x.setLineDash([4,4]);
+      x.beginPath();
+      var pts=200;
+      for(var i=0;i<=pts;i++){
+        var st=(i/pts)*totalSteps;
+        var lr=schedLR(type,st,totalSteps);
+        var px=pad.l+(i/pts)*cW;
+        var py=pad.t+cH-((lr/maxLR)*cH);
+        i===0?x.moveTo(px,py):x.lineTo(px,py);
+      }
+      x.stroke();x.setLineDash([]);
+    });
+
+    // Legend
+    var ly=pad.t+8;
+    types.forEach(function(type,idx){
+      var lx=pad.l+10;
+      x.fillStyle=type===currentSched?colors[type]:'rgba(128,128,128,.4)';
+      x.fillRect(lx,ly+idx*18,12,3);
+      x.fillStyle=type===currentSched?tc:dc;
+      x.font=(type===currentSched?'bold ':'')+'10px system-ui';x.textAlign='left';
+      x.fillText(t('p25.s3.'+type),lx+18,ly+idx*18+5);
+    });
+
+    // Mark warmup region for warmup_cosine
+    if(currentSched==='warmup_cosine'){
+      var wx=pad.l+(2000/totalSteps)*cW;
+      x.setLineDash([3,3]);x.strokeStyle='rgba(91,91,214,.4)';x.lineWidth=1;
+      x.beginPath();x.moveTo(wx,pad.t);x.lineTo(wx,pad.t+cH);x.stroke();x.setLineDash([]);
+      x.fillStyle='var(--accent)';x.font='9px system-ui';x.textAlign='center';
+      x.fillText('Warmup ends',wx,pad.t+cH-4);
+    }
+  }
+
+  document.querySelectorAll('.schedule-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      document.querySelectorAll('.schedule-btn').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      currentSched=btn.getAttribute('data-sched');
+      document.getElementById('scheduleInfo').innerHTML='<span>'+t('p25.s3.info_'+currentSched)+'</span>';
+      drawSchedule();
+    });
+  });
+
+  window.addEventListener('load',drawSchedule);
+  window.addEventListener('resize',drawSchedule);
+  window.addEventListener('themechange',drawSchedule);
+})();
+
+// ==================== Section 4: Batch Size ====================
+(function(){
+  var microSlider=document.getElementById('microSlider');
+  var accumSlider=document.getElementById('accumSlider');
+  var gpuSlider=document.getElementById('gpuSlider');
+
+  function updateBatch(){
+    var micro=parseInt(microSlider.value);
+    var accum=parseInt(accumSlider.value);
+    var gpus=parseInt(gpuSlider.value);
+    var total=micro*accum*gpus;
+
+    document.getElementById('microVal').textContent=micro;
+    document.getElementById('accumVal').textContent=accum;
+    document.getElementById('gpuVal').textContent=gpus;
+    document.getElementById('calcMicro').textContent=micro;
+    document.getElementById('calcAccum').textContent=accum;
+    document.getElementById('calcGpu').textContent=gpus;
+    document.getElementById('calcTotal').textContent=total;
+
+    // Memory estimation: ~2GB base + 0.5GB per micro_batch sample (rough)
+    var memGB=2+micro*0.5;
+    var memPct=Math.min(100,(memGB/80)*100);
+    document.getElementById('memPct').textContent=memGB.toFixed(0)+' GB';
+    var bar=document.getElementById('memBar');
+    bar.style.width=Math.max(5,memPct)+'%';
+    bar.textContent=memGB.toFixed(0)+' GB';
+    if(memGB>40) bar.style.background='var(--accent3)';
+    else if(memGB>16) bar.style.background='var(--accent4)';
+    else bar.style.background='var(--accent2)';
+
+    // Speed note
+    var speedFactor=gpus/accum;
+    var note='';
+    if(accum>1) note='Accum steps slow training by ~'+accum+'x per update, but use less memory. ';
+    if(gpus>1) note+=gpus+' GPUs speed up by ~'+gpus+'x (data parallel).';
+    if(!note) note='Single GPU, no accumulation. Fastest iteration, but limited batch size.';
+    document.getElementById('speedNote').textContent=note;
+
+    // Update gradient visual
+    renderGradBlocks(total);
+  }
+
+  function renderGradBlocks(total){
+    var vis=document.getElementById('gradVisual');
+    vis.innerHTML='';
+    var count=Math.min(total,64);
+    for(var i=0;i<count;i++){
+      var div=document.createElement('div');
+      div.className='grad-block';
+      // Random gradient direction represented as color hue
+      var hue=Math.floor(Math.random()*60)+200;
+      var sat=40+Math.floor(Math.random()*40);
+      div.style.background='hsl('+hue+','+sat+'%,55%)';
+      div.setAttribute('data-idx',i);
+      vis.appendChild(div);
+    }
+  }
+
+  document.getElementById('gradAnimBtn').onclick=function(){
+    var blocks=document.querySelectorAll('.grad-block');
+    if(!blocks.length)return;
+    // Average all blocks to a single color
+    var avgHue=220,avgSat=60;
+    blocks.forEach(function(b,i){
+      setTimeout(function(){
+        b.style.background='hsl('+avgHue+','+avgSat+'%,50%)';
+        b.style.transform='scale(0.85)';
+        b.style.borderRadius='50%';
+      },i*30);
+    });
+  };
+
+  [microSlider,accumSlider,gpuSlider].forEach(function(s){s.addEventListener('input',updateBatch);});
+  window.addEventListener('load',updateBatch);
+})();
+
+// ==================== Section 5: Quiz ====================
+var QUIZ=[
+  {qk:'p25.s5.q0',ans:0,opts:['p25.s5.a0_0','p25.s5.a0_1','p25.s5.a0_2','p25.s5.a0_3']},
+  {qk:'p25.s5.q1',ans:0,opts:['p25.s5.a1_0','p25.s5.a1_1','p25.s5.a1_2','p25.s5.a1_3']},
+  {qk:'p25.s5.q2',ans:0,opts:['p25.s5.a2_0','p25.s5.a2_1','p25.s5.a2_2','p25.s5.a2_3']},
+  {qk:'p25.s5.q3',ans:0,opts:['p25.s5.a3_0','p25.s5.a3_1','p25.s5.a3_2','p25.s5.a3_3']},
+  {qk:'p25.s5.q4',ans:0,opts:['p25.s5.a4_0','p25.s5.a4_1','p25.s5.a4_2','p25.s5.a4_3']}
+];
+var qi=0,qs=0;
+
+function renderQuiz(){
+  document.getElementById('qRound').textContent=(qi+1)+'/5';
+  document.getElementById('qScore').textContent=qs;
+  document.getElementById('qDesc').textContent=t(QUIZ[qi].qk);
+  document.getElementById('qFb').textContent='';
+  var o=document.getElementById('qOpts');o.innerHTML='';
+  var indices=[0,1,2,3];
+  indices.sort(function(){return Math.random()-.5;});
+  indices.forEach(function(oi){
+    var d=document.createElement('div');
+    d.className='game-opt';
+    d.textContent=t(QUIZ[qi].opts[oi]);
+    d.setAttribute('data-idx',oi);
+    d.onclick=function(){checkQuiz(oi,d);};
+    o.appendChild(d);
+  });
+}
+
+function checkQuiz(pick,el){
+  var all=document.getElementById('qOpts').querySelectorAll('.game-opt');
+  all.forEach(function(d){d.style.pointerEvents='none';});
+  if(pick===QUIZ[qi].ans){
+    el.classList.add('correct');
+    qs++;
+    document.getElementById('qFb').innerHTML='<span style="color:var(--accent2)">'+t('p25.s5.correct')+'</span>';
+  }else{
+    el.classList.add('wrong');
+    all.forEach(function(d){if(parseInt(d.getAttribute('data-idx'))===QUIZ[qi].ans)d.classList.add('correct');});
+    document.getElementById('qFb').innerHTML='<span style="color:var(--accent3)">'+t('p25.s5.wrong')+' '+t(QUIZ[qi].opts[QUIZ[qi].ans])+'</span>';
+  }
+  document.getElementById('qScore').textContent=qs;
+  setTimeout(function(){
+    qi++;
+    if(qi<5) renderQuiz();
+    else{
+      document.getElementById('qFb').innerHTML='<strong>Final: '+qs+'/5</strong>';
+      if(typeof markGameCompleted==='function') markGameCompleted('25');
+    }
+  },2000);
+}
+
+window.addEventListener('load',function(){renderQuiz();});
+</script>
+</body>
+</html>

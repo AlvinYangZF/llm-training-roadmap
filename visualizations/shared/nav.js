@@ -40,6 +40,14 @@ const NAV_TOPICS = [
     { num: '21', title: 'KG Construction', file: '21-kg-construction.html', year: '2024' },
     { num: '22', title: 'CAG vs RAG', file: '22-cag-vs-rag.html', year: '2025' },
   ]},
+  { cat: 'ML Foundations', items: [
+    { num: '23', title: 'Embeddings', file: '23-embeddings.html', year: 'Core' },
+    { num: '24', title: 'Tokenization', file: '24-tokenization.html', year: 'Core' },
+    { num: '25', title: 'Training & Loss', file: '25-training-loss.html', year: 'Core' },
+    { num: '26', title: 'Quantization', file: '26-quantization.html', year: '2023' },
+    { num: '27', title: 'LoRA Fine-tuning', file: '27-lora.html', year: '2021' },
+    { num: '28', title: 'Decoding Strategies', file: '28-decoding.html', year: 'Core' },
+  ]},
 ];
 
 // Flat ordered list for prev/next navigation (chronological)
@@ -67,6 +75,12 @@ const NAV_ORDERED = [
   '20-hybrid-search.html',
   '21-kg-construction.html',
   '22-cag-vs-rag.html',
+  '23-embeddings.html',
+  '24-tokenization.html',
+  '25-training-loss.html',
+  '26-quantization.html',
+  '27-lora.html',
+  '28-decoding.html',
 ];
 
 function getCurrentPage() {
@@ -121,6 +135,7 @@ function buildNav() {
     'nav.cat.rag',
     'nav.cat.vectorsearch',
     'nav.cat.retrievaleng',
+    'nav.cat.mlfoundations',
   ];
 
   let html = '';
