@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p19.title">19. HNSW — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .layer-canvas{width:100%;height:480px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .build-canvas{width:100%;height:420px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .param-canvas{width:100%;height:360px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .compare-canvas{width:100%;height:400px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+    .stat-badge .val{font-size:1.4rem;font-weight:800}
+    .stat-badge .lbl{font-size:.72rem;color:var(--text-dim);text-transform:uppercase}
+    .ctrl-btns{display:flex;gap:10px;justify-content:center;margin:12px 0;flex-wrap:wrap}
+    .ctrl-btns button{padding:8px 22px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s}
+    .ctrl-btns button:hover{border-color:var(--accent);color:var(--accent)}
+    .ctrl-btns button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .formula-box{padding:14px 20px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);font-family:'Courier New',monospace;font-size:.88rem;text-align:center;margin:12px 0;line-height:1.8}
+    .slider-wrap{display:flex;align-items:center;gap:16px;justify-content:center;margin:14px 0;flex-wrap:wrap}
+    .slider-wrap label{font-weight:600;font-size:.9rem}
+    .slider-wrap input[type=range]{width:180px;accent-color:var(--accent)}
+    .slider-wrap .slider-val{font-weight:800;font-size:1.1rem;color:var(--accent);min-width:40px}
+    .compare-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.82rem}
+    .compare-table th,.compare-table td{padding:10px 14px;border:1px solid var(--border);text-align:center}
+    .compare-table th{background:var(--formula-bg);font-weight:700}
+    .compare-table td:first-child{text-align:left;font-weight:600}
+    .hist-canvas{width:100%;height:180px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);margin-top:10px}
+    .recall-canvas{width:100%;height:260px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);margin-top:10px}
+    .game-opt{padding:12px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s;text-align:center}
+    .game-opt:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .game-opt.correct{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .game-opt.wrong{border-color:var(--accent3);background:rgba(225,29,72,.08)}
+    .step-box{min-height:50px;padding:12px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);margin:12px 0;font-size:.85rem;line-height:1.6;transition:all .3s}
+    .param-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:12px 0}
+    .param-cell{padding:14px;border:2px solid var(--border);border-radius:var(--radius);text-align:center}
+    .param-cell h4{margin:0 0 6px;font-size:.88rem}
+    .param-cell .param-desc{font-size:.76rem;color:var(--text-dim);line-height:1.5}
+    @media(max-width:700px){.param-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p19.heading">HNSW — Hierarchical Navigable Small World</h1>
+<p class="subtitle" data-i18n="p19.subtitle">The default ANN algorithm in every vector database. Multi-layer graph search from express highways to local streets.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p19.heading">HNSW</span></p>
+
+<div class="container">
+
+  <!-- Section 1: The Express Highway Analogy -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)">Interactive</span>
+    <h2 data-i18n="p19.s1.title">The Express Highway Analogy</h2>
+    <p data-i18n="p19.s1.desc" data-i18n-html="1">HNSW organizes vectors into <strong>multiple layers</strong>, like a transit system. The top layer has few nodes with long-range "highway" connections. Each lower layer adds more nodes with shorter connections. Search starts at the top and <strong>descends greedily</strong> through layers to find nearest neighbors — just like taking a highway, then regional roads, then local streets.</p>
+    <canvas id="layerCanvas" class="layer-canvas"></canvas>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="animateSearch()" data-i18n="p19.s1.search">Animate Search</button>
+      <button onclick="resetSearch()" data-i18n="btn.reset">Reset</button>
+    </div>
+    <div class="step-box" id="searchStep" data-i18n="p19.s1.hint">Click "Animate Search" to watch a query descend through all layers — highway to local streets.</div>
+    <div class="stat-row">
+      <div class="stat-badge"><div class="val" style="color:var(--accent)">O(log N)</div><div class="lbl" data-i18n="p19.s1.complexity">Search Complexity</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)">Milvus</div><div class="lbl">Default Index</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)">Qdrant</div><div class="lbl">Default Index</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent3)">Pinecone</div><div class="lbl">Default Index</div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: Construction Algorithm -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)">Algorithm</span>
+    <h2 data-i18n="p19.s2.title">Construction Algorithm</h2>
+    <p data-i18n="p19.s2.desc" data-i18n-html="1">Each new node is assigned a random layer level using <strong>exponential decay</strong>. Most nodes live only on layer 0; a few reach the top. The node is then connected to <strong>M nearest neighbors</strong> at each layer from its assigned level down to 0, with excess neighbors pruned at Mmax.</p>
+    <canvas id="buildCanvas" class="build-canvas"></canvas>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="insertNode()" data-i18n="p19.s2.insert">Insert Node</button>
+      <button onclick="resetBuild()" data-i18n="btn.reset">Reset</button>
+    </div>
+    <div class="step-box" id="buildStep" data-i18n="p19.s2.hint">Click "Insert Node" to see step-by-step insertion: layer assignment, greedy descent, neighbor connection, and pruning.</div>
+    <div class="formula-box">l = &lfloor;-ln(U(0,1)) &times; 1/ln(M)&rfloor;&nbsp;&nbsp;|&nbsp;&nbsp;M = max connections per layer&nbsp;&nbsp;|&nbsp;&nbsp;Most nodes: layer 0, few nodes: top layers</div>
+    <canvas id="histCanvas" class="hist-canvas"></canvas>
+    <div style="text-align:center;font-size:.78rem;color:var(--text-dim);margin-top:4px" data-i18n="p19.s2.hist_label">Layer distribution histogram — exponential decay in action</div>
+  </div>
+
+  <!-- Section 3: Key Parameters -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)">Tuning</span>
+    <h2 data-i18n="p19.s3.title">Key Parameters</h2>
+    <p data-i18n="p19.s3.desc" data-i18n-html="1">Three parameters control HNSW's behavior: <strong>M</strong> (connections per node), <strong>ef</strong> (search beam width), and <strong>efConstruction</strong> (build-time beam width). Higher values improve recall but cost more memory and latency.</p>
+    <div class="slider-wrap">
+      <label>M:</label>
+      <input type="range" id="sliderM" min="4" max="64" value="16" oninput="onParamChange()">
+      <span class="slider-val" id="valM">16</span>
+      <label>ef:</label>
+      <input type="range" id="slideref" min="10" max="500" value="100" oninput="onParamChange()">
+      <span class="slider-val" id="valEf">100</span>
+      <label>efConstruction:</label>
+      <input type="range" id="sliderefC" min="50" max="500" value="200" oninput="onParamChange()">
+      <span class="slider-val" id="valEfC">200</span>
+    </div>
+    <canvas id="paramCanvas" class="param-canvas"></canvas>
+    <canvas id="recallCanvas" class="recall-canvas"></canvas>
+    <div class="param-grid">
+      <div class="param-cell" style="border-color:var(--accent)">
+        <h4 style="color:var(--accent)">M (4-64)</h4>
+        <div class="param-desc" data-i18n="p19.s3.m_desc">Max bi-directional links per node per layer. Higher M = better recall, more memory. Typical: 12-48.</div>
+      </div>
+      <div class="param-cell" style="border-color:var(--accent2)">
+        <h4 style="color:var(--accent2)">ef (10-500)</h4>
+        <div class="param-desc" data-i18n="p19.s3.ef_desc">Search-time beam width (dynamic candidate list size). Higher ef = better recall, slower search. Typical: 64-200.</div>
+      </div>
+      <div class="param-cell" style="border-color:var(--accent4)">
+        <h4 style="color:var(--accent4)">efConstruction (50-500)</h4>
+        <div class="param-desc" data-i18n="p19.s3.efc_desc">Build-time beam width. Higher = better graph quality, slower build. Typical: 100-400. Set once, affects index quality.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: HNSW vs Vamana (DiskANN) -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Comparison</span>
+    <h2 data-i18n="p19.s4.title">HNSW vs Vamana (DiskANN)</h2>
+    <p data-i18n="p19.s4.desc" data-i18n-html="1">HNSW and Vamana represent two philosophies: <strong>hierarchical multi-layer</strong> vs <strong>flat single-layer with alpha-pruning</strong>. HNSW excels in-memory with online inserts; Vamana excels on SSD at billion scale with batch builds.</p>
+    <canvas id="compareCanvas" class="compare-canvas"></canvas>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="animateCompare()" data-i18n="p19.s4.animate">Animate Both Searches</button>
+      <button onclick="resetCompare()" data-i18n="btn.reset">Reset</button>
+    </div>
+    <table class="compare-table">
+      <tr>
+        <th data-i18n="p19.s4.feature">Feature</th>
+        <th style="color:var(--accent)">HNSW</th>
+        <th style="color:var(--accent2)">Vamana (DiskANN)</th>
+      </tr>
+      <tr>
+        <td data-i18n="p19.s4.row1">Graph Structure</td>
+        <td>Multi-layer hierarchy</td>
+        <td>Single flat graph + alpha pruning</td>
+      </tr>
+      <tr>
+        <td data-i18n="p19.s4.row2">Storage</td>
+        <td>In-memory only</td>
+        <td>SSD-resident + small DRAM</td>
+      </tr>
+      <tr>
+        <td data-i18n="p19.s4.row3">Insert Mode</td>
+        <td>Online (incremental)</td>
+        <td>Batch build</td>
+      </tr>
+      <tr>
+        <td data-i18n="p19.s4.row4">1B Vectors RAM</td>
+        <td style="color:var(--accent3);font-weight:700">~3 TB</td>
+        <td style="color:var(--accent2);font-weight:700">~64 GB + SSD</td>
+      </tr>
+      <tr>
+        <td data-i18n="p19.s4.row5">Latency (1M)</td>
+        <td style="color:var(--accent2);font-weight:700">&lt;1 ms</td>
+        <td>~2-3 ms</td>
+      </tr>
+    </table>
+    <div class="stat-row">
+      <div class="stat-badge"><div class="val" style="color:var(--accent)">~3 TB</div><div class="lbl">HNSW @ 1B vectors</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)">64 GB</div><div class="lbl">Vamana @ 1B vectors</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent3)">&lt;1 ms</div><div class="lbl">HNSW Latency (1M)</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)">SSD</div><div class="lbl">Vamana Storage</div></div>
+    </div>
+  </div>
+
+  <!-- Section 5: Quiz -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Quiz</span>
+    <h2 data-i18n="p19.s5.title">Quiz: Test Your Understanding</h2>
+    <p data-i18n="p19.s5.desc">Answer these questions to check your understanding of HNSW concepts!</p>
+    <div style="text-align:center;margin:8px 0"><span data-i18n="p19.s5.round">Round</span>: <strong id="qRound">1/5</strong> | <span data-i18n="p19.s5.score">Score</span>: <strong id="qScore">0</strong></div>
+    <div id="qDesc" style="text-align:center;padding:16px;background:var(--formula-bg);border-radius:var(--radius);border:1px solid var(--border);margin:12px 0;font-size:.92rem;line-height:1.6;font-weight:600"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="qOpts"></div>
+    <div id="qFb" style="text-align:center;margin-top:12px;font-weight:600;min-height:24px"></div>
+  </div>
+
+</div>
+
+<footer>
+  <p>HNSW — Malkov & Yashunin, TPAMI 2020 | arXiv 1603.09320</p>
+  <p>LLM Algorithm Visualizations v2.1.0</p>
+</footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+// ==================== i18n ==================== //
+i18nRegister({
+  'en':{
+    'p19.title':'19. HNSW — LLM Algorithm Visualizations',
+    'p19.heading':'HNSW — Hierarchical Navigable Small World',
+    'p19.subtitle':'The default ANN algorithm in every vector database. Multi-layer graph search from express highways to local streets.',
+    'p19.s1.title':'The Express Highway Analogy',
+    'p19.s1.desc':'HNSW organizes vectors into <strong>multiple layers</strong>, like a transit system. The top layer has few nodes with long-range "highway" connections. Each lower layer adds more nodes with shorter connections. Search starts at the top and <strong>descends greedily</strong> through layers to find nearest neighbors.',
+    'p19.s1.search':'Animate Search','p19.s1.hint':'Click "Animate Search" to watch a query descend through all layers — highway to local streets.',
+    'p19.s1.complexity':'Search Complexity',
+    'p19.s2.title':'Construction Algorithm',
+    'p19.s2.desc':'Each new node is assigned a random layer level using <strong>exponential decay</strong>. Most nodes live only on layer 0; a few reach the top. The node is then connected to <strong>M nearest neighbors</strong> at each layer from its assigned level down to 0.',
+    'p19.s2.insert':'Insert Node','p19.s2.hint':'Click "Insert Node" to see step-by-step insertion: layer assignment, greedy descent, neighbor connection, and pruning.',
+    'p19.s2.hist_label':'Layer distribution histogram — exponential decay in action',
+    'p19.s3.title':'Key Parameters',
+    'p19.s3.desc':'Three parameters control HNSW\'s behavior: <strong>M</strong> (connections per node), <strong>ef</strong> (search beam width), and <strong>efConstruction</strong> (build-time beam width).',
+    'p19.s3.m_desc':'Max bi-directional links per node per layer. Higher M = better recall, more memory. Typical: 12-48.',
+    'p19.s3.ef_desc':'Search-time beam width (dynamic candidate list size). Higher ef = better recall, slower search. Typical: 64-200.',
+    'p19.s3.efc_desc':'Build-time beam width. Higher = better graph quality, slower build. Typical: 100-400. Set once, affects index quality.',
+    'p19.s4.title':'HNSW vs Vamana (DiskANN)',
+    'p19.s4.desc':'HNSW and Vamana represent two philosophies: <strong>hierarchical multi-layer</strong> vs <strong>flat single-layer with alpha-pruning</strong>. HNSW excels in-memory; Vamana excels on SSD at billion scale.',
+    'p19.s4.animate':'Animate Both Searches',
+    'p19.s4.feature':'Feature','p19.s4.row1':'Graph Structure','p19.s4.row2':'Storage','p19.s4.row3':'Insert Mode','p19.s4.row4':'1B Vectors RAM','p19.s4.row5':'Latency (1M)',
+    'p19.s5.title':'Quiz: Test Your Understanding',
+    'p19.s5.desc':'Answer these questions to check your understanding of HNSW concepts!',
+    'p19.s5.round':'Round','p19.s5.score':'Score',
+    'p19.quiz.q0':'How are layer levels assigned in HNSW?',
+    'p19.quiz.q1':'What does the ef parameter control?',
+    'p19.quiz.q2':'Which layer contains ALL elements?',
+    'p19.quiz.q3':'What is the search time complexity of HNSW?',
+    'p19.quiz.q4':'How does HNSW differ from DiskANN (Vamana)?',
+    'p19.correct':'Correct!','p19.wrong':'Wrong!'
+  },
+  'zh-CN':{
+    'p19.title':'19. HNSW — 大语言模型算法可视化',
+    'p19.heading':'HNSW — 分层可导航小世界',
+    'p19.subtitle':'每个向量数据库的默认 ANN 算法。多层图搜索：从高速公路到本地街道。',
+    'p19.s1.title':'高速公路类比',
+    'p19.s1.desc':'HNSW 将向量组织成<strong>多个层次</strong>，类似交通系统。顶层节点少，连接跨度大（"高速公路"）。每往下一层节点更多，连接更短。搜索从顶层开始，<strong>贪心下降</strong>到最底层找到最近邻。',
+    'p19.s1.search':'播放搜索动画','p19.s1.hint':'点击"播放搜索动画"观看查询从顶层逐层下降的过程。',
+    'p19.s1.complexity':'搜索复杂度',
+    'p19.s2.title':'构建算法',
+    'p19.s2.desc':'每个新节点通过<strong>指数衰减</strong>随机分配层级。大多数节点只在第 0 层；极少数到达顶层。然后从分配层向下连接每层的 <strong>M 个最近邻</strong>。',
+    'p19.s2.insert':'插入节点','p19.s2.hint':'点击"插入节点"查看逐步插入过程：层级分配、贪心下降、邻居连接和剪枝。',
+    'p19.s2.hist_label':'层级分布直方图 — 指数衰减的体现',
+    'p19.s3.title':'关键参数',
+    'p19.s3.desc':'三个参数控制 HNSW 的行为：<strong>M</strong>（每节点连接数）、<strong>ef</strong>（搜索波束宽度）、<strong>efConstruction</strong>（构建时波束宽度）。',
+    'p19.s3.m_desc':'每层每节点最大双向连接数。M 越大召回率越高，内存占用也越大。典型值：12-48。',
+    'p19.s3.ef_desc':'搜索时动态候选列表大小。ef 越大召回率越高，搜索越慢。典型值：64-200。',
+    'p19.s3.efc_desc':'构建时波束宽度。越大图质量越好，构建越慢。典型值：100-400。',
+    'p19.s4.title':'HNSW vs Vamana (DiskANN)',
+    'p19.s4.desc':'HNSW 和 Vamana 代表两种理念：<strong>分层多层图</strong> vs <strong>带 alpha 剪枝的平面单层图</strong>。HNSW 适合内存场景；Vamana 适合十亿级 SSD 场景。',
+    'p19.s4.animate':'同时播放两种搜索',
+    'p19.s4.feature':'特性','p19.s4.row1':'图结构','p19.s4.row2':'存储','p19.s4.row3':'插入模式','p19.s4.row4':'10亿向量 RAM','p19.s4.row5':'延迟（100万）',
+    'p19.s5.title':'测验：检验你的理解',
+    'p19.s5.desc':'回答这些问题，检验你对 HNSW 概念的理解！',
+    'p19.s5.round':'第','p19.s5.score':'得分',
+    'p19.quiz.q0':'HNSW 中层级是如何分配的？',
+    'p19.quiz.q1':'ef 参数控制什么？',
+    'p19.quiz.q2':'哪一层包含所有元素？',
+    'p19.quiz.q3':'HNSW 的搜索时间复杂度是多少？',
+    'p19.quiz.q4':'HNSW 与 DiskANN (Vamana) 有何不同？',
+    'p19.correct':'正确！','p19.wrong':'错误！'
+  },
+  'zh-TW':{
+    'p19.title':'19. HNSW — 大語言模型演算法視覺化',
+    'p19.heading':'HNSW — 分層可導航小世界',
+    'p19.subtitle':'每個向量資料庫的預設 ANN 演算法。多層圖搜尋：從高速公路到本地街道。',
+    'p19.s1.title':'高速公路類比',
+    'p19.s1.desc':'HNSW 將向量組織成<strong>多個層次</strong>，類似交通系統。頂層節點少，連接跨度大（「高速公路」）。每往下一層節點更多，連接更短。搜尋從頂層開始，<strong>貪心下降</strong>到最底層找到最近鄰。',
+    'p19.s1.search':'播放搜尋動畫','p19.s1.hint':'點擊「播放搜尋動畫」觀看查詢從頂層逐層下降的過程。',
+    'p19.s1.complexity':'搜尋複雜度',
+    'p19.s2.title':'建構演算法',
+    'p19.s2.desc':'每個新節點透過<strong>指數衰減</strong>隨機分配層級。大多數節點只在第 0 層；極少數到達頂層。然後從分配層向下連接每層的 <strong>M 個最近鄰</strong>。',
+    'p19.s2.insert':'插入節點','p19.s2.hint':'點擊「插入節點」查看逐步插入過程：層級分配、貪心下降、鄰居連接和剪枝。',
+    'p19.s2.hist_label':'層級分佈直方圖 — 指數衰減的體現',
+    'p19.s3.title':'關鍵參數',
+    'p19.s3.desc':'三個參數控制 HNSW 的行為：<strong>M</strong>（每節點連接數）、<strong>ef</strong>（搜尋波束寬度）、<strong>efConstruction</strong>（建構時波束寬度）。',
+    'p19.s3.m_desc':'每層每節點最大雙向連接數。M 越大召回率越高，記憶體佔用也越大。典型值：12-48。',
+    'p19.s3.ef_desc':'搜尋時動態候選列表大小。ef 越大召回率越高，搜尋越慢。典型值：64-200。',
+    'p19.s3.efc_desc':'建構時波束寬度。越大圖品質越好，建構越慢。典型值：100-400。',
+    'p19.s4.title':'HNSW vs Vamana (DiskANN)',
+    'p19.s4.desc':'HNSW 和 Vamana 代表兩種理念：<strong>分層多層圖</strong> vs <strong>帶 alpha 剪枝的平面單層圖</strong>。HNSW 適合記憶體場景；Vamana 適合十億級 SSD 場景。',
+    'p19.s4.animate':'同時播放兩種搜尋',
+    'p19.s4.feature':'特性','p19.s4.row1':'圖結構','p19.s4.row2':'儲存','p19.s4.row3':'插入模式','p19.s4.row4':'10億向量 RAM','p19.s4.row5':'延遲（100萬）',
+    'p19.s5.title':'測驗：檢驗你的理解',
+    'p19.s5.desc':'回答這些問題，檢驗你對 HNSW 概念的理解！',
+    'p19.s5.round':'第','p19.s5.score':'得分',
+    'p19.quiz.q0':'HNSW 中層級是如何分配的？',
+    'p19.quiz.q1':'ef 參數控制什麼？',
+    'p19.quiz.q2':'哪一層包含所有元素？',
+    'p19.quiz.q3':'HNSW 的搜尋時間複雜度是多少？',
+    'p19.quiz.q4':'HNSW 與 DiskANN (Vamana) 有何不同？',
+    'p19.correct':'正確！','p19.wrong':'錯誤！'
+  }
+});
+
+// ==================== Helpers ==================== //
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function setupCanvas(id){
+  var c=document.getElementById(id);if(!c)return null;
+  var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  c.width=r.width*d;c.height=r.height*d;
+  var x=c.getContext('2d');x.scale(d,d);
+  return{c:c,x:x,W:r.width,H:r.height};
+}
+function dist(a,b){var dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy);}
+function seededRng(s){return function(){s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff;};}
+
+// ==================== Section 1: Multi-layer Visualization ==================== //
+var hnswLayers=[];  // layers[l] = [{x,y,id,edges:[]}]
+var hnswAllNodes=[]; // all layer-0 nodes with x,y
+var searchState={running:false,layer:3,curNode:-1,path:[],step:0,query:null,timer:null,found:-1};
+var LAYER_COLORS=['#5b5bd6','#0d9488','#ea580c','#e11d48'];
+var LAYER_LABELS=['Layer 0 — Local Streets (ALL nodes)','Layer 1 — Regional Roads','Layer 2 — Express Routes','Layer 3 — Highway'];
+
+function buildHNSWGraph(){
+  var rng=seededRng(42);
+  var N=60;
+  hnswAllNodes=[];
+  for(var i=0;i<N;i++){
+    hnswAllNodes.push({x:0.05+rng()*0.9, y:0.05+rng()*0.9, id:i});
+  }
+  // Assign layers via exponential decay
+  var M=8, mL=1/Math.log(M);
+  var nodeMaxLayer=[];
+  for(var i=0;i<N;i++){
+    var l=Math.floor(-Math.log(rng()+0.001)*mL);
+    l=Math.min(l,3);
+    nodeMaxLayer.push(l);
+  }
+  // Ensure at least 3 nodes on layer 3, ~10 on layer 2, ~30 on layer 1
+  // Sort by assigned layer descending, force counts
+  var layerCounts=[N,0,0,0];
+  for(var i=0;i<N;i++){
+    for(var l=1;l<=nodeMaxLayer[i];l++) layerCounts[l]++;
+  }
+  // Force minimums
+  if(layerCounts[3]<3){for(var i=0;i<N&&layerCounts[3]<3;i++){if(nodeMaxLayer[i]<3){nodeMaxLayer[i]=3;layerCounts[1]++;layerCounts[2]++;layerCounts[3]++;}}}
+  if(layerCounts[2]<10){for(var i=0;i<N&&layerCounts[2]<10;i++){if(nodeMaxLayer[i]<2){nodeMaxLayer[i]=2;layerCounts[1]++;layerCounts[2]++;}}}
+  if(layerCounts[1]<30){for(var i=0;i<N&&layerCounts[1]<30;i++){if(nodeMaxLayer[i]<1){nodeMaxLayer[i]=1;layerCounts[1]++;}}}
+
+  // Build layer arrays
+  hnswLayers=[[],[],[],[]];
+  for(var l=0;l<=3;l++){
+    for(var i=0;i<N;i++){
+      if(nodeMaxLayer[i]>=l){
+        hnswLayers[l].push({x:hnswAllNodes[i].x, y:hnswAllNodes[i].y, id:i, edges:[]});
+      }
+    }
+  }
+
+  // Connect each layer: k-nearest neighbor edges
+  var maxEdgesPerLayer=[6,5,4,3];
+  for(var l=0;l<=3;l++){
+    var nodes=hnswLayers[l];
+    var maxE=maxEdgesPerLayer[l];
+    for(var i=0;i<nodes.length;i++){
+      var dists=[];
+      for(var j=0;j<nodes.length;j++){
+        if(j!==i)dists.push({j:j,d:dist(nodes[i],nodes[j])});
+      }
+      dists.sort(function(a,b){return a.d-b.d;});
+      for(var k=0;k<Math.min(maxE,dists.length);k++){
+        var j=dists[k].j;
+        if(nodes[i].edges.indexOf(j)===-1) nodes[i].edges.push(j);
+        if(nodes[j].edges.indexOf(i)===-1) nodes[j].edges.push(i);
+      }
+    }
+  }
+
+  // Set up search query
+  searchState.query={x:0.82,y:0.25};
+  // Find nearest on layer 0
+  var best=0,bd=Infinity;
+  for(var i=0;i<hnswLayers[0].length;i++){
+    var dd=dist(hnswLayers[0][i],searchState.query);
+    if(dd<bd){bd=dd;best=i;}
+  }
+  searchState.found=hnswLayers[0][best].id;
+}
+
+function drawLayers(){
+  var o=setupCanvas('layerCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim');
+
+  var layerH=H/4;
+  var pad=30;
+
+  // Draw from top (layer 3) to bottom (layer 0)
+  for(var l=3;l>=0;l--){
+    var yOff=(3-l)*layerH;
+    var nodes=hnswLayers[l];
+    var col=LAYER_COLORS[l];
+
+    // Layer background
+    x.fillStyle=col+'08';
+    x.fillRect(0,yOff,W,layerH);
+    // Layer separator
+    x.strokeStyle=css('--border');x.lineWidth=0.5;
+    x.beginPath();x.moveTo(0,yOff+layerH);x.lineTo(W,yOff+layerH);x.stroke();
+
+    // Layer label
+    x.fillStyle=col;x.font='bold 11px system-ui';x.textAlign='left';
+    x.fillText(LAYER_LABELS[l],8,yOff+16);
+
+    // Transit analogy label on right
+    var analogies=['Local','Regional','Express','Highway'];
+    x.textAlign='right';x.font='bold 10px system-ui';x.fillStyle=col+'99';
+    x.fillText(analogies[l],W-8,yOff+16);
+
+    // Draw edges
+    x.strokeStyle=col+'40';x.lineWidth=l===3?2.5:l===2?2:l===1?1.2:0.8;
+    for(var i=0;i<nodes.length;i++){
+      var nx=pad+nodes[i].x*(W-2*pad);
+      var ny=yOff+24+nodes[i].y*(layerH-34);
+      for(var e=0;e<nodes[i].edges.length;e++){
+        var j=nodes[i].edges[e];
+        if(j>i){
+          var nx2=pad+nodes[j].x*(W-2*pad);
+          var ny2=yOff+24+nodes[j].y*(layerH-34);
+          x.beginPath();x.moveTo(nx,ny);x.lineTo(nx2,ny2);x.stroke();
+        }
+      }
+    }
+
+    // Draw nodes
+    for(var i=0;i<nodes.length;i++){
+      var nx=pad+nodes[i].x*(W-2*pad);
+      var ny=yOff+24+nodes[i].y*(layerH-34);
+      var r=l===3?6:l===2?4.5:l===1?3.5:2.5;
+      x.fillStyle=col;x.beginPath();x.arc(nx,ny,r,0,Math.PI*2);x.fill();
+    }
+
+    // Node count
+    x.fillStyle=dc;x.font='10px system-ui';x.textAlign='left';
+    x.fillText(nodes.length+' nodes',8,yOff+layerH-6);
+  }
+
+  // Draw search path
+  if(searchState.path.length>0){
+    for(var pi=0;pi<searchState.path.length;pi++){
+      var p=searchState.path[pi];
+      var l=p.layer;
+      var yOff=(3-l)*layerH;
+      var nodes=hnswLayers[l];
+      // find node index in layer
+      var ni=-1;
+      for(var i=0;i<nodes.length;i++){if(nodes[i].id===p.nodeId){ni=i;break;}}
+      if(ni===-1)continue;
+      var nx=pad+nodes[ni].x*(W-2*pad);
+      var ny=yOff+24+nodes[ni].y*(layerH-34);
+
+      // Highlight visited
+      x.strokeStyle='#e11d48';x.lineWidth=2.5;
+      x.beginPath();x.arc(nx,ny,l===3?10:l===2?8:l===1?7:6,0,Math.PI*2);x.stroke();
+
+      // Draw path edge to previous
+      if(pi>0){
+        var pp=searchState.path[pi-1];
+        if(pp.layer===l){
+          var pni=-1;
+          for(var i=0;i<nodes.length;i++){if(nodes[i].id===pp.nodeId){pni=i;break;}}
+          if(pni!==-1){
+            var px2=pad+nodes[pni].x*(W-2*pad);
+            var py2=yOff+24+nodes[pni].y*(layerH-34);
+            x.strokeStyle='#e11d48';x.lineWidth=2.5;
+            x.beginPath();x.moveTo(px2,py2);x.lineTo(nx,ny);x.stroke();
+            // Arrow
+            var ang=Math.atan2(ny-py2,nx-px2);
+            x.fillStyle='#e11d48';x.beginPath();
+            x.moveTo(nx-8*Math.cos(ang-0.3),ny-8*Math.sin(ang-0.3));
+            x.lineTo(nx,ny);
+            x.lineTo(nx-8*Math.cos(ang+0.3),ny-8*Math.sin(ang+0.3));
+            x.fill();
+          }
+        } else {
+          // Layer descent: draw dashed vertical arrow
+          var pyOff=(3-pp.layer)*layerH;
+          var ppNodes=hnswLayers[pp.layer];
+          var pni2=-1;
+          for(var i=0;i<ppNodes.length;i++){if(ppNodes[i].id===pp.nodeId){pni2=i;break;}}
+          if(pni2!==-1){
+            var px3=pad+ppNodes[pni2].x*(W-2*pad);
+            var py3=pyOff+24+ppNodes[pni2].y*(layerH-34);
+            x.setLineDash([4,4]);x.strokeStyle='#e11d4899';x.lineWidth=2;
+            x.beginPath();x.moveTo(px3,py3);x.lineTo(nx,ny);x.stroke();
+            x.setLineDash([]);
+          }
+        }
+      }
+    }
+  }
+
+  // Draw query point on all layers
+  if(searchState.query){
+    for(var l=0;l<=3;l++){
+      var yOff=(3-l)*layerH;
+      var qx=pad+searchState.query.x*(W-2*pad);
+      var qy=yOff+24+searchState.query.y*(layerH-34);
+      x.fillStyle='#e11d48';x.globalAlpha=l===0?1:0.3;
+      x.beginPath();x.arc(qx,qy,5,0,Math.PI*2);x.fill();
+      x.globalAlpha=1;
+      if(l===0){
+        x.fillStyle='#e11d48';x.font='bold 9px system-ui';x.textAlign='center';
+        x.fillText('query',qx,qy-8);
+      }
+    }
+  }
+
+  // Found marker
+  if(searchState.path.length>0){
+    var lastP=searchState.path[searchState.path.length-1];
+    if(lastP.layer===0&&!searchState.running){
+      var nodes=hnswLayers[0];
+      var ni=-1;
+      for(var i=0;i<nodes.length;i++){if(nodes[i].id===lastP.nodeId){ni=i;break;}}
+      if(ni!==-1){
+        var yOff=3*layerH;
+        var nx=pad+nodes[ni].x*(W-2*pad);
+        var ny=yOff+24+nodes[ni].y*(layerH-34);
+        x.fillStyle='#0d9488';x.font='bold 10px system-ui';x.textAlign='center';
+        x.fillText('nearest!',nx,ny-12);
+      }
+    }
+  }
+}
+
+function computeSearchPath(){
+  var path=[];
+  // Start at the entry point of the top layer (first node in layer 3)
+  var entryId=hnswLayers[3][0].id;
+  var curId=entryId;
+
+  for(var l=3;l>=0;l--){
+    var nodes=hnswLayers[l];
+    var idToIdx={};
+    for(var i=0;i<nodes.length;i++) idToIdx[nodes[i].id]=i;
+
+    // Greedy traverse at this layer
+    var curIdx=idToIdx[curId];
+    if(curIdx===undefined){
+      // Node not present at this layer, find closest
+      var bestD=Infinity;
+      for(var i=0;i<nodes.length;i++){
+        var dd=dist(nodes[i],searchState.query);
+        if(dd<bestD){bestD=dd;curIdx=i;}
+      }
+      curId=nodes[curIdx].id;
+    }
+    path.push({layer:l,nodeId:curId});
+
+    for(var step=0;step<20;step++){
+      var best=curIdx;
+      var bestD=dist(nodes[curIdx],searchState.query);
+      for(var e=0;e<nodes[curIdx].edges.length;e++){
+        var nIdx=nodes[curIdx].edges[e];
+        var dd=dist(nodes[nIdx],searchState.query);
+        if(dd<bestD){bestD=dd;best=nIdx;}
+      }
+      if(best===curIdx) break;
+      curIdx=best;
+      curId=nodes[curIdx].id;
+      path.push({layer:l,nodeId:curId});
+    }
+    // Drop to next layer (keep same nodeId)
+  }
+  return path;
+}
+
+function animateSearch(){
+  if(searchState.running) return;
+  searchState.path=[];
+  searchState.running=true;
+  searchState.step=0;
+  var fullPath=computeSearchPath();
+  document.getElementById('searchStep').textContent='Starting search at Layer 3 (Highway)...';
+  if(searchState.timer) clearInterval(searchState.timer);
+  searchState.timer=setInterval(function(){
+    if(searchState.step>=fullPath.length){
+      clearInterval(searchState.timer);searchState.timer=null;
+      searchState.running=false;
+      document.getElementById('searchStep').textContent='Search complete! Found nearest neighbor on Layer 0 in '+fullPath.length+' hops across all layers.';
+      drawLayers();return;
+    }
+    var p=fullPath[searchState.step];
+    searchState.path.push(p);
+    var layerNames=['Layer 0 (Local)','Layer 1 (Regional)','Layer 2 (Express)','Layer 3 (Highway)'];
+    var prev=searchState.step>0?fullPath[searchState.step-1]:null;
+    if(prev&&prev.layer!==p.layer){
+      document.getElementById('searchStep').textContent='Descending to '+layerNames[p.layer]+' — refining search with denser connections...';
+    } else {
+      document.getElementById('searchStep').textContent='Greedy hop on '+layerNames[p.layer]+' — moving closer to query...';
+    }
+    searchState.step++;
+    drawLayers();
+  },500);
+}
+
+function resetSearch(){
+  if(searchState.timer){clearInterval(searchState.timer);searchState.timer=null;}
+  searchState.path=[];searchState.running=false;searchState.step=0;
+  document.getElementById('searchStep').textContent=t('p19.s1.hint');
+  drawLayers();
+}
+
+// ==================== Section 2: Construction ==================== //
+var buildNodes=[];  // [{x,y,maxLayer}]
+var buildLayers=[[],[],[],[]]; // mirrors hnswLayers but smaller for build viz
+var buildInsertCount=0;
+var buildAnimState={running:false,timer:null,steps:[],stepIdx:0};
+
+function initBuildGraph(){
+  var rng=seededRng(77);
+  buildNodes=[];buildLayers=[[],[],[],[]];buildInsertCount=0;
+  var M=6;
+  // Start with 15 nodes pre-built
+  for(var i=0;i<15;i++){
+    var nd={x:0.05+rng()*0.9, y:0.05+rng()*0.9, id:i};
+    var l=Math.floor(-Math.log(rng()+0.001)/Math.log(M));
+    l=Math.min(l,3);l=Math.max(l,0);
+    nd.maxLayer=l;
+    buildNodes.push(nd);
+    for(var ll=0;ll<=l;ll++){
+      buildLayers[ll].push({x:nd.x,y:nd.y,id:i,edges:[]});
+    }
+  }
+  // Connect existing nodes
+  for(var l=0;l<=3;l++){
+    var nodes=buildLayers[l];
+    for(var i=0;i<nodes.length;i++){
+      var dists=[];
+      for(var j=0;j<nodes.length;j++){
+        if(j!==i) dists.push({j:j,d:dist(nodes[i],nodes[j])});
+      }
+      dists.sort(function(a,b){return a.d-b.d;});
+      var maxE=l===0?5:l===1?4:l===2?3:2;
+      for(var k=0;k<Math.min(maxE,dists.length);k++){
+        if(nodes[i].edges.indexOf(dists[k].j)===-1) nodes[i].edges.push(dists[k].j);
+        if(nodes[dists[k].j].edges.indexOf(i)===-1) nodes[dists[k].j].edges.push(i);
+      }
+    }
+  }
+  buildInsertCount=15;
+}
+
+function drawBuildGraph(){
+  var o=setupCanvas('buildCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim');
+  var layerH=H/4;var pad=30;
+
+  for(var l=3;l>=0;l--){
+    var yOff=(3-l)*layerH;
+    var nodes=buildLayers[l];
+    var col=LAYER_COLORS[l];
+    x.fillStyle=col+'08';x.fillRect(0,yOff,W,layerH);
+    x.strokeStyle=css('--border');x.lineWidth=0.5;
+    x.beginPath();x.moveTo(0,yOff+layerH);x.lineTo(W,yOff+layerH);x.stroke();
+    x.fillStyle=col;x.font='bold 10px system-ui';x.textAlign='left';
+    x.fillText('Layer '+l+' ('+nodes.length+' nodes)',8,yOff+14);
+
+    // Edges
+    x.strokeStyle=col+'35';x.lineWidth=l>=2?1.8:1;
+    for(var i=0;i<nodes.length;i++){
+      var nx=pad+nodes[i].x*(W-2*pad);
+      var ny=yOff+20+nodes[i].y*(layerH-30);
+      for(var e=0;e<nodes[i].edges.length;e++){
+        var j=nodes[i].edges[e];
+        if(j>i){
+          var nx2=pad+nodes[j].x*(W-2*pad);
+          var ny2=yOff+20+nodes[j].y*(layerH-30);
+          x.beginPath();x.moveTo(nx,ny);x.lineTo(nx2,ny2);x.stroke();
+        }
+      }
+    }
+
+    // Nodes
+    for(var i=0;i<nodes.length;i++){
+      var nx=pad+nodes[i].x*(W-2*pad);
+      var ny=yOff+20+nodes[i].y*(layerH-30);
+      var r=l>=2?5:l===1?3.5:2.5;
+      // Highlight last inserted
+      var isNew=(nodes[i].id===buildInsertCount-1);
+      x.fillStyle=isNew?'#e11d48':col;
+      x.beginPath();x.arc(nx,ny,isNew?r+2:r,0,Math.PI*2);x.fill();
+      if(isNew){
+        x.strokeStyle='#e11d48';x.lineWidth=2;
+        x.beginPath();x.arc(nx,ny,r+5,0,Math.PI*2);x.stroke();
+        x.fillStyle='#e11d48';x.font='bold 9px system-ui';x.textAlign='center';
+        x.fillText('NEW',nx,ny-r-8);
+      }
+    }
+  }
+
+  // Highlight new edges
+  if(buildAnimState.steps.length>0&&buildAnimState.stepIdx>0){
+    var lastStep=buildAnimState.steps[Math.min(buildAnimState.stepIdx-1,buildAnimState.steps.length-1)];
+    if(lastStep&&lastStep.newEdges){
+      for(var ei=0;ei<lastStep.newEdges.length;ei++){
+        var edge=lastStep.newEdges[ei];
+        var l=edge.layer;var yOff=(3-l)*layerH;
+        var nodes=buildLayers[l];
+        if(edge.from<nodes.length&&edge.to<nodes.length){
+          var n1=nodes[edge.from],n2=nodes[edge.to];
+          var x1=pad+n1.x*(W-2*pad),y1=yOff+20+n1.y*(layerH-30);
+          var x2=pad+n2.x*(W-2*pad),y2=yOff+20+n2.y*(layerH-30);
+          x.strokeStyle='#e11d48';x.lineWidth=2.5;
+          x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();
+        }
+      }
+    }
+  }
+}
+
+function drawHistogram(){
+  var o=setupCanvas('histCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim');
+  var counts=[0,0,0,0];
+  for(var i=0;i<buildNodes.length;i++){
+    for(var l=0;l<=buildNodes[i].maxLayer;l++) counts[l]++;
+  }
+  var maxC=Math.max.apply(null,counts)||1;
+  var pad={l:60,r:20,t:20,b:30};
+  var cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  var barW=cW/6;
+
+  // Axes
+  x.strokeStyle=css('--border');x.lineWidth=1;
+  x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
+
+  for(var l=0;l<=3;l++){
+    var bx=pad.l+(l+0.5)*cW/4-barW/2;
+    var bh=(counts[l]/maxC)*cH*0.9;
+    var by=pad.t+cH-bh;
+    var col=LAYER_COLORS[l];
+    x.fillStyle=col+'44';x.strokeStyle=col;x.lineWidth=2;
+    x.beginPath();if(x.roundRect)x.roundRect(bx,by,barW,bh,4);else x.rect(bx,by,barW,bh);x.fill();x.stroke();
+    // Count label
+    x.fillStyle=col;x.font='bold 12px system-ui';x.textAlign='center';
+    x.fillText(counts[l],bx+barW/2,by-6);
+    // Layer label
+    x.fillStyle=tc;x.font='10px system-ui';
+    x.fillText('L'+l,bx+barW/2,pad.t+cH+16);
+  }
+  // Y label
+  x.fillStyle=dc;x.font='10px system-ui';x.textAlign='right';
+  x.fillText(maxC,pad.l-6,pad.t+10);x.fillText('0',pad.l-6,pad.t+cH+4);
+}
+
+function insertNode(){
+  if(buildAnimState.running) return;
+  var rng=seededRng(buildInsertCount*137+7);
+  var nd={x:0.05+rng()*0.9, y:0.05+rng()*0.9, id:buildInsertCount};
+  var M=6;
+  var l=Math.floor(-Math.log(rng()+0.001)/Math.log(M));
+  l=Math.min(l,3);l=Math.max(l,0);
+  nd.maxLayer=l;
+
+  var steps=[];
+  steps.push({msg:'Step 1: Assigned layer level = '+l+' (formula: l = floor(-ln(rand()) / ln(M)))',newEdges:[]});
+
+  // Add node to all layers up to l
+  buildNodes.push(nd);
+  for(var ll=0;ll<=l;ll++){
+    buildLayers[ll].push({x:nd.x,y:nd.y,id:buildInsertCount,edges:[]});
+  }
+
+  // Connect at each layer
+  var allNewEdges=[];
+  for(var ll=l;ll>=0;ll--){
+    var nodes=buildLayers[ll];
+    var newIdx=nodes.length-1;
+    var maxE=ll===0?5:ll===1?4:ll===2?3:2;
+    // Find M nearest
+    var dists=[];
+    for(var j=0;j<nodes.length-1;j++){
+      dists.push({j:j,d:dist(nodes[newIdx],nodes[j])});
+    }
+    dists.sort(function(a,b){return a.d-b.d;});
+    var layerEdges=[];
+    for(var k=0;k<Math.min(maxE,dists.length);k++){
+      var j=dists[k].j;
+      nodes[newIdx].edges.push(j);
+      nodes[j].edges.push(newIdx);
+      layerEdges.push({layer:ll,from:newIdx,to:j});
+      // Prune if exceed Mmax
+      if(nodes[j].edges.length>maxE*2){
+        // Remove farthest edge
+        var farthest=-1,fd=0;
+        for(var e=0;e<nodes[j].edges.length;e++){
+          var dd=dist(nodes[j],nodes[nodes[j].edges[e]]);
+          if(dd>fd){fd=dd;farthest=e;}
+        }
+        if(farthest!==-1) nodes[j].edges.splice(farthest,1);
+      }
+    }
+    allNewEdges=allNewEdges.concat(layerEdges);
+    steps.push({msg:'Step '+(l-ll+2)+': Connected to '+layerEdges.length+' neighbors on Layer '+ll+(ll>0?' — continuing descent...':' — insertion complete!'),newEdges:layerEdges});
+  }
+
+  buildInsertCount++;
+  buildAnimState.steps=steps;
+  buildAnimState.stepIdx=0;
+  buildAnimState.running=true;
+
+  if(buildAnimState.timer) clearInterval(buildAnimState.timer);
+  buildAnimState.timer=setInterval(function(){
+    if(buildAnimState.stepIdx>=buildAnimState.steps.length){
+      clearInterval(buildAnimState.timer);buildAnimState.timer=null;
+      buildAnimState.running=false;
+      drawBuildGraph();drawHistogram();return;
+    }
+    document.getElementById('buildStep').textContent=buildAnimState.steps[buildAnimState.stepIdx].msg;
+    buildAnimState.stepIdx++;
+    drawBuildGraph();drawHistogram();
+  },900);
+}
+
+function resetBuild(){
+  if(buildAnimState.timer){clearInterval(buildAnimState.timer);buildAnimState.timer=null;}
+  buildAnimState.running=false;buildAnimState.steps=[];buildAnimState.stepIdx=0;
+  initBuildGraph();
+  document.getElementById('buildStep').textContent=t('p19.s2.hint');
+  drawBuildGraph();drawHistogram();
+}
+
+// ==================== Section 3: Parameters ==================== //
+var paramNodes=[];
+var paramEdges=[];
+
+function buildParamGraph(){
+  var M=parseInt(document.getElementById('sliderM').value);
+  var rng=seededRng(55);
+  paramNodes=[];paramEdges=[];
+  for(var i=0;i<30;i++){
+    paramNodes.push({x:0.05+rng()*0.9,y:0.05+rng()*0.9,edges:[]});
+  }
+  // Connect k-nearest with k = min(M, neighbors)
+  var k=Math.min(M,29);
+  for(var i=0;i<30;i++){
+    var dists=[];
+    for(var j=0;j<30;j++){if(j!==i)dists.push({j:j,d:dist(paramNodes[i],paramNodes[j])});}
+    dists.sort(function(a,b){return a.d-b.d;});
+    for(var m=0;m<Math.min(k,dists.length);m++){
+      var j=dists[m].j;
+      if(paramNodes[i].edges.indexOf(j)===-1) paramNodes[i].edges.push(j);
+      if(paramNodes[j].edges.indexOf(i)===-1) paramNodes[j].edges.push(i);
+    }
+  }
+  // Collect edges
+  paramEdges=[];
+  var edgeSet=new Set();
+  for(var i=0;i<30;i++){
+    for(var e=0;e<paramNodes[i].edges.length;e++){
+      var j=paramNodes[i].edges[e];
+      var key=Math.min(i,j)+'-'+Math.max(i,j);
+      if(!edgeSet.has(key)){edgeSet.add(key);paramEdges.push([i,j]);}
+    }
+  }
+}
+
+function drawParamGraph(){
+  var o=setupCanvas('paramCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim');
+  var M=parseInt(document.getElementById('sliderM').value);
+  var pad=30;
+
+  // Title
+  x.fillStyle=tc;x.font='bold 13px system-ui';x.textAlign='center';
+  x.fillText('HNSW Graph with M = '+M+' ('+paramEdges.length+' edges, 30 nodes)',W/2,18);
+
+  // Edges
+  x.strokeStyle=css('--accent')+'30';x.lineWidth=1;
+  for(var i=0;i<paramEdges.length;i++){
+    var a=paramNodes[paramEdges[i][0]],b=paramNodes[paramEdges[i][1]];
+    x.beginPath();
+    x.moveTo(pad+a.x*(W-2*pad),pad+20+a.y*(H-2*pad-20));
+    x.lineTo(pad+b.x*(W-2*pad),pad+20+b.y*(H-2*pad-20));
+    x.stroke();
+  }
+
+  // Nodes
+  for(var i=0;i<paramNodes.length;i++){
+    var nx=pad+paramNodes[i].x*(W-2*pad);
+    var ny=pad+20+paramNodes[i].y*(H-2*pad-20);
+    var deg=paramNodes[i].edges.length;
+    var r=3+deg*0.3;
+    x.fillStyle=css('--accent');x.beginPath();x.arc(nx,ny,r,0,Math.PI*2);x.fill();
+  }
+
+  // Stats
+  var totalDeg=0;
+  for(var i=0;i<30;i++) totalDeg+=paramNodes[i].edges.length;
+  x.fillStyle=dc;x.font='11px system-ui';x.textAlign='left';
+  x.fillText('Avg degree: '+(totalDeg/30).toFixed(1)+'  |  Edges: '+paramEdges.length+'  |  Memory ~'+(paramEdges.length*8/1024).toFixed(1)+' KB per 30 nodes',10,H-8);
+}
+
+function drawRecallChart(){
+  var o=setupCanvas('recallCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim'),bc=css('--border');
+  var ef=parseInt(document.getElementById('slideref').value);
+
+  var pad={t:40,r:30,b:50,l:60},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+
+  // Title
+  x.fillStyle=tc;x.font='bold 12px system-ui';x.textAlign='center';
+  x.fillText('Recall vs Latency as ef changes',W/2,20);
+
+  // Axes
+  x.strokeStyle=bc;x.lineWidth=1;
+  x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
+
+  // X axis: latency 0-10ms
+  var maxLat=10;
+  x.fillStyle=dc;x.font='10px monospace';x.textAlign='center';
+  for(var i=0;i<=maxLat;i+=2){
+    var px=pad.l+(i/maxLat)*cW;
+    x.fillText(i+'ms',px,pad.t+cH+16);
+    if(i>0){x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(px,pad.t);x.lineTo(px,pad.t+cH);x.stroke();}
+  }
+  x.fillText('Query Latency',pad.l+cW/2,H-6);
+
+  // Y axis: recall 70-100%
+  var minR=70,maxR=100;
+  x.textAlign='right';
+  for(var r=70;r<=100;r+=5){
+    var py=pad.t+cH-((r-minR)/(maxR-minR))*cH;
+    x.fillStyle=dc;x.fillText(r+'%',pad.l-6,py+4);
+    x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(pad.l,py);x.lineTo(pad.l+cW,py);x.stroke();
+  }
+
+  // Recall-latency curve (simulated): higher ef => higher recall but more latency
+  var efPoints=[
+    {ef:10,recall:75,lat:0.3},{ef:20,recall:82,lat:0.5},{ef:50,recall:90,lat:1},
+    {ef:100,recall:95,lat:2},{ef:200,recall:97.5,lat:3.5},{ef:300,recall:98.5,lat:5},
+    {ef:400,recall:99,lat:7},{ef:500,recall:99.3,lat:9}
+  ];
+
+  // Draw curve
+  x.strokeStyle=css('--accent');x.lineWidth=2.5;
+  x.beginPath();
+  efPoints.forEach(function(p,i){
+    var px=pad.l+(p.lat/maxLat)*cW;
+    var py=pad.t+cH-((p.recall-minR)/(maxR-minR))*cH;
+    i===0?x.moveTo(px,py):x.lineTo(px,py);
+  });
+  x.stroke();
+
+  // Draw points
+  efPoints.forEach(function(p){
+    var px=pad.l+(p.lat/maxLat)*cW;
+    var py=pad.t+cH-((p.recall-minR)/(maxR-minR))*cH;
+    x.fillStyle=css('--accent');x.beginPath();x.arc(px,py,3,0,Math.PI*2);x.fill();
+    x.fillStyle=dc;x.font='9px system-ui';x.textAlign='center';
+    x.fillText('ef='+p.ef,px,py-8);
+  });
+
+  // Highlight current ef
+  var curEfPoint=null;
+  for(var i=0;i<efPoints.length;i++){
+    if(efPoints[i].ef>=ef){curEfPoint=efPoints[i];break;}
+  }
+  if(!curEfPoint) curEfPoint=efPoints[efPoints.length-1];
+  // Interpolate
+  var curRecall,curLat;
+  for(var i=0;i<efPoints.length-1;i++){
+    if(ef>=efPoints[i].ef&&ef<=efPoints[i+1].ef){
+      var t2=(ef-efPoints[i].ef)/(efPoints[i+1].ef-efPoints[i].ef);
+      curRecall=efPoints[i].recall+t2*(efPoints[i+1].recall-efPoints[i].recall);
+      curLat=efPoints[i].lat+t2*(efPoints[i+1].lat-efPoints[i].lat);
+      break;
+    }
+  }
+  if(curRecall===undefined){curRecall=efPoints[efPoints.length-1].recall;curLat=efPoints[efPoints.length-1].lat;}
+  if(ef<=efPoints[0].ef){curRecall=efPoints[0].recall;curLat=efPoints[0].lat;}
+
+  var cpx=pad.l+(curLat/maxLat)*cW;
+  var cpy=pad.t+cH-((curRecall-minR)/(maxR-minR))*cH;
+  x.fillStyle='#e11d48';x.beginPath();x.arc(cpx,cpy,7,0,Math.PI*2);x.fill();
+  x.strokeStyle='#e11d48';x.lineWidth=2;
+  x.beginPath();x.arc(cpx,cpy,11,0,Math.PI*2);x.stroke();
+  x.fillStyle='#e11d48';x.font='bold 11px system-ui';x.textAlign='center';
+  x.fillText('ef='+ef+' ('+curRecall.toFixed(1)+'% @ '+curLat.toFixed(1)+'ms)',cpx,cpy-16);
+}
+
+function onParamChange(){
+  document.getElementById('valM').textContent=document.getElementById('sliderM').value;
+  document.getElementById('valEf').textContent=document.getElementById('slideref').value;
+  document.getElementById('valEfC').textContent=document.getElementById('sliderefC').value;
+  buildParamGraph();drawParamGraph();drawRecallChart();
+}
+
+// ==================== Section 4: HNSW vs Vamana ==================== //
+var cmpHNSW={nodes:[],layers:[[],[],[]],path:[],step:0};
+var cmpVamana={nodes:[],edges:[],path:[],step:0};
+var cmpQuery={x:0.8,y:0.25};
+var cmpTimer=null;
+var cmpRunning=false;
+
+function initCompare(){
+  var rng=seededRng(33);
+  // Shared node positions
+  var pts=[];
+  for(var i=0;i<25;i++) pts.push({x:0.05+rng()*0.9,y:0.05+rng()*0.9});
+
+  // HNSW side: 3 layers
+  cmpHNSW.layers=[[],[],[]];
+  for(var i=0;i<25;i++){
+    cmpHNSW.layers[0].push({x:pts[i].x,y:pts[i].y,id:i,edges:[]});
+    if(i<12) cmpHNSW.layers[1].push({x:pts[i].x,y:pts[i].y,id:i,edges:[]});
+    if(i<4) cmpHNSW.layers[2].push({x:pts[i].x,y:pts[i].y,id:i,edges:[]});
+  }
+  for(var l=0;l<3;l++){
+    var nodes=cmpHNSW.layers[l];
+    var maxE=l===0?5:l===1?4:3;
+    for(var i=0;i<nodes.length;i++){
+      var dists=[];
+      for(var j=0;j<nodes.length;j++){if(j!==i)dists.push({j:j,d:dist(nodes[i],nodes[j])});}
+      dists.sort(function(a,b){return a.d-b.d;});
+      for(var k=0;k<Math.min(maxE,dists.length);k++){
+        if(nodes[i].edges.indexOf(dists[k].j)===-1) nodes[i].edges.push(dists[k].j);
+        if(nodes[dists[k].j].edges.indexOf(i)===-1) nodes[dists[k].j].edges.push(i);
+      }
+    }
+  }
+
+  // Vamana side: single flat graph
+  cmpVamana.nodes=[];
+  for(var i=0;i<25;i++){
+    cmpVamana.nodes.push({x:pts[i].x,y:pts[i].y,id:i,edges:[]});
+  }
+  for(var i=0;i<25;i++){
+    var dists=[];
+    for(var j=0;j<25;j++){if(j!==i)dists.push({j:j,d:dist(cmpVamana.nodes[i],cmpVamana.nodes[j])});}
+    dists.sort(function(a,b){return a.d-b.d;});
+    for(var k=0;k<Math.min(6,dists.length);k++){
+      if(cmpVamana.nodes[i].edges.indexOf(dists[k].j)===-1) cmpVamana.nodes[i].edges.push(dists[k].j);
+      if(cmpVamana.nodes[dists[k].j].edges.indexOf(i)===-1) cmpVamana.nodes[dists[k].j].edges.push(i);
+    }
+  }
+
+  // Compute HNSW search path
+  cmpHNSW.path=[];
+  var curId=cmpHNSW.layers[2][0].id;
+  for(var l=2;l>=0;l--){
+    var nodes=cmpHNSW.layers[l];
+    var idToIdx={};for(var i=0;i<nodes.length;i++) idToIdx[nodes[i].id]=i;
+    var curIdx=idToIdx[curId];
+    if(curIdx===undefined){var bd=Infinity;for(var i=0;i<nodes.length;i++){var dd=dist(nodes[i],cmpQuery);if(dd<bd){bd=dd;curIdx=i;}}curId=nodes[curIdx].id;}
+    cmpHNSW.path.push({layer:l,idx:curIdx});
+    for(var s=0;s<10;s++){
+      var best=curIdx,bestD=dist(nodes[curIdx],cmpQuery);
+      for(var e=0;e<nodes[curIdx].edges.length;e++){
+        var ni=nodes[curIdx].edges[e];
+        var dd=dist(nodes[ni],cmpQuery);
+        if(dd<bestD){bestD=dd;best=ni;}
+      }
+      if(best===curIdx) break;
+      curIdx=best;curId=nodes[curIdx].id;
+      cmpHNSW.path.push({layer:l,idx:curIdx});
+    }
+  }
+
+  // Compute Vamana search path (greedy from node 0)
+  cmpVamana.path=[];
+  var curIdx=0;
+  cmpVamana.path.push(curIdx);
+  var visited=new Set([0]);
+  for(var s=0;s<15;s++){
+    var best=curIdx,bestD=dist(cmpVamana.nodes[curIdx],cmpQuery);
+    for(var e=0;e<cmpVamana.nodes[curIdx].edges.length;e++){
+      var ni=cmpVamana.nodes[curIdx].edges[e];
+      if(!visited.has(ni)){
+        var dd=dist(cmpVamana.nodes[ni],cmpQuery);
+        if(dd<bestD){bestD=dd;best=ni;}
+      }
+    }
+    if(best===curIdx) break;
+    visited.add(best);
+    curIdx=best;
+    cmpVamana.path.push(curIdx);
+  }
+
+  cmpHNSW.step=0;cmpVamana.step=0;
+}
+
+function drawCompare(){
+  var o=setupCanvas('compareCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim');
+  var halfW=W/2-10;
+
+  // Divider
+  x.strokeStyle=css('--border');x.lineWidth=1;
+  x.beginPath();x.moveTo(W/2,0);x.lineTo(W/2,H);x.stroke();
+
+  // Labels
+  x.fillStyle=css('--accent');x.font='bold 13px system-ui';x.textAlign='center';
+  x.fillText('HNSW (Multi-layer)',halfW/2,18);
+  x.fillStyle=css('--accent2');
+  x.fillText('Vamana (Flat graph)',W/2+halfW/2+10,18);
+
+  // === LEFT: HNSW ===
+  var layerH=(H-30)/3;
+  for(var l=2;l>=0;l--){
+    var yOff=28+(2-l)*layerH;
+    var nodes=cmpHNSW.layers[l];
+    var col=LAYER_COLORS[l];
+    x.fillStyle=col+'06';x.fillRect(0,yOff,halfW,layerH);
+    x.fillStyle=col;x.font='9px system-ui';x.textAlign='left';
+    x.fillText('L'+l,4,yOff+12);
+
+    var pad=20;
+    // Edges
+    x.strokeStyle=col+'30';x.lineWidth=0.8;
+    for(var i=0;i<nodes.length;i++){
+      for(var e=0;e<nodes[i].edges.length;e++){
+        var j=nodes[i].edges[e];
+        if(j>i){
+          x.beginPath();
+          x.moveTo(pad+nodes[i].x*(halfW-2*pad),yOff+10+nodes[i].y*(layerH-16));
+          x.lineTo(pad+nodes[j].x*(halfW-2*pad),yOff+10+nodes[j].y*(layerH-16));
+          x.stroke();
+        }
+      }
+    }
+    // Search path at this layer
+    var pathAtL=[];
+    for(var pi=0;pi<Math.min(cmpHNSW.step,cmpHNSW.path.length);pi++){
+      if(cmpHNSW.path[pi].layer===l) pathAtL.push(cmpHNSW.path[pi].idx);
+    }
+    if(pathAtL.length>1){
+      x.strokeStyle='#e11d48';x.lineWidth=2.5;
+      for(var pi=1;pi<pathAtL.length;pi++){
+        x.beginPath();
+        x.moveTo(pad+nodes[pathAtL[pi-1]].x*(halfW-2*pad),yOff+10+nodes[pathAtL[pi-1]].y*(layerH-16));
+        x.lineTo(pad+nodes[pathAtL[pi]].x*(halfW-2*pad),yOff+10+nodes[pathAtL[pi]].y*(layerH-16));
+        x.stroke();
+      }
+    }
+    // Nodes
+    for(var i=0;i<nodes.length;i++){
+      var nx=pad+nodes[i].x*(halfW-2*pad);
+      var ny=yOff+10+nodes[i].y*(layerH-16);
+      var isVisited=pathAtL.indexOf(i)!==-1;
+      x.fillStyle=isVisited?'#e11d48':col;
+      x.beginPath();x.arc(nx,ny,isVisited?4:2.5,0,Math.PI*2);x.fill();
+    }
+  }
+  // Query on left
+  var qx=20+cmpQuery.x*(halfW-40);
+  var qy=28+2*layerH+10+cmpQuery.y*(layerH-16);
+  x.fillStyle='#e11d48';x.beginPath();x.arc(qx,qy,5,0,Math.PI*2);x.fill();
+  x.font='bold 8px system-ui';x.textAlign='center';x.fillText('Q',qx,qy-7);
+
+  // === RIGHT: Vamana ===
+  var rOff=W/2+10;var pad2=20;
+  var rW=halfW;var rH=H-30;
+
+  // Edges
+  x.strokeStyle=css('--accent2')+'25';x.lineWidth=0.8;
+  for(var i=0;i<cmpVamana.nodes.length;i++){
+    for(var e=0;e<cmpVamana.nodes[i].edges.length;e++){
+      var j=cmpVamana.nodes[i].edges[e];
+      if(j>i){
+        x.beginPath();
+        x.moveTo(rOff+pad2+cmpVamana.nodes[i].x*(rW-2*pad2),28+cmpVamana.nodes[i].y*(rH-10));
+        x.lineTo(rOff+pad2+cmpVamana.nodes[j].x*(rW-2*pad2),28+cmpVamana.nodes[j].y*(rH-10));
+        x.stroke();
+      }
+    }
+  }
+
+  // Vamana search path
+  var vStep=Math.min(cmpVamana.step,cmpVamana.path.length);
+  if(vStep>1){
+    x.strokeStyle='#e11d48';x.lineWidth=2.5;
+    for(var pi=1;pi<vStep;pi++){
+      var a=cmpVamana.nodes[cmpVamana.path[pi-1]],b=cmpVamana.nodes[cmpVamana.path[pi]];
+      x.beginPath();
+      x.moveTo(rOff+pad2+a.x*(rW-2*pad2),28+a.y*(rH-10));
+      x.lineTo(rOff+pad2+b.x*(rW-2*pad2),28+b.y*(rH-10));
+      x.stroke();
+    }
+  }
+
+  // Vamana nodes
+  for(var i=0;i<cmpVamana.nodes.length;i++){
+    var nx=rOff+pad2+cmpVamana.nodes[i].x*(rW-2*pad2);
+    var ny=28+cmpVamana.nodes[i].y*(rH-10);
+    var isVisited=false;
+    for(var pi=0;pi<vStep;pi++){if(cmpVamana.path[pi]===i)isVisited=true;}
+    x.fillStyle=isVisited?'#e11d48':css('--accent2');
+    x.beginPath();x.arc(nx,ny,isVisited?4:2.5,0,Math.PI*2);x.fill();
+    if(i===0){
+      x.fillStyle=tc;x.font='bold 8px system-ui';x.textAlign='center';
+      x.fillText('entry',nx,ny-7);
+    }
+  }
+
+  // Query on right
+  var qx2=rOff+pad2+cmpQuery.x*(rW-2*pad2);
+  var qy2=28+cmpQuery.y*(rH-10);
+  x.fillStyle='#e11d48';x.beginPath();x.arc(qx2,qy2,5,0,Math.PI*2);x.fill();
+  x.font='bold 8px system-ui';x.textAlign='center';x.fillText('Q',qx2,qy2-7);
+
+  // Step counters
+  x.fillStyle=dc;x.font='10px system-ui';x.textAlign='left';
+  x.fillText('Hops: '+Math.min(cmpHNSW.step,cmpHNSW.path.length)+'/'+cmpHNSW.path.length,4,H-6);
+  x.fillText('Hops: '+Math.min(cmpVamana.step,cmpVamana.path.length)+'/'+cmpVamana.path.length,rOff+4,H-6);
+}
+
+function animateCompare(){
+  if(cmpRunning)return;
+  cmpHNSW.step=0;cmpVamana.step=0;cmpRunning=true;
+  drawCompare();
+  var maxSteps=Math.max(cmpHNSW.path.length,cmpVamana.path.length);
+  if(cmpTimer)clearInterval(cmpTimer);
+  cmpTimer=setInterval(function(){
+    cmpHNSW.step++;cmpVamana.step++;
+    if(cmpHNSW.step>cmpHNSW.path.length&&cmpVamana.step>cmpVamana.path.length){
+      clearInterval(cmpTimer);cmpTimer=null;cmpRunning=false;
+    }
+    drawCompare();
+  },600);
+}
+
+function resetCompare(){
+  if(cmpTimer){clearInterval(cmpTimer);cmpTimer=null;}
+  cmpRunning=false;cmpHNSW.step=0;cmpVamana.step=0;
+  drawCompare();
+}
+
+// ==================== Section 5: Quiz ==================== //
+var QUIZ=[
+  {dk:'p19.quiz.q0',ans:1,opts:[
+    {text:'Fixed assignment: layer = node_id mod max_layer'},
+    {text:'Exponential decay: l = floor(-ln(rand()) / ln(M)) — most nodes at layer 0, few at top'},
+    {text:'Uniform random: each layer equally likely'},
+    {text:'Based on vector magnitude: larger vectors get higher layers'}
+  ]},
+  {dk:'p19.quiz.q1',ans:2,opts:[
+    {text:'The maximum number of layers in the graph'},
+    {text:'The number of nodes inserted per batch'},
+    {text:'The search beam width — size of the dynamic candidate list during query'},
+    {text:'The compression ratio for stored vectors'}
+  ]},
+  {dk:'p19.quiz.q2',ans:0,opts:[
+    {text:'Layer 0 — every element appears on the bottom layer'},
+    {text:'The top layer — it has the global view'},
+    {text:'Layer 1 — it balances coverage and speed'},
+    {text:'All layers contain all elements equally'}
+  ]},
+  {dk:'p19.quiz.q3',ans:3,opts:[
+    {text:'O(N) — linear scan of all vectors'},
+    {text:'O(N log N) — like merge sort'},
+    {text:'O(sqrt(N)) — like IVF quantization'},
+    {text:'O(log N) — logarithmic thanks to the hierarchical skip-list structure'}
+  ]},
+  {dk:'p19.quiz.q4',ans:1,opts:[
+    {text:'HNSW uses a flat graph; Vamana uses multiple layers'},
+    {text:'HNSW uses multi-layer hierarchy (in-memory); Vamana uses a flat graph with alpha-pruning (SSD-friendly)'},
+    {text:'They are identical algorithms with different names'},
+    {text:'HNSW is batch-only; Vamana supports online inserts'}
+  ]},
+];
+var qi=0,qs=0;
+
+function renderQuiz(){
+  document.getElementById('qRound').textContent=(qi+1)+'/5';
+  document.getElementById('qScore').textContent=qs;
+  document.getElementById('qDesc').textContent=t(QUIZ[qi].dk);
+  document.getElementById('qFb').textContent='';
+  var o=document.getElementById('qOpts');o.innerHTML='';
+  var opts=QUIZ[qi].opts.slice();
+  var indices=[];for(var i=0;i<opts.length;i++)indices.push(i);
+  for(var i=indices.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=indices[i];indices[i]=indices[j];indices[j]=tmp;}
+  indices.forEach(function(idx){
+    var d=document.createElement('div');
+    d.className='game-opt';
+    d.textContent=opts[idx].text;
+    d.onclick=function(){checkQuiz(idx,d);};
+    o.appendChild(d);
+  });
+}
+
+function checkQuiz(pick,el){
+  var all=document.getElementById('qOpts').querySelectorAll('.game-opt');
+  all.forEach(function(d){d.style.pointerEvents='none';});
+  var correctText=QUIZ[qi].opts[QUIZ[qi].ans].text;
+  if(pick===QUIZ[qi].ans){
+    el.classList.add('correct');qs++;
+    document.getElementById('qFb').innerHTML='<span style="color:var(--accent2)">'+t('p19.correct')+'</span>';
+  } else {
+    el.classList.add('wrong');
+    all.forEach(function(d){if(d.textContent===correctText)d.classList.add('correct');});
+    document.getElementById('qFb').innerHTML='<span style="color:var(--accent3)">'+t('p19.wrong')+'</span>';
+  }
+  document.getElementById('qScore').textContent=qs;
+  setTimeout(function(){
+    qi++;
+    if(qi<5) renderQuiz();
+    else {
+      document.getElementById('qFb').innerHTML='<strong>Final: '+qs+'/5</strong>';
+      if(typeof markGameCompleted==='function') markGameCompleted('19');
+    }
+  },2000);
+}
+
+// ==================== Init ==================== //
+window.addEventListener('load',function(){
+  buildHNSWGraph();drawLayers();
+  initBuildGraph();drawBuildGraph();drawHistogram();
+  buildParamGraph();drawParamGraph();drawRecallChart();
+  initCompare();drawCompare();
+  renderQuiz();
+});
+window.addEventListener('themechange',function(){
+  drawLayers();drawBuildGraph();drawHistogram();
+  drawParamGraph();drawRecallChart();drawCompare();
+});
+window.addEventListener('resize',function(){
+  drawLayers();drawBuildGraph();drawHistogram();
+  drawParamGraph();drawRecallChart();drawCompare();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p21.title">21. KG Construction — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .kg-canvas{width:100%;height:380px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .text-example{padding:12px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.82rem;color:var(--text);transition:all .2s;text-align:center;min-width:180px}
+    .text-example:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .text-example.active{border-color:var(--accent);background:rgba(91,91,214,.08)}
+    .entity-tag{display:inline-block;padding:4px 10px;border-radius:6px;font-size:.78rem;font-weight:600;margin:3px;border:1px solid}
+    .entity-person{background:rgba(91,91,214,.1);color:#5b5bd6;border-color:rgba(91,91,214,.3)}
+    .entity-concept{background:rgba(13,148,136,.1);color:#0d9488;border-color:rgba(13,148,136,.3)}
+    .entity-org{background:rgba(234,88,12,.1);color:#ea580c;border-color:rgba(234,88,12,.3)}
+    .entity-location{background:rgba(225,29,72,.1);color:#e11d48;border-color:rgba(225,29,72,.3)}
+    .relation-row{display:flex;align-items:center;gap:6px;padding:6px 10px;margin:4px 0;font-size:.82rem;background:var(--formula-bg);border-radius:8px;border:1px solid var(--border);flex-wrap:wrap}
+    .relation-arrow{color:var(--accent);font-weight:700}
+    .flow-canvas{width:100%;height:360px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .arch-canvas{width:100%;height:400px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0}
+    .compare-col{background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .scenario-btn{padding:10px 18px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.82rem;color:var(--text);transition:all .2s;text-align:center}
+    .scenario-btn:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .scenario-btn.active{border-color:var(--accent2);background:rgba(13,148,136,.08)}
+    .cmp-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.82rem}
+    .cmp-table th,.cmp-table td{padding:10px 14px;border:1px solid var(--border);text-align:center}
+    .cmp-table th{background:var(--formula-bg);font-weight:700}
+    .cmp-table td:first-child{text-align:left;font-weight:600}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+    .legend-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+    .legend-item{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--text-dim)}
+    .legend-dot{width:12px;height:12px;border-radius:50%}
+    .flow-step{display:flex;gap:8px;align-items:center;justify-content:center;padding:12px;margin:8px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--canvas-bg);transition:all .4s;font-size:.85rem}
+    .flow-step.active{border-color:var(--accent);background:rgba(91,91,214,.06)}
+    .flow-step .step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;border:2px solid var(--border);color:var(--text-dim);flex-shrink:0}
+    .flow-step.active .step-num{border-color:var(--accent);color:var(--accent);background:rgba(91,91,214,.1)}
+    .game-opt{padding:12px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s;text-align:center}
+    .game-opt:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .game-opt.correct{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .game-opt.wrong{border-color:var(--accent3);background:rgba(225,29,72,.08)}
+    .retrieval-btn{padding:8px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.82rem;color:var(--text);transition:all .2s}
+    .retrieval-btn:hover{border-color:var(--accent);transform:translateY(-1px)}
+    .retrieval-btn.active{border-color:var(--accent);background:rgba(91,91,214,.08)}
+    .scenario-result{min-height:60px;padding:12px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);margin:12px 0;font-size:.85rem;line-height:1.6;transition:all .3s}
+    @media(max-width:700px){.compare-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p21.heading">Knowledge Graph Construction with LLMs</h1>
+<p class="subtitle" data-i18n="p21.subtitle">How LLMs extract entities and relations from text to build structured knowledge graphs for retrieval-augmented generation.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p21.breadcrumb">KG Construction</span></p>
+
+<div class="container">
+
+  <!-- Section 1: From Text to Knowledge Graph -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)" data-i18n="p21.s1.badge">Pipeline</span>
+    <h2 data-i18n="p21.s1.title">From Text to Knowledge Graph</h2>
+    <p data-i18n="p21.s1.desc" data-i18n-html="1">An LLM reads text, extracts <strong>entities</strong> (people, concepts, organizations, locations) and <strong>relations</strong> between them, then builds a knowledge graph. Click an example below to see the extraction.</p>
+    <div class="legend-row">
+      <div class="legend-item"><div class="legend-dot" style="background:#5b5bd6"></div>Person</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#0d9488"></div>Concept</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ea580c"></div>Organization</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e11d48"></div>Location</div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:16px 0">
+      <div class="text-example active" onclick="selectText(0,this)" id="txt0">Einstein & Relativity</div>
+      <div class="text-example" onclick="selectText(1,this)" id="txt1">Turing & AI</div>
+      <div class="text-example" onclick="selectText(2,this)" id="txt2">Google & PageRank</div>
+      <div class="text-example" onclick="selectText(3,this)" id="txt3">CRISPR Discovery</div>
+    </div>
+    <div id="textPassage" style="padding:12px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);font-size:.88rem;line-height:1.7;margin:12px 0;font-style:italic"></div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;margin:12px 0">
+      <div style="flex:1;min-width:250px">
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:8px" data-i18n="p21.s1.entities">Extracted Entities:</div>
+        <div id="entityList"></div>
+      </div>
+      <div style="flex:1;min-width:250px">
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:8px" data-i18n="p21.s1.relations">Extracted Relations:</div>
+        <div id="relationList"></div>
+      </div>
+    </div>
+    <canvas id="kgCanvas" class="kg-canvas"></canvas>
+  </div>
+
+  <!-- Section 2: LightRAG Architecture -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)" data-i18n="p21.s2.badge">Architecture</span>
+    <h2 data-i18n="p21.s2.title">LightRAG — Dual-Level Retrieval</h2>
+    <p data-i18n="p21.s2.desc" data-i18n-html="1">LightRAG (2024) integrates graph structures with vector retrieval using <strong>dual-level retrieval</strong>: low-level for entity-specific queries, and high-level for topic/theme queries. This achieves <strong>+20%</strong> improvement on multi-hop questions vs vanilla RAG.</p>
+    <div style="text-align:center;margin:12px 0;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="retrieval-btn active" id="retLow" onclick="setRetrieval('low')">Low-Level: Entity Queries</button>
+      <button class="retrieval-btn" id="retHigh" onclick="setRetrieval('high')">High-Level: Theme Queries</button>
+    </div>
+    <canvas id="lightCanvas" class="flow-canvas"></canvas>
+    <div id="retDesc" style="text-align:center;margin:12px 0;font-size:.85rem;color:var(--text-dim);min-height:40px"></div>
+    <div class="compare-grid">
+      <div class="compare-col">
+        <h3 style="margin-top:0;color:var(--accent3);font-size:.92rem" data-i18n="p21.s2.vanilla">Vanilla RAG</h3>
+        <div style="font-size:.82rem;color:var(--text-dim);line-height:1.6">
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent3);padding-left:8px">Q: "How does Einstein's work connect to GPS?"</div>
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent3);padding-left:8px;opacity:.6">Chunk: "Einstein published relativity in 1905..."</div>
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent3);padding-left:8px;opacity:.6">Chunk: "GPS satellites orbit at 20,200 km..."</div>
+        </div>
+        <div style="margin-top:8px;padding:8px;background:rgba(225,29,72,.06);border-radius:8px;font-size:.82rem;color:var(--accent3)" data-i18n="p21.s2.vanilla_result">Disconnected chunks. Cannot trace multi-hop reasoning path.</div>
+      </div>
+      <div class="compare-col">
+        <h3 style="margin-top:0;color:var(--accent2);font-size:.92rem">LightRAG</h3>
+        <div style="font-size:.82rem;color:var(--text-dim);line-height:1.6">
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent2);padding-left:8px">Q: "How does Einstein's work connect to GPS?"</div>
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent2);padding-left:8px">Einstein &rarr; developed &rarr; General Relativity</div>
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent2);padding-left:8px">General Relativity &rarr; predicts &rarr; Time Dilation</div>
+          <div style="padding:6px;margin:4px 0;border-left:3px solid var(--accent2);padding-left:8px">Time Dilation &rarr; corrected_by &rarr; GPS Satellites</div>
+        </div>
+        <div style="margin-top:8px;padding:8px;background:rgba(13,148,136,.06);border-radius:8px;font-size:.82rem;color:var(--accent2)" data-i18n="p21.s2.light_result">Graph traversal reveals the complete reasoning chain.</div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent2)">+20%</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p21.s2.stat1">Multi-hop QA Improvement</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">2-level</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p21.s2.stat2">Retrieval Granularity</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent4)">O(1)</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p21.s2.stat3">Incremental Update</div></div>
+    </div>
+  </div>
+
+  <!-- Section 3: HippoRAG -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)" data-i18n="p21.s3.badge">Brain-Inspired</span>
+    <h2 data-i18n="p21.s3.title">HippoRAG — Hippocampus-Inspired Retrieval</h2>
+    <p data-i18n="p21.s3.desc" data-i18n-html="1">HippoRAG (NeurIPS 2024) maps the human memory system to RAG components: the <strong>Neocortex</strong> (LLM) extracts knowledge, <strong>Parahippocampal Regions</strong> (retrieval encoder) link entities, and the <strong>Hippocampus</strong> (knowledge graph) acts as associative memory.</p>
+    <canvas id="hippoCanvas" class="arch-canvas"></canvas>
+    <div style="text-align:center;margin:12px 0">
+      <button onclick="hippoStep()" style="padding:8px 24px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-weight:600" id="hippoBtn" data-i18n="p21.s3.step">Step Through Retrieval</button>
+      <button onclick="hippoReset()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;color:var(--text)" data-i18n="p21.s3.reset">Reset</button>
+    </div>
+    <div id="hippoSteps">
+      <div class="flow-step" id="hs0"><div class="step-num">1</div><div data-i18n="p21.s3.f1">Query: "What was the drug used to treat Alzheimer's in the Stanford study?"</div></div>
+      <div class="flow-step" id="hs1"><div class="step-num">2</div><div data-i18n="p21.s3.f2">Neocortex (LLM): Extract query entities &rarr; [Alzheimer's, Stanford, drug treatment]</div></div>
+      <div class="flow-step" id="hs2"><div class="step-num">3</div><div data-i18n="p21.s3.f3">Parahippocampal (Encoder): Link entities to KG nodes via similarity matching</div></div>
+      <div class="flow-step" id="hs3"><div class="step-num">4</div><div data-i18n="p21.s3.f4">Hippocampus (KG): Traverse graph &rarr; Stanford &rarr; conducted &rarr; Study X &rarr; used &rarr; Donepezil</div></div>
+      <div class="flow-step" id="hs4"><div class="step-num">5</div><div data-i18n="p21.s3.f5">Retrieve associated passages and generate answer with full context</div></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent2)">+20-40%</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p21.s3.stat1">Multi-hop QA Improvement</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">3 Components</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p21.s3.stat2">Brain-Inspired Architecture</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent4)">Personalized</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p21.s3.stat3">PageRank for User Context</div></div>
+    </div>
+  </div>
+
+  <!-- Section 4: Graph DB vs Vector DB -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)" data-i18n="p21.s4.badge">Comparison</span>
+    <h2 data-i18n="p21.s4.title">Graph DB vs Vector DB — When to Use Which</h2>
+    <p data-i18n="p21.s4.desc" data-i18n-html="1">Vector databases excel at <strong>semantic similarity</strong> (single-hop), while graph databases shine at <strong>multi-hop reasoning</strong>. Modern systems often combine both. Click a scenario to see the recommendation.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:16px 0">
+      <div class="scenario-btn active" onclick="selectScenario(0,this)">Find similar documents</div>
+      <div class="scenario-btn" onclick="selectScenario(1,this)">How is X connected to Y?</div>
+      <div class="scenario-btn" onclick="selectScenario(2,this)">Semantic Q&A</div>
+      <div class="scenario-btn" onclick="selectScenario(3,this)">Multi-hop reasoning</div>
+      <div class="scenario-btn" onclick="selectScenario(4,this)">Entity relationships</div>
+    </div>
+    <div class="scenario-result" id="scenarioResult"></div>
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th data-i18n="p21.s4.metric">Metric</th>
+          <th style="color:#5b5bd6" data-i18n="p21.s4.vectordb">Vector DB</th>
+          <th style="color:#0d9488" data-i18n="p21.s4.graphdb">Graph DB</th>
+          <th style="color:#ea580c" data-i18n="p21.s4.hybrid">Hybrid</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td data-i18n="p21.s4.r1">Single-hop Accuracy</td>
+          <td style="color:var(--accent2)">&#9733;&#9733;&#9733;</td>
+          <td>&#9733;&#9733;</td>
+          <td style="color:var(--accent2)">&#9733;&#9733;&#9733;</td>
+        </tr>
+        <tr>
+          <td data-i18n="p21.s4.r2">Multi-hop Accuracy</td>
+          <td>&#9733;</td>
+          <td style="color:var(--accent2)">&#9733;&#9733;&#9733;</td>
+          <td style="color:var(--accent2)">&#9733;&#9733;&#9733;</td>
+        </tr>
+        <tr>
+          <td data-i18n="p21.s4.r3">Query Latency</td>
+          <td style="color:var(--accent2)">~5ms</td>
+          <td>~20ms</td>
+          <td>~25ms</td>
+        </tr>
+        <tr>
+          <td data-i18n="p21.s4.r4">Setup Complexity</td>
+          <td style="color:var(--accent2)">Low</td>
+          <td>Medium</td>
+          <td>High</td>
+        </tr>
+        <tr>
+          <td data-i18n="p21.s4.r5">Best For</td>
+          <td style="font-size:.78rem">Similarity search, semantic matching</td>
+          <td style="font-size:.78rem">Relationship queries, path finding</td>
+          <td style="font-size:.78rem">Production RAG, complex QA</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="text-align:center;font-size:.8rem;color:var(--text-dim);margin-top:8px;font-style:italic" data-i18n="p21.s4.note">Examples: Neo4j + vectors, Microsoft GraphRAG, LightRAG, Amazon Neptune + OpenSearch</div>
+  </div>
+
+  <!-- Section 5: Quiz -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)" data-i18n="p21.s5.badge">Quiz</span>
+    <h2 data-i18n="p21.s5.title">Knowledge Graph Quiz</h2>
+    <p data-i18n="p21.s5.desc">Test your understanding of knowledge graph construction concepts.</p>
+    <div style="text-align:center;margin:8px 0">Round: <strong id="gRound">1/5</strong> | Score: <strong id="gScore">0</strong></div>
+    <div id="gQ" style="text-align:center;font-weight:600;padding:12px;background:var(--formula-bg);border-radius:8px;border:1px solid var(--border);margin:12px 0"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="gOpts"></div>
+    <div id="gFb" style="text-align:center;margin-top:12px;font-weight:600;min-height:24px"></div>
+  </div>
+
+</div>
+
+<footer>
+  <p>KG Construction — LightRAG (2024), HippoRAG (NeurIPS 2024), REBEL (EMNLP 2021)</p>
+  <p>LLM Algorithm Visualizations v2.1.0</p>
+</footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+i18nRegister({
+  'en':{
+    'p21.title':'21. KG Construction — LLM Algorithm Visualizations',
+    'p21.heading':'Knowledge Graph Construction with LLMs',
+    'p21.subtitle':'How LLMs extract entities and relations from text to build structured knowledge graphs for retrieval-augmented generation.',
+    'p21.breadcrumb':'KG Construction',
+    'p21.s1.badge':'Pipeline','p21.s1.title':'From Text to Knowledge Graph',
+    'p21.s1.desc':'An LLM reads text, extracts <strong>entities</strong> (people, concepts, organizations, locations) and <strong>relations</strong> between them, then builds a knowledge graph. Click an example below.',
+    'p21.s1.entities':'Extracted Entities:','p21.s1.relations':'Extracted Relations:',
+    'p21.s2.badge':'Architecture','p21.s2.title':'LightRAG — Dual-Level Retrieval',
+    'p21.s2.desc':'LightRAG (2024) integrates graph structures with vector retrieval using <strong>dual-level retrieval</strong>: low-level for entity-specific queries, high-level for topic/theme queries.',
+    'p21.s2.vanilla':'Vanilla RAG','p21.s2.vanilla_result':'Disconnected chunks. Cannot trace multi-hop reasoning path.',
+    'p21.s2.light_result':'Graph traversal reveals the complete reasoning chain.',
+    'p21.s2.stat1':'Multi-hop QA Improvement','p21.s2.stat2':'Retrieval Granularity','p21.s2.stat3':'Incremental Update',
+    'p21.s3.badge':'Brain-Inspired','p21.s3.title':'HippoRAG — Hippocampus-Inspired Retrieval',
+    'p21.s3.desc':'HippoRAG (NeurIPS 2024) maps the human memory system to RAG components.',
+    'p21.s3.step':'Step Through Retrieval','p21.s3.reset':'Reset',
+    'p21.s3.f1':'Query: "What was the drug used to treat Alzheimer\'s in the Stanford study?"',
+    'p21.s3.f2':'Neocortex (LLM): Extract query entities \u2192 [Alzheimer\'s, Stanford, drug treatment]',
+    'p21.s3.f3':'Parahippocampal (Encoder): Link entities to KG nodes via similarity matching',
+    'p21.s3.f4':'Hippocampus (KG): Traverse graph \u2192 Stanford \u2192 conducted \u2192 Study X \u2192 used \u2192 Donepezil',
+    'p21.s3.f5':'Retrieve associated passages and generate answer with full context',
+    'p21.s3.stat1':'Multi-hop QA Improvement','p21.s3.stat2':'Brain-Inspired Architecture','p21.s3.stat3':'PageRank for User Context',
+    'p21.s4.badge':'Comparison','p21.s4.title':'Graph DB vs Vector DB — When to Use Which',
+    'p21.s4.desc':'Vector databases excel at <strong>semantic similarity</strong> (single-hop), while graph databases shine at <strong>multi-hop reasoning</strong>.',
+    'p21.s4.metric':'Metric','p21.s4.vectordb':'Vector DB','p21.s4.graphdb':'Graph DB','p21.s4.hybrid':'Hybrid',
+    'p21.s4.r1':'Single-hop Accuracy','p21.s4.r2':'Multi-hop Accuracy','p21.s4.r3':'Query Latency','p21.s4.r4':'Setup Complexity','p21.s4.r5':'Best For',
+    'p21.s4.note':'Examples: Neo4j + vectors, Microsoft GraphRAG, LightRAG, Amazon Neptune + OpenSearch',
+    'p21.s5.badge':'Quiz','p21.s5.title':'Knowledge Graph Quiz','p21.s5.desc':'Test your understanding of knowledge graph construction concepts.',
+    'p21.correct':'Correct!',
+    'p21.q1':'What does a knowledge graph store that a vector DB does not?',
+    'p21.q2':'In HippoRAG, what brain region corresponds to the Knowledge Graph?',
+    'p21.q3':'What type of query benefits most from graph-based retrieval?',
+    'p21.q4':'What is LightRAG\'s key innovation over vanilla RAG?',
+    'p21.q5':'Which is the best approach for a production RAG system with complex queries?'
+  },
+  'zh-CN':{
+    'p21.title':'21. 知识图谱构建 — 大语言模型算法可视化',
+    'p21.heading':'基于 LLM 的知识图谱构建',
+    'p21.subtitle':'LLM 如何从文本中提取实体和关系，构建结构化知识图谱以增强检索生成。',
+    'p21.breadcrumb':'知识图谱构建',
+    'p21.s1.badge':'流程','p21.s1.title':'从文本到知识图谱',
+    'p21.s1.desc':'LLM 阅读文本，提取<strong>实体</strong>（人物、概念、组织、地点）和它们之间的<strong>关系</strong>，然后构建知识图谱。点击下方示例查看提取过程。',
+    'p21.s1.entities':'提取的实体：','p21.s1.relations':'提取的关系：',
+    'p21.s2.badge':'架构','p21.s2.title':'LightRAG — 双层检索',
+    'p21.s2.desc':'LightRAG (2024) 通过<strong>双层检索</strong>将图结构与向量检索整合：低层用于实体查询，高层用于主题查询。',
+    'p21.s2.vanilla':'普通 RAG','p21.s2.vanilla_result':'断开的文本块，无法追踪多跳推理路径。',
+    'p21.s2.light_result':'图遍历揭示完整的推理链。',
+    'p21.s2.stat1':'多跳问答提升','p21.s2.stat2':'检索粒度','p21.s2.stat3':'增量更新',
+    'p21.s3.badge':'脑启发','p21.s3.title':'HippoRAG — 海马体启发的检索',
+    'p21.s3.desc':'HippoRAG (NeurIPS 2024) 将人类记忆系统映射到 RAG 组件。',
+    'p21.s3.step':'逐步演示检索','p21.s3.reset':'重置',
+    'p21.s3.f1':'查询："斯坦福研究中用于治疗阿尔茨海默病的药物是什么？"',
+    'p21.s3.f2':'新皮层 (LLM)：提取查询实体 \u2192 [阿尔茨海默病, 斯坦福, 药物治疗]',
+    'p21.s3.f3':'海马旁区 (编码器)：通过相似度匹配将实体链接到 KG 节点',
+    'p21.s3.f4':'海马体 (KG)：遍历图 \u2192 斯坦福 \u2192 开展 \u2192 研究X \u2192 使用 \u2192 多奈哌齐',
+    'p21.s3.f5':'检索相关文段并结合完整上下文生成答案',
+    'p21.s3.stat1':'多跳问答提升','p21.s3.stat2':'脑启发架构','p21.s3.stat3':'个性化 PageRank',
+    'p21.s4.badge':'对比','p21.s4.title':'图数据库 vs 向量数据库',
+    'p21.s4.desc':'向量数据库擅长<strong>语义相似度</strong>（单跳），而图数据库在<strong>多跳推理</strong>方面表现出色。',
+    'p21.s4.metric':'指标','p21.s4.vectordb':'向量数据库','p21.s4.graphdb':'图数据库','p21.s4.hybrid':'混合方案',
+    'p21.s4.r1':'单跳准确率','p21.s4.r2':'多跳准确率','p21.s4.r3':'查询延迟','p21.s4.r4':'部署复杂度','p21.s4.r5':'最适场景',
+    'p21.s4.note':'示例：Neo4j + 向量、Microsoft GraphRAG、LightRAG、Amazon Neptune + OpenSearch',
+    'p21.s5.badge':'测验','p21.s5.title':'知识图谱测验','p21.s5.desc':'测试您对知识图谱构建概念的理解。',
+    'p21.correct':'正确！',
+    'p21.q1':'知识图谱存储了向量数据库没有的什么？',
+    'p21.q2':'在 HippoRAG 中，哪个脑区对应知识图谱？',
+    'p21.q3':'哪种类型的查询最受益于基于图的检索？',
+    'p21.q4':'LightRAG 相对于普通 RAG 的关键创新是什么？',
+    'p21.q5':'对于复杂查询的生产级 RAG 系统，最佳方案是什么？'
+  },
+  'zh-TW':{
+    'p21.title':'21. 知識圖譜建構 — 大語言模型演算法視覺化',
+    'p21.heading':'基於 LLM 的知識圖譜建構',
+    'p21.subtitle':'LLM 如何從文字中擷取實體和關係，建構結構化知識圖譜以增強檢索生成。',
+    'p21.breadcrumb':'知識圖譜建構',
+    'p21.s1.badge':'流程','p21.s1.title':'從文字到知識圖譜',
+    'p21.s1.desc':'LLM 閱讀文字，擷取<strong>實體</strong>（人物、概念、組織、地點）和它們之間的<strong>關係</strong>，然後建構知識圖譜。點擊下方範例查看擷取過程。',
+    'p21.s1.entities':'擷取的實體：','p21.s1.relations':'擷取的關係：',
+    'p21.s2.badge':'架構','p21.s2.title':'LightRAG — 雙層檢索',
+    'p21.s2.desc':'LightRAG (2024) 透過<strong>雙層檢索</strong>將圖結構與向量檢索整合：低層用於實體查詢，高層用於主題查詢。',
+    'p21.s2.vanilla':'普通 RAG','p21.s2.vanilla_result':'斷開的文字塊，無法追蹤多跳推理路徑。',
+    'p21.s2.light_result':'圖遍歷揭示完整的推理鏈。',
+    'p21.s2.stat1':'多跳問答提升','p21.s2.stat2':'檢索粒度','p21.s2.stat3':'增量更新',
+    'p21.s3.badge':'腦啟發','p21.s3.title':'HippoRAG — 海馬體啟發的檢索',
+    'p21.s3.desc':'HippoRAG (NeurIPS 2024) 將人類記憶系統映射到 RAG 組件。',
+    'p21.s3.step':'逐步演示檢索','p21.s3.reset':'重置',
+    'p21.s3.f1':'查詢：「史丹佛研究中用於治療阿茲海默症的藥物是什麼？」',
+    'p21.s3.f2':'新皮層 (LLM)：擷取查詢實體 \u2192 [阿茲海默症, 史丹佛, 藥物治療]',
+    'p21.s3.f3':'海馬旁區 (編碼器)：透過相似度匹配將實體連結到 KG 節點',
+    'p21.s3.f4':'海馬體 (KG)：遍歷圖 \u2192 史丹佛 \u2192 進行 \u2192 研究X \u2192 使用 \u2192 多奈哌齊',
+    'p21.s3.f5':'檢索相關文段並結合完整上下文生成答案',
+    'p21.s3.stat1':'多跳問答提升','p21.s3.stat2':'腦啟發架構','p21.s3.stat3':'個人化 PageRank',
+    'p21.s4.badge':'對比','p21.s4.title':'圖資料庫 vs 向量資料庫',
+    'p21.s4.desc':'向量資料庫擅長<strong>語義相似度</strong>（單跳），而圖資料庫在<strong>多跳推理</strong>方面表現出色。',
+    'p21.s4.metric':'指標','p21.s4.vectordb':'向量資料庫','p21.s4.graphdb':'圖資料庫','p21.s4.hybrid':'混合方案',
+    'p21.s4.r1':'單跳準確率','p21.s4.r2':'多跳準確率','p21.s4.r3':'查詢延遲','p21.s4.r4':'部署複雜度','p21.s4.r5':'最適場景',
+    'p21.s4.note':'範例：Neo4j + 向量、Microsoft GraphRAG、LightRAG、Amazon Neptune + OpenSearch',
+    'p21.s5.badge':'測驗','p21.s5.title':'知識圖譜測驗','p21.s5.desc':'測試您對知識圖譜建構概念的理解。',
+    'p21.correct':'正確！',
+    'p21.q1':'知識圖譜儲存了向量資料庫沒有的什麼？',
+    'p21.q2':'在 HippoRAG 中，哪個腦區對應知識圖譜？',
+    'p21.q3':'哪種類型的查詢最受益於基於圖的檢索？',
+    'p21.q4':'LightRAG 相對於普通 RAG 的關鍵創新是什麼？',
+    'p21.q5':'對於複雜查詢的生產級 RAG 系統，最佳方案是什麼？'
+  }
+});
+
+// ===== Section 1: Text to Knowledge Graph =====
+var TEXT_DATA=[
+  {
+    text:'Albert Einstein developed the theory of relativity at ETH Zurich. His work on general relativity predicted gravitational time dilation.',
+    entities:[
+      {name:'Albert Einstein',type:'person'},{name:'Theory of Relativity',type:'concept'},
+      {name:'ETH Zurich',type:'org'},{name:'General Relativity',type:'concept'},
+      {name:'Gravitational Time Dilation',type:'concept'}
+    ],
+    relations:[
+      ['Albert Einstein','developed','Theory of Relativity'],
+      ['Albert Einstein','worked_at','ETH Zurich'],
+      ['Albert Einstein','formulated','General Relativity'],
+      ['General Relativity','predicts','Gravitational Time Dilation']
+    ],
+    nodes:[
+      {id:'einstein',label:'Einstein',x:.5,y:.18,c:'#5b5bd6'},
+      {id:'relativity',label:'Relativity',x:.22,y:.42,c:'#0d9488'},
+      {id:'eth',label:'ETH Zurich',x:.78,y:.42,c:'#ea580c'},
+      {id:'gr',label:'Gen. Relativity',x:.35,y:.72,c:'#0d9488'},
+      {id:'td',label:'Time Dilation',x:.65,y:.85,c:'#0d9488'}
+    ],
+    edges:[['einstein','relativity','developed'],['einstein','eth','worked_at'],['einstein','gr','formulated'],['gr','td','predicts']]
+  },
+  {
+    text:'Alan Turing proposed the concept of the Turing Machine at Cambridge University. He later worked at Bletchley Park on breaking the Enigma code.',
+    entities:[
+      {name:'Alan Turing',type:'person'},{name:'Turing Machine',type:'concept'},
+      {name:'Cambridge University',type:'org'},{name:'Bletchley Park',type:'location'},
+      {name:'Enigma Code',type:'concept'}
+    ],
+    relations:[
+      ['Alan Turing','proposed','Turing Machine'],
+      ['Alan Turing','studied_at','Cambridge University'],
+      ['Alan Turing','worked_at','Bletchley Park'],
+      ['Alan Turing','broke','Enigma Code']
+    ],
+    nodes:[
+      {id:'turing',label:'Turing',x:.5,y:.18,c:'#5b5bd6'},
+      {id:'tm',label:'Turing Machine',x:.18,y:.45,c:'#0d9488'},
+      {id:'cambridge',label:'Cambridge',x:.82,y:.35,c:'#ea580c'},
+      {id:'bletchley',label:'Bletchley Park',x:.25,y:.8,c:'#e11d48'},
+      {id:'enigma',label:'Enigma Code',x:.72,y:.75,c:'#0d9488'}
+    ],
+    edges:[['turing','tm','proposed'],['turing','cambridge','studied_at'],['turing','bletchley','worked_at'],['turing','enigma','broke']]
+  },
+  {
+    text:'Larry Page and Sergey Brin co-founded Google at Stanford University. They invented PageRank, which revolutionized web search.',
+    entities:[
+      {name:'Larry Page',type:'person'},{name:'Sergey Brin',type:'person'},
+      {name:'Google',type:'org'},{name:'Stanford University',type:'org'},
+      {name:'PageRank',type:'concept'}
+    ],
+    relations:[
+      ['Larry Page','co-founded','Google'],
+      ['Sergey Brin','co-founded','Google'],
+      ['Larry Page','attended','Stanford University'],
+      ['Larry Page','invented','PageRank'],
+      ['PageRank','powers','Google']
+    ],
+    nodes:[
+      {id:'page',label:'Larry Page',x:.3,y:.15,c:'#5b5bd6'},
+      {id:'brin',label:'Sergey Brin',x:.7,y:.15,c:'#5b5bd6'},
+      {id:'google',label:'Google',x:.5,y:.48,c:'#ea580c'},
+      {id:'stanford',label:'Stanford',x:.15,y:.55,c:'#ea580c'},
+      {id:'pagerank',label:'PageRank',x:.82,y:.7,c:'#0d9488'}
+    ],
+    edges:[['page','google','co-founded'],['brin','google','co-founded'],['page','stanford','attended'],['page','pagerank','invented'],['pagerank','google','powers']]
+  },
+  {
+    text:'Jennifer Doudna and Emmanuelle Charpentier developed CRISPR-Cas9 at UC Berkeley. This gene-editing technology won the 2020 Nobel Prize in Chemistry.',
+    entities:[
+      {name:'Jennifer Doudna',type:'person'},{name:'Emmanuelle Charpentier',type:'person'},
+      {name:'CRISPR-Cas9',type:'concept'},{name:'UC Berkeley',type:'org'},
+      {name:'Nobel Prize in Chemistry',type:'concept'}
+    ],
+    relations:[
+      ['Jennifer Doudna','developed','CRISPR-Cas9'],
+      ['Emmanuelle Charpentier','developed','CRISPR-Cas9'],
+      ['Jennifer Doudna','works_at','UC Berkeley'],
+      ['CRISPR-Cas9','won','Nobel Prize in Chemistry']
+    ],
+    nodes:[
+      {id:'doudna',label:'Doudna',x:.25,y:.18,c:'#5b5bd6'},
+      {id:'charpentier',label:'Charpentier',x:.75,y:.18,c:'#5b5bd6'},
+      {id:'crispr',label:'CRISPR-Cas9',x:.5,y:.5,c:'#0d9488'},
+      {id:'berkeley',label:'UC Berkeley',x:.15,y:.65,c:'#ea580c'},
+      {id:'nobel',label:'Nobel Prize',x:.78,y:.78,c:'#0d9488'}
+    ],
+    edges:[['doudna','crispr','developed'],['charpentier','crispr','developed'],['doudna','berkeley','works_at'],['crispr','nobel','won']]
+  }
+];
+var curText=0;
+
+function selectText(idx,el){
+  curText=idx;
+  document.querySelectorAll('.text-example').forEach(function(e){e.classList.remove('active');});
+  el.classList.add('active');
+  renderTextSection();
+}
+
+function renderTextSection(){
+  var d=TEXT_DATA[curText];
+  document.getElementById('textPassage').textContent='"'+d.text+'"';
+  // Entities
+  var eHTML='';
+  d.entities.forEach(function(e){
+    eHTML+='<span class="entity-tag entity-'+e.type+'">'+e.name+'</span>';
+  });
+  document.getElementById('entityList').innerHTML=eHTML;
+  // Relations
+  var rHTML='';
+  d.relations.forEach(function(r){
+    rHTML+='<div class="relation-row"><span>'+r[0]+'</span><span class="relation-arrow"> &mdash;'+r[1]+'&rarr; </span><span>'+r[2]+'</span></div>';
+  });
+  document.getElementById('relationList').innerHTML=rHTML;
+  drawKG();
+}
+
+function drawKG(){
+  var c=document.getElementById('kgCanvas');if(!c)return;
+  var r=c.getBoundingClientRect(),dp=window.devicePixelRatio||1;
+  c.width=r.width*dp;c.height=r.height*dp;
+  var x=c.getContext('2d');x.scale(dp,dp);
+  var W=r.width,H=r.height;
+  var s=getComputedStyle(document.documentElement);
+  var tc=s.getPropertyValue('--text').trim();
+  var dc=s.getPropertyValue('--text-dim').trim();
+  var d=TEXT_DATA[curText];
+  // Edges
+  d.edges.forEach(function(e){
+    var from=d.nodes.find(function(n){return n.id===e[0];});
+    var to=d.nodes.find(function(n){return n.id===e[1];});
+    if(!from||!to)return;
+    x.strokeStyle='rgba(128,128,128,.35)';x.lineWidth=2;
+    x.beginPath();x.moveTo(from.x*W,from.y*H);x.lineTo(to.x*W,to.y*H);x.stroke();
+    // Edge label
+    var mx=(from.x+to.x)/2*W,my=(from.y+to.y)/2*H;
+    x.fillStyle=dc;x.font='10px system-ui';x.textAlign='center';
+    x.fillText(e[2],mx,my-6);
+    // Arrow
+    var angle=Math.atan2(to.y*H-from.y*H,to.x*W-from.x*W);
+    var ax=to.x*W-Math.cos(angle)*26,ay=to.y*H-Math.sin(angle)*26;
+    x.fillStyle='rgba(128,128,128,.5)';x.beginPath();
+    x.moveTo(ax+Math.cos(angle)*8,ay+Math.sin(angle)*8);
+    x.lineTo(ax+Math.cos(angle+2.5)*8,ay+Math.sin(angle+2.5)*8);
+    x.lineTo(ax+Math.cos(angle-2.5)*8,ay+Math.sin(angle-2.5)*8);
+    x.closePath();x.fill();
+  });
+  // Nodes
+  d.nodes.forEach(function(n){
+    x.fillStyle=n.c+'28';x.strokeStyle=n.c;x.lineWidth=2.5;
+    x.beginPath();x.arc(n.x*W,n.y*H,24,0,Math.PI*2);x.fill();x.stroke();
+    x.fillStyle=tc;x.font='bold 11px system-ui';x.textAlign='center';x.textBaseline='middle';
+    x.fillText(n.label,n.x*W,n.y*H);
+  });
+}
+
+// ===== Section 2: LightRAG =====
+var retMode='low';
+function setRetrieval(mode){
+  retMode=mode;
+  document.getElementById('retLow').className='retrieval-btn'+(mode==='low'?' active':'');
+  document.getElementById('retHigh').className='retrieval-btn'+(mode==='high'?' active':'');
+  drawLightRAG();
+}
+
+function drawLightRAG(){
+  var c=document.getElementById('lightCanvas');if(!c)return;
+  var r=c.getBoundingClientRect(),dp=window.devicePixelRatio||1;
+  c.width=r.width*dp;c.height=r.height*dp;
+  var x=c.getContext('2d');x.scale(dp,dp);
+  var W=r.width,H=r.height;
+  var s=getComputedStyle(document.documentElement);
+  var tc=s.getPropertyValue('--text').trim();
+  var dc=s.getPropertyValue('--text-dim').trim();
+
+  // Graph nodes
+  var nodes=[
+    {id:'einstein',label:'Einstein',x:.12,y:.3,comm:0},
+    {id:'relativity',label:'Relativity',x:.28,y:.18,comm:0},
+    {id:'gps',label:'GPS',x:.45,y:.35,comm:0},
+    {id:'timedil',label:'Time Dilation',x:.35,y:.55,comm:0},
+    {id:'newton',label:'Newton',x:.18,y:.7,comm:1},
+    {id:'gravity',label:'Gravity',x:.38,y:.8,comm:1},
+    {id:'spacetime',label:'Spacetime',x:.55,y:.6,comm:0},
+    {id:'satellite',label:'Satellite',x:.62,y:.22,comm:2},
+    {id:'nasa',label:'NASA',x:.78,y:.15,comm:2},
+    {id:'orbit',label:'Orbit',x:.82,y:.4,comm:2},
+    {id:'physics',label:'Physics',x:.7,y:.7,comm:1},
+    {id:'quantum',label:'Quantum',x:.88,y:.65,comm:1}
+  ];
+  var edges=[
+    ['einstein','relativity'],['relativity','timedil'],['timedil','gps'],
+    ['einstein','spacetime'],['spacetime','timedil'],['newton','gravity'],
+    ['gravity','spacetime'],['satellite','gps'],['nasa','satellite'],
+    ['satellite','orbit'],['physics','relativity'],['physics','quantum'],
+    ['newton','physics']
+  ];
+  var commColors=[['#5b5bd6','Physics & Relativity'],['#0d9488','Classical & Theory'],['#ea580c','Space & Technology']];
+
+  // Community hulls (high-level)
+  if(retMode==='high'){
+    commColors.forEach(function(cc,ci){
+      var cn=nodes.filter(function(n){return n.comm===ci;});
+      if(cn.length<2)return;
+      var cx=0,cy=0;cn.forEach(function(n){cx+=n.x;cy+=n.y;});
+      cx=cx/cn.length*W;cy=cy/cn.length*H;
+      x.fillStyle=cc[0]+'15';x.strokeStyle=cc[0]+'40';x.lineWidth=2;
+      x.setLineDash([6,4]);x.beginPath();x.arc(cx,cy,75,0,Math.PI*2);x.fill();x.stroke();
+      x.setLineDash([]);
+      x.fillStyle=cc[0];x.font='bold 10px system-ui';x.textAlign='center';
+      x.fillText(cc[1],cx,cy-62);
+    });
+  }
+
+  // Edges
+  edges.forEach(function(e){
+    var from=nodes.find(function(n){return n.id===e[0];});
+    var to=nodes.find(function(n){return n.id===e[1];});
+    if(!from||!to)return;
+    var highlight=false;
+    if(retMode==='low'){
+      // Highlight path: einstein -> relativity -> timedil -> gps
+      var path=['einstein','relativity','timedil','gps','satellite'];
+      if(path.indexOf(e[0])!==-1&&path.indexOf(e[1])!==-1)highlight=true;
+    }
+    x.strokeStyle=highlight?'#5b5bd6':'rgba(128,128,128,.25)';
+    x.lineWidth=highlight?3:1;
+    x.beginPath();x.moveTo(from.x*W,from.y*H);x.lineTo(to.x*W,to.y*H);x.stroke();
+  });
+
+  // Nodes
+  nodes.forEach(function(n){
+    var col=commColors[n.comm][0];
+    var highlight=false;
+    if(retMode==='low'){
+      var path=['einstein','relativity','timedil','gps'];
+      if(path.indexOf(n.id)!==-1)highlight=true;
+    }
+    x.fillStyle=highlight?col+'50':col+'20';
+    x.strokeStyle=col;x.lineWidth=highlight?3:1.5;
+    x.beginPath();x.arc(n.x*W,n.y*H,20,0,Math.PI*2);x.fill();x.stroke();
+    x.fillStyle=tc;x.font=(highlight?'bold ':'')+' 10px system-ui';x.textAlign='center';x.textBaseline='middle';
+    x.fillText(n.label,n.x*W,n.y*H);
+  });
+
+  // Description
+  var desc=retMode==='low'
+    ?'Low-level: Query "How does relativity connect to GPS?" \u2192 Find Einstein \u2192 traverse edges \u2192 Relativity \u2192 Time Dilation \u2192 GPS'
+    :'High-level: Query "What are the main physics themes?" \u2192 Identify communities \u2192 Physics & Relativity, Classical Theory, Space Technology';
+  document.getElementById('retDesc').textContent=desc;
+}
+
+// ===== Section 3: HippoRAG =====
+var hippoS=-1;
+function drawHippo(){
+  var c=document.getElementById('hippoCanvas');if(!c)return;
+  var r=c.getBoundingClientRect(),dp=window.devicePixelRatio||1;
+  c.width=r.width*dp;c.height=r.height*dp;
+  var x=c.getContext('2d');x.scale(dp,dp);
+  var W=r.width,H=r.height;
+  var s=getComputedStyle(document.documentElement);
+  var tc=s.getPropertyValue('--text').trim();
+  var dc=s.getPropertyValue('--text-dim').trim();
+  var bc=s.getPropertyValue('--border').trim();
+
+  // Three brain regions
+  var regions=[
+    {label:'Neocortex',sub:'LLM (GPT-4)',x:.17,y:.38,w:130,h:90,c:'#5b5bd6',active:hippoS>=1},
+    {label:'Parahippocampal',sub:'Retrieval Encoder',x:.5,y:.38,w:150,h:90,c:'#ea580c',active:hippoS>=2},
+    {label:'Hippocampus',sub:'Knowledge Graph',x:.83,y:.38,w:140,h:90,c:'#0d9488',active:hippoS>=3}
+  ];
+
+  regions.forEach(function(rg){
+    var cx=rg.x*W,cy=rg.y*H;
+    x.fillStyle=rg.active?rg.c+'22':rg.c+'0a';
+    x.strokeStyle=rg.active?rg.c:bc;
+    x.lineWidth=rg.active?3:1.5;
+    x.beginPath();
+    var rx=rg.w/2,ry=rg.h/2;
+    x.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);
+    x.fill();x.stroke();
+    x.fillStyle=rg.active?rg.c:dc;x.font='bold 13px system-ui';x.textAlign='center';x.textBaseline='middle';
+    x.fillText(rg.label,cx,cy-10);
+    x.font='11px system-ui';x.fillText(rg.sub,cx,cy+10);
+  });
+
+  // Arrows between regions
+  var arrows=[[.27,.38,.38,.38],[.62,.38,.72,.38]];
+  arrows.forEach(function(a,i){
+    var active=(i===0&&hippoS>=2)||(i===1&&hippoS>=3);
+    x.strokeStyle=active?'#5b5bd6':'rgba(128,128,128,.3)';
+    x.lineWidth=active?2.5:1.5;
+    x.beginPath();x.moveTo(a[0]*W,a[1]*H);x.lineTo(a[2]*W,a[3]*H);x.stroke();
+    // arrowhead
+    x.fillStyle=x.strokeStyle;x.beginPath();
+    x.moveTo(a[2]*W,a[3]*H);x.lineTo(a[2]*W-10,a[3]*H-5);x.lineTo(a[2]*W-10,a[3]*H+5);
+    x.closePath();x.fill();
+  });
+
+  // Query at top
+  x.fillStyle=hippoS>=0?'#5b5bd6':dc;x.font='bold 12px system-ui';x.textAlign='center';
+  x.fillText('Query Input',W*.5,H*.1);
+  if(hippoS>=0){
+    x.strokeStyle='#5b5bd6';x.lineWidth=1.5;x.setLineDash([4,3]);
+    x.beginPath();x.moveTo(W*.5,H*.13);x.lineTo(W*.17,H*.28);x.stroke();
+    x.setLineDash([]);
+  }
+
+  // Output at bottom
+  if(hippoS>=4){
+    x.fillStyle='#0d9488';x.font='bold 12px system-ui';
+    x.fillText('Retrieved Passages + Generated Answer',W*.5,H*.72);
+    x.strokeStyle='#0d9488';x.lineWidth=1.5;x.setLineDash([4,3]);
+    x.beginPath();x.moveTo(W*.83,H*.48);x.lineTo(W*.5,H*.68);x.stroke();
+    x.setLineDash([]);
+  }
+
+  // Mini KG inside hippocampus
+  if(hippoS>=3){
+    var kgCx=.83*W,kgCy=.38*H;
+    var miniNodes=[
+      {x:kgCx-20,y:kgCy-8,label:'S',c:'#0d9488'},
+      {x:kgCx+20,y:kgCy-8,label:'D',c:'#0d9488'},
+      {x:kgCx,y:kgCy+12,label:'X',c:'#e11d48'}
+    ];
+    x.strokeStyle='#0d9488';x.lineWidth=1;
+    x.beginPath();x.moveTo(miniNodes[0].x,miniNodes[0].y);x.lineTo(miniNodes[2].x,miniNodes[2].y);x.stroke();
+    x.beginPath();x.moveTo(miniNodes[2].x,miniNodes[2].y);x.lineTo(miniNodes[1].x,miniNodes[1].y);x.stroke();
+    miniNodes.forEach(function(mn){
+      x.fillStyle=mn.c+'40';x.beginPath();x.arc(mn.x,mn.y,8,0,Math.PI*2);x.fill();
+      x.fillStyle=tc;x.font='bold 8px system-ui';x.textAlign='center';x.textBaseline='middle';
+      x.fillText(mn.label,mn.x,mn.y);
+    });
+  }
+}
+
+function hippoStep(){
+  hippoS++;if(hippoS>4)hippoS=4;
+  for(var i=0;i<=4;i++){document.getElementById('hs'+i).className='flow-step'+(i<=hippoS?' active':'');}
+  drawHippo();
+}
+function hippoReset(){
+  hippoS=-1;
+  for(var i=0;i<=4;i++)document.getElementById('hs'+i).className='flow-step';
+  drawHippo();
+}
+
+// ===== Section 4: Scenarios =====
+var SCENARIOS=[
+  {title:'Find similar documents',best:'Vector DB',color:'#5b5bd6',
+   desc:'Semantic similarity search is the core strength of vector databases. Embed the query, find nearest neighbors. Graph DB adds no value here — there are no relationships to traverse.'},
+  {title:'How is X connected to Y?',best:'Graph DB',color:'#0d9488',
+   desc:'Path-finding queries are graph-native. A graph DB can find shortest paths, common neighbors, and relationship chains in milliseconds. Vector DB can only match by similarity, not connectivity.'},
+  {title:'Semantic Q&A (single-hop)',best:'Vector DB',color:'#5b5bd6',
+   desc:'For straightforward factual questions where the answer lives in a single passage, vector similarity search is fast, accurate, and simple. No graph overhead needed.'},
+  {title:'Multi-hop reasoning chain',best:'Graph DB',color:'#0d9488',
+   desc:'Questions like "What drug treats the disease studied at Stanford?" require traversing multiple relationships. Graph DBs excel at these multi-hop traversals that vector search cannot handle.'},
+  {title:'Complex entity relationships',best:'Hybrid',color:'#ea580c',
+   desc:'Real production systems benefit from both: use vectors for initial semantic matching, then graph traversal for relationship exploration. Neo4j+vectors, GraphRAG, and LightRAG all use this hybrid approach.'}
+];
+
+function selectScenario(idx,el){
+  document.querySelectorAll('.scenario-btn').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  var sc=SCENARIOS[idx];
+  document.getElementById('scenarioResult').innerHTML=
+    '<div style="margin-bottom:6px"><strong style="color:'+sc.color+'">Best: '+sc.best+'</strong></div>'+sc.desc;
+}
+
+// ===== Section 5: Quiz =====
+var QUIZ=[
+  {q:'p21.q1',opts:['Explicit entity relationships','Higher-dimensional embeddings','Faster query speed','More training data'],ans:0,
+   explain:'Knowledge graphs store explicit typed relationships between entities (subject-predicate-object triples), which vector DBs cannot represent.'},
+  {q:'p21.q2',opts:['Neocortex','Parahippocampal Region','Hippocampus','Prefrontal Cortex'],ans:2,
+   explain:'The Hippocampus serves as associative memory in the brain, mapped to the Knowledge Graph in HippoRAG for storing and traversing entity connections.'},
+  {q:'p21.q3',opts:['Single-fact lookup','Multi-hop reasoning','Keyword search','Document summarization'],ans:1,
+   explain:'Multi-hop reasoning requires traversing chains of relationships (A->B->C), which is the fundamental strength of graph-based retrieval.'},
+  {q:'p21.q4',opts:['Larger context window','Dual-level (entity + theme) retrieval','Faster embedding model','More training data'],ans:1,
+   explain:'LightRAG introduced dual-level retrieval: low-level for entity-specific queries and high-level for topic/theme queries using graph communities.'},
+  {q:'p21.q5',opts:['Vector DB only','Graph DB only','Hybrid (Vector + Graph)','Full-text search'],ans:2,
+   explain:'A hybrid approach combining vector similarity for semantic matching with graph traversal for relationship reasoning gives the best results on complex queries.'}
+];
+var qi=0,qs=0;
+
+function renderQuiz(){
+  document.getElementById('gRound').textContent=(qi+1)+'/5';
+  document.getElementById('gScore').textContent=qs;
+  document.getElementById('gQ').textContent=t(QUIZ[qi].q);
+  document.getElementById('gFb').textContent='';
+  var o=document.getElementById('gOpts');o.innerHTML='';
+  QUIZ[qi].opts.forEach(function(opt,i){
+    var d=document.createElement('div');d.className='game-opt';d.textContent=opt;
+    d.onclick=function(){checkQuiz(i,d);};
+    o.appendChild(d);
+  });
+}
+
+function checkQuiz(pick,el){
+  var all=document.getElementById('gOpts').querySelectorAll('.game-opt');
+  all.forEach(function(d){d.style.pointerEvents='none';});
+  if(pick===QUIZ[qi].ans){
+    el.classList.add('correct');qs++;
+    document.getElementById('gFb').innerHTML='<span style="color:var(--accent2)">'+t('p21.correct')+'</span> '+QUIZ[qi].explain;
+  }else{
+    el.classList.add('wrong');
+    all[QUIZ[qi].ans].classList.add('correct');
+    document.getElementById('gFb').innerHTML='<span style="color:var(--accent3)">Incorrect.</span> '+QUIZ[qi].explain;
+  }
+  document.getElementById('gScore').textContent=qs;
+  setTimeout(function(){
+    qi++;
+    if(qi<5)renderQuiz();
+    else{
+      document.getElementById('gFb').innerHTML='<strong>Final Score: '+qs+'/5</strong>';
+      if(typeof markGameCompleted==='function')markGameCompleted('21');
+    }
+  },2500);
+}
+
+// ===== Init =====
+window.addEventListener('load',function(){
+  renderTextSection();
+  drawLightRAG();
+  drawHippo();
+  selectScenario(0,document.querySelector('.scenario-btn'));
+  renderQuiz();
+});
+window.addEventListener('themechange',function(){drawKG();drawLightRAG();drawHippo();});
+window.addEventListener('resize',function(){drawKG();drawLightRAG();drawHippo();});
+</script>
+</body>
+</html>

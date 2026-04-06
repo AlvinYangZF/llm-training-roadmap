@@ -33,6 +33,12 @@ const NAV_TOPICS = [
   { cat: 'Vector Search', items: [
     { num: '17', title: 'DiskANN', file: '17-diskann.html', year: '2019' },
     { num: '18', title: 'AiSAQ', file: '18-aisaq.html', year: '2024' },
+    { num: '19', title: 'HNSW', file: '19-hnsw.html', year: '2016' },
+  ]},
+  { cat: 'Retrieval Engineering', items: [
+    { num: '20', title: 'Hybrid Search', file: '20-hybrid-search.html', year: '2024' },
+    { num: '21', title: 'KG Construction', file: '21-kg-construction.html', year: '2024' },
+    { num: '22', title: 'CAG vs RAG', file: '22-cag-vs-rag.html', year: '2025' },
   ]},
 ];
 
@@ -57,6 +63,10 @@ const NAV_ORDERED = [
   '16-rag-at-scale.html',
   '17-diskann.html',
   '18-aisaq.html',
+  '19-hnsw.html',
+  '20-hybrid-search.html',
+  '21-kg-construction.html',
+  '22-cag-vs-rag.html',
 ];
 
 function getCurrentPage() {
@@ -110,6 +120,7 @@ function buildNav() {
     'nav.cat.advanced',
     'nav.cat.rag',
     'nav.cat.vectorsearch',
+    'nav.cat.retrievaleng',
   ];
 
   let html = '';
