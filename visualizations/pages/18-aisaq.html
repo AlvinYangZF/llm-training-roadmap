@@ -227,6 +227,7 @@
 </footer>
 
 <script src="../shared/i18n.js"></script>
+<script src="../shared/concept-intro.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
@@ -498,6 +499,46 @@ i18nRegister({
     'p18.s5.a4_1':'快取到 DRAM 中重用',
     'p18.s5.a4_2':'寫入日誌檔案',
     'p18.s5.a4_3':'傳送到 GPU'
+  }
+});
+
+// Concept Intro i18n
+i18nRegister({
+  'en':{
+    'p18.ci.badge':'Concept Overview',
+    'p18.ci.title':'AiSAQ — Anisotropic Quantization for Better Search',
+    'p18.ci.problem':'Standard quantization (PQ, OPQ) treats all error directions equally. But errors parallel to the query direction hurt ranking much more than perpendicular errors — isotropic quantization wastes bits on directions that don\'t matter.',
+    'p18.ci.solution':'AiSAQ penalizes quantization error in the <strong>query-parallel direction</strong> more heavily. This anisotropic loss function allocates precision where it matters most for ranking, boosting recall without increasing code size.',
+    'p18.ci.insight':'Core insight: Not all dimensions are equal for ranking — by penalizing errors that actually change result ordering, you get more recall from the same number of bits.',
+    'p18.ci.flow.0':'Vectors',
+    'p18.ci.flow.1':'Aniso Loss',
+    'p18.ci.flow.2':'PQ Encode',
+    'p18.ci.flow.3':'Search',
+    'p18.ci.flow.4':'Results'
+  },
+  'zh-CN':{
+    'p18.ci.badge':'概念导读',
+    'p18.ci.title':'AiSAQ — 各向异性量化，更好的搜索',
+    'p18.ci.problem':'标准量化（PQ、OPQ）对所有误差方向一视同仁。但与查询方向平行的误差对排序伤害远大于垂直方向的误差——各向同性量化在不重要的方向上浪费了比特。',
+    'p18.ci.solution':'AiSAQ 对<strong>查询方向上的量化误差</strong>施加更大惩罚。这种各向异性损失函数将精度分配到对排序最重要的方向，在不增加编码大小的情况下提升召回率。',
+    'p18.ci.insight':'核心洞察：对排序来说不是所有维度都同等重要——惩罚真正会改变结果排序的误差，同样的比特数换来更高召回率。',
+    'p18.ci.flow.0':'向量',
+    'p18.ci.flow.1':'各向异性损失',
+    'p18.ci.flow.2':'PQ 编码',
+    'p18.ci.flow.3':'搜索',
+    'p18.ci.flow.4':'结果'
+  },
+  'zh-TW':{
+    'p18.ci.badge':'概念導讀',
+    'p18.ci.title':'AiSAQ — 各向異性量化，更好的搜尋',
+    'p18.ci.problem':'標準量化（PQ、OPQ）對所有誤差方向一視同仁。但與查詢方向平行的誤差對排序傷害遠大於垂直方向的誤差——各向同性量化在不重要的方向上浪費了位元。',
+    'p18.ci.solution':'AiSAQ 對<strong>查詢方向上的量化誤差</strong>施加更大懲罰。這種各向異性損失函數將精度分配到對排序最重要的方向，在不增加編碼大小的情況下提升召回率。',
+    'p18.ci.insight':'核心洞察：對排序來說不是所有維度都同等重要——懲罰真正會改變結果排序的誤差，同樣的位元數換來更高召回率。',
+    'p18.ci.flow.0':'向量',
+    'p18.ci.flow.1':'各向異性損失',
+    'p18.ci.flow.2':'PQ 編碼',
+    'p18.ci.flow.3':'搜尋',
+    'p18.ci.flow.4':'結果'
   }
 });
 
@@ -814,6 +855,20 @@ function checkQuiz(pick,el){
 
 // Init
 window.addEventListener('load',function(){
+  renderConceptIntro({
+    badge:'p18.ci.badge',
+    title:'p18.ci.title',
+    problem:'p18.ci.problem',
+    solution:'p18.ci.solution',
+    insight:'p18.ci.insight',
+    formula:'L_aniso = ||q\u0302 - q||² + λ·(⟨q\u0302-q, query⟩)²   — extra penalty on query-parallel error',
+    flow:['p18.ci.flow.0','p18.ci.flow.1','p18.ci.flow.2','p18.ci.flow.3','p18.ci.flow.4'],
+    stats:[
+      {value:'Aniso',label:'Loss type'},
+      {value:'Same bits',label:'Code size'},
+      {value:'+Recall',label:'vs isotropic'}
+    ]
+  });
   drawMemChart();
   drawCostChart();
   renderQuiz();

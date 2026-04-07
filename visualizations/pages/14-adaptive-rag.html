@@ -131,10 +131,51 @@
 <footer><small data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</small></footer>
 
 <script src="../shared/i18n.js"></script>
+<script src="../shared/concept-intro.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
 <script>
+// Concept Intro i18n
+i18nRegister({
+  'en':{
+    'p14.ci.badge':'Concept Overview',
+    'p14.ci.title':'Adaptive RAG — Knowing When and How to Retrieve',
+    'p14.ci.problem':'Naive RAG always retrieves — even for simple greetings or factual questions the model already knows. Unnecessary retrieval adds latency and can inject noise that degrades answer quality.',
+    'p14.ci.solution':'Adaptive RAG adds a <strong>decision layer</strong>: Self-RAG uses reflection tokens to decide if retrieval is needed; CRAG verifies and corrects retrieved results; FLARE retrieves mid-generation when confidence drops.',
+    'p14.ci.insight':'Core insight: The best retrieval is knowing when NOT to retrieve. Adaptive RAG treats retrieval as a dynamic decision, not a fixed pipeline step.',
+    'p14.ci.flow.0':'Query',
+    'p14.ci.flow.1':'Classify',
+    'p14.ci.flow.2':'Retrieve?',
+    'p14.ci.flow.3':'Verify',
+    'p14.ci.flow.4':'Generate'
+  },
+  'zh-CN':{
+    'p14.ci.badge':'概念导读',
+    'p14.ci.title':'自适应 RAG — 知道何时检索、如何检索',
+    'p14.ci.problem':'朴素 RAG 总是检索——即使是简单问候或模型已知的事实问题。不必要的检索增加延迟，还可能注入噪声降低回答质量。',
+    'p14.ci.solution':'自适应 RAG 加入<strong>决策层</strong>：Self-RAG 用反思 token 判断是否需要检索；CRAG 验证和纠正检索结果；FLARE 在生成过程中置信度下降时主动检索。',
+    'p14.ci.insight':'核心洞察：最好的检索是知道何时"不检索"。自适应 RAG 把检索视为动态决策，而非固定流水线步骤。',
+    'p14.ci.flow.0':'查询',
+    'p14.ci.flow.1':'分类',
+    'p14.ci.flow.2':'检索？',
+    'p14.ci.flow.3':'验证',
+    'p14.ci.flow.4':'生成'
+  },
+  'zh-TW':{
+    'p14.ci.badge':'概念導讀',
+    'p14.ci.title':'自適應 RAG — 知道何時檢索、如何檢索',
+    'p14.ci.problem':'樸素 RAG 總是檢索——即使是簡單問候或模型已知的事實問題。不必要的檢索增加延遲，還可能注入雜訊降低回答品質。',
+    'p14.ci.solution':'自適應 RAG 加入<strong>決策層</strong>：Self-RAG 用反思 token 判斷是否需要檢索；CRAG 驗證和糾正檢索結果；FLARE 在生成過程中信心度下降時主動檢索。',
+    'p14.ci.insight':'核心洞察：最好的檢索是知道何時「不檢索」。自適應 RAG 把檢索視為動態決策，而非固定管線步驟。',
+    'p14.ci.flow.0':'查詢',
+    'p14.ci.flow.1':'分類',
+    'p14.ci.flow.2':'檢索？',
+    'p14.ci.flow.3':'驗證',
+    'p14.ci.flow.4':'生成'
+  }
+});
+
 i18nRegister({
   'en':{'p14.title':'14. Adaptive RAG — LLM Algorithm Visualizations','p14.heading':'Adaptive RAG — Self-RAG, CRAG & FLARE','p14.subtitle':'From "always retrieve" to "intelligently decide when, what, and how to retrieve."','p14.s1.title':'Self-RAG — Reflection Tokens','p14.s1.desc':'Self-RAG trains the LM to emit <strong>4 reflection tokens</strong> that control retrieval and self-evaluate quality.','p14.s2.title':'CRAG — Corrective Retrieval','p14.s2.desc':'A T5-large evaluator (84.3% accuracy vs ChatGPT\'s 64.7%) scores retrieved docs and triggers <strong>3 correction paths</strong>.','p14.s3.title':'FLARE — Active Mid-Generation Retrieval','p14.s3.desc':'FLARE generates tokens with confidence scores. When confidence drops below <strong>θ</strong>, retrieval triggers mid-generation.','p14.s4.title':'Pick the Best Strategy','p14.s4.desc':'Different questions need different retrieval strategies. Can you pick the right one?','p14.s5.title':'Performance Benchmarks','p14.s5.desc':'How do these methods compare across key benchmarks?',
     'p14.sr.0':'<strong>Q:</strong> "What causes diabetes?"','p14.sr.1':'<span class="flow-node yes">[Retrieve] YES</span> — Complex medical question, retrieval needed','p14.sr.2':'Retrieved: "Type 2 diabetes is caused by insulin resistance..."','p14.sr.3':'<span class="flow-node yes">[IsRel] YES</span> — Passage directly answers the question','p14.sr.4':'<strong>Generate:</strong> "Diabetes is primarily caused by insulin resistance and..."','p14.sr.5':'<span class="flow-node yes">[IsSup] FULL</span> — Answer fully supported by retrieved evidence','p14.sr.6':'<span class="flow-node" style="border-color:var(--accent);color:var(--accent)">[IsUse] 5</span> — Highly useful response',
@@ -243,7 +284,23 @@ function renderBenchBtns(){var el=document.getElementById('benchBtns');el.innerH
 function drawBench(){var c=document.getElementById('benchCanvas');if(!c)return;var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();var b=BENCH[curBench],pad={t:40,r:20,b:40,l:60},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;var bw=cW/b.labels.length*.6,bg=cW/b.labels.length*.4;x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';x.fillText(curBench+' '+t('p14.bench.title'),W/2,22);x.strokeStyle=bc;x.lineWidth=1;x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();for(var i=0;i<=4;i++){var v=i*25,y=pad.t+cH-(v/100)*cH;x.fillStyle=dc;x.font='10px monospace';x.textAlign='right';x.fillText(v+'%',pad.l-8,y+4);x.strokeStyle='rgba(128,128,128,.15)';x.beginPath();x.moveTo(pad.l,y);x.lineTo(pad.l+cW,y);x.stroke();}for(var j=0;j<b.labels.length;j++){var bH=(b.values[j]/100)*cH,bx=pad.l+j*(bw+bg)+bg/2,by=pad.t+cH-bH;x.fillStyle=b.colors[j];if(x.roundRect){x.beginPath();x.roundRect(bx,by,bw,bH,4);x.fill();}else{x.fillRect(bx,by,bw,bH);}x.fillStyle=tc;x.font='bold 11px monospace';x.textAlign='center';x.fillText(b.values[j].toFixed(1)+'%',bx+bw/2,by-6);x.fillStyle=dc;x.font='10px system-ui';x.fillText(b.labels[j],bx+bw/2,pad.t+cH+16);}}
 
 // Init
-window.addEventListener('load',function(){selfRagReset();renderCRAG();renderFlare();renderStrat();renderBenchBtns();drawBench();});
+window.addEventListener('load',function(){
+  renderConceptIntro({
+    badge:'p14.ci.badge',
+    title:'p14.ci.title',
+    problem:'p14.ci.problem',
+    solution:'p14.ci.solution',
+    insight:'p14.ci.insight',
+    formula:'P(retrieve | query, context) → {retrieve, skip, verify}',
+    flow:['p14.ci.flow.0','p14.ci.flow.1','p14.ci.flow.2','p14.ci.flow.3','p14.ci.flow.4'],
+    stats:[
+      {value:'-40%',label:'Latency reduction'},
+      {value:'3',label:'Strategies'},
+      {value:'+8%',label:'Accuracy boost'}
+    ]
+  });
+  selfRagReset();renderCRAG();renderFlare();renderStrat();renderBenchBtns();drawBench();
+});
 window.addEventListener('themechange',drawBench);window.addEventListener('resize',drawBench);
 </script>
 </body>

@@ -147,10 +147,51 @@
 <footer><small data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</small></footer>
 
 <script src="../shared/i18n.js"></script>
+<script src="../shared/concept-intro.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
 <script>
+// Concept Intro i18n
+i18nRegister({
+  'en':{
+    'p12.ci.badge':'Concept Overview',
+    'p12.ci.title':'Dense Retrieval — From Sparse Keywords to Semantic Understanding',
+    'p12.ci.problem':'Traditional keyword search (BM25) can\'t understand semantics — "dog" and "puppy" are completely different terms. Vocabulary mismatch severely limits recall.',
+    'p12.ci.solution':'Dense retrieval encodes queries and documents into the <strong>same vector space</strong>. Semantically similar content naturally clusters together — DPR improves recall by +19% over BM25.',
+    'p12.ci.insight':'Core insight: Map everything to vectors — proximity in vector space means semantic similarity, transcending the keyword barrier.',
+    'p12.ci.flow.0':'Query',
+    'p12.ci.flow.1':'Bi-Encoder',
+    'p12.ci.flow.2':'Vector Space',
+    'p12.ci.flow.3':'ANN Search',
+    'p12.ci.flow.4':'Top-K Docs'
+  },
+  'zh-CN':{
+    'p12.ci.badge':'概念导读',
+    'p12.ci.title':'稠密检索 — 从稀疏关键词到语义理解',
+    'p12.ci.problem':'传统关键词搜索（BM25）无法理解语义——"狗"和"犬"是完全不同的词。词汇失配严重限制了召回率。',
+    'p12.ci.solution':'稠密检索将查询和文档编码到<strong>同一向量空间</strong>。语义相似的内容自然聚拢——DPR 比 BM25 召回率提升 +19%。',
+    'p12.ci.insight':'核心洞察：把一切映射为向量——向量空间中的距离就是语义相似度，超越了关键词的屏障。',
+    'p12.ci.flow.0':'查询',
+    'p12.ci.flow.1':'双编码器',
+    'p12.ci.flow.2':'向量空间',
+    'p12.ci.flow.3':'ANN 搜索',
+    'p12.ci.flow.4':'Top-K 文档'
+  },
+  'zh-TW':{
+    'p12.ci.badge':'概念導讀',
+    'p12.ci.title':'稠密檢索 — 從稀疏關鍵詞到語義理解',
+    'p12.ci.problem':'傳統關鍵詞搜尋（BM25）無法理解語義——「狗」和「犬」是完全不同的詞。詞彙失配嚴重限制了召回率。',
+    'p12.ci.solution':'稠密檢索將查詢和文件編碼到<strong>同一向量空間</strong>。語義相似的內容自然聚攏——DPR 比 BM25 召回率提升 +19%。',
+    'p12.ci.insight':'核心洞察：把一切映射為向量——向量空間中的距離就是語義相似度，超越了關鍵詞的屏障。',
+    'p12.ci.flow.0':'查詢',
+    'p12.ci.flow.1':'雙編碼器',
+    'p12.ci.flow.2':'向量空間',
+    'p12.ci.flow.3':'ANN 搜尋',
+    'p12.ci.flow.4':'Top-K 文件'
+  }
+});
+
 // ==================== i18n ==================== //
 i18nRegister({
   'en':{
@@ -482,7 +523,23 @@ function dprRunAll() { while (dprStep < dprExecs.length-1) dprExec(); dprRender(
 function dprReset() { dprStep = -1; dprData = {}; document.getElementById('dprOutput').innerHTML = '<span style="color:var(--text-dim);font-style:italic">Click "Run Step" to execute...</span>'; dprRender(); }
 
 // ==================== Init ==================== //
-window.addEventListener('load', function() { renderSearch(); drawHeatmap(); renderGame(); dprRender(); });
+window.addEventListener('load', function() {
+  renderConceptIntro({
+    badge:'p12.ci.badge',
+    title:'p12.ci.title',
+    problem:'p12.ci.problem',
+    solution:'p12.ci.solution',
+    insight:'p12.ci.insight',
+    formula:'score(q,d) = E_q(q) · E_d(d)   — DPR dual encoder dot product',
+    flow:['p12.ci.flow.0','p12.ci.flow.1','p12.ci.flow.2','p12.ci.flow.3','p12.ci.flow.4'],
+    stats:[
+      {value:'+19%',label:'vs BM25'},
+      {value:'768d',label:'Vector dim'},
+      {value:'~1ms',label:'ANN query'}
+    ]
+  });
+  renderSearch(); drawHeatmap(); renderGame(); dprRender();
+});
 window.addEventListener('themechange', drawHeatmap);
 window.addEventListener('resize', drawHeatmap);
 </script>

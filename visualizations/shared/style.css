@@ -1055,3 +1055,134 @@ footer {
   .arch-block { min-width: 200px; padding: 10px 16px; font-size: 0.85rem; }
   .container { padding: 16px 16px 48px; }
 }
+
+/* ==================== Concept Intro Component ==================== */
+.concept-intro {
+  border-left: 3px solid var(--accent);
+  position: relative;
+  overflow: hidden;
+}
+.concept-intro::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(91,91,214,0.06) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.concept-intro-badge {
+  background: rgba(91,91,214,0.1);
+  color: var(--accent);
+}
+.concept-intro-title {
+  font-size: 1.25rem;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+.concept-intro-ps {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: stretch;
+  margin: 16px 0;
+}
+.concept-intro-box {
+  background: var(--canvas-bg);
+  border-radius: 10px;
+  padding: 14px;
+}
+.concept-intro-problem {
+  border-left: 3px solid var(--accent3);
+}
+.concept-intro-solution {
+  border-left: 3px solid var(--accent2);
+}
+.concept-intro-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+.concept-intro-problem .concept-intro-label {
+  color: var(--accent3);
+}
+.concept-intro-solution .concept-intro-label {
+  color: var(--accent2);
+}
+.concept-intro-box p {
+  font-size: 0.84rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin: 0;
+}
+.concept-intro-arrow {
+  display: flex;
+  align-items: center;
+  font-size: 1.4rem;
+  color: var(--text-dim);
+}
+.concept-intro-insight {
+  margin: 14px 0;
+  background: rgba(91,91,214,0.06);
+  border: 1px solid rgba(91,91,214,0.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+  line-height: 1.65;
+}
+.concept-intro-insight strong {
+  color: var(--accent);
+}
+.concept-intro-flow {
+  margin: 14px 0;
+  overflow-x: auto;
+}
+.concept-intro-formula {
+  display: inline-block;
+  margin: 10px 0;
+  background: var(--formula-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: var(--accent2);
+}
+.concept-intro-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.concept-intro-stat {
+  background: var(--canvas-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  text-align: center;
+  min-width: 80px;
+}
+.concept-intro-stat-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.concept-intro-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+@media (max-width: 700px) {
+  .concept-intro-ps {
+    grid-template-columns: 1fr;
+  }
+  .concept-intro-arrow {
+    justify-content: center;
+    transform: rotate(90deg);
+  }
+}

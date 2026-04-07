@@ -125,6 +125,7 @@
 <footer><small data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</small></footer>
 
 <script src="../shared/i18n.js"></script>
+<script src="../shared/concept-intro.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
@@ -159,6 +160,55 @@ i18nRegister({
     'p13.correct':'正確！','p13.wrong':'錯誤 — 有微妙的事實錯誤！','p13.selectQ':'選擇一個問題...'}
 });
 
+// Concept Intro i18n
+i18nRegister({
+  'en':{
+    'p13.ci.badge':'Concept Overview',
+    'p13.ci.title':'Retrieval-Augmented Generation — Let LLMs See External Knowledge',
+    'p13.ci.problem':'LLMs can only answer from training data. Knowledge freezes after training — asking about recent events yields hallucinations. Updating knowledge requires costly retraining.',
+    'p13.ci.solution':'RAG retrieves the most relevant document chunks from a knowledge base <strong>before generation</strong>, injects them into the prompt so the model answers "with references" — drastically reducing hallucination with zero retraining.',
+    'p13.ci.insight':'<strong>Core insight:</strong> Retrieval is externalized memory — move knowledge from model weights into an updatable vector database, decoupling knowledge from the model.',
+    'p13.ci.stat1':'Per retrieval',
+    'p13.ci.stat2':'Doc recall',
+    'p13.ci.stat3':'Knowledge update',
+    'p13.ci.flow.0':'Query',
+    'p13.ci.flow.1':'Encode',
+    'p13.ci.flow.2':'Retrieve',
+    'p13.ci.flow.3':'Augment',
+    'p13.ci.flow.4':'Generate'
+  },
+  'zh-CN':{
+    'p13.ci.badge':'概念导读',
+    'p13.ci.title':'检索增强生成 — 让 LLM 看到外部知识',
+    'p13.ci.problem':'LLM 只能回答训练数据中见过的内容。训练后知识冻结——问 2024 年的事，它不知道。更新知识需要重新训练，成本极高。',
+    'p13.ci.solution':'RAG 在生成前先从知识库检索最相关的文档片段，注入 Prompt，让模型"带着资料"回答——<strong>大幅降低幻觉，无需重训即可更新知识</strong>。',
+    'p13.ci.insight':'<strong>核心洞察：</strong>检索是记忆的外化——把知识从模型权重里"搬"到可随时更新的向量数据库中，实现知识与模型的解耦。',
+    'p13.ci.stat1':'单次检索',
+    'p13.ci.stat2':'文档召回',
+    'p13.ci.stat3':'知识更新',
+    'p13.ci.flow.0':'查询',
+    'p13.ci.flow.1':'编码',
+    'p13.ci.flow.2':'检索',
+    'p13.ci.flow.3':'增强',
+    'p13.ci.flow.4':'生成'
+  },
+  'zh-TW':{
+    'p13.ci.badge':'概念導讀',
+    'p13.ci.title':'檢索增強生成 — 讓 LLM 看到外部知識',
+    'p13.ci.problem':'LLM 只能回答訓練資料中見過的內容。訓練後知識凍結——問 2024 年的事，它不知道。更新知識需要重新訓練，成本極高。',
+    'p13.ci.solution':'RAG 在生成前先從知識庫檢索最相關的文件片段，注入 Prompt，讓模型「帶著資料」回答——<strong>大幅降低幻覺，無需重訓即可更新知識</strong>。',
+    'p13.ci.insight':'<strong>核心洞察：</strong>檢索是記憶的外化——把知識從模型權重裡「搬」到可隨時更新的向量資料庫中，實現知識與模型的解耦。',
+    'p13.ci.stat1':'單次檢索',
+    'p13.ci.stat2':'文件召回',
+    'p13.ci.stat3':'知識更新',
+    'p13.ci.flow.0':'查詢',
+    'p13.ci.flow.1':'編碼',
+    'p13.ci.flow.2':'檢索',
+    'p13.ci.flow.3':'增強',
+    'p13.ci.flow.4':'生成'
+  }
+});
+
 // ===== Section 1: Pipeline =====
 var ragS=-1;function getSteps(){return [t('p13.step.0'),t('p13.step.1'),t('p13.step.2'),t('p13.step.3'),t('p13.step.4'),t('p13.step.5'),t('p13.step.6')];}
 function drawPipe(){var c=document.getElementById('pipelineCanvas');if(!c)return;var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height,s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();var cols=['#5b5bd6','#5b5bd6','#0d9488','#0d9488','#ea580c','#e11d48','#8b5cf6'];var ST=getSteps();var bw=85,g=(W-ST.length*bw)/(ST.length+1),cy=H/2;for(var i=0;i<ST.length;i++){var px=g+(bw+g)*i,py=cy-25,a=i<=ragS;x.fillStyle=a?cols[i]+'33':bc+'22';x.strokeStyle=a?cols[i]:bc;x.lineWidth=a?2:1;x.beginPath();if(x.roundRect)x.roundRect(px,py,bw,50,8);else{x.rect(px,py,bw,50);}x.fill();x.stroke();x.fillStyle=a?cols[i]:dc;x.font=(a?'bold ':'')+'11px system-ui';x.textAlign='center';x.textBaseline='middle';x.fillText(ST[i],px+bw/2,cy);if(i<ST.length-1){x.strokeStyle=i<ragS?cols[i]:'rgba(128,128,128,.2)';x.lineWidth=i<ragS?2:1;x.beginPath();x.moveTo(px+bw+4,cy);x.lineTo(px+bw+g-4,cy);x.stroke();if(i<ragS){x.fillStyle=cols[i];x.beginPath();x.moveTo(px+bw+g-4,cy);x.lineTo(px+bw+g-12,cy-4);x.lineTo(px+bw+g-12,cy+4);x.fill();}}}}
@@ -184,7 +234,23 @@ function rcR(){var c=document.getElementById('ragCode');c.innerHTML='';RC.forEac
 function rcX(){rcS++;if(rcS>=rcE.length){rcS=rcE.length-1;return;}var k=RC[rcE[rcS]].e,o=document.getElementById('ragOut'),m={enc:'<span class="out-label">q:</span> tensor shape (1, 768)',ret:'<span class="out-label">scores:</span> shape (1, 21M)',top:'<span class="out-label">top5:</span> indices=[4821, 127K, 9012, 55K, 812] values=[0.87, 0.82, 0.79, 0.76, 0.71]',aug:'<span class="out-label">context:</span> 312 tokens from 5 passages',gen:'<span class="out-label">output:</span> 45 tokens generated',out:'<span class="out-label">>>></span> "Photosynthesis converts CO2 and water into glucose using sunlight energy."'};if(rcS===0)o.innerHTML='';o.innerHTML+=(rcS>0?'<br>':'')+(m[k]||'');o.scrollTop=o.scrollHeight;}
 function rcStep(){rcX();rcR();}function rcAll(){while(rcS<rcE.length-1)rcX();rcR();}function rcReset(){rcS=-1;document.getElementById('ragOut').innerHTML='<span style="color:var(--text-dim)">Click "Run Step"...</span>';rcR();}
 
-window.addEventListener('load',function(){drawPipe();renderDemo();renderH();rcR();});
+window.addEventListener('load',function(){
+  renderConceptIntro({
+    badge:'p13.ci.badge',
+    title:'p13.ci.title',
+    problem:'p13.ci.problem',
+    solution:'p13.ci.solution',
+    insight:'p13.ci.insight',
+    formula:'Query → Encode(DPR) → FAISS Top-K → Concat(docs, query) → Generate(BART)',
+    flow:['p13.ci.flow.0','p13.ci.flow.1','p13.ci.flow.2','p13.ci.flow.3','p13.ci.flow.4'],
+    stats:[
+      {value:'~1ms',label:'p13.ci.stat1'},
+      {value:'Top-K',label:'p13.ci.stat2'},
+      {value:'0',label:'p13.ci.stat3'}
+    ]
+  });
+  drawPipe();renderDemo();renderH();rcR();
+});
 window.addEventListener('themechange',drawPipe);window.addEventListener('resize',drawPipe);
 </script>
 </body>

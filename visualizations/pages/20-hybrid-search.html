@@ -240,11 +240,60 @@
 </footer>
 
 <script src="../shared/i18n.js"></script>
+<script src="../shared/concept-intro.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
 <script>
 // ==================== i18n ==================== //
+i18nRegister({
+  'en':{
+    'p20.ci.badge':'Concept Overview',
+    'p20.ci.title':'Hybrid Search — Best of Sparse and Dense',
+    'p20.ci.problem':'Sparse search (BM25) excels at exact keyword matching but misses synonyms. Dense search captures semantics but struggles with rare terms and exact phrases. Neither alone is optimal.',
+    'p20.ci.solution':'Hybrid search runs <strong>both BM25 and dense retrieval in parallel</strong>, then fuses results with Reciprocal Rank Fusion (RRF). Each method covers the other\'s weakness — sparse catches exact matches, dense catches semantic matches.',
+    'p20.ci.insight':'Core insight: Fusion beats selection — instead of choosing between sparse or dense, run both and let rank fusion find the best of both worlds.',
+    'p20.ci.stat1':'Fusion method',
+    'p20.ci.stat2':'RRF constant',
+    'p20.ci.stat3':'vs single method',
+    'p20.ci.flow.0':'Query',
+    'p20.ci.flow.1':'BM25',
+    'p20.ci.flow.2':'Dense',
+    'p20.ci.flow.3':'RRF Fuse',
+    'p20.ci.flow.4':'Top-K'
+  },
+  'zh-CN':{
+    'p20.ci.badge':'概念导读',
+    'p20.ci.title':'混合搜索 — 稀疏与稠密的最佳结合',
+    'p20.ci.problem':'稀疏搜索（BM25）擅长精确关键词匹配但忽略同义词。稠密搜索捕捉语义但在罕见词和精确短语上表现不佳。两者都不是最优的。',
+    'p20.ci.solution':'混合搜索<strong>同时运行 BM25 和稠密检索</strong>，然后用倒数排名融合（RRF）合并结果。两种方法互补短板——稀疏捕获精确匹配，稠密捕获语义匹配。',
+    'p20.ci.insight':'核心洞察：融合胜过选择——与其在稀疏和稠密之间二选一，不如同时运行，让排名融合找到两全其美的答案。',
+    'p20.ci.stat1':'融合方法',
+    'p20.ci.stat2':'RRF 常数',
+    'p20.ci.stat3':'vs 单一方法',
+    'p20.ci.flow.0':'查询',
+    'p20.ci.flow.1':'BM25',
+    'p20.ci.flow.2':'稠密检索',
+    'p20.ci.flow.3':'RRF 融合',
+    'p20.ci.flow.4':'Top-K'
+  },
+  'zh-TW':{
+    'p20.ci.badge':'概念導讀',
+    'p20.ci.title':'混合搜尋 — 稀疏與稠密的最佳結合',
+    'p20.ci.problem':'稀疏搜尋（BM25）擅長精確關鍵詞匹配但忽略同義詞。稠密搜尋捕捉語義但在罕見詞和精確短語上表現不佳。兩者都不是最優的。',
+    'p20.ci.solution':'混合搜尋<strong>同時運行 BM25 和稠密檢索</strong>，然後用倒數排名融合（RRF）合併結果。兩種方法互補短板——稀疏捕獲精確匹配，稠密捕獲語義匹配。',
+    'p20.ci.insight':'核心洞察：融合勝過選擇——與其在稀疏和稠密之間二選一，不如同時運行，讓排名融合找到兩全其美的答案。',
+    'p20.ci.stat1':'融合方法',
+    'p20.ci.stat2':'RRF 常數',
+    'p20.ci.stat3':'vs 單一方法',
+    'p20.ci.flow.0':'查詢',
+    'p20.ci.flow.1':'BM25',
+    'p20.ci.flow.2':'稠密檢索',
+    'p20.ci.flow.3':'RRF 融合',
+    'p20.ci.flow.4':'Top-K'
+  }
+});
+
 i18nRegister({
   'en':{
     'p20.title':'20. Hybrid Search — LLM Algorithm Visualizations',
@@ -716,6 +765,20 @@ function checkQuiz(pick, btn) {
 
 // ==================== Init ==================== //
 window.addEventListener('load', function() {
+  renderConceptIntro({
+    badge:'p20.ci.badge',
+    title:'p20.ci.title',
+    problem:'p20.ci.problem',
+    solution:'p20.ci.solution',
+    insight:'p20.ci.insight',
+    formula:'RRF(d) = Σ 1/(k + rank_i(d))   — k=60 default',
+    flow:['p20.ci.flow.0','p20.ci.flow.1','p20.ci.flow.2','p20.ci.flow.3','p20.ci.flow.4'],
+    stats:[
+      {value:'RRF',label:'p20.ci.stat1'},
+      {value:'k=60',label:'p20.ci.stat2'},
+      {value:'+5-15%',label:'p20.ci.stat3'}
+    ]
+  });
   renderHybridSearch();
   renderAllRRF();
   renderQuiz();

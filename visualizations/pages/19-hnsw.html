@@ -188,11 +188,60 @@
 </footer>
 
 <script src="../shared/i18n.js"></script>
+<script src="../shared/concept-intro.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
 <script>
 // ==================== i18n ==================== //
+i18nRegister({
+  'en':{
+    'p19.ci.badge':'Concept Overview',
+    'p19.ci.title':'HNSW — Hierarchical Navigable Small World Graphs',
+    'p19.ci.problem':'Flat brute-force search is O(N) — at million scale it takes seconds. Tree-based indexes (KD-tree) fail in high dimensions. We need sub-linear search that maintains high recall.',
+    'p19.ci.solution':'HNSW builds a <strong>multi-layer proximity graph</strong>. Top layers have few long-range edges for fast navigation; bottom layer is a full NSW graph. Greedy search descends layers, narrowing the search region exponentially — O(log N) query time.',
+    'p19.ci.insight':'Core insight: Hierarchy creates "highways" — long-range connections at top layers let you jump across the graph quickly, then fine-tune at the dense bottom layer. Just like a highway + local road system.',
+    'p19.ci.stat1':'Query time',
+    'p19.ci.stat2':'Memory',
+    'p19.ci.stat3':'Edges/node',
+    'p19.ci.flow.0':'Enter Top',
+    'p19.ci.flow.1':'Greedy Search',
+    'p19.ci.flow.2':'Descend',
+    'p19.ci.flow.3':'Beam Search',
+    'p19.ci.flow.4':'Top-K'
+  },
+  'zh-CN':{
+    'p19.ci.badge':'概念导读',
+    'p19.ci.title':'HNSW — 分层可导航小世界图',
+    'p19.ci.problem':'暴力搜索复杂度 O(N)——百万规模下需要数秒。树形索引（KD-tree）在高维空间失效。我们需要保持高召回率的亚线性搜索。',
+    'p19.ci.solution':'HNSW 构建<strong>多层近邻图</strong>。顶层少量长程边用于快速导航；底层为完整 NSW 图。贪心搜索逐层下降，指数级缩小搜索范围——O(log N) 查询时间。',
+    'p19.ci.insight':'核心洞察：层级创造了"高速公路"——顶层长程连接让你快速跨越图，再在稠密底层精细搜索。就像高速公路 + 本地道路系统。',
+    'p19.ci.stat1':'查询时间',
+    'p19.ci.stat2':'内存',
+    'p19.ci.stat3':'每节点边数',
+    'p19.ci.flow.0':'进入顶层',
+    'p19.ci.flow.1':'贪心搜索',
+    'p19.ci.flow.2':'层间下降',
+    'p19.ci.flow.3':'束搜索',
+    'p19.ci.flow.4':'Top-K'
+  },
+  'zh-TW':{
+    'p19.ci.badge':'概念導讀',
+    'p19.ci.title':'HNSW — 分層可導航小世界圖',
+    'p19.ci.problem':'暴力搜尋複雜度 O(N)——百萬規模下需要數秒。樹形索引（KD-tree）在高維空間失效。我們需要保持高召回率的亞線性搜尋。',
+    'p19.ci.solution':'HNSW 構建<strong>多層近鄰圖</strong>。頂層少量長程邊用於快速導航；底層為完整 NSW 圖。貪心搜尋逐層下降，指數級縮小搜尋範圍——O(log N) 查詢時間。',
+    'p19.ci.insight':'核心洞察：層級創造了「高速公路」——頂層長程連接讓你快速跨越圖，再在稠密底層精細搜尋。就像高速公路 + 本地道路系統。',
+    'p19.ci.stat1':'查詢時間',
+    'p19.ci.stat2':'記憶體',
+    'p19.ci.stat3':'每節點邊數',
+    'p19.ci.flow.0':'進入頂層',
+    'p19.ci.flow.1':'貪心搜尋',
+    'p19.ci.flow.2':'層間下降',
+    'p19.ci.flow.3':'束搜尋',
+    'p19.ci.flow.4':'Top-K'
+  }
+});
+
 i18nRegister({
   'en':{
     'p19.title':'19. HNSW — LLM Algorithm Visualizations',
@@ -1308,6 +1357,20 @@ function checkQuiz(pick,el){
 
 // ==================== Init ==================== //
 window.addEventListener('load',function(){
+  renderConceptIntro({
+    badge:'p19.ci.badge',
+    title:'p19.ci.title',
+    problem:'p19.ci.problem',
+    solution:'p19.ci.solution',
+    insight:'p19.ci.insight',
+    formula:'layer_assign = floor(-ln(rand()) × m_L)   — exponential decay',
+    flow:['p19.ci.flow.0','p19.ci.flow.1','p19.ci.flow.2','p19.ci.flow.3','p19.ci.flow.4'],
+    stats:[
+      {value:'O(log N)',label:'p19.ci.stat1'},
+      {value:'O(N·M)',label:'p19.ci.stat2'},
+      {value:'M=16',label:'p19.ci.stat3'}
+    ]
+  });
   buildHNSWGraph();drawLayers();
   initBuildGraph();drawBuildGraph();drawHistogram();
   buildParamGraph();drawParamGraph();drawRecallChart();
