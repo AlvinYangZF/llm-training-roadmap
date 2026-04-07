@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p22.title">22. CAG vs RAG — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .pipeline-wrap{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin:16px 0}
+    .pipeline-side{flex:1;min-width:280px;max-width:500px;border:2px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--surface);position:relative;overflow:hidden}
+    .pipeline-side h3{margin:0 0 12px;font-size:.95rem;text-align:center}
+    .pipe-step{padding:10px 14px;border-radius:10px;text-align:center;font-size:.78rem;font-weight:600;margin:8px auto;max-width:220px;border:2px solid;opacity:.3;transform:translateY(10px);transition:all .4s ease}
+    .pipe-step.active{opacity:1;transform:translateY(0)}
+    .pipe-arrow{text-align:center;font-size:1.2rem;color:var(--text-dim);opacity:.3;transition:opacity .4s}
+    .pipe-arrow.active{opacity:1}
+    .pipe-latency{text-align:center;font-size:.72rem;color:var(--text-dim);margin-top:4px;opacity:0;transition:opacity .4s}
+    .pipe-latency.show{opacity:1}
+    .anim-btn{padding:8px 20px;border-radius:10px;border:2px solid var(--accent);background:rgba(91,91,214,.08);color:var(--accent);font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s;display:block;margin:16px auto}
+    .anim-btn:hover{background:rgba(91,91,214,.15);transform:translateY(-1px)}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+    .decision-tree{max-width:700px;margin:16px auto}
+    .dt-node{padding:14px 18px;border-radius:12px;border:2px solid var(--border);background:var(--surface);margin:10px 0;cursor:pointer;transition:all .3s;text-align:center;font-size:.85rem}
+    .dt-node:hover{border-color:var(--accent);transform:translateY(-1px)}
+    .dt-node.question{border-color:var(--accent);background:rgba(91,91,214,.05);font-weight:700}
+    .dt-node.cag-rec{border-color:var(--accent2);background:rgba(13,148,136,.08);font-weight:600}
+    .dt-node.rag-rec{border-color:var(--accent3);background:rgba(225,29,72,.06);font-weight:600}
+    .dt-node.highlight{box-shadow:0 0 0 3px var(--accent),0 4px 16px rgba(91,91,214,.2);transform:scale(1.02)}
+    .dt-children{padding-left:24px;border-left:2px solid var(--border);margin-left:16px;display:none}
+    .dt-children.open{display:block}
+    .dt-connector{width:24px;height:2px;background:var(--border);display:inline-block;vertical-align:middle;margin-right:4px}
+    .scenario-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:16px 0}
+    .scenario-btn{padding:10px 18px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.82rem;color:var(--text);transition:all .2s;text-align:center}
+    .scenario-btn:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .scenario-btn.active{border-color:var(--accent2);background:rgba(13,148,136,.08)}
+    .litm-canvas{width:100%;height:320px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .cost-canvas{width:100%;height:360px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .slider-wrap{text-align:center;margin:16px 0}
+    .slider-wrap input[type=range]{width:80%;max-width:500px;accent-color:var(--accent)}
+    .slider-label{font-size:.88rem;color:var(--text-dim);margin-bottom:6px}
+    .slider-value{font-size:1.1rem;font-weight:700;color:var(--accent);margin-top:4px}
+    .hybrid-diagram{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin:16px 0}
+    .hybrid-box{flex:1;min-width:200px;max-width:320px;border:2px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--surface);text-align:center}
+    .hybrid-box h4{margin:0 0 8px;font-size:.9rem}
+    .hybrid-box p{font-size:.78rem;color:var(--text-dim);margin:0}
+    .hybrid-box .hybrid-icon{font-size:1.8rem;margin-bottom:8px;display:block}
+    .formula-box{padding:14px 20px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);font-family:'Courier New',monospace;font-size:.88rem;text-align:center;margin:12px 0;line-height:1.8}
+    .context-bar{display:flex;height:40px;border-radius:8px;overflow:hidden;margin:10px 0;border:1px solid var(--border)}
+    .context-segment{display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:600;color:#fff;transition:all .3s}
+    .game-opt{padding:12px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s;text-align:center}
+    .game-opt:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .game-opt.correct{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .game-opt.wrong{border-color:var(--accent3);background:rgba(225,29,72,.08)}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p22.heading">CAG vs RAG — Cache or Retrieve?</h1>
+<p class="subtitle" data-i18n="p22.subtitle">Context-Augmented Generation preloads knowledge into the context window; Retrieval-Augmented Generation fetches it on demand. When does each win?</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span>CAG vs RAG</span></p>
+
+<div class="container">
+
+  <!-- Section 1: Two Approaches to Knowledge -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)" data-i18n="p22.s1.badge">Pipelines</span>
+    <h2 data-i18n="p22.s1.title">Two Approaches to Knowledge</h2>
+    <p data-i18n="p22.s1.desc" data-i18n-html="1">RAG <strong>retrieves</strong> relevant chunks at query time via embedding + vector search. CAG <strong>preloads</strong> the entire knowledge base into the model's KV cache, skipping retrieval entirely. Watch both pipelines run side by side.</p>
+
+    <div class="pipeline-wrap">
+      <!-- RAG pipeline -->
+      <div class="pipeline-side" style="border-color:var(--accent3)">
+        <h3 style="color:var(--accent3)" data-i18n="p22.s1.rag_title">RAG Pipeline</h3>
+        <div class="pipe-step" id="rag-s1" style="border-color:var(--accent3);background:rgba(225,29,72,.06)">Query</div>
+        <div class="pipe-arrow" id="rag-a1">&#8595;</div>
+        <div class="pipe-step" id="rag-s2" style="border-color:var(--accent3);background:rgba(225,29,72,.06)">Embed Query</div>
+        <div class="pipe-arrow" id="rag-a2">&#8595;</div>
+        <div class="pipe-step" id="rag-s3" style="border-color:var(--accent3);background:rgba(225,29,72,.06)">Search Vector Index</div>
+        <div class="pipe-arrow" id="rag-a3">&#8595;</div>
+        <div class="pipe-step" id="rag-s4" style="border-color:var(--accent3);background:rgba(225,29,72,.06)">Retrieve Top-K Chunks</div>
+        <div class="pipe-arrow" id="rag-a4">&#8595;</div>
+        <div class="pipe-step" id="rag-s5" style="border-color:var(--accent3);background:rgba(225,29,72,.06)">Generate Answer</div>
+        <div class="pipe-latency" id="rag-lat" data-i18n="p22.s1.rag_latency">Total: ~500-2000 ms (retrieval dominates)</div>
+      </div>
+      <!-- CAG pipeline -->
+      <div class="pipeline-side" style="border-color:var(--accent2)">
+        <h3 style="color:var(--accent2)" data-i18n="p22.s1.cag_title">CAG Pipeline</h3>
+        <div class="pipe-step" id="cag-s0" style="border-color:var(--accent2);background:rgba(13,148,136,.06)">Docs Preloaded in KV Cache</div>
+        <div class="pipe-arrow" id="cag-a0">&#8595;</div>
+        <div class="pipe-step" id="cag-s1" style="border-color:var(--accent2);background:rgba(13,148,136,.06)">Query</div>
+        <div class="pipe-arrow" id="cag-a1">&#8595;</div>
+        <div class="pipe-step" id="cag-s2" style="border-color:var(--accent2);background:rgba(13,148,136,.06)">Generate Directly</div>
+        <div class="pipe-latency" id="cag-lat" data-i18n="p22.s1.cag_latency">Total: ~100-300 ms (no retrieval step)</div>
+      </div>
+    </div>
+
+    <button class="anim-btn" onclick="animatePipelines()" data-i18n="p22.s1.animate">Run Both Pipelines</button>
+
+    <div class="stat-row">
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent2)">0 ms</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p22.s1.stat1">CAG Retrieval Latency</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent3)">5 steps</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p22.s1.stat2">RAG Pipeline Steps</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">128K-1M</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p22.s1.stat3">CAG Context Limit (tokens)</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent4)">Unlimited</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p22.s1.stat4">RAG Corpus Size</div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: When to Use Which -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)" data-i18n="p22.s2.badge">Decision</span>
+    <h2 data-i18n="p22.s2.title">When to Use Which</h2>
+    <p data-i18n="p22.s2.desc" data-i18n-html="1">Click a scenario to walk through the decision tree. The recommendation depends on <strong>corpus size</strong>, <strong>update frequency</strong>, <strong>latency needs</strong>, and <strong>query complexity</strong>.</p>
+
+    <div class="scenario-row">
+      <div class="scenario-btn" onclick="showScenario(0,this)" data-i18n="p22.s2.sc0">Small FAQ Bot</div>
+      <div class="scenario-btn" onclick="showScenario(1,this)" data-i18n="p22.s2.sc1">Enterprise Search</div>
+      <div class="scenario-btn" onclick="showScenario(2,this)" data-i18n="p22.s2.sc2">Real-time Chat</div>
+      <div class="scenario-btn" onclick="showScenario(3,this)" data-i18n="p22.s2.sc3">Multi-hop Research</div>
+    </div>
+
+    <div class="decision-tree" id="decisionTree">
+      <div class="dt-node question" id="dt-q1" data-i18n="p22.s2.q1">Knowledge base size?</div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:8px 0">
+        <div class="dt-node cag-rec" id="dt-small" data-i18n="p22.s2.small">&#60; 100K tokens &rarr; CAG</div>
+        <div class="dt-node rag-rec" id="dt-large" data-i18n="p22.s2.large">&gt; 1M docs &rarr; RAG</div>
+      </div>
+      <div class="dt-node question" id="dt-q2" data-i18n="p22.s2.q2">Update frequency?</div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:8px 0">
+        <div class="dt-node cag-rec" id="dt-static" data-i18n="p22.s2.static">Static docs &rarr; CAG</div>
+        <div class="dt-node rag-rec" id="dt-dynamic" data-i18n="p22.s2.dynamic">Dynamic / live data &rarr; RAG</div>
+      </div>
+      <div class="dt-node question" id="dt-q3" data-i18n="p22.s2.q3">Latency requirements?</div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:8px 0">
+        <div class="dt-node cag-rec" id="dt-lowlat" data-i18n="p22.s2.lowlat">Ultra-low latency &rarr; CAG</div>
+        <div class="dt-node rag-rec" id="dt-modlat" data-i18n="p22.s2.modlat">Moderate OK &rarr; RAG</div>
+      </div>
+      <div class="dt-node question" id="dt-q4" data-i18n="p22.s2.q4">Multi-hop accuracy?</div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:8px 0">
+        <div class="dt-node rag-rec" id="dt-multihop" data-i18n="p22.s2.multihop">Targeted retrieval &rarr; RAG</div>
+        <div class="dt-node cag-rec" id="dt-fullctx" data-i18n="p22.s2.fullctx">Full context needed &rarr; CAG (beware "lost in the middle")</div>
+      </div>
+    </div>
+
+    <div id="scenarioResult" class="formula-box" style="min-height:48px;font-family:inherit;font-size:.85rem"></div>
+  </div>
+
+  <!-- Section 3: Lost in the Middle -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.1);color:var(--accent3)" data-i18n="p22.s3.badge">Phenomenon</span>
+    <h2 data-i18n="p22.s3.title">Lost in the Middle</h2>
+    <p data-i18n="p22.s3.desc" data-i18n-html="1">Liu et al. (2023) showed that LLMs recall information best at the <strong>start</strong> and <strong>end</strong> of the context, but accuracy drops sharply for information in the <strong>middle</strong>. This is why RAG can beat long context: it places relevant info at the beginning.</p>
+
+    <div class="slider-wrap">
+      <div class="slider-label" data-i18n="p22.s3.slider">Move the "needle" — target info position in context</div>
+      <input type="range" id="needleSlider" min="0" max="100" value="0">
+      <div class="slider-value" id="needleLabel">Position: Start (1/20) — Accuracy: ~90%</div>
+    </div>
+
+    <div class="context-bar" id="contextBar"></div>
+
+    <canvas id="litmCanvas" class="litm-canvas"></canvas>
+
+    <div class="formula-box">
+      <span data-i18n="p22.s3.formula">Accuracy(pos) ~ U-shaped curve: high at pos=1, drops at pos=N/2, recovers at pos=N</span>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent2)">~90%</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p22.s3.stat_start">At Start</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent3)">~50%</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p22.s3.stat_mid">At Middle</div></div>
+      <div class="stat-badge"><div style="font-size:1.3rem;font-weight:800;color:var(--accent4)">~85%</div><div style="font-size:.72rem;color:var(--text-dim)" data-i18n="p22.s3.stat_end">At End</div></div>
+    </div>
+  </div>
+
+  <!-- Section 4: The Hybrid Future -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.1);color:var(--accent4)" data-i18n="p22.s4.badge">Architecture</span>
+    <h2 data-i18n="p22.s4.title">The Hybrid Future</h2>
+    <p data-i18n="p22.s4.desc" data-i18n-html="1">The emerging approach combines both: <strong>hot data</strong> in preloaded KV cache (CAG), <strong>cold data</strong> via vector search (RAG), and <strong>prompt caching</strong> (Anthropic/Google) as a commercial middle ground.</p>
+
+    <div class="hybrid-diagram">
+      <div class="hybrid-box" style="border-color:var(--accent2)">
+        <span class="hybrid-icon">&#9889;</span>
+        <h4 style="color:var(--accent2)" data-i18n="p22.s4.hot">Hot Data (CAG)</h4>
+        <p data-i18n="p22.s4.hot_desc">Frequently accessed, small corpus. Preloaded into KV cache for instant retrieval.</p>
+      </div>
+      <div class="hybrid-box" style="border-color:var(--accent)">
+        <span class="hybrid-icon">&#128279;</span>
+        <h4 style="color:var(--accent)" data-i18n="p22.s4.cache">Prompt Caching</h4>
+        <p data-i18n="p22.s4.cache_desc">Commercial middle ground (Anthropic, Google). Cache frequently used prefixes at reduced cost.</p>
+      </div>
+      <div class="hybrid-box" style="border-color:var(--accent3)">
+        <span class="hybrid-icon">&#128269;</span>
+        <h4 style="color:var(--accent3)" data-i18n="p22.s4.cold">Cold Data (RAG)</h4>
+        <p data-i18n="p22.s4.cold_desc">Large corpus, rarely accessed. Vector search on demand for targeted retrieval.</p>
+      </div>
+    </div>
+
+    <canvas id="costCanvas" class="cost-canvas"></canvas>
+
+    <div class="formula-box">
+      <span data-i18n="p22.s4.formula">CAG cost = context_tokens x price_per_token (flat) | RAG cost = embedding + search + retrieved_tokens (scales with KB)</span>
+    </div>
+  </div>
+
+  <!-- Section 5: Quiz -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)" data-i18n="p22.s5.badge">Quiz</span>
+    <h2 data-i18n="p22.s5.title">Quiz: CAG vs RAG</h2>
+    <p data-i18n="p22.s5.desc">Test your understanding of the key differences between CAG and RAG!</p>
+    <div style="display:flex;justify-content:space-between;margin:12px 0;font-size:.85rem">
+      <span><span data-i18n="p22.s5.round">Round</span>: <strong id="qRound">1/5</strong></span>
+      <span><span data-i18n="p22.s5.score">Score</span>: <strong id="qScore">0</strong></span>
+    </div>
+    <div id="qDesc" style="font-weight:600;margin:12px 0;font-size:.95rem;min-height:2em"></div>
+    <div id="qOpts" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:16px 0"></div>
+    <div id="qFb" style="text-align:center;font-weight:600;margin:12px 0;min-height:1.5em"></div>
+  </div>
+
+</div>
+
+<footer>
+  <p>CAG — Chan et al. (2025) arXiv 2412.15605 | Long Context vs RAG — various 2024-2025</p>
+  <p>LLM Algorithm Visualizations v2.1.0</p>
+</footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+i18nRegister({
+  'en':{
+    'p22.title':'22. CAG vs RAG — LLM Algorithm Visualizations',
+    'p22.heading':'CAG vs RAG — Cache or Retrieve?',
+    'p22.subtitle':'Context-Augmented Generation preloads knowledge into the context window; Retrieval-Augmented Generation fetches it on demand. When does each win?',
+    'p22.s1.badge':'Pipelines',
+    'p22.s1.title':'Two Approaches to Knowledge',
+    'p22.s1.desc':'RAG <strong>retrieves</strong> relevant chunks at query time via embedding + vector search. CAG <strong>preloads</strong> the entire knowledge base into the model\'s KV cache, skipping retrieval entirely. Watch both pipelines run side by side.',
+    'p22.s1.rag_title':'RAG Pipeline',
+    'p22.s1.cag_title':'CAG Pipeline',
+    'p22.s1.rag_latency':'Total: ~500-2000 ms (retrieval dominates)',
+    'p22.s1.cag_latency':'Total: ~100-300 ms (no retrieval step)',
+    'p22.s1.animate':'Run Both Pipelines',
+    'p22.s1.stat1':'CAG Retrieval Latency',
+    'p22.s1.stat2':'RAG Pipeline Steps',
+    'p22.s1.stat3':'CAG Context Limit (tokens)',
+    'p22.s1.stat4':'RAG Corpus Size',
+    'p22.s2.badge':'Decision',
+    'p22.s2.title':'When to Use Which',
+    'p22.s2.desc':'Click a scenario to walk through the decision tree. The recommendation depends on <strong>corpus size</strong>, <strong>update frequency</strong>, <strong>latency needs</strong>, and <strong>query complexity</strong>.',
+    'p22.s2.sc0':'Small FAQ Bot',
+    'p22.s2.sc1':'Enterprise Search',
+    'p22.s2.sc2':'Real-time Chat',
+    'p22.s2.sc3':'Multi-hop Research',
+    'p22.s2.q1':'Knowledge base size?',
+    'p22.s2.q2':'Update frequency?',
+    'p22.s2.q3':'Latency requirements?',
+    'p22.s2.q4':'Multi-hop accuracy?',
+    'p22.s2.small':'< 100K tokens \u2192 CAG',
+    'p22.s2.large':'> 1M docs \u2192 RAG',
+    'p22.s2.static':'Static docs \u2192 CAG',
+    'p22.s2.dynamic':'Dynamic / live data \u2192 RAG',
+    'p22.s2.lowlat':'Ultra-low latency \u2192 CAG',
+    'p22.s2.modlat':'Moderate OK \u2192 RAG',
+    'p22.s2.multihop':'Targeted retrieval \u2192 RAG',
+    'p22.s2.fullctx':'Full context needed \u2192 CAG (beware "lost in the middle")',
+    'p22.s2.res0':'FAQ Bot: Small static KB (\u226450K tokens) \u2192 CAG wins. Preload all FAQs into context for instant answers with zero retrieval latency.',
+    'p22.s2.res1':'Enterprise Search: Millions of documents, frequently updated \u2192 RAG wins. Corpus exceeds any context window; vector search scales better.',
+    'p22.s2.res2':'Real-time Chat: Small knowledge base, ultra-low latency required \u2192 CAG wins. Eliminating the retrieval step saves 200-500 ms per query.',
+    'p22.s2.res3':'Multi-hop Research: Complex queries across large corpus \u2192 RAG wins. Targeted retrieval surfaces relevant passages; long context risks "lost in the middle."',
+    'p22.s3.badge':'Phenomenon',
+    'p22.s3.title':'Lost in the Middle',
+    'p22.s3.desc':'Liu et al. (2023) showed that LLMs recall information best at the <strong>start</strong> and <strong>end</strong> of the context, but accuracy drops sharply for information in the <strong>middle</strong>. This is why RAG can beat long context: it places relevant info at the beginning.',
+    'p22.s3.slider':'Move the "needle" \u2014 target info position in context',
+    'p22.s3.formula':'Accuracy(pos) ~ U-shaped curve: high at pos=1, drops at pos=N/2, recovers at pos=N',
+    'p22.s3.stat_start':'At Start',
+    'p22.s3.stat_mid':'At Middle',
+    'p22.s3.stat_end':'At End',
+    'p22.s3.chart_title':'Accuracy by Position in Context',
+    'p22.s3.position':'Position',
+    'p22.s3.accuracy':'Accuracy (%)',
+    'p22.s4.badge':'Architecture',
+    'p22.s4.title':'The Hybrid Future',
+    'p22.s4.desc':'The emerging approach combines both: <strong>hot data</strong> in preloaded KV cache (CAG), <strong>cold data</strong> via vector search (RAG), and <strong>prompt caching</strong> (Anthropic/Google) as a commercial middle ground.',
+    'p22.s4.hot':'Hot Data (CAG)',
+    'p22.s4.hot_desc':'Frequently accessed, small corpus. Preloaded into KV cache for instant retrieval.',
+    'p22.s4.cache':'Prompt Caching',
+    'p22.s4.cache_desc':'Commercial middle ground (Anthropic, Google). Cache frequently used prefixes at reduced cost.',
+    'p22.s4.cold':'Cold Data (RAG)',
+    'p22.s4.cold_desc':'Large corpus, rarely accessed. Vector search on demand for targeted retrieval.',
+    'p22.s4.formula':'CAG cost = context_tokens x price_per_token (flat) | RAG cost = embedding + search + retrieved_tokens (scales with KB)',
+    'p22.s4.chart_title':'Cost per Query vs Knowledge Base Size',
+    'p22.s4.kb_size':'Knowledge Base Size (tokens)',
+    'p22.s4.cost_label':'Relative Cost per Query',
+    'p22.s4.crossover':'Crossover: RAG becomes cheaper',
+    'p22.s5.badge':'Quiz',
+    'p22.s5.title':'Quiz: CAG vs RAG',
+    'p22.s5.desc':'Test your understanding of the key differences between CAG and RAG!',
+    'p22.s5.round':'Round',
+    'p22.s5.score':'Score',
+    'p22.s5.correct':'Correct!',
+    'p22.s5.wrong':'Wrong! The answer is',
+    'p22.s5.q0':'What does CAG skip that RAG requires?',
+    'p22.s5.q1':'Where does accuracy drop in long context?',
+    'p22.s5.q2':'For a 10M document corpus, which is better?',
+    'p22.s5.q3':'What is the main advantage of CAG?',
+    'p22.s5.q4':'What is the hybrid approach?',
+    'p22.s5.a0_0':'The retrieval/embedding step',
+    'p22.s5.a0_1':'The generation step',
+    'p22.s5.a0_2':'The tokenization step',
+    'p22.s5.a0_3':'The fine-tuning step',
+    'p22.s5.a1_0':'Middle positions',
+    'p22.s5.a1_1':'The very beginning',
+    'p22.s5.a1_2':'The very end',
+    'p22.s5.a1_3':'Uniformly everywhere',
+    'p22.s5.a2_0':'RAG',
+    'p22.s5.a2_1':'CAG',
+    'p22.s5.a2_2':'Neither \u2014 fine-tuning only',
+    'p22.s5.a2_3':'Both are equally good',
+    'p22.s5.a3_0':'No retrieval latency, simpler pipeline',
+    'p22.s5.a3_1':'Handles unlimited corpus size',
+    'p22.s5.a3_2':'Better multi-hop reasoning',
+    'p22.s5.a3_3':'Lower token cost',
+    'p22.s5.a4_0':'Hot data in cache + cold data via RAG',
+    'p22.s5.a4_1':'Only use CAG for everything',
+    'p22.s5.a4_2':'Only use RAG for everything',
+    'p22.s5.a4_3':'Fine-tune the model instead'
+  },
+  'zh-CN':{
+    'p22.title':'22. CAG vs RAG \u2014 LLM \u7b97\u6cd5\u53ef\u89c6\u5316',
+    'p22.heading':'CAG vs RAG \u2014 \u7f13\u5b58\u8fd8\u662f\u68c0\u7d22\uff1f',
+    'p22.subtitle':'\u4e0a\u4e0b\u6587\u589e\u5f3a\u751f\u6210\u5c06\u77e5\u8bc6\u9884\u52a0\u8f7d\u5230\u4e0a\u4e0b\u6587\u7a97\u53e3\uff1b\u68c0\u7d22\u589e\u5f3a\u751f\u6210\u6309\u9700\u83b7\u53d6\u3002\u5404\u81ea\u4f55\u65f6\u80dc\u51fa\uff1f',
+    'p22.s1.badge':'\u6d41\u6c34\u7ebf',
+    'p22.s1.title':'\u4e24\u79cd\u77e5\u8bc6\u83b7\u53d6\u65b9\u6cd5',
+    'p22.s1.desc':'RAG \u5728\u67e5\u8be2\u65f6\u901a\u8fc7\u5d4c\u5165+\u5411\u91cf\u641c\u7d22<strong>\u68c0\u7d22</strong>\u76f8\u5173\u5757\u3002CAG \u5c06\u6574\u4e2a\u77e5\u8bc6\u5e93<strong>\u9884\u52a0\u8f7d</strong>\u5230\u6a21\u578b\u7684 KV \u7f13\u5b58\u4e2d\uff0c\u5b8c\u5168\u8df3\u8fc7\u68c0\u7d22\u3002\u5e76\u6392\u89c2\u770b\u4e24\u6761\u6d41\u6c34\u7ebf\u3002',
+    'p22.s1.rag_title':'RAG \u6d41\u6c34\u7ebf',
+    'p22.s1.cag_title':'CAG \u6d41\u6c34\u7ebf',
+    'p22.s1.rag_latency':'\u603b\u8ba1\uff1a~500-2000 ms\uff08\u68c0\u7d22\u4e3a\u4e3b\uff09',
+    'p22.s1.cag_latency':'\u603b\u8ba1\uff1a~100-300 ms\uff08\u65e0\u68c0\u7d22\u6b65\u9aa4\uff09',
+    'p22.s1.animate':'\u8fd0\u884c\u4e24\u6761\u6d41\u6c34\u7ebf',
+    'p22.s1.stat1':'CAG \u68c0\u7d22\u5ef6\u8fdf',
+    'p22.s1.stat2':'RAG \u6d41\u6c34\u7ebf\u6b65\u9aa4',
+    'p22.s1.stat3':'CAG \u4e0a\u4e0b\u6587\u9650\u5236\uff08tokens\uff09',
+    'p22.s1.stat4':'RAG \u8bed\u6599\u5e93\u5927\u5c0f',
+    'p22.s2.badge':'\u51b3\u7b56',
+    'p22.s2.title':'\u4f55\u65f6\u4f7f\u7528\u54ea\u4e2a',
+    'p22.s2.desc':'\u70b9\u51fb\u573a\u666f\u6765\u904d\u5386\u51b3\u7b56\u6811\u3002\u63a8\u8350\u53d6\u51b3\u4e8e<strong>\u8bed\u6599\u5e93\u5927\u5c0f</strong>\u3001<strong>\u66f4\u65b0\u9891\u7387</strong>\u3001<strong>\u5ef6\u8fdf\u9700\u6c42</strong>\u548c<strong>\u67e5\u8be2\u590d\u6742\u5ea6</strong>\u3002',
+    'p22.s2.sc0':'\u5c0f\u578b FAQ \u673a\u5668\u4eba',
+    'p22.s2.sc1':'\u4f01\u4e1a\u641c\u7d22',
+    'p22.s2.sc2':'\u5b9e\u65f6\u804a\u5929',
+    'p22.s2.sc3':'\u591a\u8df3\u7814\u7a76',
+    'p22.s2.q1':'\u77e5\u8bc6\u5e93\u5927\u5c0f\uff1f',
+    'p22.s2.q2':'\u66f4\u65b0\u9891\u7387\uff1f',
+    'p22.s2.q3':'\u5ef6\u8fdf\u8981\u6c42\uff1f',
+    'p22.s2.q4':'\u591a\u8df3\u51c6\u786e\u5ea6\uff1f',
+    'p22.s2.small':'< 10\u4e07 tokens \u2192 CAG',
+    'p22.s2.large':'> 100\u4e07\u6587\u6863 \u2192 RAG',
+    'p22.s2.static':'\u9759\u6001\u6587\u6863 \u2192 CAG',
+    'p22.s2.dynamic':'\u52a8\u6001/\u5b9e\u65f6\u6570\u636e \u2192 RAG',
+    'p22.s2.lowlat':'\u8d85\u4f4e\u5ef6\u8fdf \u2192 CAG',
+    'p22.s2.modlat':'\u4e2d\u7b49\u5373\u53ef \u2192 RAG',
+    'p22.s2.multihop':'\u5b9a\u5411\u68c0\u7d22 \u2192 RAG',
+    'p22.s2.fullctx':'\u9700\u8981\u5b8c\u6574\u4e0a\u4e0b\u6587 \u2192 CAG\uff08\u6ce8\u610f\u201c\u4e2d\u95f4\u4e22\u5931\u201d\uff09',
+    'p22.s2.res0':'FAQ \u673a\u5668\u4eba\uff1a\u5c0f\u578b\u9759\u6001 KB\uff08\u22645\u4e07 tokens\uff09\u2192 CAG \u80dc\u51fa\u3002\u5c06\u6240\u6709 FAQ \u9884\u52a0\u8f7d\u5230\u4e0a\u4e0b\u6587\u4e2d\uff0c\u5b9e\u73b0\u96f6\u68c0\u7d22\u5ef6\u8fdf\u7684\u5373\u65f6\u56de\u7b54\u3002',
+    'p22.s2.res1':'\u4f01\u4e1a\u641c\u7d22\uff1a\u6570\u767e\u4e07\u6587\u6863\uff0c\u9891\u7e41\u66f4\u65b0 \u2192 RAG \u80dc\u51fa\u3002\u8bed\u6599\u5e93\u8d85\u51fa\u4efb\u4f55\u4e0a\u4e0b\u6587\u7a97\u53e3\uff1b\u5411\u91cf\u641c\u7d22\u66f4\u597d\u6269\u5c55\u3002',
+    'p22.s2.res2':'\u5b9e\u65f6\u804a\u5929\uff1a\u5c0f\u578b\u77e5\u8bc6\u5e93\uff0c\u9700\u8981\u8d85\u4f4e\u5ef6\u8fdf \u2192 CAG \u80dc\u51fa\u3002\u6d88\u9664\u68c0\u7d22\u6b65\u9aa4\u6bcf\u6b21\u67e5\u8be2\u8282\u7701 200-500 ms\u3002',
+    'p22.s2.res3':'\u591a\u8df3\u7814\u7a76\uff1a\u8de8\u5927\u578b\u8bed\u6599\u5e93\u7684\u590d\u6742\u67e5\u8be2 \u2192 RAG \u80dc\u51fa\u3002\u5b9a\u5411\u68c0\u7d22\u80fd\u63d0\u53d6\u76f8\u5173\u6bb5\u843d\uff1b\u957f\u4e0a\u4e0b\u6587\u6709\u201c\u4e2d\u95f4\u4e22\u5931\u201d\u98ce\u9669\u3002',
+    'p22.s3.badge':'\u73b0\u8c61',
+    'p22.s3.title':'\u4e2d\u95f4\u4e22\u5931',
+    'p22.s3.desc':'Liu \u7b49\u4eba (2023) \u8868\u660e\uff0cLLM \u5bf9\u4e0a\u4e0b\u6587<strong>\u5f00\u5934</strong>\u548c<strong>\u7ed3\u5c3e</strong>\u7684\u4fe1\u606f\u56de\u5fc6\u6700\u597d\uff0c\u4f46\u5bf9<strong>\u4e2d\u95f4</strong>\u4fe1\u606f\u7684\u51c6\u786e\u5ea6\u6025\u5267\u4e0b\u964d\u3002\u8fd9\u5c31\u662f\u4e3a\u4ec0\u4e48 RAG \u80fd\u8d85\u8d8a\u957f\u4e0a\u4e0b\u6587\uff1a\u5b83\u5c06\u76f8\u5173\u4fe1\u606f\u653e\u5728\u5f00\u5934\u3002',
+    'p22.s3.slider':'\u79fb\u52a8\u201c\u9488\u201d\u2014\u2014\u76ee\u6807\u4fe1\u606f\u5728\u4e0a\u4e0b\u6587\u4e2d\u7684\u4f4d\u7f6e',
+    'p22.s3.formula':'\u51c6\u786e\u7387(pos) ~ U\u578b\u66f2\u7ebf\uff1apos=1 \u65f6\u9ad8\uff0cpos=N/2 \u65f6\u4e0b\u964d\uff0cpos=N \u65f6\u6062\u590d',
+    'p22.s3.stat_start':'\u5f00\u5934\u5904',
+    'p22.s3.stat_mid':'\u4e2d\u95f4\u5904',
+    'p22.s3.stat_end':'\u7ed3\u5c3e\u5904',
+    'p22.s3.chart_title':'\u4e0a\u4e0b\u6587\u4e2d\u4f4d\u7f6e\u4e0e\u51c6\u786e\u7387',
+    'p22.s3.position':'\u4f4d\u7f6e',
+    'p22.s3.accuracy':'\u51c6\u786e\u7387 (%)',
+    'p22.s4.badge':'\u67b6\u6784',
+    'p22.s4.title':'\u6df7\u5408\u672a\u6765',
+    'p22.s4.desc':'\u65b0\u5174\u65b9\u6cd5\u7ed3\u5408\u4e86\u4e24\u8005\uff1a<strong>\u70ed\u6570\u636e</strong>\u9884\u52a0\u8f7d\u5230 KV \u7f13\u5b58\uff08CAG\uff09\uff0c<strong>\u51b7\u6570\u636e</strong>\u901a\u8fc7\u5411\u91cf\u641c\u7d22\uff08RAG\uff09\uff0c<strong>\u63d0\u793a\u7f13\u5b58</strong>\uff08Anthropic/Google\uff09\u4f5c\u4e3a\u5546\u4e1a\u4e2d\u95f4\u65b9\u6848\u3002',
+    'p22.s4.hot':'\u70ed\u6570\u636e (CAG)',
+    'p22.s4.hot_desc':'\u9891\u7e41\u8bbf\u95ee\u7684\u5c0f\u578b\u8bed\u6599\u5e93\u3002\u9884\u52a0\u8f7d\u5230 KV \u7f13\u5b58\u4e2d\u5b9e\u73b0\u5373\u65f6\u68c0\u7d22\u3002',
+    'p22.s4.cache':'\u63d0\u793a\u7f13\u5b58',
+    'p22.s4.cache_desc':'\u5546\u4e1a\u4e2d\u95f4\u65b9\u6848\uff08Anthropic, Google\uff09\u3002\u4ee5\u8f83\u4f4e\u6210\u672c\u7f13\u5b58\u5e38\u7528\u524d\u7f00\u3002',
+    'p22.s4.cold':'\u51b7\u6570\u636e (RAG)',
+    'p22.s4.cold_desc':'\u5927\u578b\u8bed\u6599\u5e93\uff0c\u4e0d\u5e38\u8bbf\u95ee\u3002\u6309\u9700\u5411\u91cf\u641c\u7d22\u5b9e\u73b0\u5b9a\u5411\u68c0\u7d22\u3002',
+    'p22.s4.formula':'CAG \u6210\u672c = \u4e0a\u4e0b\u6587 tokens x \u5355\u4ef7\uff08\u56fa\u5b9a\uff09| RAG \u6210\u672c = \u5d4c\u5165 + \u641c\u7d22 + \u68c0\u7d22 tokens\uff08\u968f KB \u589e\u957f\uff09',
+    'p22.s4.chart_title':'\u6bcf\u6b21\u67e5\u8be2\u6210\u672c vs \u77e5\u8bc6\u5e93\u5927\u5c0f',
+    'p22.s4.kb_size':'\u77e5\u8bc6\u5e93\u5927\u5c0f (tokens)',
+    'p22.s4.cost_label':'\u6bcf\u6b21\u67e5\u8be2\u76f8\u5bf9\u6210\u672c',
+    'p22.s4.crossover':'\u4ea4\u53c9\u70b9\uff1aRAG \u53d8\u5f97\u66f4\u4fbf\u5b9c',
+    'p22.s5.badge':'\u6d4b\u9a8c',
+    'p22.s5.title':'\u6d4b\u9a8c\uff1aCAG vs RAG',
+    'p22.s5.desc':'\u6d4b\u8bd5\u4f60\u5bf9 CAG \u548c RAG \u5173\u952e\u5dee\u5f02\u7684\u7406\u89e3\uff01',
+    'p22.s5.round':'\u8f6e\u6b21',
+    'p22.s5.score':'\u5f97\u5206',
+    'p22.s5.correct':'\u6b63\u786e\uff01',
+    'p22.s5.wrong':'\u9519\u8bef\uff01\u7b54\u6848\u662f',
+    'p22.s5.q0':'CAG \u8df3\u8fc7\u4e86 RAG \u4e2d\u7684\u54ea\u4e2a\u6b65\u9aa4\uff1f',
+    'p22.s5.q1':'\u957f\u4e0a\u4e0b\u6587\u4e2d\u54ea\u91cc\u7684\u51c6\u786e\u7387\u4f1a\u4e0b\u964d\uff1f',
+    'p22.s5.q2':'\u5bf9\u4e8e 1000\u4e07\u6587\u6863\u7684\u8bed\u6599\u5e93\uff0c\u54ea\u4e2a\u66f4\u597d\uff1f',
+    'p22.s5.q3':'CAG \u7684\u4e3b\u8981\u4f18\u52bf\u662f\u4ec0\u4e48\uff1f',
+    'p22.s5.q4':'\u6df7\u5408\u65b9\u6cd5\u662f\u4ec0\u4e48\uff1f',
+    'p22.s5.a0_0':'\u68c0\u7d22/\u5d4c\u5165\u6b65\u9aa4',
+    'p22.s5.a0_1':'\u751f\u6210\u6b65\u9aa4',
+    'p22.s5.a0_2':'\u5206\u8bcd\u6b65\u9aa4',
+    'p22.s5.a0_3':'\u5fae\u8c03\u6b65\u9aa4',
+    'p22.s5.a1_0':'\u4e2d\u95f4\u4f4d\u7f6e',
+    'p22.s5.a1_1':'\u6700\u5f00\u5934',
+    'p22.s5.a1_2':'\u6700\u7ed3\u5c3e',
+    'p22.s5.a1_3':'\u5747\u5300\u5206\u5e03',
+    'p22.s5.a2_0':'RAG',
+    'p22.s5.a2_1':'CAG',
+    'p22.s5.a2_2':'\u90fd\u4e0d\u884c\u2014\u2014\u53ea\u80fd\u5fae\u8c03',
+    'p22.s5.a2_3':'\u4e24\u8005\u540c\u6837\u597d',
+    'p22.s5.a3_0':'\u65e0\u68c0\u7d22\u5ef6\u8fdf\uff0c\u66f4\u7b80\u5355\u7684\u6d41\u6c34\u7ebf',
+    'p22.s5.a3_1':'\u5904\u7406\u65e0\u9650\u8bed\u6599\u5e93\u5927\u5c0f',
+    'p22.s5.a3_2':'\u66f4\u597d\u7684\u591a\u8df3\u63a8\u7406',
+    'p22.s5.a3_3':'\u66f4\u4f4e\u7684 token \u6210\u672c',
+    'p22.s5.a4_0':'\u70ed\u6570\u636e\u5728\u7f13\u5b58 + \u51b7\u6570\u636e\u901a\u8fc7 RAG',
+    'p22.s5.a4_1':'\u53ea\u7528 CAG \u5904\u7406\u6240\u6709\u4e8b\u60c5',
+    'p22.s5.a4_2':'\u53ea\u7528 RAG \u5904\u7406\u6240\u6709\u4e8b\u60c5',
+    'p22.s5.a4_3':'\u6539\u4e3a\u5fae\u8c03\u6a21\u578b'
+  },
+  'zh-TW':{
+    'p22.title':'22. CAG vs RAG \u2014 LLM \u6f14\u7b97\u6cd5\u8996\u89ba\u5316',
+    'p22.heading':'CAG vs RAG \u2014 \u5feb\u53d6\u9084\u662f\u6aa2\u7d22\uff1f',
+    'p22.subtitle':'\u4e0a\u4e0b\u6587\u589e\u5f37\u751f\u6210\u5c07\u77e5\u8b58\u9810\u8f09\u5165\u4e0a\u4e0b\u6587\u8996\u7a97\uff1b\u6aa2\u7d22\u589e\u5f37\u751f\u6210\u6309\u9700\u7372\u53d6\u3002\u5404\u81ea\u4f55\u6642\u52dd\u51fa\uff1f',
+    'p22.s1.badge':'\u6d41\u6c34\u7dda',
+    'p22.s1.title':'\u5169\u7a2e\u77e5\u8b58\u7372\u53d6\u65b9\u6cd5',
+    'p22.s1.desc':'RAG \u5728\u67e5\u8a62\u6642\u900f\u904e\u5d4c\u5165+\u5411\u91cf\u641c\u7d22<strong>\u6aa2\u7d22</strong>\u76f8\u95dc\u584a\u3002CAG \u5c07\u6574\u500b\u77e5\u8b58\u5eab<strong>\u9810\u8f09\u5165</strong>\u6a21\u578b\u7684 KV \u5feb\u53d6\u4e2d\uff0c\u5b8c\u5168\u8df3\u904e\u6aa2\u7d22\u3002\u4e26\u6392\u89c0\u770b\u5169\u689d\u6d41\u6c34\u7dda\u3002',
+    'p22.s1.rag_title':'RAG \u6d41\u6c34\u7dda',
+    'p22.s1.cag_title':'CAG \u6d41\u6c34\u7dda',
+    'p22.s1.rag_latency':'\u7e3d\u8a08\uff1a~500-2000 ms\uff08\u6aa2\u7d22\u70ba\u4e3b\uff09',
+    'p22.s1.cag_latency':'\u7e3d\u8a08\uff1a~100-300 ms\uff08\u7121\u6aa2\u7d22\u6b65\u9a5f\uff09',
+    'p22.s1.animate':'\u57f7\u884c\u5169\u689d\u6d41\u6c34\u7dda',
+    'p22.s1.stat1':'CAG \u6aa2\u7d22\u5ef6\u9072',
+    'p22.s1.stat2':'RAG \u6d41\u6c34\u7dda\u6b65\u9a5f',
+    'p22.s1.stat3':'CAG \u4e0a\u4e0b\u6587\u9650\u5236\uff08tokens\uff09',
+    'p22.s1.stat4':'RAG \u8a9e\u6599\u5eab\u5927\u5c0f',
+    'p22.s2.badge':'\u6c7a\u7b56',
+    'p22.s2.title':'\u4f55\u6642\u4f7f\u7528\u54ea\u500b',
+    'p22.s2.desc':'\u9ede\u64ca\u5834\u666f\u4f86\u904d\u6b77\u6c7a\u7b56\u6a39\u3002\u63a8\u85a6\u53d6\u6c7a\u65bc<strong>\u8a9e\u6599\u5eab\u5927\u5c0f</strong>\u3001<strong>\u66f4\u65b0\u983b\u7387</strong>\u3001<strong>\u5ef6\u9072\u9700\u6c42</strong>\u548c<strong>\u67e5\u8a62\u8907\u96dc\u5ea6</strong>\u3002',
+    'p22.s2.sc0':'\u5c0f\u578b FAQ \u6a5f\u5668\u4eba',
+    'p22.s2.sc1':'\u4f01\u696d\u641c\u7d22',
+    'p22.s2.sc2':'\u5373\u6642\u804a\u5929',
+    'p22.s2.sc3':'\u591a\u8df3\u7814\u7a76',
+    'p22.s2.q1':'\u77e5\u8b58\u5eab\u5927\u5c0f\uff1f',
+    'p22.s2.q2':'\u66f4\u65b0\u983b\u7387\uff1f',
+    'p22.s2.q3':'\u5ef6\u9072\u8981\u6c42\uff1f',
+    'p22.s2.q4':'\u591a\u8df3\u6e96\u78ba\u5ea6\uff1f',
+    'p22.s2.small':'< 10\u842c tokens \u2192 CAG',
+    'p22.s2.large':'> 100\u842c\u6587\u6a94 \u2192 RAG',
+    'p22.s2.static':'\u975c\u614b\u6587\u6a94 \u2192 CAG',
+    'p22.s2.dynamic':'\u52d5\u614b/\u5373\u6642\u8cc7\u6599 \u2192 RAG',
+    'p22.s2.lowlat':'\u8d85\u4f4e\u5ef6\u9072 \u2192 CAG',
+    'p22.s2.modlat':'\u4e2d\u7b49\u5373\u53ef \u2192 RAG',
+    'p22.s2.multihop':'\u5b9a\u5411\u6aa2\u7d22 \u2192 RAG',
+    'p22.s2.fullctx':'\u9700\u8981\u5b8c\u6574\u4e0a\u4e0b\u6587 \u2192 CAG\uff08\u6ce8\u610f\u300c\u4e2d\u9593\u4e1f\u5931\u300d\uff09',
+    'p22.s2.res0':'FAQ \u6a5f\u5668\u4eba\uff1a\u5c0f\u578b\u975c\u614b KB\uff08\u22645\u842c tokens\uff09\u2192 CAG \u52dd\u51fa\u3002\u5c07\u6240\u6709 FAQ \u9810\u8f09\u5165\u4e0a\u4e0b\u6587\u4e2d\uff0c\u5be6\u73fe\u96f6\u6aa2\u7d22\u5ef6\u9072\u7684\u5373\u6642\u56de\u7b54\u3002',
+    'p22.s2.res1':'\u4f01\u696d\u641c\u7d22\uff1a\u6578\u767e\u842c\u6587\u6a94\uff0c\u983b\u7e41\u66f4\u65b0 \u2192 RAG \u52dd\u51fa\u3002\u8a9e\u6599\u5eab\u8d85\u51fa\u4efb\u4f55\u4e0a\u4e0b\u6587\u8996\u7a97\uff1b\u5411\u91cf\u641c\u7d22\u66f4\u597d\u64f4\u5c55\u3002',
+    'p22.s2.res2':'\u5373\u6642\u804a\u5929\uff1a\u5c0f\u578b\u77e5\u8b58\u5eab\uff0c\u9700\u8981\u8d85\u4f4e\u5ef6\u9072 \u2192 CAG \u52dd\u51fa\u3002\u6d88\u9664\u6aa2\u7d22\u6b65\u9a5f\u6bcf\u6b21\u67e5\u8a62\u7bc0\u7701 200-500 ms\u3002',
+    'p22.s2.res3':'\u591a\u8df3\u7814\u7a76\uff1a\u8de8\u5927\u578b\u8a9e\u6599\u5eab\u7684\u8907\u96dc\u67e5\u8a62 \u2192 RAG \u52dd\u51fa\u3002\u5b9a\u5411\u6aa2\u7d22\u80fd\u63d0\u53d6\u76f8\u95dc\u6bb5\u843d\uff1b\u9577\u4e0a\u4e0b\u6587\u6709\u300c\u4e2d\u9593\u4e1f\u5931\u300d\u98a8\u96aa\u3002',
+    'p22.s3.badge':'\u73fe\u8c61',
+    'p22.s3.title':'\u4e2d\u9593\u4e1f\u5931',
+    'p22.s3.desc':'Liu \u7b49\u4eba (2023) \u8868\u660e\uff0cLLM \u5c0d\u4e0a\u4e0b\u6587<strong>\u958b\u982d</strong>\u548c<strong>\u7d50\u5c3e</strong>\u7684\u8cc7\u8a0a\u56de\u61b6\u6700\u597d\uff0c\u4f46\u5c0d<strong>\u4e2d\u9593</strong>\u8cc7\u8a0a\u7684\u6e96\u78ba\u5ea6\u6025\u5287\u4e0b\u964d\u3002\u9019\u5c31\u662f\u70ba\u4ec0\u9ebc RAG \u80fd\u8d85\u8d8a\u9577\u4e0a\u4e0b\u6587\uff1a\u5b83\u5c07\u76f8\u95dc\u8cc7\u8a0a\u653e\u5728\u958b\u982d\u3002',
+    'p22.s3.slider':'\u79fb\u52d5\u300c\u91dd\u300d\u2014\u2014\u76ee\u6a19\u8cc7\u8a0a\u5728\u4e0a\u4e0b\u6587\u4e2d\u7684\u4f4d\u7f6e',
+    'p22.s3.formula':'\u6e96\u78ba\u7387(pos) ~ U\u578b\u66f2\u7dda\uff1apos=1 \u6642\u9ad8\uff0cpos=N/2 \u6642\u4e0b\u964d\uff0cpos=N \u6642\u6062\u5fa9',
+    'p22.s3.stat_start':'\u958b\u982d\u8655',
+    'p22.s3.stat_mid':'\u4e2d\u9593\u8655',
+    'p22.s3.stat_end':'\u7d50\u5c3e\u8655',
+    'p22.s3.chart_title':'\u4e0a\u4e0b\u6587\u4e2d\u4f4d\u7f6e\u8207\u6e96\u78ba\u7387',
+    'p22.s3.position':'\u4f4d\u7f6e',
+    'p22.s3.accuracy':'\u6e96\u78ba\u7387 (%)',
+    'p22.s4.badge':'\u67b6\u69cb',
+    'p22.s4.title':'\u6df7\u5408\u672a\u4f86',
+    'p22.s4.desc':'\u65b0\u8208\u65b9\u6cd5\u7d50\u5408\u4e86\u5169\u8005\uff1a<strong>\u71b1\u8cc7\u6599</strong>\u9810\u8f09\u5165 KV \u5feb\u53d6\uff08CAG\uff09\uff0c<strong>\u51b7\u8cc7\u6599</strong>\u900f\u904e\u5411\u91cf\u641c\u7d22\uff08RAG\uff09\uff0c<strong>\u63d0\u793a\u5feb\u53d6</strong>\uff08Anthropic/Google\uff09\u4f5c\u70ba\u5546\u696d\u4e2d\u9593\u65b9\u6848\u3002',
+    'p22.s4.hot':'\u71b1\u8cc7\u6599 (CAG)',
+    'p22.s4.hot_desc':'\u983b\u7e41\u5b58\u53d6\u7684\u5c0f\u578b\u8a9e\u6599\u5eab\u3002\u9810\u8f09\u5165 KV \u5feb\u53d6\u4e2d\u5be6\u73fe\u5373\u6642\u6aa2\u7d22\u3002',
+    'p22.s4.cache':'\u63d0\u793a\u5feb\u53d6',
+    'p22.s4.cache_desc':'\u5546\u696d\u4e2d\u9593\u65b9\u6848\uff08Anthropic, Google\uff09\u3002\u4ee5\u8f03\u4f4e\u6210\u672c\u5feb\u53d6\u5e38\u7528\u524d\u7db4\u3002',
+    'p22.s4.cold':'\u51b7\u8cc7\u6599 (RAG)',
+    'p22.s4.cold_desc':'\u5927\u578b\u8a9e\u6599\u5eab\uff0c\u4e0d\u5e38\u5b58\u53d6\u3002\u6309\u9700\u5411\u91cf\u641c\u7d22\u5be6\u73fe\u5b9a\u5411\u6aa2\u7d22\u3002',
+    'p22.s4.formula':'CAG \u6210\u672c = \u4e0a\u4e0b\u6587 tokens x \u55ae\u50f9\uff08\u56fa\u5b9a\uff09| RAG \u6210\u672c = \u5d4c\u5165 + \u641c\u7d22 + \u6aa2\u7d22 tokens\uff08\u96a8 KB \u589e\u9577\uff09',
+    'p22.s4.chart_title':'\u6bcf\u6b21\u67e5\u8a62\u6210\u672c vs \u77e5\u8b58\u5eab\u5927\u5c0f',
+    'p22.s4.kb_size':'\u77e5\u8b58\u5eab\u5927\u5c0f (tokens)',
+    'p22.s4.cost_label':'\u6bcf\u6b21\u67e5\u8a62\u76f8\u5c0d\u6210\u672c',
+    'p22.s4.crossover':'\u4ea4\u53c9\u9ede\uff1aRAG \u8b8a\u5f97\u66f4\u4fbf\u5b9c',
+    'p22.s5.badge':'\u6e2c\u9a57',
+    'p22.s5.title':'\u6e2c\u9a57\uff1aCAG vs RAG',
+    'p22.s5.desc':'\u6e2c\u8a66\u4f60\u5c0d CAG \u548c RAG \u95dc\u9375\u5dee\u7570\u7684\u7406\u89e3\uff01',
+    'p22.s5.round':'\u8f2a\u6b21',
+    'p22.s5.score':'\u5f97\u5206',
+    'p22.s5.correct':'\u6b63\u78ba\uff01',
+    'p22.s5.wrong':'\u932f\u8aa4\uff01\u7b54\u6848\u662f',
+    'p22.s5.q0':'CAG \u8df3\u904e\u4e86 RAG \u4e2d\u7684\u54ea\u500b\u6b65\u9a5f\uff1f',
+    'p22.s5.q1':'\u9577\u4e0a\u4e0b\u6587\u4e2d\u54ea\u88e1\u7684\u6e96\u78ba\u7387\u6703\u4e0b\u964d\uff1f',
+    'p22.s5.q2':'\u5c0d\u65bc 1000\u842c\u6587\u6a94\u7684\u8a9e\u6599\u5eab\uff0c\u54ea\u500b\u66f4\u597d\uff1f',
+    'p22.s5.q3':'CAG \u7684\u4e3b\u8981\u512a\u52e2\u662f\u4ec0\u9ebc\uff1f',
+    'p22.s5.q4':'\u6df7\u5408\u65b9\u6cd5\u662f\u4ec0\u9ebc\uff1f',
+    'p22.s5.a0_0':'\u6aa2\u7d22/\u5d4c\u5165\u6b65\u9a5f',
+    'p22.s5.a0_1':'\u751f\u6210\u6b65\u9a5f',
+    'p22.s5.a0_2':'\u5206\u8a5e\u6b65\u9a5f',
+    'p22.s5.a0_3':'\u5fae\u8abf\u6b65\u9a5f',
+    'p22.s5.a1_0':'\u4e2d\u9593\u4f4d\u7f6e',
+    'p22.s5.a1_1':'\u6700\u958b\u982d',
+    'p22.s5.a1_2':'\u6700\u7d50\u5c3e',
+    'p22.s5.a1_3':'\u5747\u52fb\u5206\u4f48',
+    'p22.s5.a2_0':'RAG',
+    'p22.s5.a2_1':'CAG',
+    'p22.s5.a2_2':'\u90fd\u4e0d\u884c\u2014\u2014\u53ea\u80fd\u5fae\u8abf',
+    'p22.s5.a2_3':'\u5169\u8005\u540c\u6a23\u597d',
+    'p22.s5.a3_0':'\u7121\u6aa2\u7d22\u5ef6\u9072\uff0c\u66f4\u7c21\u55ae\u7684\u6d41\u6c34\u7dda',
+    'p22.s5.a3_1':'\u8655\u7406\u7121\u9650\u8a9e\u6599\u5eab\u5927\u5c0f',
+    'p22.s5.a3_2':'\u66f4\u597d\u7684\u591a\u8df3\u63a8\u7406',
+    'p22.s5.a3_3':'\u66f4\u4f4e\u7684 token \u6210\u672c',
+    'p22.s5.a4_0':'\u71b1\u8cc7\u6599\u5728\u5feb\u53d6 + \u51b7\u8cc7\u6599\u900f\u904e RAG',
+    'p22.s5.a4_1':'\u53ea\u7528 CAG \u8655\u7406\u6240\u6709\u4e8b\u60c5',
+    'p22.s5.a4_2':'\u53ea\u7528 RAG \u8655\u7406\u6240\u6709\u4e8b\u60c5',
+    'p22.s5.a4_3':'\u6539\u70ba\u5fae\u8abf\u6a21\u578b'
+  }
+});
+
+// ===== Section 1: Pipeline Animation =====
+var pipeAnimRunning=false;
+function animatePipelines(){
+  if(pipeAnimRunning) return;
+  pipeAnimRunning=true;
+
+  // Reset all steps
+  var allSteps=document.querySelectorAll('.pipe-step,.pipe-arrow');
+  allSteps.forEach(function(el){el.classList.remove('active');});
+  document.querySelectorAll('.pipe-latency').forEach(function(el){el.classList.remove('show');});
+
+  var ragSteps=['rag-s1','rag-a1','rag-s2','rag-a2','rag-s3','rag-a3','rag-s4','rag-a4','rag-s5'];
+  var cagSteps=['cag-s0','cag-a0','cag-s1','cag-a1','cag-s2'];
+
+  // CAG runs faster (fewer steps)
+  var cagDelay=400;
+  var ragDelay=300;
+
+  // Animate RAG
+  ragSteps.forEach(function(id,i){
+    setTimeout(function(){
+      var el=document.getElementById(id);
+      if(el) el.classList.add('active');
+      if(i===ragSteps.length-1){
+        setTimeout(function(){
+          document.getElementById('rag-lat').classList.add('show');
+        },200);
+      }
+    },i*ragDelay);
+  });
+
+  // Animate CAG (starts at the same time but finishes faster)
+  cagSteps.forEach(function(id,i){
+    setTimeout(function(){
+      var el=document.getElementById(id);
+      if(el) el.classList.add('active');
+      if(i===cagSteps.length-1){
+        setTimeout(function(){
+          document.getElementById('cag-lat').classList.add('show');
+        },200);
+      }
+    },i*cagDelay);
+  });
+
+  setTimeout(function(){pipeAnimRunning=false;},Math.max(ragSteps.length*ragDelay,cagSteps.length*cagDelay)+500);
+}
+
+// ===== Section 2: Decision Tree Scenarios =====
+var scenarios=[
+  {highlights:['dt-q1','dt-small','dt-q2','dt-static','dt-q3','dt-lowlat'],resKey:'p22.s2.res0'},
+  {highlights:['dt-q1','dt-large','dt-q2','dt-dynamic','dt-q4','dt-multihop'],resKey:'p22.s2.res1'},
+  {highlights:['dt-q1','dt-small','dt-q3','dt-lowlat','dt-q2','dt-static'],resKey:'p22.s2.res2'},
+  {highlights:['dt-q1','dt-large','dt-q4','dt-multihop'],resKey:'p22.s2.res3'}
+];
+
+function showScenario(idx,btn){
+  // Reset buttons
+  document.querySelectorAll('.scenario-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+
+  // Reset tree highlights
+  document.querySelectorAll('.dt-node').forEach(function(n){n.classList.remove('highlight');});
+
+  var sc=scenarios[idx];
+  // Animate highlights sequentially
+  sc.highlights.forEach(function(id,i){
+    setTimeout(function(){
+      var el=document.getElementById(id);
+      if(el) el.classList.add('highlight');
+    },i*250);
+  });
+
+  // Show result
+  var resEl=document.getElementById('scenarioResult');
+  resEl.style.opacity='0';
+  setTimeout(function(){
+    resEl.textContent=t(sc.resKey);
+    resEl.style.opacity='1';
+  },sc.highlights.length*250);
+}
+
+// ===== Section 3: Lost in the Middle =====
+var NUM_POSITIONS=20;
+
+function getAccuracy(posNorm){
+  // U-shaped curve: high at 0, dips in middle, recovers at end
+  // Using a parabola-like shape: acc = 90 - 40*sin(pi*pos)^1.5 + some noise-like variation
+  var s=Math.sin(Math.PI*posNorm);
+  var acc=90-40*Math.pow(s,1.3);
+  // Slight asymmetry: end is slightly lower than start
+  acc-=5*posNorm;
+  return Math.max(40,Math.min(95,acc));
+}
+
+var needleSlider=document.getElementById('needleSlider');
+var needleLabel=document.getElementById('needleLabel');
+
+function updateNeedle(){
+  var val=parseInt(needleSlider.value);
+  var pos=Math.round(val/100*(NUM_POSITIONS-1))+1;
+  var posNorm=(pos-1)/(NUM_POSITIONS-1);
+  var acc=getAccuracy(posNorm).toFixed(0);
+
+  var posLabel=pos===1?'Start':pos===NUM_POSITIONS?'End':'Middle';
+  if(pos<=3) posLabel='Start';
+  else if(pos>=NUM_POSITIONS-2) posLabel='End';
+  else posLabel='Middle';
+
+  needleLabel.textContent='Position: '+posLabel+' ('+pos+'/'+NUM_POSITIONS+') \u2014 Accuracy: ~'+acc+'%';
+
+  // Update context bar
+  updateContextBar(pos);
+  drawLitmChart(pos);
+}
+
+function updateContextBar(needlePos){
+  var bar=document.getElementById('contextBar');
+  bar.innerHTML='';
+  for(var i=1;i<=NUM_POSITIONS;i++){
+    var seg=document.createElement('div');
+    seg.className='context-segment';
+    seg.style.flex='1';
+    if(i===needlePos){
+      seg.style.background='var(--accent2)';
+      seg.textContent='\u2605';
+      seg.style.fontSize='.85rem';
+    }else{
+      seg.style.background=i<needlePos?'rgba(91,91,214,.3)':'rgba(91,91,214,.15)';
+      seg.style.color='transparent';
+      seg.textContent='.';
+    }
+    bar.appendChild(seg);
+  }
+}
+
+function drawLitmChart(needlePos){
+  var c=document.getElementById('litmCanvas');if(!c)return;
+  var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;
+  var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();
+
+  var pad={t:50,r:40,b:60,l:70},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+
+  // Title
+  x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';x.fillText(t('p22.s3.chart_title'),W/2,26);
+
+  // Axes
+  x.strokeStyle=bc;x.lineWidth=1;x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
+
+  // Y labels (0-100%)
+  x.fillStyle=dc;x.font='10px monospace';x.textAlign='right';
+  for(var i=0;i<=5;i++){
+    var val=i*20;
+    var py=pad.t+cH-((val/100)*cH);
+    x.fillText(val+'%',pad.l-8,py+4);
+    x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(pad.l,py);x.lineTo(pad.l+cW,py);x.stroke();
+  }
+  // Y axis label
+  x.save();x.translate(14,pad.t+cH/2);x.rotate(-Math.PI/2);x.fillStyle=dc;x.font='11px system-ui';x.textAlign='center';x.fillText(t('p22.s3.accuracy'),0,0);x.restore();
+
+  // X labels
+  x.fillStyle=dc;x.font='10px monospace';x.textAlign='center';
+  var xLabels=[1,5,10,15,20];
+  xLabels.forEach(function(n){
+    var px=pad.l+((n-1)/(NUM_POSITIONS-1))*cW;
+    x.fillText(n.toString(),px,pad.t+cH+16);
+  });
+  x.fillText(t('p22.s3.position'),pad.l+cW/2,pad.t+cH+40);
+
+  // Draw bars
+  var barW=cW/NUM_POSITIONS*0.7;
+  for(var i=0;i<NUM_POSITIONS;i++){
+    var posNorm=i/(NUM_POSITIONS-1);
+    var acc=getAccuracy(posNorm);
+    var px=pad.l+(i/(NUM_POSITIONS-1))*cW-barW/2;
+    var barH=(acc/100)*cH;
+    var py=pad.t+cH-barH;
+
+    // Color based on accuracy
+    var color;
+    if(acc>=80) color='#0d9488';
+    else if(acc>=65) color='#ea580c';
+    else color='#e11d48';
+
+    // Highlight needle position
+    if(i+1===needlePos){
+      x.fillStyle=color;
+      x.globalAlpha=1;
+      // Draw highlight behind bar
+      x.fillStyle='rgba(91,91,214,.1)';
+      x.fillRect(px-4,pad.t,barW+8,cH);
+      x.fillStyle=color;
+    }else{
+      x.globalAlpha=0.6;
+      x.fillStyle=color;
+    }
+
+    x.beginPath();
+    if(x.roundRect) x.roundRect(px,py,barW,barH,3);
+    else x.fillRect(px,py,barW,barH);
+    x.fill();
+
+    // Value label on highlighted bar
+    if(i+1===needlePos){
+      x.globalAlpha=1;
+      x.fillStyle=tc;x.font='bold 11px system-ui';x.textAlign='center';
+      x.fillText(acc.toFixed(0)+'%',px+barW/2,py-8);
+    }
+  }
+  x.globalAlpha=1;
+
+  // Draw U-curve overlay
+  x.strokeStyle='rgba(91,91,214,.5)';x.lineWidth=2;x.setLineDash([4,4]);x.beginPath();
+  for(var i=0;i<NUM_POSITIONS;i++){
+    var posNorm=i/(NUM_POSITIONS-1);
+    var acc=getAccuracy(posNorm);
+    var px=pad.l+(i/(NUM_POSITIONS-1))*cW;
+    var py=pad.t+cH-((acc/100)*cH);
+    i===0?x.moveTo(px,py):x.lineTo(px,py);
+  }
+  x.stroke();x.setLineDash([]);
+}
+
+needleSlider.addEventListener('input',updateNeedle);
+
+// ===== Section 4: Cost Comparison Canvas =====
+function drawCostChart(){
+  var c=document.getElementById('costCanvas');if(!c)return;
+  var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;var x=c.getContext('2d');x.scale(d,d);var W=r.width,H=r.height;
+  var s=getComputedStyle(document.documentElement),tc=s.getPropertyValue('--text').trim(),dc=s.getPropertyValue('--text-dim').trim(),bc=s.getPropertyValue('--border').trim();
+
+  var pad={t:50,r:40,b:60,l:70},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+
+  // Title
+  x.fillStyle=tc;x.font='bold 14px system-ui';x.textAlign='center';x.fillText(t('p22.s4.chart_title'),W/2,26);
+
+  // Axes
+  x.strokeStyle=bc;x.lineWidth=1;x.beginPath();x.moveTo(pad.l,pad.t);x.lineTo(pad.l,pad.t+cH);x.lineTo(pad.l+cW,pad.t+cH);x.stroke();
+
+  // Data points: KB size from 1K to 10M tokens (log scale)
+  var kbSizes=[1e3,5e3,1e4,5e4,1e5,5e5,1e6,5e6,1e7];
+  var kbLabels=['1K','5K','10K','50K','100K','500K','1M','5M','10M'];
+
+  // CAG cost: flat (context window cost) but rises slightly with context size, then plateaus at context limit
+  // After context limit (~200K), cost is infinity (can't use CAG)
+  var cagCosts=kbSizes.map(function(n){
+    if(n<=200000) return 0.8+0.2*(n/200000); // Slight rise with context usage
+    return null; // Can't use CAG beyond context limit
+  });
+
+  // RAG cost: base overhead + scales logarithmically
+  var ragCosts=kbSizes.map(function(n){
+    return 0.3+0.15*Math.log10(n/1000); // Embedding + search overhead, but scales well
+  });
+
+  var maxCost=1.2;
+
+  // Y labels
+  x.fillStyle=dc;x.font='10px monospace';x.textAlign='right';
+  for(var i=0;i<=5;i++){
+    var val=(maxCost*(i/5)).toFixed(1);
+    var py=pad.t+cH-((i/5)*cH);
+    x.fillText(val,pad.l-8,py+4);
+    x.strokeStyle='rgba(128,128,128,.1)';x.beginPath();x.moveTo(pad.l,py);x.lineTo(pad.l+cW,py);x.stroke();
+  }
+  x.save();x.translate(14,pad.t+cH/2);x.rotate(-Math.PI/2);x.fillStyle=dc;x.font='11px system-ui';x.textAlign='center';x.fillText(t('p22.s4.cost_label'),0,0);x.restore();
+
+  // X labels
+  x.fillStyle=dc;x.font='9px monospace';x.textAlign='center';
+  kbLabels.forEach(function(lbl,i){
+    var px=pad.l+(i/(kbSizes.length-1))*cW;
+    x.fillText(lbl,px,pad.t+cH+16);
+  });
+  x.fillText(t('p22.s4.kb_size'),pad.l+cW/2,pad.t+cH+40);
+
+  // Draw CAG line (solid until context limit, then dashed to show "can't use")
+  x.strokeStyle='#0d9488';x.lineWidth=2.5;x.beginPath();
+  var lastCagIdx=-1;
+  kbSizes.forEach(function(n,i){
+    if(cagCosts[i]===null) return;
+    var px=pad.l+(i/(kbSizes.length-1))*cW;
+    var py=pad.t+cH-((cagCosts[i]/maxCost)*cH);
+    if(lastCagIdx===-1) x.moveTo(px,py);
+    else x.lineTo(px,py);
+    lastCagIdx=i;
+  });
+  x.stroke();
+  // Points for CAG
+  kbSizes.forEach(function(n,i){
+    if(cagCosts[i]===null) return;
+    var px=pad.l+(i/(kbSizes.length-1))*cW;
+    var py=pad.t+cH-((cagCosts[i]/maxCost)*cH);
+    x.fillStyle='#0d9488';x.beginPath();x.arc(px,py,4,0,Math.PI*2);x.fill();
+  });
+  // Dashed line showing CAG can't continue
+  if(lastCagIdx<kbSizes.length-1){
+    var px1=pad.l+(lastCagIdx/(kbSizes.length-1))*cW;
+    var py1=pad.t+cH-((cagCosts[lastCagIdx]/maxCost)*cH);
+    x.setLineDash([4,4]);x.strokeStyle='rgba(13,148,136,.3)';x.lineWidth=1.5;
+    x.beginPath();x.moveTo(px1,py1);x.lineTo(pad.l+cW,py1+30);x.stroke();
+    x.setLineDash([]);
+    // "Context limit" label
+    x.fillStyle='#0d9488';x.font='10px system-ui';x.textAlign='left';
+    x.fillText('Context limit',px1+8,py1+20);
+  }
+
+  // Draw RAG line
+  x.strokeStyle='#e11d48';x.lineWidth=2.5;x.beginPath();
+  kbSizes.forEach(function(n,i){
+    var px=pad.l+(i/(kbSizes.length-1))*cW;
+    var py=pad.t+cH-((ragCosts[i]/maxCost)*cH);
+    i===0?x.moveTo(px,py):x.lineTo(px,py);
+  });
+  x.stroke();
+  kbSizes.forEach(function(n,i){
+    var px=pad.l+(i/(kbSizes.length-1))*cW;
+    var py=pad.t+cH-((ragCosts[i]/maxCost)*cH);
+    x.fillStyle='#e11d48';x.beginPath();x.arc(px,py,4,0,Math.PI*2);x.fill();
+  });
+
+  // Find and mark crossover point
+  var crossIdx=-1;
+  for(var i=0;i<kbSizes.length;i++){
+    if(cagCosts[i]!==null&&ragCosts[i]<cagCosts[i]){crossIdx=i;break;}
+  }
+  if(crossIdx>0){
+    var px=pad.l+(crossIdx/(kbSizes.length-1))*cW;
+    x.setLineDash([4,3]);x.strokeStyle='rgba(128,128,128,.5)';x.lineWidth=1;
+    x.beginPath();x.moveTo(px,pad.t);x.lineTo(px,pad.t+cH);x.stroke();x.setLineDash([]);
+    x.fillStyle=tc;x.font='bold 10px system-ui';x.textAlign='center';
+    x.fillText(t('p22.s4.crossover'),px,pad.t+cH-10);
+  }
+
+  // Legend
+  x.fillStyle='#0d9488';x.fillRect(W-180,pad.t+8,12,12);x.fillStyle=tc;x.font='11px system-ui';x.textAlign='left';x.fillText('CAG (context window)',W-164,pad.t+18);
+  x.fillStyle='#e11d48';x.fillRect(W-180,pad.t+26,12,12);x.fillText('RAG (vector search)',W-164,pad.t+36);
+}
+
+// ===== Section 5: Quiz =====
+var QUIZ=[
+  {qk:'p22.s5.q0',ans:0,opts:['p22.s5.a0_0','p22.s5.a0_1','p22.s5.a0_2','p22.s5.a0_3']},
+  {qk:'p22.s5.q1',ans:0,opts:['p22.s5.a1_0','p22.s5.a1_1','p22.s5.a1_2','p22.s5.a1_3']},
+  {qk:'p22.s5.q2',ans:0,opts:['p22.s5.a2_0','p22.s5.a2_1','p22.s5.a2_2','p22.s5.a2_3']},
+  {qk:'p22.s5.q3',ans:0,opts:['p22.s5.a3_0','p22.s5.a3_1','p22.s5.a3_2','p22.s5.a3_3']},
+  {qk:'p22.s5.q4',ans:0,opts:['p22.s5.a4_0','p22.s5.a4_1','p22.s5.a4_2','p22.s5.a4_3']}
+];
+var qi=0,qs=0;
+
+function renderQuiz(){
+  document.getElementById('qRound').textContent=(qi+1)+'/5';
+  document.getElementById('qScore').textContent=qs;
+  document.getElementById('qDesc').textContent=t(QUIZ[qi].qk);
+  document.getElementById('qFb').textContent='';
+  var o=document.getElementById('qOpts');o.innerHTML='';
+  var indices=[0,1,2,3];
+  indices.sort(function(){return Math.random()-.5;});
+  indices.forEach(function(oi){
+    var d=document.createElement('div');
+    d.className='game-opt';
+    d.textContent=t(QUIZ[qi].opts[oi]);
+    d.setAttribute('data-idx',oi);
+    d.onclick=function(){checkQuiz(oi,d);};
+    o.appendChild(d);
+  });
+}
+
+function checkQuiz(pick,el){
+  var all=document.getElementById('qOpts').querySelectorAll('.game-opt');
+  all.forEach(function(d){d.style.pointerEvents='none';});
+  if(pick===QUIZ[qi].ans){
+    el.classList.add('correct');
+    qs++;
+    document.getElementById('qFb').innerHTML='<span style="color:var(--accent2)">'+t('p22.s5.correct')+'</span>';
+  }else{
+    el.classList.add('wrong');
+    all.forEach(function(d){if(parseInt(d.getAttribute('data-idx'))===QUIZ[qi].ans)d.classList.add('correct');});
+    document.getElementById('qFb').innerHTML='<span style="color:var(--accent3)">'+t('p22.s5.wrong')+' '+t(QUIZ[qi].opts[QUIZ[qi].ans])+'</span>';
+  }
+  document.getElementById('qScore').textContent=qs;
+  setTimeout(function(){
+    qi++;
+    if(qi<5) renderQuiz();
+    else{
+      document.getElementById('qFb').innerHTML='<strong>Final: '+qs+'/5</strong>';
+      if(typeof markGameCompleted==='function') markGameCompleted('22');
+    }
+  },2000);
+}
+
+// ===== Init =====
+window.addEventListener('load',function(){
+  updateNeedle();
+  drawCostChart();
+  renderQuiz();
+  // Auto-run pipeline animation on load
+  setTimeout(animatePipelines,500);
+});
+window.addEventListener('themechange',function(){drawLitmChart(Math.round(parseInt(needleSlider.value)/100*(NUM_POSITIONS-1))+1);drawCostChart();});
+window.addEventListener('resize',function(){drawLitmChart(Math.round(parseInt(needleSlider.value)/100*(NUM_POSITIONS-1))+1);drawCostChart();});
+</script>
+</body>
+</html>

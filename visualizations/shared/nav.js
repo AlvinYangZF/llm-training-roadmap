@@ -33,6 +33,20 @@ const NAV_TOPICS = [
   { cat: 'Vector Search', items: [
     { num: '17', title: 'DiskANN', file: '17-diskann.html', year: '2019' },
     { num: '18', title: 'AiSAQ', file: '18-aisaq.html', year: '2024' },
+    { num: '19', title: 'HNSW', file: '19-hnsw.html', year: '2016' },
+  ]},
+  { cat: 'Retrieval Engineering', items: [
+    { num: '20', title: 'Hybrid Search', file: '20-hybrid-search.html', year: '2024' },
+    { num: '21', title: 'KG Construction', file: '21-kg-construction.html', year: '2024' },
+    { num: '22', title: 'CAG vs RAG', file: '22-cag-vs-rag.html', year: '2025' },
+  ]},
+  { cat: 'ML Foundations', items: [
+    { num: '23', title: 'Embeddings', file: '23-embeddings.html', year: 'Core' },
+    { num: '24', title: 'Tokenization', file: '24-tokenization.html', year: 'Core' },
+    { num: '25', title: 'Training & Loss', file: '25-training-loss.html', year: 'Core' },
+    { num: '26', title: 'Quantization', file: '26-quantization.html', year: '2023' },
+    { num: '27', title: 'LoRA Fine-tuning', file: '27-lora.html', year: '2021' },
+    { num: '28', title: 'Decoding Strategies', file: '28-decoding.html', year: 'Core' },
   ]},
 ];
 
@@ -57,6 +71,16 @@ const NAV_ORDERED = [
   '16-rag-at-scale.html',
   '17-diskann.html',
   '18-aisaq.html',
+  '19-hnsw.html',
+  '20-hybrid-search.html',
+  '21-kg-construction.html',
+  '22-cag-vs-rag.html',
+  '23-embeddings.html',
+  '24-tokenization.html',
+  '25-training-loss.html',
+  '26-quantization.html',
+  '27-lora.html',
+  '28-decoding.html',
 ];
 
 function getCurrentPage() {
@@ -110,6 +134,8 @@ function buildNav() {
     'nav.cat.advanced',
     'nav.cat.rag',
     'nav.cat.vectorsearch',
+    'nav.cat.retrievaleng',
+    'nav.cat.mlfoundations',
   ];
 
   let html = '';

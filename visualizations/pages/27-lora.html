@@ -1,0 +1,867 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p27.title">27. LoRA Fine-tuning — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .lora-canvas{width:100%;height:420px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .train-canvas{width:100%;height:380px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .ctrl-btns{display:flex;gap:10px;justify-content:center;margin:12px 0;flex-wrap:wrap}
+    .ctrl-btns button{padding:8px 22px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s}
+    .ctrl-btns button:hover{border-color:var(--accent);color:var(--accent)}
+    .ctrl-btns button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .ctrl-btns button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+    .stat-badge .val{font-size:1.4rem;font-weight:800}
+    .stat-badge .lbl{font-size:.72rem;color:var(--text-dim);text-transform:uppercase}
+    .formula-box{padding:14px 20px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);font-family:'Courier New',monospace;font-size:.88rem;text-align:center;margin:12px 0;line-height:1.8}
+    .slider-row{display:flex;align-items:center;gap:12px;justify-content:center;margin:10px 0;flex-wrap:wrap}
+    .slider-row label{font-weight:600;font-size:.88rem;color:var(--text-dim)}
+    .slider-row input[type=range]{width:200px;accent-color:var(--accent)}
+    .slider-row .slider-val{font-weight:800;font-size:1rem;color:var(--accent);min-width:40px}
+    .slider-row select{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.88rem;font-weight:600}
+    .bar-chart{display:flex;align-items:flex-end;gap:24px;justify-content:center;height:200px;margin:20px 0;padding:0 20px}
+    .bar-col{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;max-width:120px}
+    .bar-fill{width:100%;border-radius:8px 8px 0 0;transition:height .5s ease;min-height:4px;position:relative}
+    .bar-fill .bar-label{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:.72rem;font-weight:700;white-space:nowrap}
+    .bar-name{font-size:.78rem;font-weight:600;text-align:center;color:var(--text)}
+    .bar-sub{font-size:.68rem;color:var(--text-dim)}
+    .timeline-row{display:flex;gap:0;margin:20px 0;position:relative}
+    .tl-card{flex:1;padding:18px 14px;border:2px solid var(--border);text-align:center;cursor:pointer;transition:all .3s;position:relative}
+    .tl-card:first-child{border-radius:var(--radius) 0 0 var(--radius)}
+    .tl-card:last-child{border-radius:0 var(--radius) var(--radius) 0}
+    .tl-card.active{border-color:var(--accent);background:rgba(91,91,214,.06);transform:translateY(-4px);z-index:2}
+    .tl-card h4{margin:0 0 4px;font-size:.95rem}
+    .tl-card .tl-year{font-size:.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
+    .tl-card .tl-desc{font-size:.78rem;color:var(--text-dim);margin-top:6px;line-height:1.4}
+    .tl-detail{padding:16px 20px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);margin-top:12px;min-height:60px}
+    .tl-detail .tl-formula{font-family:'Courier New',monospace;font-size:.88rem;text-align:center;margin:8px 0;line-height:1.8}
+    .tl-detail .tl-innovation{font-size:.85rem;color:var(--text);line-height:1.6}
+    .merge-canvas{width:100%;height:300px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer}
+    .code-block{background:#1e1e2e;border-radius:var(--radius);overflow:hidden;font-family:'SF Mono','Fira Code',monospace;font-size:.78rem;border:1px solid var(--border)}
+    .code-header{padding:8px 14px;background:rgba(0,0,0,.3);border-bottom:1px solid rgba(255,255,255,.06);font-size:.72rem;color:#6c7086;display:flex;justify-content:space-between}
+    .code-header .lang-tag{color:#f9e2af;font-weight:600}
+    .code-lines{padding:12px 0;overflow-x:auto}
+    .code-line{display:flex;padding:1px 14px;line-height:1.7;white-space:pre;transition:background .3s}
+    .code-line.active{background:rgba(91,91,214,.15);border-left:3px solid var(--accent);padding-left:11px}
+    .code-line.executed{background:rgba(13,148,136,.08)}
+    .code-line .ln{color:#45475a;min-width:28px;text-align:right;margin-right:12px;user-select:none}
+    .tok-kw{color:#c678dd}.tok-fn{color:#61afef}.tok-str{color:#98c379}.tok-num{color:#d19a66}.tok-cm{color:#5c6370;font-style:italic}.tok-op{color:#56b6c2}.tok-cls{color:#e5c07b}.tok-var{color:#abb2bf}
+    .output-block{background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:12px;font-family:monospace;font-size:.78rem;min-height:80px;max-height:240px;overflow-y:auto;line-height:1.6}
+    .out-label{color:var(--accent);font-weight:600}
+    .train-info{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+    .train-info .ti{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);text-align:center}
+    .train-info .ti .tv{font-size:1.1rem;font-weight:800;font-family:'Courier New',monospace}
+    .train-info .ti .tl{font-size:.68rem;color:var(--text-dim);text-transform:uppercase}
+    @media(max-width:700px){.timeline-row{flex-direction:column}.tl-card,.tl-card:first-child,.tl-card:last-child{border-radius:var(--radius)}.bar-chart{gap:12px}}
+  </style>
+</head><body>
+
+<h1 data-i18n="p27.heading">LoRA — Low-Rank Adaptation of Large Language Models</h1>
+<p class="subtitle" data-i18n="p27.subtitle">Fine-tune billion-parameter models by training only a tiny fraction of weights through low-rank decomposition.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span>LoRA</span></p>
+
+<div class="container">
+
+  <!-- Section 1: Weight Matrix Decomposition -->
+  <div class="card">
+    <span class="badge badge-purple" data-i18n="p27.s1.badge">Interactive</span>
+    <h2 data-i18n="p27.s1.title">Weight Matrix Decomposition</h2>
+    <p data-i18n="p27.s1.desc" data-i18n-html="1">LoRA freezes the pretrained weight matrix <strong>W</strong> and adds a low-rank update <strong>BA</strong>. Instead of training all d&times;d parameters, we only train two small matrices <strong>B</strong> (d&times;r) and <strong>A</strong> (r&times;d) where r &lt;&lt; d.</p>
+    <canvas id="decompCanvas" class="lora-canvas"></canvas>
+    <div class="slider-row">
+      <label data-i18n="p27.s1.rank">Rank r:</label>
+      <input type="range" id="rankSlider" min="0" max="6" value="2" oninput="onRankChange()">
+      <span class="slider-val" id="rankVal">4</span>
+    </div>
+    <div class="formula-box">h = Wx + BAx &nbsp;&nbsp;|&nbsp;&nbsp; W &isin; R<sup>d&times;d</sup>, B &isin; R<sup>d&times;r</sup>, A &isin; R<sup>r&times;d</sup></div>
+    <div class="stat-row" id="decompStats">
+      <div class="stat-badge"><div class="val" id="fullParams" style="color:var(--text-dim)">589,824</div><div class="lbl" data-i18n="p27.s1.full_params">Full Params</div></div>
+      <div class="stat-badge"><div class="val" id="loraParams" style="color:var(--accent)">6,144</div><div class="lbl" data-i18n="p27.s1.lora_params">LoRA Params</div></div>
+      <div class="stat-badge"><div class="val" id="reduction" style="color:var(--accent2)">1.04%</div><div class="lbl" data-i18n="p27.s1.reduction">Of Original</div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: Parameter Efficiency Calculator -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)" data-i18n="p27.s2.badge">Calculator</span>
+    <h2 data-i18n="p27.s2.title">Parameter Efficiency Calculator</h2>
+    <p data-i18n="p27.s2.desc" data-i18n-html="1">Compare <strong>full fine-tuning</strong>, <strong>LoRA</strong>, and <strong>QLoRA</strong> across different model sizes. Pick a model and rank to see the savings.</p>
+    <div class="slider-row">
+      <label data-i18n="p27.s2.model_size">Model Size:</label>
+      <select id="modelSelect" onchange="updateCalc()">
+        <option value="125">125M</option>
+        <option value="350">350M</option>
+        <option value="1300" selected>1.3B</option>
+        <option value="6700">6.7B</option>
+        <option value="13000">13B</option>
+        <option value="65000">65B</option>
+      </select>
+      <label data-i18n="p27.s2.rank_label">Rank r:</label>
+      <select id="calcRankSelect" onchange="updateCalc()">
+        <option value="1">1</option><option value="2">2</option><option value="4">4</option>
+        <option value="8" selected>8</option><option value="16">16</option><option value="32">32</option><option value="64">64</option>
+      </select>
+    </div>
+    <div class="bar-chart" id="barChart"></div>
+    <div class="stat-row" id="calcStats"></div>
+  </div>
+
+  <!-- Section 3: Training Visualization -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.1);color:var(--accent3)" data-i18n="p27.s3.badge">Animation</span>
+    <h2 data-i18n="p27.s3.title">Training Visualization</h2>
+    <p data-i18n="p27.s3.desc" data-i18n-html="1">Watch how LoRA training works: gradients only flow through the <strong>low-rank matrices B and A</strong> while the original weights stay frozen. The loss curve shows convergence over epochs.</p>
+    <canvas id="trainCanvas" class="train-canvas"></canvas>
+    <div class="train-info" id="trainInfo">
+      <div class="ti"><div class="tv" id="tiEpoch">0</div><div class="tl" data-i18n="p27.s3.epoch">Epoch</div></div>
+      <div class="ti"><div class="tv" id="tiLoss">2.500</div><div class="tl" data-i18n="p27.s3.loss">Loss</div></div>
+      <div class="ti"><div class="tv" id="tiLR">3e-4</div><div class="tl" data-i18n="p27.s3.lr">Learning Rate</div></div>
+      <div class="ti"><div class="tv" id="tiGrad" style="color:var(--accent)">--</div><div class="tl" data-i18n="p27.s3.grad_norm">Grad Norm</div></div>
+    </div>
+    <div class="ctrl-btns">
+      <button class="primary" id="trainPlayBtn" onclick="toggleTrain()" data-i18n="btn.play">Play</button>
+      <button onclick="resetTrain()" data-i18n="btn.reset">Reset</button>
+    </div>
+  </div>
+
+  <!-- Section 4: LoRA Variants Timeline -->
+  <div class="card">
+    <span class="badge" style="background:rgba(124,58,237,.1);color:#7c3aed" data-i18n="p27.s4.badge">Timeline</span>
+    <h2 data-i18n="p27.s4.title">LoRA Variants Timeline</h2>
+    <p data-i18n="p27.s4.desc" data-i18n-html="1">From the original LoRA to cutting-edge variants. Click each card to see the <strong>key innovation</strong> and formula.</p>
+    <div class="timeline-row" id="tlRow">
+      <div class="tl-card active" onclick="selectTL(0)"><div class="tl-year">2021</div><h4>LoRA</h4><div class="tl-desc" data-i18n="p27.s4.tl0_short">Low-rank weight updates</div></div>
+      <div class="tl-card" onclick="selectTL(1)"><div class="tl-year">2023</div><h4>QLoRA</h4><div class="tl-desc" data-i18n="p27.s4.tl1_short">4-bit quantized base</div></div>
+      <div class="tl-card" onclick="selectTL(2)"><div class="tl-year">2024</div><h4>DoRA</h4><div class="tl-desc" data-i18n="p27.s4.tl2_short">Weight-decomposed adaptation</div></div>
+      <div class="tl-card" onclick="selectTL(3)"><div class="tl-year">2024</div><h4>LoRA+</h4><div class="tl-desc" data-i18n="p27.s4.tl3_short">Different learning rates for A, B</div></div>
+    </div>
+    <div class="tl-detail" id="tlDetail"></div>
+  </div>
+
+  <!-- Section 5: Merge & Deploy Game -->
+  <div class="card">
+    <span class="badge badge-purple" data-i18n="p27.s5.badge">Game</span>
+    <h2 data-i18n="p27.s5.title">Merge & Deploy</h2>
+    <p data-i18n="p27.s5.desc" data-i18n-html="1">Click the canvas to merge LoRA weights step by step: <strong>W_new = W + BA</strong>. Then test your knowledge with a quick quiz on LoRA configurations.</p>
+    <canvas id="mergeCanvas" class="merge-canvas"></canvas>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="resetMerge()" data-i18n="btn.reset">Reset</button>
+    </div>
+    <div class="game-scenario" id="mergeQuizQ" style="margin-top:16px"></div>
+    <div class="game-options" id="mergeQuizOpts"></div>
+    <div class="game-feedback" id="mergeQuizFB"></div>
+    <div class="game-score">
+      <div class="game-score-item"><div class="score-val" id="mqScore">0</div><div class="score-label" data-i18n="p27.s5.score">Score</div></div>
+      <div class="game-score-item"><div class="score-val" id="mqRound">1/4</div><div class="score-label" data-i18n="p27.s5.round">Round</div></div>
+    </div>
+    <div class="ctrl-btns" id="mqNextBtn" style="display:none">
+      <button class="primary" onclick="nextMQ()" data-i18n="btn.nextRound">Next Round</button>
+    </div>
+  </div>
+
+  <!-- Section 6: PyTorch Code -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)" data-i18n="p27.s6.badge">Code</span>
+    <h2 data-i18n="p27.s6.title">PyTorch LoRA Implementation</h2>
+    <p data-i18n="p27.s6.desc" data-i18n-html="1">Step through a minimal LoRA layer implementation. Each step shows the <strong>tensor shapes</strong> and output.</p>
+    <div class="code-block"><div class="code-header"><span class="lang-tag">PyTorch</span><span>lora_layer.py</span></div><div class="code-lines" id="loraCode"></div></div>
+    <div class="output-block" id="loraOutput"><span class="out-label">&gt;&gt;&gt;</span> <span data-i18n="p27.s6.click_step">Click "Step" to execute line by line</span></div>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="stepCode()" data-i18n="btn.step">Step</button>
+      <button onclick="runAllCode()" data-i18n="btn.runAll">Run All</button>
+      <button onclick="resetCode()" data-i18n="btn.reset">Reset</button>
+    </div>
+  </div>
+
+</div>
+
+<footer><p>LoRA — Hu et al. 2021 "LoRA: Low-Rank Adaptation of Large Language Models"</p><p>LLM Algorithm Visualizations v2.1.0</p></footer>
+
+<script src="../shared/i18n.js"></script><script src="../shared/nav.js"></script><script src="../shared/animations.js"></script><script src="../shared/progress.js"></script>
+
+<script>
+// ===================== HELPERS =====================
+var dpr=window.devicePixelRatio||1;
+function S(id){return document.getElementById(id)}
+function css(p){return getComputedStyle(document.documentElement).getPropertyValue(p).trim()}
+function initC(id){var c=S(id);if(!c)return null;var r=c.getBoundingClientRect();c.width=r.width*dpr;c.height=r.height*dpr;var x=c.getContext('2d');x.scale(dpr,dpr);return{c:c,x:x,W:r.width,H:r.height}}
+function fmt(n){if(n>=1e9)return(n/1e9).toFixed(1)+'B';if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return n.toString()}
+
+// ===================== SECTION 1: Weight Matrix Decomposition =====================
+var ranks=[1,2,4,8,16,32,64],curRank=4,dim=768,animT=0,animReq=null;
+
+function onRankChange(){
+  curRank=ranks[+S('rankSlider').value];
+  S('rankVal').textContent=curRank;
+  var full=dim*dim,lora=dim*curRank*2,pct=(lora/full*100).toFixed(2);
+  S('fullParams').textContent=fmt(full);
+  S('loraParams').textContent=fmt(lora);
+  S('reduction').textContent=pct+'%';
+  drawDecomp();
+}
+
+function drawDecomp(){
+  var o=initC('decompCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim'),ac=css('--accent'),bc=css('--border');
+  x.clearRect(0,0,W,H);
+
+  var mw=Math.min(120,W*0.15),pad=20,rr=Math.max(curRank/64*mw,6);
+  var cy=H/2,gap=30;
+  // Layout: W + = + W + B*A
+  // Frozen W (gray)
+  var wx1=pad+10,wy1=cy-mw/2;
+  x.fillStyle='rgba(128,128,128,.15)';x.strokeStyle=bc;x.lineWidth=1;
+  x.fillRect(wx1,wy1,mw,mw);x.strokeRect(wx1,wy1,mw,mw);
+  // Grid lines for W
+  for(var i=1;i<8;i++){var p=i/8;x.beginPath();x.moveTo(wx1+p*mw,wy1);x.lineTo(wx1+p*mw,wy1+mw);x.stroke();x.beginPath();x.moveTo(wx1,wy1+p*mw);x.lineTo(wx1+mw,wy1+p*mw);x.stroke();}
+  x.fillStyle=dc;x.font='bold 13px system-ui';x.textAlign='center';x.textBaseline='middle';
+  x.fillText('W',wx1+mw/2,cy);
+  x.font='10px system-ui';x.fillText(dim+'x'+dim,wx1+mw/2,wy1+mw+16);
+  // Frozen label
+  x.fillStyle='rgba(128,128,128,.6)';x.font='bold 9px system-ui';
+  x.fillText(t('p27.s1.frozen'),wx1+mw/2,wy1-10);
+
+  // Plus sign
+  var px1=wx1+mw+gap;
+  x.fillStyle=tc;x.font='bold 22px system-ui';x.textAlign='center';x.textBaseline='middle';
+  x.fillText('+',px1,cy);
+
+  // B matrix (d x r) - accent colored
+  var bx1=px1+gap,by1=cy-mw/2;
+  x.fillStyle='rgba(91,91,214,.18)';x.strokeStyle=ac;x.lineWidth=2;
+  x.fillRect(bx1,by1,rr,mw);x.strokeRect(bx1,by1,rr,mw);
+  x.fillStyle=ac;x.font='bold 12px system-ui';x.textAlign='center';
+  x.fillText('B',bx1+rr/2,cy);
+  x.font='10px system-ui';x.fillText(dim+'x'+curRank,bx1+rr/2,by1+mw+16);
+  // Trainable label
+  x.fillStyle=ac;x.font='bold 9px system-ui';
+  x.fillText(t('p27.s1.trainable'),bx1+rr/2,by1-10);
+
+  // Multiplication dot
+  var mx1=bx1+rr+15;
+  x.fillStyle=tc;x.font='bold 18px system-ui';x.textAlign='center';
+  x.fillText('\u00D7',mx1,cy);
+
+  // A matrix (r x d) - accent colored
+  var ax1=mx1+15,ay1=cy-rr/2;
+  x.fillStyle='rgba(91,91,214,.18)';x.strokeStyle=ac;x.lineWidth=2;
+  x.fillRect(ax1,ay1,mw,rr);x.strokeRect(ax1,ay1,mw,rr);
+  x.fillStyle=ac;x.font='bold 12px system-ui';x.textAlign='center';
+  x.fillText('A',ax1+mw/2,cy);
+  x.font='10px system-ui';x.fillText(curRank+'x'+dim,ax1+mw/2,ay1+rr+18);
+  x.fillStyle=ac;x.font='bold 9px system-ui';
+  x.fillText(t('p27.s1.trainable'),ax1+mw/2,ay1-10);
+
+  // Equals sign
+  var ex1=ax1+mw+gap;
+  x.fillStyle=tc;x.font='bold 22px system-ui';x.textAlign='center';
+  x.fillText('=',ex1,cy);
+
+  // Result BA matrix (d x d) - accent colored
+  var rx1=ex1+gap,ry1=cy-mw/2;
+  x.fillStyle='rgba(91,91,214,.12)';x.strokeStyle=ac;x.lineWidth=2;
+  x.fillRect(rx1,ry1,mw,mw);x.strokeRect(rx1,ry1,mw,mw);
+  x.fillStyle=ac;x.font='bold 13px system-ui';x.textAlign='center';
+  x.fillText('\u0394W',rx1+mw/2,cy);
+  x.font='10px system-ui';x.fillText(dim+'x'+dim,rx1+mw/2,ry1+mw+16);
+
+  // Animated particles flowing B -> A
+  var now=Date.now()/1000;
+  for(var i=0;i<5;i++){
+    var tt=((now*0.8+i*0.2)%1);
+    var px,py;
+    if(tt<0.5){
+      var lt=tt*2;px=bx1+rr/2;py=by1+lt*mw;
+    } else {
+      var lt=(tt-0.5)*2;px=ax1+lt*mw;py=cy;
+    }
+    x.fillStyle=ac;x.globalAlpha=0.7;x.beginPath();x.arc(px,py,3,0,Math.PI*2);x.fill();
+    x.globalAlpha=1;
+  }
+}
+
+function animDecomp(){drawDecomp();animReq=requestAnimationFrame(animDecomp);}
+
+// ===================== SECTION 2: Parameter Efficiency Calculator =====================
+function updateCalc(){
+  var modelM=+S('modelSelect').value;
+  var r=+S('calcRankSelect').value;
+  var totalP=modelM*1e6;
+  // Approximate: LoRA applies to attention Q,V matrices. ~2 matrices per layer, d_model varies.
+  // Simplified: LoRA params ~ num_layers * 2 * 2 * d_model * r
+  var cfg={125:{L:12,d:768},350:{L:24,d:1024},1300:{L:24,d:2048},6700:{L:32,d:4096},13000:{L:40,d:5120},65000:{L:80,d:8192}};
+  var c=cfg[modelM]||{L:24,d:2048};
+  var loraP=c.L*2*2*c.d*r; // 2 matrices (Q,V), B and A each
+  var qloraP=loraP; // same trainable params, but base is quantized
+  var fullMem=totalP*4/(1024*1024*1024); // fp32 bytes -> GB
+  var loraMem=totalP*2/(1024*1024*1024)+loraP*4/(1024*1024*1024); // fp16 base + fp32 LoRA
+  var qloraMem=totalP*0.5/(1024*1024*1024)+loraP*4/(1024*1024*1024); // 4-bit base + fp32 LoRA
+
+  // Bar chart
+  var maxMem=fullMem;
+  var bc=S('barChart');
+  bc.innerHTML='';
+  var bars=[
+    {name:t('p27.s2.full_ft'),mem:fullMem,params:totalP,color:'rgba(128,128,128,.5)'},
+    {name:'LoRA',mem:loraMem,params:loraP,color:css('--accent')},
+    {name:'QLoRA',mem:qloraMem,params:qloraP,color:css('--accent2')}
+  ];
+  bars.forEach(function(b){
+    var h=Math.max(8,(b.mem/maxMem)*170);
+    var col=document.createElement('div');col.className='bar-col';
+    col.innerHTML='<div class="bar-fill" style="height:'+h+'px;background:'+b.color+'"><div class="bar-label" style="color:'+b.color+'">'+b.mem.toFixed(1)+' GB</div></div><div class="bar-name">'+b.name+'</div><div class="bar-sub">'+fmt(b.params)+' '+t('p27.s2.params_label')+'</div>';
+    bc.appendChild(col);
+  });
+
+  // Stats
+  var st=S('calcStats');
+  st.innerHTML='<div class="stat-badge"><div class="val" style="color:var(--text-dim)">'+fmt(totalP)+'</div><div class="lbl">'+t('p27.s2.total_params')+'</div></div>'+
+    '<div class="stat-badge"><div class="val" style="color:var(--accent)">'+fmt(loraP)+'</div><div class="lbl">'+t('p27.s2.lora_trainable')+'</div></div>'+
+    '<div class="stat-badge"><div class="val" style="color:var(--accent2)">'+(loraP/totalP*100).toFixed(3)+'%</div><div class="lbl">'+t('p27.s2.percentage')+'</div></div>'+
+    '<div class="stat-badge"><div class="val" style="color:var(--accent3)">'+(fullMem/qloraMem).toFixed(1)+'x</div><div class="lbl">'+t('p27.s2.mem_saving')+'</div></div>';
+}
+
+// ===================== SECTION 3: Training Visualization =====================
+var trainRunning=false,trainStep=0,trainMax=100,trainData=[],trainAF=null,baseLR=3e-4;
+
+function resetTrain(){
+  trainRunning=false;trainStep=0;trainData=[];
+  S('trainPlayBtn').textContent=t('btn.play');S('trainPlayBtn').classList.add('primary');
+  S('tiEpoch').textContent='0';S('tiLoss').textContent='2.500';S('tiLR').textContent='3e-4';S('tiGrad').textContent='--';
+  if(trainAF)cancelAnimationFrame(trainAF);trainAF=null;
+  drawTrain();
+}
+
+function toggleTrain(){
+  trainRunning=!trainRunning;
+  S('trainPlayBtn').textContent=trainRunning?t('btn.pause'):t('btn.play');
+  if(trainRunning)tickTrain();
+}
+
+function tickTrain(){
+  if(!trainRunning||trainStep>=trainMax){trainRunning=false;S('trainPlayBtn').textContent=t('btn.play');return;}
+  trainStep++;
+  var pct=trainStep/trainMax;
+  var loss=2.5*Math.exp(-3.5*pct)+0.08+Math.random()*0.05*(1-pct);
+  var lr=baseLR*(1-pct*0.9);
+  var grad=Math.max(0.01,1.5*Math.exp(-2*pct)+Math.random()*0.1);
+  trainData.push({step:trainStep,loss:loss,lr:lr,grad:grad});
+  S('tiEpoch').textContent=Math.floor(pct*20);
+  S('tiLoss').textContent=loss.toFixed(3);
+  S('tiLR').textContent=lr.toExponential(1);
+  S('tiGrad').textContent=grad.toFixed(3);
+  drawTrain();
+  trainAF=setTimeout(tickTrain,80);
+}
+
+function drawTrain(){
+  var o=initC('trainCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim'),ac=css('--accent'),a2=css('--accent2'),a3=css('--accent3'),bc=css('--border');
+  x.clearRect(0,0,W,H);
+
+  // Split: left = gradient flow diagram, right = loss curve
+  var splitX=W*0.4;
+
+  // === LEFT: gradient flow ===
+  var cx=splitX/2,cy=H/2;
+  var bw=60,bh=40,gap=16;
+
+  // Input
+  x.fillStyle='rgba(128,128,128,.12)';x.strokeStyle=bc;x.lineWidth=1;
+  var iy=cy+bh+gap+bh/2;
+  x.fillRect(cx-bw/2,iy-bh/2,bw,bh);x.strokeRect(cx-bw/2,iy-bh/2,bw,bh);
+  x.fillStyle=dc;x.font='bold 10px system-ui';x.textAlign='center';x.textBaseline='middle';
+  x.fillText('x',cx,iy);
+
+  // W block (frozen)
+  var wy=cy;
+  x.fillStyle='rgba(128,128,128,.12)';x.strokeStyle=bc;
+  x.fillRect(cx-bw/2-40,wy-bh/2,bw,bh);x.strokeRect(cx-bw/2-40,wy-bh/2,bw,bh);
+  x.fillStyle='rgba(128,128,128,.6)';x.font='bold 10px system-ui';
+  x.fillText('W',cx-40,wy);
+  x.font='8px system-ui';x.fillText(t('p27.s1.frozen'),cx-40,wy+bh/2+10);
+  // X on gradient
+  x.fillStyle='rgba(225,29,72,.5)';x.font='bold 14px system-ui';
+  x.fillText('\u2717',cx-40,wy-bh/2-10);
+
+  // B and A blocks (trainable)
+  x.fillStyle='rgba(91,91,214,.18)';x.strokeStyle=ac;x.lineWidth=2;
+  x.fillRect(cx-bw/2+40,wy-bh-4,bw,bh);x.strokeRect(cx-bw/2+40,wy-bh-4,bw,bh);
+  x.fillStyle=ac;x.font='bold 10px system-ui';
+  x.fillText('B',cx+40,wy-bh/2-4);
+
+  x.fillStyle='rgba(91,91,214,.18)';x.strokeStyle=ac;
+  x.fillRect(cx-bw/2+40,wy+4,bw,bh);x.strokeRect(cx-bw/2+40,wy+4,bw,bh);
+  x.fillStyle=ac;x.font='bold 10px system-ui';
+  x.fillText('A',cx+40,wy+bh/2+4);
+
+  // Gradient arrows through B,A
+  if(trainStep>0){
+    var pulse=Math.sin(Date.now()/200)*0.3+0.7;
+    x.strokeStyle=ac;x.lineWidth=2;x.globalAlpha=pulse;
+    // Arrow up through A then B
+    x.beginPath();x.moveTo(cx+40,wy+bh+10);x.lineTo(cx+40,wy-bh-10);x.stroke();
+    // Arrowhead
+    x.beginPath();x.moveTo(cx+40,wy-bh-10);x.lineTo(cx+36,wy-bh-2);x.lineTo(cx+44,wy-bh-2);x.closePath();x.fill();
+    x.globalAlpha=1;
+    x.fillStyle=ac;x.font='bold 8px system-ui';
+    x.fillText('\u2207',cx+40+bw/2+10,wy);
+  }
+
+  // Output
+  var oy2=cy-bh-gap-bh/2;
+  x.fillStyle='rgba(128,128,128,.12)';x.strokeStyle=bc;x.lineWidth=1;
+  x.fillRect(cx-bw/2,oy2-bh/2,bw,bh);x.strokeRect(cx-bw/2,oy2-bh/2,bw,bh);
+  x.fillStyle=dc;x.font='bold 10px system-ui';
+  x.fillText('h = Wx+BAx',cx,oy2);
+
+  // Connecting lines
+  x.strokeStyle='rgba(128,128,128,.3)';x.lineWidth=1;
+  x.beginPath();x.moveTo(cx,iy-bh/2);x.lineTo(cx-40,wy+bh/2);x.stroke();
+  x.beginPath();x.moveTo(cx,iy-bh/2);x.lineTo(cx+40,wy+bh/2+4);x.stroke();
+  x.beginPath();x.moveTo(cx-40,wy-bh/2);x.lineTo(cx,oy2+bh/2);x.stroke();
+  x.beginPath();x.moveTo(cx+40,wy-bh-4);x.lineTo(cx,oy2+bh/2);x.stroke();
+
+  // === RIGHT: loss curve ===
+  var lx=splitX+40,ly=30,lw=W-splitX-80,lh=H-70;
+  // Axes
+  x.strokeStyle='rgba(128,128,128,.3)';x.lineWidth=1;
+  x.beginPath();x.moveTo(lx,ly);x.lineTo(lx,ly+lh);x.lineTo(lx+lw,ly+lh);x.stroke();
+  x.fillStyle=dc;x.font='10px system-ui';x.textAlign='center';
+  x.fillText(t('p27.s3.step_label'),lx+lw/2,ly+lh+20);
+  x.save();x.translate(lx-20,ly+lh/2);x.rotate(-Math.PI/2);x.fillText(t('p27.s3.loss'),0,0);x.restore();
+
+  // Y-axis labels
+  x.textAlign='right';x.font='9px system-ui';x.fillStyle=dc;
+  for(var i=0;i<=5;i++){var yy=ly+lh-i/5*lh;x.fillText((i*0.5).toFixed(1),lx-6,yy+3);}
+
+  if(trainData.length>1){
+    x.strokeStyle=a3;x.lineWidth=2;x.beginPath();
+    trainData.forEach(function(d,i){
+      var px=lx+(d.step/trainMax)*lw;
+      var py=ly+lh-(d.loss/2.7)*lh;
+      if(i===0)x.moveTo(px,py);else x.lineTo(px,py);
+    });
+    x.stroke();
+    // Current point
+    var last=trainData[trainData.length-1];
+    var cpx=lx+(last.step/trainMax)*lw,cpy=ly+lh-(last.loss/2.7)*lh;
+    x.fillStyle=a3;x.beginPath();x.arc(cpx,cpy,5,0,Math.PI*2);x.fill();
+    x.fillStyle=tc;x.font='bold 10px system-ui';x.textAlign='left';
+    x.fillText(last.loss.toFixed(3),cpx+8,cpy-4);
+  }
+
+  // Re-animate if running
+  if(trainRunning)return;
+  if(trainStep>0){drawTrainStatic=true;}
+}
+
+// ===================== SECTION 4: LoRA Variants Timeline =====================
+var tlIdx=0;
+var tlData=[
+  {formula:'h = Wx + BAx, B \u2208 R^{d\u00D7r}, A \u2208 R^{r\u00D7d}'},
+  {formula:'W_base in NF4 (4-bit), LoRA in FP16, paged optimizers'},
+  {formula:'h = (W/||W|| + BA/||BA||) \u00B7 ||W + BA||  (direction + magnitude)'},
+  {formula:'\u03B7_B = \u03B7, \u03B7_A = \u03B7 \u00B7 \u03BB  (\u03BB \u226B 1, e.g. 16x)'}
+];
+
+function selectTL(idx){
+  tlIdx=idx;
+  var cards=document.querySelectorAll('.tl-card');
+  cards.forEach(function(c,i){c.classList.toggle('active',i===idx);});
+  var det=S('tlDetail');
+  det.innerHTML='<div class="tl-formula">'+tlData[idx].formula+'</div><div class="tl-innovation">'+t('p27.s4.tl'+idx+'_detail')+'</div>';
+}
+
+// ===================== SECTION 5: Merge & Deploy Game =====================
+var mergeStep=0,mergeMax=4;
+
+function drawMerge(){
+  var o=initC('mergeCanvas');if(!o)return;
+  var x=o.x,W=o.W,H=o.H;
+  var tc=css('--text'),dc=css('--text-dim'),ac=css('--accent'),a2=css('--accent2'),bc=css('--border');
+  x.clearRect(0,0,W,H);
+
+  var bw=90,bh=90,cy=H/2,gap=20;
+  var steps=[
+    {label:'W',sub:t('p27.s5.base_model'),color:'rgba(128,128,128,.15)',border:bc},
+    {label:'+',sub:'',color:'transparent',border:'transparent'},
+    {label:'B\u00D7A',sub:t('p27.s5.lora_adapter'),color:'rgba(91,91,214,.15)',border:ac},
+    {label:'=',sub:'',color:'transparent',border:'transparent'},
+    {label:"W'",sub:t('p27.s5.merged'),color:'rgba(13,148,136,.15)',border:a2}
+  ];
+
+  var totalW=steps.length*bw+(steps.length-1)*gap;
+  var sx=(W-totalW)/2;
+
+  steps.forEach(function(s,i){
+    var px=sx+i*(bw+gap),py=cy-bh/2;
+    var revealed=mergeStep>i;
+    var current=mergeStep===i;
+    if(s.label==='+'||s.label==='='){
+      x.fillStyle=revealed?tc:'rgba(128,128,128,.2)';
+      x.font='bold 28px system-ui';x.textAlign='center';x.textBaseline='middle';
+      x.fillText(s.label,px+bw/2,cy);
+    } else {
+      x.globalAlpha=revealed?1:(current?0.7:0.3);
+      x.fillStyle=s.color;x.strokeStyle=s.border;x.lineWidth=current?3:1;
+      x.fillRect(px,py,bw,bh);x.strokeRect(px,py,bw,bh);
+      if(current){x.shadowColor=ac;x.shadowBlur=12;x.strokeRect(px,py,bw,bh);x.shadowBlur=0;}
+      x.fillStyle=revealed?tc:'rgba(128,128,128,.4)';x.font='bold 16px system-ui';x.textAlign='center';x.textBaseline='middle';
+      x.fillText(s.label,px+bw/2,cy-6);
+      x.font='9px system-ui';x.fillStyle=dc;
+      x.fillText(s.sub,px+bw/2,cy+16);
+      x.globalAlpha=1;
+    }
+  });
+
+  // Progress text
+  x.fillStyle=dc;x.font='12px system-ui';x.textAlign='center';
+  var msg=mergeStep>=mergeMax?t('p27.s5.merged_done'):t('p27.s5.click_merge');
+  x.fillText(msg,W/2,H-20);
+}
+
+function onMergeClick(){
+  if(mergeStep<mergeMax){mergeStep++;drawMerge();}
+  if(mergeStep>=mergeMax&&mqIdx===0&&!mqStarted){startMQ();}
+}
+
+function resetMerge(){mergeStep=0;mqIdx=0;mqScoreVal=0;mqStarted=false;mqAnswered=false;
+  S('mqScore').textContent='0';S('mqRound').textContent='1/4';
+  S('mergeQuizQ').innerHTML='';S('mergeQuizOpts').innerHTML='';S('mergeQuizFB').textContent='';S('mqNextBtn').style.display='none';
+  drawMerge();
+}
+
+// Merge Quiz
+var mqQuestions=[
+  {q:'p27.s5.q1',options:['r=4','r=64','r=256','r=768'],answer:'r=4'},
+  {q:'p27.s5.q2',options:['LoRA','QLoRA','Full fine-tuning','DoRA'],answer:'QLoRA'},
+  {q:'p27.s5.q3',options:['Q, K matrices','Q, V matrices','All linear layers','Embedding layer only'],answer:'Q, V matrices'},
+  {q:'p27.s5.q4',options:['r=1','r=8','r=64','r=768'],answer:'r=64'}
+];
+var mqIdx=0,mqScoreVal=0,mqAnswered=false,mqStarted=false;
+
+function startMQ(){mqStarted=true;showMQ();}
+function showMQ(){
+  var q=mqQuestions[mqIdx];
+  S('mergeQuizQ').innerHTML='<div class="scenario-label">'+t('p27.s5.round_label')+' '+(mqIdx+1)+'/4</div><div class="scenario-value">'+t(q.q)+'</div>';
+  var opts=S('mergeQuizOpts');opts.innerHTML='';
+  q.options.slice().sort(function(){return Math.random()-0.5}).forEach(function(opt){
+    var btn=document.createElement('div');btn.className='game-option';btn.textContent=opt;
+    btn.onclick=function(){checkMQ(opt,btn)};opts.appendChild(btn);
+  });
+  S('mergeQuizFB').textContent='';S('mergeQuizFB').className='game-feedback';
+  S('mqRound').textContent=(mqIdx+1)+'/4';S('mqNextBtn').style.display='none';mqAnswered=false;
+}
+
+function checkMQ(chosen,btn){
+  if(mqAnswered)return;mqAnswered=true;
+  var q=mqQuestions[mqIdx],fb=S('mergeQuizFB');
+  document.querySelectorAll('#mergeQuizOpts .game-option').forEach(function(b){b.classList.add('disabled');if(b.textContent===q.answer)b.classList.add('correct-answer');});
+  if(chosen===q.answer){mqScoreVal++;S('mqScore').textContent=mqScoreVal;fb.textContent=t('p27.s5.correct');fb.className='game-feedback correct';btn.classList.add('correct-answer');}
+  else{fb.textContent=t('p27.s5.wrong')+' '+q.answer;fb.className='game-feedback wrong';btn.classList.add('wrong-answer');}
+  if(mqIdx<mqQuestions.length-1)S('mqNextBtn').style.display='';
+  else setTimeout(function(){fb.textContent=t('p27.s5.final')+' '+mqScoreVal+'/4';},1200);
+}
+function nextMQ(){mqIdx++;showMQ();}
+
+// ===================== SECTION 6: PyTorch Code Step-through =====================
+var LC=[
+  {c:'<span class="tok-kw">import</span> <span class="tok-var">torch</span>'},
+  {c:'<span class="tok-kw">import</span> <span class="tok-var">torch.nn</span> <span class="tok-kw">as</span> <span class="tok-var">nn</span>'},
+  {c:''},
+  {c:'<span class="tok-kw">class</span> <span class="tok-cls">LoRALayer</span>(<span class="tok-cls">nn.Module</span>):'},
+  {c:'    <span class="tok-kw">def</span> <span class="tok-fn">__init__</span>(<span class="tok-var">self</span>, <span class="tok-var">in_dim</span>, <span class="tok-var">out_dim</span>, <span class="tok-var">rank</span>=<span class="tok-num">8</span>, <span class="tok-var">alpha</span>=<span class="tok-num">16</span>):'},
+  {c:'        <span class="tok-fn">super</span>().<span class="tok-fn">__init__</span>()'},
+  {c:'        <span class="tok-var">self</span>.W = <span class="tok-cls">nn.Linear</span>(<span class="tok-var">in_dim</span>, <span class="tok-var">out_dim</span>, <span class="tok-var">bias</span>=<span class="tok-kw">False</span>)'},
+  {c:'        <span class="tok-var">self</span>.W.<span class="tok-var">weight</span>.<span class="tok-var">requires_grad</span> = <span class="tok-kw">False</span>  <span class="tok-cm"># Freeze!</span>'},
+  {c:'        <span class="tok-var">self</span>.A = <span class="tok-cls">nn.Linear</span>(<span class="tok-var">in_dim</span>, <span class="tok-var">rank</span>, <span class="tok-var">bias</span>=<span class="tok-kw">False</span>)'},
+  {c:'        <span class="tok-var">self</span>.B = <span class="tok-cls">nn.Linear</span>(<span class="tok-var">rank</span>, <span class="tok-var">out_dim</span>, <span class="tok-var">bias</span>=<span class="tok-kw">False</span>)'},
+  {c:'        <span class="tok-var">self</span>.scale = <span class="tok-var">alpha</span> / <span class="tok-var">rank</span>'},
+  {c:'        <span class="tok-cls">nn</span>.<span class="tok-fn">init.kaiming_uniform_</span>(<span class="tok-var">self</span>.A.<span class="tok-var">weight</span>)'},
+  {c:'        <span class="tok-cls">nn</span>.<span class="tok-fn">init.zeros_</span>(<span class="tok-var">self</span>.B.<span class="tok-var">weight</span>)'},
+  {c:''},
+  {c:'    <span class="tok-kw">def</span> <span class="tok-fn">forward</span>(<span class="tok-var">self</span>, <span class="tok-var">x</span>):'},
+  {c:'        <span class="tok-kw">return</span> <span class="tok-var">self</span>.W(<span class="tok-var">x</span>) + <span class="tok-var">self</span>.B(<span class="tok-var">self</span>.A(<span class="tok-var">x</span>)) * <span class="tok-var">self</span>.scale'},
+  {c:''},
+  {c:'<span class="tok-cm"># Create layer and test</span>'},
+  {c:'<span class="tok-var">lora</span> = <span class="tok-cls">LoRALayer</span>(<span class="tok-var">in_dim</span>=<span class="tok-num">768</span>, <span class="tok-var">out_dim</span>=<span class="tok-num">768</span>, <span class="tok-var">rank</span>=<span class="tok-num">8</span>)'},
+  {c:'<span class="tok-var">x</span> = <span class="tok-var">torch</span>.<span class="tok-fn">randn</span>(<span class="tok-num">1</span>, <span class="tok-num">32</span>, <span class="tok-num">768</span>)  <span class="tok-cm"># (batch, seq, dim)</span>'},
+  {c:'<span class="tok-var">out</span> = <span class="tok-var">lora</span>(<span class="tok-var">x</span>)'},
+  {c:'<span class="tok-fn">print</span>(<span class="tok-str">"Output shape:"</span>, <span class="tok-var">out</span>.<span class="tok-var">shape</span>)'},
+  {c:'<span class="tok-fn">print</span>(<span class="tok-str">"Trainable:"</span>, <span class="tok-fn">sum</span>(<span class="tok-var">p</span>.<span class="tok-fn">numel</span>() <span class="tok-kw">for</span> <span class="tok-var">p</span> <span class="tok-kw">in</span> <span class="tok-var">lora</span>.<span class="tok-fn">parameters</span>() <span class="tok-kw">if</span> <span class="tok-var">p</span>.<span class="tok-var">requires_grad</span>))'},
+  {c:'<span class="tok-fn">print</span>(<span class="tok-str">"Frozen:"</span>, <span class="tok-fn">sum</span>(<span class="tok-var">p</span>.<span class="tok-fn">numel</span>() <span class="tok-kw">for</span> <span class="tok-var">p</span> <span class="tok-kw">in</span> <span class="tok-var">lora</span>.<span class="tok-fn">parameters</span>() <span class="tok-kw">if not</span> <span class="tok-var">p</span>.<span class="tok-var">requires_grad</span>))'}
+];
+var lcE=[0,1,4,5,6,7,8,9,10,11,12,14,15,18,19,20,21,22,23],lcS=-1;
+var lcOut=[
+  '>>> import torch','>>> import torch.nn as nn',
+  '>>> class LoRALayer(nn.Module): __init__(in_dim, out_dim, rank=8, alpha=16)',
+  '    super().__init__()',
+  '    self.W = nn.Linear(768, 768, bias=False)',
+  '    self.W.weight.requires_grad = False  # Frozen!',
+  '    self.A = nn.Linear(768, 8, bias=False)    # A: [768 -> 8]',
+  '    self.B = nn.Linear(8, 768, bias=False)     # B: [8 -> 768]',
+  '    self.scale = 16 / 8 = 2.0',
+  '    nn.init.kaiming_uniform_(self.A.weight)  # Random init',
+  '    nn.init.zeros_(self.B.weight)             # Zero init (BA=0 at start)',
+  '    def forward(self, x): return W(x) + B(A(x)) * scale',
+  '    # Forward: x:[1,32,768] -> W(x):[1,32,768] + B(A(x)):[1,32,768]',
+  '>>> lora = LoRALayer(in_dim=768, out_dim=768, rank=8)',
+  '>>> x = torch.randn(1, 32, 768)  # Shape: torch.Size([1, 32, 768])',
+  '>>> out = lora(x)                 # Shape: torch.Size([1, 32, 768])',
+  'Output shape: torch.Size([1, 32, 768])',
+  'Trainable: 12,288  (A: 6144 + B: 6144)',
+  'Frozen: 589,824  (W: 768x768)'
+];
+
+function rcR(){var c=S('loraCode');c.innerHTML='';LC.forEach(function(l,i){var cl='code-line',ei=lcE.indexOf(i);if(ei!==-1){if(ei===lcS)cl+=' active';else if(ei<lcS)cl+=' executed';}c.innerHTML+='<div class="'+cl+'"><span class="ln">'+(i+1)+'</span><span>'+l.c+'</span></div>';});}
+function stepCode(){if(lcS<lcE.length-1){lcS++;rcR();var ob=S('loraOutput');ob.innerHTML+='<div>'+lcOut[lcS]+'</div>';ob.scrollTop=ob.scrollHeight;}}
+function runAllCode(){while(lcS<lcE.length-1)stepCode();}
+function resetCode(){lcS=-1;rcR();S('loraOutput').innerHTML='<span class="out-label">&gt;&gt;&gt;</span> <span>'+t('p27.s6.click_step')+'</span>';}
+
+// ===================== INIT =====================
+window.addEventListener('DOMContentLoaded',function(){
+  onRankChange();
+  animDecomp();
+  updateCalc();
+  drawTrain();
+  selectTL(0);
+  drawMerge();
+  rcR();
+
+  S('mergeCanvas').addEventListener('click',onMergeClick);
+  S('mergeCanvas').addEventListener('touchstart',function(e){e.preventDefault();onMergeClick();},{passive:false});
+
+  window.addEventListener('resize',function(){
+    drawDecomp();drawTrain();drawMerge();
+  });
+});
+
+// ===================== i18n =====================
+i18nRegister({
+  'en':{
+    'p27.title':'27. LoRA Fine-tuning — LLM Algorithm Visualizations',
+    'p27.heading':'LoRA — Low-Rank Adaptation of Large Language Models',
+    'p27.subtitle':'Fine-tune billion-parameter models by training only a tiny fraction of weights through low-rank decomposition.',
+    'p27.s1.badge':'Interactive',
+    'p27.s1.title':'Weight Matrix Decomposition',
+    'p27.s1.desc':'LoRA freezes the pretrained weight matrix <strong>W</strong> and adds a low-rank update <strong>BA</strong>. Instead of training all d\u00D7d parameters, we only train two small matrices <strong>B</strong> (d\u00D7r) and <strong>A</strong> (r\u00D7d) where r << d.',
+    'p27.s1.rank':'Rank r:',
+    'p27.s1.full_params':'Full Params',
+    'p27.s1.lora_params':'LoRA Params',
+    'p27.s1.reduction':'Of Original',
+    'p27.s1.frozen':'FROZEN',
+    'p27.s1.trainable':'TRAINABLE',
+    'p27.s2.badge':'Calculator',
+    'p27.s2.title':'Parameter Efficiency Calculator',
+    'p27.s2.desc':'Compare <strong>full fine-tuning</strong>, <strong>LoRA</strong>, and <strong>QLoRA</strong> across different model sizes. Pick a model and rank to see the savings.',
+    'p27.s2.model_size':'Model Size:',
+    'p27.s2.rank_label':'Rank r:',
+    'p27.s2.full_ft':'Full Fine-tuning',
+    'p27.s2.params_label':'params',
+    'p27.s2.total_params':'Total Params',
+    'p27.s2.lora_trainable':'LoRA Trainable',
+    'p27.s2.percentage':'Percentage',
+    'p27.s2.mem_saving':'Memory Saving',
+    'p27.s3.badge':'Animation',
+    'p27.s3.title':'Training Visualization',
+    'p27.s3.desc':'Watch how LoRA training works: gradients only flow through the <strong>low-rank matrices B and A</strong> while the original weights stay frozen. The loss curve shows convergence over epochs.',
+    'p27.s3.epoch':'Epoch',
+    'p27.s3.loss':'Loss',
+    'p27.s3.lr':'Learning Rate',
+    'p27.s3.grad_norm':'Grad Norm',
+    'p27.s3.step_label':'Training Step',
+    'p27.s4.badge':'Timeline',
+    'p27.s4.title':'LoRA Variants Timeline',
+    'p27.s4.desc':'From the original LoRA to cutting-edge variants. Click each card to see the <strong>key innovation</strong> and formula.',
+    'p27.s4.tl0_short':'Low-rank weight updates',
+    'p27.s4.tl1_short':'4-bit quantized base',
+    'p27.s4.tl2_short':'Weight-decomposed adaptation',
+    'p27.s4.tl3_short':'Different learning rates for A, B',
+    'p27.s4.tl0_detail':'The original LoRA (Hu et al., 2021) freezes pretrained weights and injects trainable low-rank decomposition matrices into each Transformer layer. Key insight: the weight updates during fine-tuning have a low intrinsic rank, so we can parameterize them as BA where r << d. B is initialized to zero so the model starts from the pretrained state.',
+    'p27.s4.tl1_detail':'QLoRA (Dettmers et al., 2023) quantizes the base model to 4-bit NormalFloat (NF4) and trains LoRA adapters in FP16 on top. Uses paged optimizers to handle memory spikes. Enables fine-tuning a 65B model on a single 48GB GPU while matching full fine-tuning performance.',
+    'p27.s4.tl2_detail':'DoRA (Liu et al., 2024) decomposes pretrained weights into magnitude and direction components, then applies LoRA only to the direction. This mimics full fine-tuning behavior more closely and consistently outperforms vanilla LoRA across tasks and model sizes.',
+    'p27.s4.tl3_detail':'LoRA+ (Hayou et al., 2024) assigns different learning rates to matrices A and B, with B receiving a much higher learning rate (typically 16x). This corrects an inefficiency in standard LoRA where both matrices share the same learning rate despite having different gradient dynamics.',
+    'p27.s5.badge':'Game',
+    'p27.s5.title':'Merge & Deploy',
+    'p27.s5.desc':'Click the canvas to merge LoRA weights step by step: <strong>W_new = W + BA</strong>. Then test your knowledge with a quick quiz on LoRA configurations.',
+    'p27.s5.base_model':'Base Model',
+    'p27.s5.lora_adapter':'LoRA Adapter',
+    'p27.s5.merged':'Merged Model',
+    'p27.s5.click_merge':'Click to advance the merge process',
+    'p27.s5.merged_done':'Merge complete! W\' = W + BA. Quiz starting...',
+    'p27.s5.score':'Score',
+    'p27.s5.round':'Round',
+    'p27.s5.round_label':'Round',
+    'p27.s5.correct':'Correct!',
+    'p27.s5.wrong':'Not quite. The answer is',
+    'p27.s5.final':'Final score:',
+    'p27.s5.q1':'You have limited GPU memory and want to fine-tune for a simple classification task. Best rank?',
+    'p27.s5.q2':'You need to fine-tune a 65B model on a single 48GB GPU. Which method?',
+    'p27.s5.q3':'In the original LoRA paper, which attention matrices are adapted by default?',
+    'p27.s5.q4':'For a complex multi-task fine-tuning that needs to capture rich task-specific patterns, best rank?',
+    'p27.s6.badge':'Code',
+    'p27.s6.title':'PyTorch LoRA Implementation',
+    'p27.s6.desc':'Step through a minimal LoRA layer implementation. Each step shows the <strong>tensor shapes</strong> and output.',
+    'p27.s6.click_step':'Click "Step" to execute line by line',
+    'btn.play':'Play',
+    'btn.pause':'Pause',
+    'btn.reset':'Reset',
+    'btn.step':'Step',
+    'btn.runAll':'Run All',
+    'btn.nextRound':'Next Round',
+    'btn.randomize':'Randomize'
+  },
+  'zh-CN':{
+    'p27.title':'27. LoRA 微调 — 大语言模型算法可视化',
+    'p27.heading':'LoRA — 大语言模型的低秩适配',
+    'p27.subtitle':'通过低秩分解，只训练极少比例的权重即可微调十亿参数级模型。',
+    'p27.s1.badge':'交互式',
+    'p27.s1.title':'权重矩阵分解',
+    'p27.s1.desc':'LoRA 冻结预训练权重矩阵 <strong>W</strong>，并添加低秩更新 <strong>BA</strong>。不用训练全部 d\u00D7d 个参数，只需训练两个小矩阵 <strong>B</strong> (d\u00D7r) 和 <strong>A</strong> (r\u00D7d)，其中 r << d。',
+    'p27.s1.rank':'秩 r：',
+    'p27.s1.full_params':'全部参数',
+    'p27.s1.lora_params':'LoRA 参数',
+    'p27.s1.reduction':'占比',
+    'p27.s1.frozen':'已冻结',
+    'p27.s1.trainable':'可训练',
+    'p27.s2.badge':'计算器',
+    'p27.s2.title':'参数效率计算器',
+    'p27.s2.desc':'对比<strong>全量微调</strong>、<strong>LoRA</strong> 和 <strong>QLoRA</strong> 在不同模型尺寸下的表现。选择模型和秩以查看节省效果。',
+    'p27.s2.model_size':'模型大小：',
+    'p27.s2.rank_label':'秩 r：',
+    'p27.s2.full_ft':'全量微调',
+    'p27.s2.params_label':'参数',
+    'p27.s2.total_params':'总参数量',
+    'p27.s2.lora_trainable':'LoRA 可训练',
+    'p27.s2.percentage':'百分比',
+    'p27.s2.mem_saving':'内存节省',
+    'p27.s3.badge':'动画',
+    'p27.s3.title':'训练可视化',
+    'p27.s3.desc':'观察 LoRA 训练过程：梯度仅流经<strong>低秩矩阵 B 和 A</strong>，而原始权重保持冻结。损失曲线展示各轮次的收敛情况。',
+    'p27.s3.epoch':'轮次',
+    'p27.s3.loss':'损失',
+    'p27.s3.lr':'学习率',
+    'p27.s3.grad_norm':'梯度范数',
+    'p27.s3.step_label':'训练步数',
+    'p27.s4.badge':'时间线',
+    'p27.s4.title':'LoRA 变体时间线',
+    'p27.s4.desc':'从原始 LoRA 到前沿变体。点击每张卡片查看<strong>关键创新</strong>和公式。',
+    'p27.s4.tl0_short':'低秩权重更新',
+    'p27.s4.tl1_short':'4位量化基座',
+    'p27.s4.tl2_short':'权重分解适配',
+    'p27.s4.tl3_short':'A、B 使用不同学习率',
+    'p27.s4.tl0_detail':'原始 LoRA（Hu 等人，2021）冻结预训练权重，并在每个 Transformer 层中注入可训练的低秩分解矩阵。核心洞察：微调时的权重更新具有低内在秩，因此可以参数化为 BA（r << d）。B 初始化为零，使模型从预训练状态开始。',
+    'p27.s4.tl1_detail':'QLoRA（Dettmers 等人，2023）将基座模型量化为 4 位 NormalFloat（NF4），并在其上以 FP16 训练 LoRA 适配器。使用分页优化器处理内存峰值。可在单张 48GB GPU 上微调 650 亿参数模型，且匹配全量微调性能。',
+    'p27.s4.tl2_detail':'DoRA（Liu 等人，2024）将预训练权重分解为幅度和方向分量，然后仅对方向应用 LoRA。这更接近全量微调的行为，在各种任务和模型规模上均持续优于标准 LoRA。',
+    'p27.s4.tl3_detail':'LoRA+（Hayou 等人，2024）为矩阵 A 和 B 分配不同学习率，B 的学习率远高于 A（通常为 16 倍）。这纠正了标准 LoRA 中 A 和 B 共享相同学习率的低效问题。',
+    'p27.s5.badge':'游戏',
+    'p27.s5.title':'合并与部署',
+    'p27.s5.desc':'点击画布逐步合并 LoRA 权重：<strong>W_new = W + BA</strong>。然后用快速测验检验你的 LoRA 配置知识。',
+    'p27.s5.base_model':'基座模型',
+    'p27.s5.lora_adapter':'LoRA 适配器',
+    'p27.s5.merged':'合并模型',
+    'p27.s5.click_merge':'点击推进合并过程',
+    'p27.s5.merged_done':"合并完成！W' = W + BA。测验开始...",
+    'p27.s5.score':'得分',
+    'p27.s5.round':'轮次',
+    'p27.s5.round_label':'轮次',
+    'p27.s5.correct':'正确！',
+    'p27.s5.wrong':'不太对。答案是',
+    'p27.s5.final':'最终得分：',
+    'p27.s5.q1':'GPU 内存有限，要对简单分类任务微调，最佳秩是？',
+    'p27.s5.q2':'需要在单张 48GB GPU 上微调 650 亿参数模型，应该用哪种方法？',
+    'p27.s5.q3':'在原始 LoRA 论文中，默认适配哪些注意力矩阵？',
+    'p27.s5.q4':'对复杂多任务微调，需要捕捉丰富的任务特定模式，最佳秩是？',
+    'p27.s6.badge':'代码',
+    'p27.s6.title':'PyTorch LoRA 实现',
+    'p27.s6.desc':'逐步执行一个最小化的 LoRA 层实现。每一步展示<strong>张量形状</strong>和输出。',
+    'p27.s6.click_step':'点击"步进"逐行执行',
+    'btn.play':'播放',
+    'btn.pause':'暂停',
+    'btn.reset':'重置',
+    'btn.step':'步进',
+    'btn.runAll':'全部运行',
+    'btn.nextRound':'下一轮',
+    'btn.randomize':'随机化'
+  },
+  'zh-TW':{
+    'p27.title':'27. LoRA 微調 — 大語言模型演算法視覺化',
+    'p27.heading':'LoRA — 大語言模型的低秩適配',
+    'p27.subtitle':'透過低秩分解，只訓練極少比例的權重即可微調十億參數級模型。',
+    'p27.s1.badge':'互動式',
+    'p27.s1.title':'權重矩陣分解',
+    'p27.s1.desc':'LoRA 凍結預訓練權重矩陣 <strong>W</strong>，並添加低秩更新 <strong>BA</strong>。不用訓練全部 d\u00D7d 個參數，只需訓練兩個小矩陣 <strong>B</strong> (d\u00D7r) 和 <strong>A</strong> (r\u00D7d)，其中 r << d。',
+    'p27.s1.rank':'秩 r：',
+    'p27.s1.full_params':'全部參數',
+    'p27.s1.lora_params':'LoRA 參數',
+    'p27.s1.reduction':'佔比',
+    'p27.s1.frozen':'已凍結',
+    'p27.s1.trainable':'可訓練',
+    'p27.s2.badge':'計算器',
+    'p27.s2.title':'參數效率計算器',
+    'p27.s2.desc':'對比<strong>全量微調</strong>、<strong>LoRA</strong> 和 <strong>QLoRA</strong> 在不同模型尺寸下的表現。選擇模型和秩以查看節省效果。',
+    'p27.s2.model_size':'模型大小：',
+    'p27.s2.rank_label':'秩 r：',
+    'p27.s2.full_ft':'全量微調',
+    'p27.s2.params_label':'參數',
+    'p27.s2.total_params':'總參數量',
+    'p27.s2.lora_trainable':'LoRA 可訓練',
+    'p27.s2.percentage':'百分比',
+    'p27.s2.mem_saving':'記憶體節省',
+    'p27.s3.badge':'動畫',
+    'p27.s3.title':'訓練視覺化',
+    'p27.s3.desc':'觀察 LoRA 訓練過程：梯度僅流經<strong>低秩矩陣 B 和 A</strong>，而原始權重保持凍結。損失曲線展示各輪次的收斂情況。',
+    'p27.s3.epoch':'輪次',
+    'p27.s3.loss':'損失',
+    'p27.s3.lr':'學習率',
+    'p27.s3.grad_norm':'梯度範數',
+    'p27.s3.step_label':'訓練步數',
+    'p27.s4.badge':'時間線',
+    'p27.s4.title':'LoRA 變體時間線',
+    'p27.s4.desc':'從原始 LoRA 到前沿變體。點擊每張卡片查看<strong>關鍵創新</strong>和公式。',
+    'p27.s4.tl0_short':'低秩權重更新',
+    'p27.s4.tl1_short':'4位元量化基座',
+    'p27.s4.tl2_short':'權重分解適配',
+    'p27.s4.tl3_short':'A、B 使用不同學習率',
+    'p27.s4.tl0_detail':'原始 LoRA（Hu 等人，2021）凍結預訓練權重，並在每個 Transformer 層中注入可訓練的低秩分解矩陣。核心洞察：微調時的權重更新具有低內在秩，因此可以參數化為 BA（r << d）。B 初始化為零，使模型從預訓練狀態開始。',
+    'p27.s4.tl1_detail':'QLoRA（Dettmers 等人，2023）將基座模型量化為 4 位元 NormalFloat（NF4），並在其上以 FP16 訓練 LoRA 適配器。使用分頁最佳化器處理記憶體峰值。可在單張 48GB GPU 上微調 650 億參數模型，且匹配全量微調效能。',
+    'p27.s4.tl2_detail':'DoRA（Liu 等人，2024）將預訓練權重分解為幅度和方向分量，然後僅對方向套用 LoRA。這更接近全量微調的行為，在各種任務和模型規模上均持續優於標準 LoRA。',
+    'p27.s4.tl3_detail':'LoRA+（Hayou 等人，2024）為矩陣 A 和 B 分配不同學習率，B 的學習率遠高於 A（通常為 16 倍）。這修正了標準 LoRA 中 A 和 B 共享相同學習率的低效問題。',
+    'p27.s5.badge':'遊戲',
+    'p27.s5.title':'合併與部署',
+    'p27.s5.desc':'點擊畫布逐步合併 LoRA 權重：<strong>W_new = W + BA</strong>。然後用快速測驗檢驗你的 LoRA 配置知識。',
+    'p27.s5.base_model':'基座模型',
+    'p27.s5.lora_adapter':'LoRA 適配器',
+    'p27.s5.merged':'合併模型',
+    'p27.s5.click_merge':'點擊推進合併過程',
+    'p27.s5.merged_done':"合併完成！W' = W + BA。測驗開始...",
+    'p27.s5.score':'得分',
+    'p27.s5.round':'輪次',
+    'p27.s5.round_label':'輪次',
+    'p27.s5.correct':'正確！',
+    'p27.s5.wrong':'不太對。答案是',
+    'p27.s5.final':'最終得分：',
+    'p27.s5.q1':'GPU 記憶體有限，要對簡單分類任務微調，最佳秩是？',
+    'p27.s5.q2':'需要在單張 48GB GPU 上微調 650 億參數模型，應該用哪種方法？',
+    'p27.s5.q3':'在原始 LoRA 論文中，預設適配哪些注意力矩陣？',
+    'p27.s5.q4':'對複雜多任務微調，需要捕捉豐富的任務特定模式，最佳秩是？',
+    'p27.s6.badge':'程式碼',
+    'p27.s6.title':'PyTorch LoRA 實作',
+    'p27.s6.desc':'逐步執行一個最小化的 LoRA 層實作。每一步展示<strong>張量形狀</strong>和輸出。',
+    'p27.s6.click_step':'點擊「步進」逐行執行',
+    'btn.play':'播放',
+    'btn.pause':'暫停',
+    'btn.reset':'重置',
+    'btn.step':'步進',
+    'btn.runAll':'全部執行',
+    'btn.nextRound':'下一輪',
+    'btn.randomize':'隨機化'
+  }
+});
+</script>
+</body></html>

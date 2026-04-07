@@ -1,0 +1,1101 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p28.title">28. Decoding Strategies — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .dec-canvas{width:100%;height:480px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .bar-canvas{width:100%;height:360px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .nucleus-canvas{width:100%;height:400px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .gen-canvas{width:100%;height:320px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .penalty-canvas{width:100%;height:340px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .ctrl-row{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;margin:12px 0}
+    .ctrl-row label{font-weight:600;font-size:.85rem;color:var(--text-dim)}
+    .ctrl-row input[type=range]{width:160px;accent-color:var(--accent)}
+    .ctrl-row .slider-val{font-weight:800;font-size:.95rem;color:var(--accent);min-width:36px}
+    .ctrl-btns{display:flex;gap:10px;justify-content:center;margin:12px 0;flex-wrap:wrap}
+    .ctrl-btns button{padding:8px 22px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s}
+    .ctrl-btns button:hover{border-color:var(--accent);color:var(--accent)}
+    .ctrl-btns button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .formula-box{padding:14px 20px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);font-family:'Courier New',monospace;font-size:.88rem;text-align:center;margin:12px 0;line-height:1.8}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+    .stat-badge .val{font-size:1.4rem;font-weight:800}
+    .stat-badge .lbl{font-size:.72rem;color:var(--text-dim);text-transform:uppercase}
+    .gen-panel{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}
+    .gen-col{border:1px solid var(--border);border-radius:var(--radius);padding:14px;background:var(--surface)}
+    .gen-col h4{margin:0 0 8px;font-size:.88rem;text-align:center}
+    .gen-col .gen-tokens{font-family:'Courier New',monospace;font-size:.82rem;line-height:1.8;min-height:60px;word-break:break-word}
+    .gen-col .gen-tokens span{padding:2px 4px;border-radius:4px;margin:1px}
+    .preset-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0}
+    .preset-btns button{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:.78rem;color:var(--text);transition:all .2s}
+    .preset-btns button:hover{border-color:var(--accent);color:var(--accent)}
+    .penalty-info{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+    .penalty-card{padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+    .penalty-card h4{margin:0 0 6px;font-size:.9rem}
+    .penalty-card p{font-size:.8rem;color:var(--text-dim);margin:0;line-height:1.5}
+    .technique-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+    .technique-card{padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+    .technique-card h4{margin:0 0 4px;font-size:.88rem;color:var(--accent)}
+    .technique-card p{font-size:.78rem;color:var(--text-dim);margin:0;line-height:1.5}
+    @media(max-width:700px){.gen-panel{grid-template-columns:1fr}.penalty-info{grid-template-columns:1fr}.technique-grid{grid-template-columns:1fr}}
+  </style>
+</head><body>
+
+<h1 data-i18n="p28.heading">Decoding Strategies</h1>
+<p class="subtitle" data-i18n="p28.subtitle">How LLMs choose the next token: from greedy search to nucleus sampling.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span>Decoding Strategies</span></p>
+
+<div class="container">
+
+  <!-- Section 1: Greedy vs Beam Search -->
+  <div class="card">
+    <span class="badge badge-purple" data-i18n="p28.s1.badge">Interactive</span>
+    <h2 data-i18n="p28.s1.title">Greedy vs Beam Search</h2>
+    <p data-i18n="p28.s1.desc" data-i18n-html="1">Greedy decoding picks the <strong>single best token</strong> at each step. Beam search keeps the <strong>top-k most probable sequences</strong>, sometimes finding better overall results. Adjust beam width to see the difference.</p>
+    <canvas id="treeCanvas" class="dec-canvas"></canvas>
+    <div class="ctrl-row">
+      <label data-i18n="p28.s1.beam_width">Beam Width:</label>
+      <input type="range" id="beamSlider" min="1" max="10" value="1" oninput="onBeamChange()">
+      <span class="slider-val" id="beamVal">1</span>
+      <span style="font-size:.78rem;color:var(--text-dim);margin-left:8px" id="beamLabel" data-i18n="p28.s1.greedy_label">(Greedy)</span>
+    </div>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="animateTree()" data-i18n="btn.animate">Animate</button>
+      <button onclick="resetTree()" data-i18n="btn.reset">Reset</button>
+    </div>
+    <div class="stat-row">
+      <div class="stat-badge"><div class="val" style="color:var(--accent)" id="greedyProb">-</div><div class="lbl" data-i18n="p28.s1.greedy_prob">Greedy Prob</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)" id="beamProb">-</div><div class="lbl" data-i18n="p28.s1.beam_prob">Beam Prob</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)" id="beamNodes">-</div><div class="lbl" data-i18n="p28.s1.explored">Explored</div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: Temperature & Sampling -->
+  <div class="card">
+    <span class="badge badge-green" data-i18n="p28.s2.badge">Interactive</span>
+    <h2 data-i18n="p28.s2.title">Temperature & Sampling</h2>
+    <p data-i18n="p28.s2.desc" data-i18n-html="1">Temperature controls the <strong>sharpness</strong> of the probability distribution. Low temperature makes the model more confident; high temperature makes it more random.</p>
+    <canvas id="tempCanvas" class="bar-canvas"></canvas>
+    <div class="formula-box">p<sub>i</sub> = exp(z<sub>i</sub> / T) / &Sigma; exp(z<sub>j</sub> / T)</div>
+    <div class="ctrl-row">
+      <label data-i18n="p28.s2.temperature">Temperature:</label>
+      <input type="range" id="tempSlider" min="1" max="40" value="10" oninput="onTempChange()">
+      <span class="slider-val" id="tempVal">1.0</span>
+    </div>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="sampleToken()" data-i18n="p28.s2.sample">Sample Token</button>
+      <button onclick="resetTemp()" data-i18n="btn.reset">Reset</button>
+    </div>
+    <div class="stat-row">
+      <div class="stat-badge"><div class="val" style="color:var(--accent)" id="sampledToken">-</div><div class="lbl" data-i18n="p28.s2.sampled">Sampled</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)" id="entropy">-</div><div class="lbl" data-i18n="p28.s2.entropy">Entropy</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)" id="topProb">-</div><div class="lbl" data-i18n="p28.s2.top_prob">Top-1 Prob</div></div>
+    </div>
+  </div>
+
+  <!-- Section 3: Top-k and Top-p (Nucleus) Sampling -->
+  <div class="card">
+    <span class="badge badge-orange" data-i18n="p28.s3.badge">Interactive</span>
+    <h2 data-i18n="p28.s3.title">Top-k and Top-p (Nucleus) Sampling</h2>
+    <p data-i18n="p28.s3.desc" data-i18n-html="1">Top-k keeps only the <strong>k most probable</strong> tokens. Top-p (nucleus) keeps tokens until their <strong>cumulative probability</strong> reaches p. Both truncate the tail to avoid unlikely tokens.</p>
+    <canvas id="nucleusCanvas" class="nucleus-canvas"></canvas>
+    <div class="ctrl-row">
+      <label>Top-k:</label>
+      <input type="range" id="topkSlider" min="1" max="20" value="5" oninput="onNucleusChange()">
+      <span class="slider-val" id="topkVal">5</span>
+      <span style="width:24px"></span>
+      <label>Top-p:</label>
+      <input type="range" id="toppSlider" min="10" max="100" value="90" oninput="onNucleusChange()">
+      <span class="slider-val" id="toppVal">0.90</span>
+    </div>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="sampleNucleus()" data-i18n="p28.s2.sample">Sample Token</button>
+      <button onclick="resetNucleus()" data-i18n="btn.reset">Reset</button>
+    </div>
+    <div class="stat-row">
+      <div class="stat-badge"><div class="val" style="color:var(--accent)" id="nucSampled">-</div><div class="lbl" data-i18n="p28.s2.sampled">Sampled</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)" id="nucKept">-</div><div class="lbl" data-i18n="p28.s3.kept">Kept</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)" id="nucCumul">-</div><div class="lbl" data-i18n="p28.s3.cumul">Cumulative P</div></div>
+    </div>
+  </div>
+
+  <!-- Section 4: Live Text Generation Playground -->
+  <div class="card">
+    <span class="badge badge-red" data-i18n="p28.s4.badge">Playground</span>
+    <h2 data-i18n="p28.s4.title">Live Text Generation Playground</h2>
+    <p data-i18n="p28.s4.desc" data-i18n-html="1">Compare how different decoding strategies produce different outputs from the <strong>same prompt</strong>. Tokens are color-coded by probability.</p>
+    <div class="preset-btns">
+      <button onclick="setPrompt('The meaning of life is')" data-i18n="p28.s4.preset1">Philosophy</button>
+      <button onclick="setPrompt('def fibonacci(n):')" data-i18n="p28.s4.preset2">Code</button>
+      <button onclick="setPrompt('Once upon a time in a')" data-i18n="p28.s4.preset3">Story</button>
+      <button onclick="setPrompt('The capital of France is')" data-i18n="p28.s4.preset4">Factual</button>
+    </div>
+    <div class="ctrl-row">
+      <label data-i18n="p28.s4.prompt_label">Prompt:</label>
+      <input type="text" id="promptInput" value="Once upon a time in a" style="flex:1;padding:8px 12px;border:2px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:.9rem;outline:none;min-width:200px">
+    </div>
+    <div class="ctrl-row">
+      <label>T:</label>
+      <input type="range" id="genTempSlider" min="1" max="30" value="7" oninput="document.getElementById('genTempV').textContent=(this.value/10).toFixed(1)">
+      <span class="slider-val" id="genTempV">0.7</span>
+      <label>Top-k:</label>
+      <input type="range" id="genTopkSlider" min="1" max="20" value="5" oninput="document.getElementById('genTopkV').textContent=this.value">
+      <span class="slider-val" id="genTopkV">5</span>
+      <label>Beam:</label>
+      <input type="range" id="genBeamSlider" min="2" max="8" value="3" oninput="document.getElementById('genBeamV').textContent=this.value">
+      <span class="slider-val" id="genBeamV">3</span>
+    </div>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="runGeneration()" data-i18n="p28.s4.generate">Generate</button>
+      <button onclick="clearGeneration()" data-i18n="btn.reset">Reset</button>
+    </div>
+    <div class="gen-panel">
+      <div class="gen-col"><h4 style="color:var(--accent)" data-i18n="p28.s4.greedy_col">Greedy</h4><div class="gen-tokens" id="genGreedy"></div></div>
+      <div class="gen-col"><h4 style="color:var(--accent2)" data-i18n="p28.s4.beam_col">Beam Search</h4><div class="gen-tokens" id="genBeam"></div></div>
+      <div class="gen-col"><h4 style="color:var(--accent4)" data-i18n="p28.s4.sampling_col">Sampling</h4><div class="gen-tokens" id="genSampling"></div></div>
+    </div>
+  </div>
+
+  <!-- Section 5: Repetition Penalty & Special Techniques -->
+  <div class="card">
+    <span class="badge badge-purple" data-i18n="p28.s5.badge">Interactive</span>
+    <h2 data-i18n="p28.s5.title">Repetition Penalty & Special Techniques</h2>
+    <p data-i18n="p28.s5.desc" data-i18n-html="1">Repetition penalty <strong>reduces the probability</strong> of tokens that have already appeared, preventing repetitive text. Adjust the penalty factor to see its effect.</p>
+    <canvas id="penaltyCanvas" class="penalty-canvas"></canvas>
+    <div class="ctrl-row">
+      <label data-i18n="p28.s5.penalty_label">Penalty:</label>
+      <input type="range" id="penaltySlider" min="10" max="30" value="10" oninput="onPenaltyChange()">
+      <span class="slider-val" id="penaltyVal">1.0</span>
+      <span style="font-size:.78rem;color:var(--text-dim);margin-left:8px" id="penaltyLabel" data-i18n="p28.s5.no_penalty">(No penalty)</span>
+    </div>
+    <div class="penalty-info">
+      <div class="penalty-card"><h4 data-i18n="p28.s5.presence">Presence Penalty</h4><p data-i18n="p28.s5.presence_desc">Flat penalty applied once per token that has appeared. Encourages new topics.</p></div>
+      <div class="penalty-card"><h4 data-i18n="p28.s5.frequency">Frequency Penalty</h4><p data-i18n="p28.s5.frequency_desc">Penalty proportional to how often a token appeared. Discourages word repetition.</p></div>
+    </div>
+    <div class="technique-grid">
+      <div class="technique-card"><h4 data-i18n="p28.s5.contrastive">Contrastive Decoding</h4><p data-i18n="p28.s5.contrastive_desc">Subtract a weaker model's distribution from the stronger model. Amplifies what the expert knows that the amateur doesn't.</p></div>
+      <div class="technique-card"><h4 data-i18n="p28.s5.speculative">Speculative Decoding</h4><p data-i18n="p28.s5.speculative_desc">Small draft model proposes tokens; large model verifies in parallel. Same quality, 2-3x faster inference.</p></div>
+    </div>
+  </div>
+
+  <!-- Section 6: Strategy Selection Game -->
+  <div class="card">
+    <span class="badge badge-green" data-i18n="p28.s6.badge">Game</span>
+    <h2 data-i18n="p28.s6.title">Strategy Selection Game</h2>
+    <p data-i18n="p28.s6.desc">Given a use case, pick the best decoding strategy. 5 rounds with explanations!</p>
+    <div class="game-scenario" id="gameScenario"></div>
+    <div class="game-options" id="gameOptions"></div>
+    <div class="game-feedback" id="gameFeedback"></div>
+    <div class="game-score">
+      <div class="game-score-item"><div class="score-val" id="gameScore">0</div><div class="score-label" data-i18n="p28.s6.score">Score</div></div>
+      <div class="game-score-item"><div class="score-val" id="gameRound">1/5</div><div class="score-label" data-i18n="p28.s6.round">Round</div></div>
+    </div>
+    <div class="ctrl-btns" id="gameNextBtn" style="display:none">
+      <button class="primary" onclick="nextGameRound()" data-i18n="btn.nextRound">Next Round</button>
+    </div>
+  </div>
+
+</div>
+
+<footer><p>Decoding Strategies — Beam Search, Nucleus Sampling (Holtzman 2019)</p><p>LLM Algorithm Visualizations v2.1.0</p></footer>
+
+<script src="../shared/i18n.js"></script><script src="../shared/nav.js"></script><script src="../shared/animations.js"></script><script src="../shared/progress.js"></script>
+
+<script>
+// ===================== HELPERS =====================
+function getTheme(){
+  var s=getComputedStyle(document.documentElement);
+  return{text:s.getPropertyValue('--text').trim(),dim:s.getPropertyValue('--text-dim').trim(),
+    border:s.getPropertyValue('--border').trim(),accent:s.getPropertyValue('--accent').trim(),
+    accent2:s.getPropertyValue('--accent2').trim()||'#0d9488',accent3:s.getPropertyValue('--accent3').trim()||'#ea580c',
+    accent4:s.getPropertyValue('--accent4').trim()||'#7c3aed',surface:s.getPropertyValue('--surface').trim(),
+    canvasBg:s.getPropertyValue('--canvas-bg').trim()};
+}
+function setupCanvas(id){
+  var c=document.getElementById(id);if(!c)return null;
+  var r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  c.width=r.width*d;c.height=r.height*d;
+  var x=c.getContext('2d');x.scale(d,d);
+  return{c:c,x:x,W:r.width,H:r.height};
+}
+function softmax(logits,temp){
+  var t=temp||1,max=-Infinity;
+  logits.forEach(function(l){if(l>max)max=l;});
+  var exps=logits.map(function(l){return Math.exp((l-max)/t);});
+  var sum=exps.reduce(function(a,b){return a+b;},0);
+  return exps.map(function(e){return e/sum;});
+}
+function weightedSample(probs){
+  var r=Math.random(),cum=0;
+  for(var i=0;i<probs.length;i++){cum+=probs[i];if(r<cum)return i;}
+  return probs.length-1;
+}
+
+// ===================== SECTION 1: GREEDY vs BEAM SEARCH =====================
+var treeData=null,beamWidth=1,treeAnimStep=0,treeAnimTimer=null;
+var TREE_TOKENS=[
+  {t:'The',children:[
+    {t:'cat',p:.4,children:[{t:'sat',p:.5,children:[{t:'on',p:.6},{t:'down',p:.3},{t:'still',p:.1}]},{t:'ran',p:.3,children:[{t:'fast',p:.5},{t:'away',p:.4},{t:'home',p:.1}]},{t:'slept',p:.2,children:[{t:'well',p:.4},{t:'long',p:.3},{t:'late',p:.3}]}]},
+    {t:'dog',p:.35,children:[{t:'barked',p:.4,children:[{t:'loudly',p:.5},{t:'once',p:.3},{t:'twice',p:.2}]},{t:'ran',p:.35,children:[{t:'fast',p:.4},{t:'outside',p:.4},{t:'home',p:.2}]},{t:'sat',p:.25,children:[{t:'down',p:.5},{t:'still',p:.3},{t:'up',p:.2}]}]},
+    {t:'bird',p:.25,children:[{t:'flew',p:.5,children:[{t:'high',p:.4},{t:'away',p:.4},{t:'south',p:.2}]},{t:'sang',p:.3,children:[{t:'sweetly',p:.5},{t:'loud',p:.3},{t:'softly',p:.2}]},{t:'landed',p:.2,children:[{t:'gently',p:.4},{t:'here',p:.3},{t:'there',p:.3}]}]}
+  ]}
+];
+
+function buildTree(){
+  // Flatten tree into nodes with positions
+  var nodes=[],links=[];
+  var root=TREE_TOKENS[0];
+  var id=0;
+  function addNode(item,depth,parentId,parentProb,sibIdx,sibCount){
+    var nid=id++;
+    var prob=item.p||1;
+    nodes.push({id:nid,token:item.t,depth:depth,prob:prob,cumProb:parentProb*prob,sibIdx:sibIdx,sibCount:sibCount,children:[]});
+    if(parentId>=0){links.push({from:parentId,to:nid});nodes[parentId].children.push(nid);}
+    if(item.children){item.children.forEach(function(ch,i){addNode(ch,depth+1,nid,parentProb*prob,i,item.children.length);});}
+  }
+  addNode(root,0,-1,1,0,1);
+  return{nodes:nodes,links:links};
+}
+
+function layoutTree(tree,W,H){
+  var maxDepth=0;
+  tree.nodes.forEach(function(n){if(n.depth>maxDepth)maxDepth=n.depth;});
+  var depthCounts={};
+  tree.nodes.forEach(function(n){depthCounts[n.depth]=(depthCounts[n.depth]||0)+1;});
+  var depthIdx={};
+  tree.nodes.forEach(function(n){
+    var d=n.depth;if(!depthIdx[d])depthIdx[d]=0;
+    var count=depthCounts[d];
+    var x=60+(W-120)*(d/Math.max(maxDepth,1));
+    var y=40+(H-80)*((depthIdx[d]+0.5)/count);
+    n.x=x;n.y=y;
+    depthIdx[d]++;
+  });
+}
+
+function getBeamPaths(tree,bw){
+  // BFS beam search
+  var beams=[[{nodeId:0,prob:1}]];
+  var maxDepth=0;
+  tree.nodes.forEach(function(n){if(n.depth>maxDepth)maxDepth=n.depth;});
+  for(var d=0;d<maxDepth;d++){
+    var candidates=[];
+    beams.forEach(function(beam){
+      var last=beam[beam.length-1];
+      var node=tree.nodes[last.nodeId];
+      node.children.forEach(function(cid){
+        var child=tree.nodes[cid];
+        candidates.push({beam:beam,nodeId:cid,prob:last.prob*child.prob});
+      });
+    });
+    candidates.sort(function(a,b){return b.prob-a.prob;});
+    beams=candidates.slice(0,bw).map(function(c){return c.beam.concat([{nodeId:c.nodeId,prob:c.prob}]);});
+  }
+  return beams;
+}
+
+function drawTree(){
+  var cv=setupCanvas('treeCanvas');if(!cv)return;
+  var x=cv.x,W=cv.W,H=cv.H,th=getTheme();
+  var tree=buildTree();
+  layoutTree(tree,W,H);
+  treeData=tree;
+
+  x.clearRect(0,0,W,H);
+
+  var beams=getBeamPaths(tree,beamWidth);
+  var greedyPath=getBeamPaths(tree,1)[0];
+
+  // Set of active node ids for beams
+  var beamNodeSet={},greedyNodeSet={};
+  beams.forEach(function(b){b.forEach(function(s){beamNodeSet[s.nodeId]=true;});});
+  greedyPath.forEach(function(s){greedyNodeSet[s.nodeId]=true;});
+
+  // Determine visible step for animation
+  var visibleDepth=treeAnimStep;
+
+  // Draw links
+  tree.links.forEach(function(lk){
+    var fn=tree.nodes[lk.from],tn=tree.nodes[lk.to];
+    if(tn.depth>visibleDepth)return;
+    var inBeam=beamNodeSet[lk.from]&&beamNodeSet[lk.to];
+    var inGreedy=greedyNodeSet[lk.from]&&greedyNodeSet[lk.to];
+    x.strokeStyle=inGreedy?th.accent:(inBeam?th.accent2:'rgba(128,128,128,.15)');
+    x.lineWidth=inGreedy?3:(inBeam?2.5:1);
+    if(inBeam&&!inGreedy){x.setLineDash([6,4]);}
+    x.beginPath();x.moveTo(fn.x,fn.y);x.lineTo(tn.x,tn.y);x.stroke();
+    x.setLineDash([]);
+    // prob label
+    if(inBeam||inGreedy){
+      var mx=(fn.x+tn.x)/2,my=(fn.y+tn.y)/2-8;
+      x.fillStyle=th.dim;x.font='bold 10px system-ui';x.textAlign='center';
+      x.fillText((tn.prob*100).toFixed(0)+'%',mx,my);
+    }
+  });
+
+  // Draw nodes
+  tree.nodes.forEach(function(n){
+    if(n.depth>visibleDepth)return;
+    var inGreedy=greedyNodeSet[n.id];
+    var inBeam=beamNodeSet[n.id];
+    var isPruned=!inBeam&&n.depth<=visibleDepth&&n.depth>0;
+    var r=inGreedy?18:(inBeam?15:(isPruned?10:12));
+    var color=inGreedy?th.accent:(inBeam?th.accent2:(isPruned?'rgba(128,128,128,.25)':th.dim));
+
+    if(inGreedy){x.shadowColor=th.accent;x.shadowBlur=10;}
+    else if(inBeam){x.shadowColor=th.accent2;x.shadowBlur=6;}
+    x.fillStyle=color;
+    x.globalAlpha=isPruned?0.4:1;
+    x.beginPath();x.arc(n.x,n.y,r,0,Math.PI*2);x.fill();
+    x.shadowBlur=0;x.globalAlpha=1;
+
+    // Token text
+    x.fillStyle='#fff';x.font=(inGreedy?'bold 11px':'10px')+' system-ui';
+    x.textAlign='center';x.textBaseline='middle';
+    x.fillText(n.token,n.x,n.y);
+  });
+
+  // Update stats
+  var gProb=greedyPath[greedyPath.length-1].prob;
+  var bestBeam=beams[0];
+  var bProb=bestBeam[bestBeam.length-1].prob;
+  var explored=0;tree.nodes.forEach(function(n){if(n.depth<=visibleDepth)explored++;});
+  document.getElementById('greedyProb').textContent=(gProb*100).toFixed(1)+'%';
+  document.getElementById('beamProb').textContent=(bProb*100).toFixed(1)+'%';
+  document.getElementById('beamNodes').textContent=explored;
+}
+
+function onBeamChange(){
+  beamWidth=parseInt(document.getElementById('beamSlider').value);
+  document.getElementById('beamVal').textContent=beamWidth;
+  var lbl=document.getElementById('beamLabel');
+  lbl.textContent=beamWidth===1?'('+t('p28.s1.greedy_label')+')':'('+t('p28.s1.beam_label')+')';
+  treeAnimStep=3;drawTree();
+}
+
+function animateTree(){
+  treeAnimStep=0;drawTree();
+  if(treeAnimTimer)clearInterval(treeAnimTimer);
+  treeAnimTimer=setInterval(function(){
+    treeAnimStep++;drawTree();
+    if(treeAnimStep>=3)clearInterval(treeAnimTimer);
+  },700);
+}
+
+function resetTree(){
+  if(treeAnimTimer)clearInterval(treeAnimTimer);
+  beamWidth=1;treeAnimStep=3;
+  document.getElementById('beamSlider').value=1;
+  document.getElementById('beamVal').textContent='1';
+  document.getElementById('beamLabel').textContent='('+t('p28.s1.greedy_label')+')';
+  drawTree();
+}
+
+// ===================== SECTION 2: TEMPERATURE & SAMPLING =====================
+var BASE_LOGITS=[3.5,2.8,2.1,1.5,1.0,0.6,0.3,0.1,-0.2,-0.5,-0.8,-1.2,-1.5,-1.8,-2.0,-2.5];
+var VOCAB=['the','cat','sat','on','mat','a','big','red','in','is','was','and','to','of','it','an'];
+var tempSampled=-1;
+
+function drawTemp(){
+  var cv=setupCanvas('tempCanvas');if(!cv)return;
+  var x=cv.x,W=cv.W,H=cv.H,th=getTheme();
+  var temp=parseFloat(document.getElementById('tempSlider').value)/10;
+  var probs=softmax(BASE_LOGITS,temp);
+
+  x.clearRect(0,0,W,H);
+
+  var n=probs.length,barW=Math.min(40,(W-80)/n-4),baseY=H-50,maxH=H-100;
+  var startX=(W-n*(barW+4))/2;
+
+  // Draw bars
+  for(var i=0;i<n;i++){
+    var bx=startX+i*(barW+4);
+    var bh=probs[i]*maxH/probs[0]*0.8;if(bh<2)bh=2;
+    var isSampled=i===tempSampled;
+
+    if(isSampled){x.shadowColor=th.accent;x.shadowBlur=12;}
+    x.fillStyle=isSampled?th.accent:(i===0?th.accent2:th.dim);
+    x.globalAlpha=isSampled?1:(0.4+probs[i]/probs[0]*0.6);
+    x.beginPath();
+    x.roundRect(bx,baseY-bh,barW,bh,4);
+    x.fill();
+    x.shadowBlur=0;x.globalAlpha=1;
+
+    // Prob label
+    x.fillStyle=th.text;x.font='bold 9px system-ui';x.textAlign='center';
+    x.fillText((probs[i]*100).toFixed(1)+'%',bx+barW/2,baseY-bh-8);
+
+    // Token label
+    x.fillStyle=th.dim;x.font='10px system-ui';
+    x.save();x.translate(bx+barW/2,baseY+8);x.rotate(Math.PI/4);
+    x.textAlign='left';x.fillText(VOCAB[i],0,0);x.restore();
+  }
+
+  // Title
+  x.fillStyle=th.text;x.font='bold 14px system-ui';x.textAlign='center';
+  x.fillText('T = '+temp.toFixed(1),W/2,28);
+
+  // Entropy
+  var ent=0;probs.forEach(function(p){if(p>0)ent-=p*Math.log2(p);});
+  document.getElementById('entropy').textContent=ent.toFixed(2);
+  document.getElementById('topProb').textContent=(probs[0]*100).toFixed(1)+'%';
+}
+
+function onTempChange(){
+  var v=document.getElementById('tempSlider').value;
+  document.getElementById('tempVal').textContent=(v/10).toFixed(1);
+  tempSampled=-1;drawTemp();
+}
+
+function sampleToken(){
+  var temp=parseFloat(document.getElementById('tempSlider').value)/10;
+  var probs=softmax(BASE_LOGITS,temp);
+  tempSampled=weightedSample(probs);
+  document.getElementById('sampledToken').textContent=VOCAB[tempSampled];
+  drawTemp();
+}
+
+function resetTemp(){
+  tempSampled=-1;
+  document.getElementById('tempSlider').value=10;
+  document.getElementById('tempVal').textContent='1.0';
+  drawTemp();
+}
+
+// ===================== SECTION 3: TOP-K / TOP-P =====================
+var NUC_LOGITS=[3.2,2.5,2.0,1.6,1.3,1.0,0.7,0.4,0.2,0.0,-0.2,-0.4,-0.7,-1.0,-1.3,-1.6,-1.9,-2.2,-2.5,-2.8];
+var NUC_VOCAB=['cat','the','sat','big','on','red','mat','a','in','is','was','and','to','of','it','an','up','my','so','or'];
+var nucSampled=-1;
+
+function drawNucleus(){
+  var cv=setupCanvas('nucleusCanvas');if(!cv)return;
+  var x=cv.x,W=cv.W,H=cv.H,th=getTheme();
+  var probs=softmax(NUC_LOGITS,1);
+  var topk=parseInt(document.getElementById('topkSlider').value);
+  var topp=parseInt(document.getElementById('toppSlider').value)/100;
+
+  x.clearRect(0,0,W,H);
+
+  // Sorted probs (already sorted)
+  var n=probs.length,barW=Math.min(36,(W-80)/n-3),baseY=H-70,maxH=H-140;
+  var startX=(W-n*(barW+3))/2;
+
+  // Determine top-p cutoff
+  var cumul=0,toppCut=n;
+  for(var i=0;i<n;i++){cumul+=probs[i];if(cumul>=topp){toppCut=i+1;break;}}
+  var effectiveCut=Math.min(topk,toppCut);
+
+  // Draw cumulative area
+  cumul=0;
+  x.fillStyle='rgba(91,91,214,.06)';
+  for(var i=0;i<effectiveCut;i++){
+    var bx=startX+i*(barW+3);
+    var bh=probs[i]*maxH/probs[0]*0.85;if(bh<2)bh=2;
+    x.fillRect(bx-1,baseY-bh-10,barW+2,bh+12);
+    cumul+=probs[i];
+  }
+
+  // Draw nucleus boundary line
+  if(effectiveCut<n){
+    var bx=startX+effectiveCut*(barW+3)-2;
+    x.strokeStyle=th.accent;x.lineWidth=2;x.setLineDash([5,3]);
+    x.beginPath();x.moveTo(bx,30);x.lineTo(bx,baseY+10);x.stroke();
+    x.setLineDash([]);
+    x.fillStyle=th.accent;x.font='bold 11px system-ui';x.textAlign='center';
+    x.fillText(t('p28.s3.cutoff'),bx,24);
+  }
+
+  // Draw bars
+  cumul=0;
+  for(var i=0;i<n;i++){
+    var bx=startX+i*(barW+3);
+    var bh=probs[i]*maxH/probs[0]*0.85;if(bh<2)bh=2;
+    var isKept=i<effectiveCut;
+    var isSampled=i===nucSampled;
+    cumul+=probs[i];
+
+    if(isSampled){x.shadowColor=th.accent;x.shadowBlur=12;}
+    x.fillStyle=isSampled?th.accent:(isKept?th.accent2:'rgba(128,128,128,.2)');
+    x.globalAlpha=isKept?1:0.35;
+    x.beginPath();x.roundRect(bx,baseY-bh,barW,bh,3);x.fill();
+    x.shadowBlur=0;x.globalAlpha=1;
+
+    // Prob
+    if(isKept||i<8){
+      x.fillStyle=th.text;x.font='bold 8px system-ui';x.textAlign='center';
+      x.fillText((probs[i]*100).toFixed(1)+'%',bx+barW/2,baseY-bh-6);
+    }
+    // Token
+    x.fillStyle=isKept?th.text:th.dim;x.font='9px system-ui';
+    x.save();x.translate(bx+barW/2,baseY+6);x.rotate(Math.PI/4);
+    x.textAlign='left';x.fillText(NUC_VOCAB[i],0,0);x.restore();
+  }
+
+  // Cumulative probability curve
+  x.strokeStyle='rgba(234,88,12,.6)';x.lineWidth=2;x.beginPath();
+  cumul=0;
+  for(var i=0;i<n;i++){
+    cumul+=probs[i];
+    var cx=startX+i*(barW+3)+barW/2;
+    var cy=baseY-(cumul*maxH*0.85);
+    if(i===0)x.moveTo(cx,cy);else x.lineTo(cx,cy);
+  }
+  x.stroke();
+
+  // Top-p line
+  x.strokeStyle='rgba(234,88,12,.3)';x.lineWidth=1;x.setLineDash([3,3]);
+  var py=baseY-(topp*maxH*0.85);
+  x.beginPath();x.moveTo(startX,py);x.lineTo(startX+n*(barW+3),py);x.stroke();
+  x.setLineDash([]);
+  x.fillStyle=th.accent3||'#ea580c';x.font='bold 10px system-ui';x.textAlign='right';
+  x.fillText('p='+topp.toFixed(2),startX-6,py+4);
+
+  // Top labels
+  x.fillStyle=th.text;x.font='bold 13px system-ui';x.textAlign='left';
+  x.fillText('Top-k='+topk,12,28);
+  x.textAlign='right';x.fillText('Top-p='+topp.toFixed(2),W-12,28);
+
+  // Stats
+  var keptCount=effectiveCut;
+  var cumulKept=0;for(var i=0;i<effectiveCut;i++)cumulKept+=probs[i];
+  document.getElementById('nucKept').textContent=keptCount+'/'+n;
+  document.getElementById('nucCumul').textContent=(cumulKept*100).toFixed(1)+'%';
+}
+
+function onNucleusChange(){
+  document.getElementById('topkVal').textContent=document.getElementById('topkSlider').value;
+  document.getElementById('toppVal').textContent=(parseInt(document.getElementById('toppSlider').value)/100).toFixed(2);
+  nucSampled=-1;drawNucleus();
+}
+
+function sampleNucleus(){
+  var probs=softmax(NUC_LOGITS,1);
+  var topk=parseInt(document.getElementById('topkSlider').value);
+  var topp=parseInt(document.getElementById('toppSlider').value)/100;
+  var cumul=0,toppCut=probs.length;
+  for(var i=0;i<probs.length;i++){cumul+=probs[i];if(cumul>=topp){toppCut=i+1;break;}}
+  var cut=Math.min(topk,toppCut);
+  var kept=probs.slice(0,cut);
+  var sum=kept.reduce(function(a,b){return a+b;},0);
+  var norm=kept.map(function(p){return p/sum;});
+  nucSampled=weightedSample(norm);
+  document.getElementById('nucSampled').textContent=NUC_VOCAB[nucSampled];
+  drawNucleus();
+}
+
+function resetNucleus(){
+  nucSampled=-1;
+  document.getElementById('topkSlider').value=5;document.getElementById('topkVal').textContent='5';
+  document.getElementById('toppSlider').value=90;document.getElementById('toppVal').textContent='0.90';
+  drawNucleus();
+}
+
+// ===================== SECTION 4: LIVE TEXT GENERATION =====================
+var GEN_VOCAB=['the','a','in','of','on','at','to','is','was','it','and','but','for','with',
+  'cat','dog','bird','tree','house','river','king','queen','dark','bright','small','big',
+  'forest','castle','kingdom','mountain','magic','ancient','golden','hidden','deep','far',
+  'dragon','knight','wizard','fairy','once','then','there','here','very','most','ran','sat',
+  'flew','came','went','found','saw','made','took','gave','said','told'];
+
+function pseudoGenerate(prompt,mode,opts){
+  // Simulated generation with seeded randomness
+  var tokens=[],seed=0;
+  prompt.split('').forEach(function(c){seed+=c.charCodeAt(0);});
+  function seededRand(){seed=(seed*1103515245+12345)&0x7fffffff;return(seed%1000)/1000;}
+
+  var generated=[];var seen={};
+  for(var step=0;step<12;step++){
+    // Generate pseudo-logits based on seed
+    var logits=[];
+    for(var v=0;v<GEN_VOCAB.length;v++){
+      var base=3.0-v*0.15+seededRand()*1.5;
+      if(seen[v])base-=1.0; // slight repetition avoidance
+      logits.push(base);
+    }
+
+    var idx;
+    if(mode==='greedy'){
+      // Always pick max
+      var maxL=-Infinity;idx=0;
+      for(var v=0;v<logits.length;v++){if(logits[v]>maxL){maxL=logits[v];idx=v;}}
+    } else if(mode==='beam'){
+      // Simulate beam: pick from top-k with slight randomness
+      var bw=opts.beam||3;
+      var indexed=logits.map(function(l,i){return{l:l,i:i};});
+      indexed.sort(function(a,b){return b.l-a.l;});
+      var pick=Math.floor(seededRand()*Math.min(bw,indexed.length));
+      idx=indexed[pick].i;
+    } else {
+      // Sampling with temperature and top-k
+      var temp=opts.temp||0.7;var topk=opts.topk||5;
+      var probs=softmax(logits,temp);
+      var indexed=probs.map(function(p,i){return{p:p,i:i};});
+      indexed.sort(function(a,b){return b.p-a.p;});
+      var kept=indexed.slice(0,topk);
+      var sum=kept.reduce(function(a,b){return a+b.p;},0);
+      var r=seededRand()*sum,cum=0;idx=kept[0].i;
+      for(var k=0;k<kept.length;k++){cum+=kept[k].p;if(r<cum){idx=kept[k].i;break;}}
+    }
+
+    var prob=softmax(logits,1)[idx];
+    generated.push({token:GEN_VOCAB[idx],prob:prob});
+    seen[idx]=(seen[idx]||0)+1;
+    seed+=idx*7+step*13;
+  }
+  return generated;
+}
+
+function colorForProb(prob,th){
+  if(prob>0.15)return th.accent;
+  if(prob>0.05)return th.accent2;
+  return th.accent3||'#ea580c';
+}
+
+var genAnimTimers=[];
+function runGeneration(){
+  clearGeneration();
+  var prompt=document.getElementById('promptInput').value||'Once upon a time';
+  var temp=parseFloat(document.getElementById('genTempSlider').value)/10;
+  var topk=parseInt(document.getElementById('genTopkSlider').value);
+  var beam=parseInt(document.getElementById('genBeamSlider').value);
+
+  var greedy=pseudoGenerate(prompt,'greedy',{});
+  var beamRes=pseudoGenerate(prompt,'beam',{beam:beam});
+  var sampling=pseudoGenerate(prompt,'sampling',{temp:temp,topk:topk});
+
+  var targets=[
+    {el:'genGreedy',tokens:greedy},
+    {el:'genBeam',tokens:beamRes},
+    {el:'genSampling',tokens:sampling}
+  ];
+  var th=getTheme();
+
+  targets.forEach(function(tgt){
+    var el=document.getElementById(tgt.el);
+    el.innerHTML='<span style="color:'+th.dim+'">'+prompt+' </span>';
+    tgt.tokens.forEach(function(tok,i){
+      var timer=setTimeout(function(){
+        var span=document.createElement('span');
+        span.textContent=tok.token+' ';
+        span.style.background=colorForProb(tok.prob,th);
+        span.style.color='#fff';
+        span.style.opacity='0';span.style.transition='opacity .3s';
+        el.appendChild(span);
+        setTimeout(function(){span.style.opacity='1';},20);
+      },(i+1)*200);
+      genAnimTimers.push(timer);
+    });
+  });
+}
+
+function clearGeneration(){
+  genAnimTimers.forEach(function(t){clearTimeout(t);});
+  genAnimTimers=[];
+  document.getElementById('genGreedy').innerHTML='';
+  document.getElementById('genBeam').innerHTML='';
+  document.getElementById('genSampling').innerHTML='';
+}
+
+function setPrompt(p){
+  document.getElementById('promptInput').value=p;
+}
+
+// ===================== SECTION 5: REPETITION PENALTY =====================
+var PEN_TOKENS=['the','cat','sat','on','the','mat','the','cat'];
+var PEN_LOGITS=[3.0,2.4,1.8,1.3,0.9,0.5,0.2,-0.1,-0.4,-0.7,-1.0,-1.3];
+var PEN_VOCAB_FULL=['the','cat','sat','on','mat','a','big','red','dog','ran','is','and'];
+
+function drawPenalty(){
+  var cv=setupCanvas('penaltyCanvas');if(!cv)return;
+  var x=cv.x,W=cv.W,H=cv.H,th=getTheme();
+  var penalty=parseFloat(document.getElementById('penaltySlider').value)/10;
+
+  // Count token frequencies
+  var freq={};PEN_TOKENS.forEach(function(t){freq[t]=(freq[t]||0)+1;});
+
+  // Apply penalty
+  var adjusted=PEN_LOGITS.map(function(l,i){
+    var tok=PEN_VOCAB_FULL[i];
+    var f=freq[tok]||0;
+    return f>0?l-Math.log(penalty)*f:l;
+  });
+
+  var origProbs=softmax(PEN_LOGITS,1);
+  var penProbs=softmax(adjusted,1);
+
+  x.clearRect(0,0,W,H);
+
+  var n=PEN_VOCAB_FULL.length,barW=Math.min(36,(W/2-60)/n-3);
+  var baseY=H-50,maxH=H-110;
+
+  // Left: original
+  var lx=30;
+  x.fillStyle=th.text;x.font='bold 12px system-ui';x.textAlign='center';
+  x.fillText(t('p28.s5.original'),lx+n*(barW+3)/2,28);
+  for(var i=0;i<n;i++){
+    var bx=lx+i*(barW+3);
+    var bh=origProbs[i]*maxH/origProbs[0]*0.85;if(bh<2)bh=2;
+    var hasPen=freq[PEN_VOCAB_FULL[i]]>0;
+    x.fillStyle=hasPen?'rgba(225,29,72,.6)':th.accent2;
+    x.globalAlpha=0.7;
+    x.beginPath();x.roundRect(bx,baseY-bh,barW,bh,3);x.fill();
+    x.globalAlpha=1;
+    x.fillStyle=th.text;x.font='8px system-ui';x.textAlign='center';
+    x.fillText((origProbs[i]*100).toFixed(1)+'%',bx+barW/2,baseY-bh-5);
+    x.fillStyle=hasPen?'#e11d48':th.dim;x.font='9px system-ui';
+    x.save();x.translate(bx+barW/2,baseY+6);x.rotate(Math.PI/4);
+    x.textAlign='left';x.fillText(PEN_VOCAB_FULL[i]+(hasPen?' ('+freq[PEN_VOCAB_FULL[i]]+')':''),0,0);
+    x.restore();
+  }
+
+  // Right: penalized
+  var rx=W/2+20;
+  x.fillStyle=th.text;x.font='bold 12px system-ui';x.textAlign='center';
+  x.fillText(t('p28.s5.penalized')+' ('+penalty.toFixed(1)+')',rx+n*(barW+3)/2,28);
+  for(var i=0;i<n;i++){
+    var bx=rx+i*(barW+3);
+    var bh=penProbs[i]*maxH/Math.max.apply(null,penProbs)*0.85;if(bh<2)bh=2;
+    var hasPen=freq[PEN_VOCAB_FULL[i]]>0;
+    x.fillStyle=hasPen?'rgba(225,29,72,.35)':th.accent2;
+    x.globalAlpha=hasPen?(penalty>1?0.4:0.7):0.8;
+    x.beginPath();x.roundRect(bx,baseY-bh,barW,bh,3);x.fill();
+    x.globalAlpha=1;
+    x.fillStyle=th.text;x.font='8px system-ui';x.textAlign='center';
+    x.fillText((penProbs[i]*100).toFixed(1)+'%',bx+barW/2,baseY-bh-5);
+    x.fillStyle=hasPen?'#e11d48':th.dim;x.font='9px system-ui';
+    x.save();x.translate(bx+barW/2,baseY+6);x.rotate(Math.PI/4);
+    x.textAlign='left';x.fillText(PEN_VOCAB_FULL[i],0,0);x.restore();
+  }
+
+  // Arrow between panels
+  x.fillStyle=th.dim;x.font='24px system-ui';x.textAlign='center';
+  x.fillText('\u2192',W/2,H/2);
+
+  // Context display
+  x.fillStyle=th.dim;x.font='11px system-ui';x.textAlign='center';
+  x.fillText(t('p28.s5.context')+': "'+PEN_TOKENS.join(' ')+'"',W/2,H-16);
+}
+
+function onPenaltyChange(){
+  var v=parseInt(document.getElementById('penaltySlider').value);
+  var penalty=(v/10).toFixed(1);
+  document.getElementById('penaltyVal').textContent=penalty;
+  var lbl=document.getElementById('penaltyLabel');
+  if(v<=10)lbl.textContent='('+t('p28.s5.no_penalty')+')';
+  else if(v<=15)lbl.textContent='('+t('p28.s5.mild')+')';
+  else if(v<=20)lbl.textContent='('+t('p28.s5.moderate')+')';
+  else lbl.textContent='('+t('p28.s5.strong')+')';
+  drawPenalty();
+}
+
+// ===================== SECTION 6: STRATEGY SELECTION GAME =====================
+var gameQuestions=[
+  {scenario:'You are building a customer support chatbot that must give accurate, consistent answers to FAQ questions.',
+   options:['Greedy Decoding','Nucleus Sampling (high temp)','Beam Search','Top-k Sampling (high k)'],
+   answer:'Greedy Decoding',
+   explain:'For factual, deterministic responses, greedy decoding ensures the most probable (and consistent) output every time.'},
+  {scenario:'You want to generate creative short stories with surprising plot twists.',
+   options:['Greedy Decoding','Beam Search','Nucleus Sampling (T=1.2, p=0.95)','Greedy + Repetition Penalty'],
+   answer:'Nucleus Sampling (T=1.2, p=0.95)',
+   explain:'High temperature with nucleus sampling encourages creative, diverse outputs while still avoiding very unlikely tokens.'},
+  {scenario:'You are translating a legal document from English to French with high accuracy requirements.',
+   options:['Top-k Sampling (k=50)','Beam Search (width=5)','Nucleus Sampling (T=0.3)','Greedy Decoding'],
+   answer:'Beam Search (width=5)',
+   explain:'Beam search explores multiple translation paths and finds globally better sequences, which is critical for accurate translation.'},
+  {scenario:'You are generating Python code that must be syntactically correct and follow a specific pattern.',
+   options:['Nucleus Sampling (T=1.5)','Greedy Decoding','Top-k Sampling (k=40)','Beam Search (width=2)'],
+   answer:'Greedy Decoding',
+   explain:'Code generation needs deterministic, high-confidence tokens. Greedy (or low temperature) ensures syntactic correctness.'},
+  {scenario:'You want to brainstorm 10 different marketing slogans, each unique and catchy.',
+   options:['Greedy Decoding','Beam Search','Top-k Sampling (T=1.0, k=20)','Greedy + Low Repetition Penalty'],
+   answer:'Top-k Sampling (T=1.0, k=20)',
+   explain:'Top-k sampling with moderate temperature produces diverse yet coherent outputs. Running multiple times yields varied slogans.'}
+];
+var gameIdx=0,gameScoreVal=0,gameAnswered=false;
+
+function showGame(){
+  var q=gameQuestions[gameIdx];
+  document.getElementById('gameScenario').innerHTML='<div class="scenario-label">'+t('p28.s6.scenario')+' '+(gameIdx+1)+'/5</div><div class="scenario-value">'+t('p28.s6.q'+(gameIdx+1))+'</div>';
+
+  var opts=document.getElementById('gameOptions');opts.innerHTML='';
+  var shuffled=q.options.slice().sort(function(){return Math.random()-0.5;});
+  shuffled.forEach(function(opt){
+    var btn=document.createElement('div');btn.className='game-option';btn.textContent=opt;
+    btn.onclick=function(){checkGame(opt,btn);};opts.appendChild(btn);
+  });
+
+  document.getElementById('gameFeedback').textContent='';
+  document.getElementById('gameFeedback').className='game-feedback';
+  document.getElementById('gameRound').textContent=(gameIdx+1)+'/5';
+  document.getElementById('gameNextBtn').style.display='none';
+  gameAnswered=false;
+}
+
+function checkGame(chosen,btn){
+  if(gameAnswered)return;gameAnswered=true;
+  var q=gameQuestions[gameIdx];
+  var fb=document.getElementById('gameFeedback');
+  var allBtns=document.querySelectorAll('#gameOptions .game-option');
+  allBtns.forEach(function(b){b.classList.add('disabled');if(b.textContent===q.answer)b.classList.add('correct-answer');});
+
+  if(chosen===q.answer){
+    gameScoreVal++;document.getElementById('gameScore').textContent=gameScoreVal;
+    fb.innerHTML='<strong>'+t('p28.s6.correct')+'</strong> '+t('p28.s6.e'+(gameIdx+1));
+    fb.className='game-feedback correct';
+  } else {
+    fb.innerHTML='<strong>'+t('p28.s6.wrong')+'</strong> '+q.answer+'. '+t('p28.s6.e'+(gameIdx+1));
+    fb.className='game-feedback wrong';btn.classList.add('wrong-answer');
+  }
+  if(gameIdx<gameQuestions.length-1){document.getElementById('gameNextBtn').style.display='';}
+  else{setTimeout(function(){fb.innerHTML+='<br><strong>'+t('p28.s6.final')+' '+gameScoreVal+'/5</strong>';},1200);}
+}
+
+function nextGameRound(){gameIdx++;showGame();}
+
+// ===================== INIT =====================
+window.addEventListener('DOMContentLoaded',function(){
+  treeAnimStep=3;drawTree();
+  drawTemp();drawNucleus();drawPenalty();showGame();
+  window.addEventListener('resize',function(){drawTree();drawTemp();drawNucleus();drawPenalty();});
+});
+
+// ===================== i18n =====================
+i18nRegister({
+  'en':{
+    'p28.title':'28. Decoding Strategies — LLM Algorithm Visualizations',
+    'p28.heading':'Decoding Strategies',
+    'p28.subtitle':'How LLMs choose the next token: from greedy search to nucleus sampling.',
+    'p28.s1.badge':'Interactive',
+    'p28.s1.title':'Greedy vs Beam Search',
+    'p28.s1.desc':'Greedy decoding picks the <strong>single best token</strong> at each step. Beam search keeps the <strong>top-k most probable sequences</strong>, sometimes finding better overall results. Adjust beam width to see the difference.',
+    'p28.s1.beam_width':'Beam Width:',
+    'p28.s1.greedy_label':'Greedy',
+    'p28.s1.beam_label':'Beam Search',
+    'p28.s1.greedy_prob':'Greedy Prob',
+    'p28.s1.beam_prob':'Beam Prob',
+    'p28.s1.explored':'Explored',
+    'p28.s2.badge':'Interactive',
+    'p28.s2.title':'Temperature & Sampling',
+    'p28.s2.desc':'Temperature controls the <strong>sharpness</strong> of the probability distribution. Low temperature makes the model more confident; high temperature makes it more random.',
+    'p28.s2.temperature':'Temperature:',
+    'p28.s2.sample':'Sample Token',
+    'p28.s2.sampled':'Sampled',
+    'p28.s2.entropy':'Entropy',
+    'p28.s2.top_prob':'Top-1 Prob',
+    'p28.s3.badge':'Interactive',
+    'p28.s3.title':'Top-k and Top-p (Nucleus) Sampling',
+    'p28.s3.desc':'Top-k keeps only the <strong>k most probable</strong> tokens. Top-p (nucleus) keeps tokens until their <strong>cumulative probability</strong> reaches p. Both truncate the tail to avoid unlikely tokens.',
+    'p28.s3.cutoff':'cutoff',
+    'p28.s3.kept':'Kept',
+    'p28.s3.cumul':'Cumulative P',
+    'p28.s4.badge':'Playground',
+    'p28.s4.title':'Live Text Generation Playground',
+    'p28.s4.desc':'Compare how different decoding strategies produce different outputs from the <strong>same prompt</strong>. Tokens are color-coded by probability.',
+    'p28.s4.prompt_label':'Prompt:',
+    'p28.s4.preset1':'Philosophy',
+    'p28.s4.preset2':'Code',
+    'p28.s4.preset3':'Story',
+    'p28.s4.preset4':'Factual',
+    'p28.s4.generate':'Generate',
+    'p28.s4.greedy_col':'Greedy',
+    'p28.s4.beam_col':'Beam Search',
+    'p28.s4.sampling_col':'Sampling',
+    'p28.s5.badge':'Interactive',
+    'p28.s5.title':'Repetition Penalty & Special Techniques',
+    'p28.s5.desc':'Repetition penalty <strong>reduces the probability</strong> of tokens that have already appeared, preventing repetitive text. Adjust the penalty factor to see its effect.',
+    'p28.s5.penalty_label':'Penalty:',
+    'p28.s5.no_penalty':'No penalty',
+    'p28.s5.mild':'Mild',
+    'p28.s5.moderate':'Moderate',
+    'p28.s5.strong':'Strong',
+    'p28.s5.original':'Original Distribution',
+    'p28.s5.penalized':'After Penalty',
+    'p28.s5.context':'Context so far',
+    'p28.s5.presence':'Presence Penalty',
+    'p28.s5.presence_desc':'Flat penalty applied once per token that has appeared. Encourages new topics.',
+    'p28.s5.frequency':'Frequency Penalty',
+    'p28.s5.frequency_desc':'Penalty proportional to how often a token appeared. Discourages word repetition.',
+    'p28.s5.contrastive':'Contrastive Decoding',
+    'p28.s5.contrastive_desc':'Subtract a weaker model\'s distribution from the stronger model. Amplifies what the expert knows that the amateur doesn\'t.',
+    'p28.s5.speculative':'Speculative Decoding',
+    'p28.s5.speculative_desc':'Small draft model proposes tokens; large model verifies in parallel. Same quality, 2-3x faster inference.',
+    'p28.s6.badge':'Game',
+    'p28.s6.title':'Strategy Selection Game',
+    'p28.s6.desc':'Given a use case, pick the best decoding strategy. 5 rounds with explanations!',
+    'p28.s6.score':'Score',
+    'p28.s6.round':'Round',
+    'p28.s6.scenario':'Scenario',
+    'p28.s6.correct':'Correct!',
+    'p28.s6.wrong':'Not quite. The answer is',
+    'p28.s6.final':'Final score:',
+    'p28.s6.q1':'You are building a customer support chatbot that must give accurate, consistent answers to FAQ questions.',
+    'p28.s6.q2':'You want to generate creative short stories with surprising plot twists.',
+    'p28.s6.q3':'You are translating a legal document from English to French with high accuracy requirements.',
+    'p28.s6.q4':'You are generating Python code that must be syntactically correct and follow a specific pattern.',
+    'p28.s6.q5':'You want to brainstorm 10 different marketing slogans, each unique and catchy.',
+    'p28.s6.e1':'For factual, deterministic responses, greedy decoding ensures the most probable and consistent output every time.',
+    'p28.s6.e2':'High temperature with nucleus sampling encourages creative, diverse outputs while still avoiding very unlikely tokens.',
+    'p28.s6.e3':'Beam search explores multiple translation paths and finds globally better sequences, critical for accurate translation.',
+    'p28.s6.e4':'Code generation needs deterministic, high-confidence tokens. Greedy decoding ensures syntactic correctness.',
+    'p28.s6.e5':'Top-k sampling with moderate temperature produces diverse yet coherent outputs. Running multiple times yields varied slogans.'
+  },
+  'zh-CN':{
+    'p28.title':'28. 解码策略 — 大语言模型算法可视化',
+    'p28.heading':'解码策略',
+    'p28.subtitle':'大语言模型如何选择下一个 token：从贪心搜索到核采样。',
+    'p28.s1.badge':'交互式',
+    'p28.s1.title':'贪心搜索 vs 束搜索',
+    'p28.s1.desc':'贪心解码在每一步选择<strong>单个最优 token</strong>。束搜索保留<strong>概率最高的 k 个序列</strong>，有时能找到全局更优的结果。调整束宽度来观察差异。',
+    'p28.s1.beam_width':'束宽度：',
+    'p28.s1.greedy_label':'贪心',
+    'p28.s1.beam_label':'束搜索',
+    'p28.s1.greedy_prob':'贪心概率',
+    'p28.s1.beam_prob':'束搜索概率',
+    'p28.s1.explored':'已探索',
+    'p28.s2.badge':'交互式',
+    'p28.s2.title':'温度与采样',
+    'p28.s2.desc':'温度控制概率分布的<strong>锐度</strong>。低温让模型更自信；高温让模型更随机。',
+    'p28.s2.temperature':'温度：',
+    'p28.s2.sample':'采样 Token',
+    'p28.s2.sampled':'采样结果',
+    'p28.s2.entropy':'熵',
+    'p28.s2.top_prob':'Top-1 概率',
+    'p28.s3.badge':'交互式',
+    'p28.s3.title':'Top-k 与 Top-p（核）采样',
+    'p28.s3.desc':'Top-k 仅保留<strong>概率最高的 k 个</strong> token。Top-p（核采样）保留 token 直到<strong>累积概率</strong>达到 p。两者都截断尾部以避免不太可能的 token。',
+    'p28.s3.cutoff':'截断',
+    'p28.s3.kept':'保留',
+    'p28.s3.cumul':'累积概率',
+    'p28.s4.badge':'实验场',
+    'p28.s4.title':'实时文本生成实验场',
+    'p28.s4.desc':'比较不同解码策略如何从<strong>相同提示</strong>产生不同输出。token 按概率着色。',
+    'p28.s4.prompt_label':'提示：',
+    'p28.s4.preset1':'哲学',
+    'p28.s4.preset2':'代码',
+    'p28.s4.preset3':'故事',
+    'p28.s4.preset4':'事实',
+    'p28.s4.generate':'生成',
+    'p28.s4.greedy_col':'贪心',
+    'p28.s4.beam_col':'束搜索',
+    'p28.s4.sampling_col':'采样',
+    'p28.s5.badge':'交互式',
+    'p28.s5.title':'重复惩罚与特殊技术',
+    'p28.s5.desc':'重复惩罚<strong>降低已出现 token 的概率</strong>，防止重复文本。调整惩罚因子查看效果。',
+    'p28.s5.penalty_label':'惩罚：',
+    'p28.s5.no_penalty':'无惩罚',
+    'p28.s5.mild':'轻微',
+    'p28.s5.moderate':'中等',
+    'p28.s5.strong':'强烈',
+    'p28.s5.original':'原始分布',
+    'p28.s5.penalized':'惩罚后',
+    'p28.s5.context':'已有上下文',
+    'p28.s5.presence':'存在惩罚',
+    'p28.s5.presence_desc':'对已出现的 token 施加固定惩罚。鼓励新话题。',
+    'p28.s5.frequency':'频率惩罚',
+    'p28.s5.frequency_desc':'惩罚与 token 出现次数成正比。抑制词语重复。',
+    'p28.s5.contrastive':'对比解码',
+    'p28.s5.contrastive_desc':'从强模型分布中减去弱模型分布。放大专家知道而新手不知道的知识。',
+    'p28.s5.speculative':'推测解码',
+    'p28.s5.speculative_desc':'小型草稿模型提议 token；大模型并行验证。质量相同，推理速度快 2-3 倍。',
+    'p28.s6.badge':'游戏',
+    'p28.s6.title':'策略选择游戏',
+    'p28.s6.desc':'给定一个使用场景，选择最佳解码策略。5 轮附带解释！',
+    'p28.s6.score':'得分',
+    'p28.s6.round':'轮次',
+    'p28.s6.scenario':'场景',
+    'p28.s6.correct':'正确！',
+    'p28.s6.wrong':'不太对。答案是',
+    'p28.s6.final':'最终得分：',
+    'p28.s6.q1':'你正在构建一个客户支持聊天机器人，需要对常见问题给出准确、一致的回答。',
+    'p28.s6.q2':'你想生成带有意外情节转折的创意短篇故事。',
+    'p28.s6.q3':'你正在将法律文件从英语翻译成法语，要求高准确度。',
+    'p28.s6.q4':'你正在生成必须语法正确且遵循特定模式的 Python 代码。',
+    'p28.s6.q5':'你想头脑风暴 10 个不同的营销标语，每个都独特且吸引人。',
+    'p28.s6.e1':'对于事实性、确定性响应，贪心解码确保每次输出最可能且一致的结果。',
+    'p28.s6.e2':'高温核采样鼓励创造性、多样化的输出，同时避免极不可能的 token。',
+    'p28.s6.e3':'束搜索探索多条翻译路径并找到全局更优的序列，对准确翻译至关重要。',
+    'p28.s6.e4':'代码生成需要确定性、高置信度的 token。贪心解码确保语法正确性。',
+    'p28.s6.e5':'中等温度的 Top-k 采样产生多样但连贯的输出。多次运行可产生不同标语。'
+  },
+  'zh-TW':{
+    'p28.title':'28. 解碼策略 — 大語言模型演算法視覺化',
+    'p28.heading':'解碼策略',
+    'p28.subtitle':'大語言模型如何選擇下一個 token：從貪心搜尋到核取樣。',
+    'p28.s1.badge':'互動式',
+    'p28.s1.title':'貪心搜尋 vs 束搜尋',
+    'p28.s1.desc':'貪心解碼在每一步選擇<strong>單一最佳 token</strong>。束搜尋保留<strong>機率最高的 k 個序列</strong>，有時能找到全域更優的結果。調整束寬度來觀察差異。',
+    'p28.s1.beam_width':'束寬度：',
+    'p28.s1.greedy_label':'貪心',
+    'p28.s1.beam_label':'束搜尋',
+    'p28.s1.greedy_prob':'貪心機率',
+    'p28.s1.beam_prob':'束搜尋機率',
+    'p28.s1.explored':'已探索',
+    'p28.s2.badge':'互動式',
+    'p28.s2.title':'溫度與取樣',
+    'p28.s2.desc':'溫度控制機率分佈的<strong>銳度</strong>。低溫讓模型更自信；高溫讓模型更隨機。',
+    'p28.s2.temperature':'溫度：',
+    'p28.s2.sample':'取樣 Token',
+    'p28.s2.sampled':'取樣結果',
+    'p28.s2.entropy':'熵',
+    'p28.s2.top_prob':'Top-1 機率',
+    'p28.s3.badge':'互動式',
+    'p28.s3.title':'Top-k 與 Top-p（核）取樣',
+    'p28.s3.desc':'Top-k 僅保留<strong>機率最高的 k 個</strong> token。Top-p（核取樣）保留 token 直到<strong>累積機率</strong>達到 p。兩者都截斷尾部以避免不太可能的 token。',
+    'p28.s3.cutoff':'截斷',
+    'p28.s3.kept':'保留',
+    'p28.s3.cumul':'累積機率',
+    'p28.s4.badge':'實驗場',
+    'p28.s4.title':'即時文字產生實驗場',
+    'p28.s4.desc':'比較不同解碼策略如何從<strong>相同提示</strong>產生不同輸出。token 按機率著色。',
+    'p28.s4.prompt_label':'提示：',
+    'p28.s4.preset1':'哲學',
+    'p28.s4.preset2':'程式碼',
+    'p28.s4.preset3':'故事',
+    'p28.s4.preset4':'事實',
+    'p28.s4.generate':'產生',
+    'p28.s4.greedy_col':'貪心',
+    'p28.s4.beam_col':'束搜尋',
+    'p28.s4.sampling_col':'取樣',
+    'p28.s5.badge':'互動式',
+    'p28.s5.title':'重複懲罰與特殊技術',
+    'p28.s5.desc':'重複懲罰<strong>降低已出現 token 的機率</strong>，防止重複文字。調整懲罰因子查看效果。',
+    'p28.s5.penalty_label':'懲罰：',
+    'p28.s5.no_penalty':'無懲罰',
+    'p28.s5.mild':'輕微',
+    'p28.s5.moderate':'中等',
+    'p28.s5.strong':'強烈',
+    'p28.s5.original':'原始分佈',
+    'p28.s5.penalized':'懲罰後',
+    'p28.s5.context':'已有上下文',
+    'p28.s5.presence':'存在懲罰',
+    'p28.s5.presence_desc':'對已出現的 token 施加固定懲罰。鼓勵新話題。',
+    'p28.s5.frequency':'頻率懲罰',
+    'p28.s5.frequency_desc':'懲罰與 token 出現次數成正比。抑制詞語重複。',
+    'p28.s5.contrastive':'對比解碼',
+    'p28.s5.contrastive_desc':'從強模型分佈中減去弱模型分佈。放大專家知道而新手不知道的知識。',
+    'p28.s5.speculative':'推測解碼',
+    'p28.s5.speculative_desc':'小型草稿模型提議 token；大模型平行驗證。品質相同，推理速度快 2-3 倍。',
+    'p28.s6.badge':'遊戲',
+    'p28.s6.title':'策略選擇遊戲',
+    'p28.s6.desc':'給定一個使用場景，選擇最佳解碼策略。5 輪附帶解釋！',
+    'p28.s6.score':'得分',
+    'p28.s6.round':'輪次',
+    'p28.s6.scenario':'場景',
+    'p28.s6.correct':'正確！',
+    'p28.s6.wrong':'不太對。答案是',
+    'p28.s6.final':'最終得分：',
+    'p28.s6.q1':'你正在建構一個客戶支援聊天機器人，需要對常見問題給出準確、一致的回答。',
+    'p28.s6.q2':'你想產生帶有意外情節轉折的創意短篇故事。',
+    'p28.s6.q3':'你正在將法律文件從英語翻譯成法語，要求高準確度。',
+    'p28.s6.q4':'你正在產生必須語法正確且遵循特定模式的 Python 程式碼。',
+    'p28.s6.q5':'你想腦力激盪 10 個不同的行銷標語，每個都獨特且吸引人。',
+    'p28.s6.e1':'對於事實性、確定性回應，貪心解碼確保每次輸出最可能且一致的結果。',
+    'p28.s6.e2':'高溫核取樣鼓勵創造性、多樣化的輸出，同時避免極不可能的 token。',
+    'p28.s6.e3':'束搜尋探索多條翻譯路徑並找到全域更優的序列，對準確翻譯至關重要。',
+    'p28.s6.e4':'程式碼產生需要確定性、高置信度的 token。貪心解碼確保語法正確性。',
+    'p28.s6.e5':'中等溫度的 Top-k 取樣產生多樣但連貫的輸出。多次執行可產生不同標語。'
+  }
+});
+</script>
+</body></html>

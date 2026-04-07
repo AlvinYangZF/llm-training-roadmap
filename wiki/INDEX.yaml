@@ -1,0 +1,269 @@
+version: "1.0"
+updated: 2026-04-07
+total: 29
+description: >
+  Machine-readable registry of all LLM learning wiki topics.
+  Agent query: python -c "import yaml; [print(t['id'],t['summary']) for t in yaml.safe_load(open('wiki/INDEX.yaml'))['topics']]"
+  RAG query:   python rag_agent/agent.py --docs ./wiki --query "YOUR QUESTION"
+
+topics:
+  - id: linear-algebra
+    file: linear-algebra.md
+    year: 1900
+    tier: core
+    tags: [math, vectors, matrices, foundations]
+    summary: "Vectors, matrices, dot products — math backbone of every LLM operation."
+    requires: []
+    viz: 00-linear-algebra.html
+
+  - id: transformer
+    file: transformer.md
+    year: 2017
+    tier: core
+    tags: [attention, architecture, foundation, self-attention]
+    summary: "Self-attention + FFN stacked N×. Foundation of all modern LLMs."
+    requires: [linear-algebra, embeddings]
+    viz: 01-transformer-basics.html
+
+  - id: gpt2
+    file: gpt2.md
+    year: 2019
+    tier: core
+    tags: [architecture, autoregressive, decoder-only, language-model]
+    summary: "Decoder-only transformer trained on next-token prediction at scale."
+    requires: [transformer]
+    viz: 02-gpt2-architecture.html
+
+  - id: sparse-transformers
+    file: sparse-transformers.md
+    year: 2019
+    tier: advanced
+    tags: [attention, sparsity, efficiency, long-context]
+    summary: "Sparse attention patterns reduce O(n²) to O(n√n) for long sequences."
+    requires: [transformer]
+    viz: 03-sparse-transformers.html
+
+  - id: prefill-decode
+    file: prefill-decode.md
+    year: 2022
+    tier: core
+    tags: [inference, kv-cache, memory, throughput]
+    summary: "Two-phase LLM inference: compute-bound prefill + memory-bound decode."
+    requires: [transformer, gpt2]
+    viz: 04-prefill-decode.html
+
+  - id: flash-attention
+    file: flash-attention.md
+    year: 2022
+    tier: advanced
+    tags: [attention, compute, memory-io, cuda, kernel]
+    summary: "IO-aware fused attention kernel; O(n) memory, 2–4× throughput."
+    requires: [transformer, prefill-decode]
+    viz: 05-flash-attention.html
+
+  - id: paged-attention
+    file: paged-attention.md
+    year: 2023
+    tier: advanced
+    tags: [kv-cache, memory, serving, vllm, paging]
+    summary: "Virtual memory paging for KV cache; eliminates fragmentation in serving."
+    requires: [prefill-decode]
+    viz: 06-paged-attention.html
+
+  - id: h2o
+    file: h2o.md
+    year: 2023
+    tier: advanced
+    tags: [kv-cache, eviction, memory, long-context, heavy-hitter]
+    summary: "Evict KV cache by heavy-hitter oracle; 20× memory reduction."
+    requires: [paged-attention, prefill-decode]
+    viz: 07-h2o.html
+
+  - id: streaming-llm
+    file: streaming-llm.md
+    year: 2024
+    tier: advanced
+    tags: [kv-cache, streaming, attention-sink, infinite-context]
+    summary: "Attention sinks + sliding window = infinite-length generation."
+    requires: [h2o, prefill-decode]
+    viz: 08-streaming-llm.html
+
+  - id: pd-separation
+    file: pd-separation.md
+    year: 2025
+    tier: advanced
+    tags: [serving, disaggregation, prefill, decode, distributed]
+    summary: "Separate prefill and decode to dedicated GPU pools for optimal utilisation."
+    requires: [prefill-decode, paged-attention]
+    viz: 09-pd-separation.html
+
+  - id: mooncake
+    file: mooncake.md
+    year: 2025
+    tier: advanced
+    tags: [kv-cache, serving, scheduling, distributed, transfer]
+    summary: "KV-cache-centric serving: transfer cache across nodes to maximise reuse."
+    requires: [pd-separation, paged-attention]
+    viz: 10-mooncake.html
+
+  - id: turboquant
+    file: turboquant.md
+    year: 2026
+    tier: applied
+    tags: [quantization, inference, speedup, int4]
+    summary: "Post-training quantisation pipeline targeting 4-bit inference speedup."
+    requires: [quantization, prefill-decode]
+    viz: 11-turboquant.html
+
+  - id: dense-retrieval
+    file: dense-retrieval.md
+    year: 2020
+    tier: core
+    tags: [retrieval, embeddings, dpr, bi-encoder, faiss]
+    summary: "Dense Passage Retrieval: encode queries + docs into shared embedding space."
+    requires: [embeddings, linear-algebra]
+    viz: 12-dense-retrieval.html
+
+  - id: rag-pipeline
+    file: rag-pipeline.md
+    year: 2020
+    tier: core
+    tags: [rag, retrieval, generation, pipeline, hyde]
+    summary: "Retrieve-then-generate: ground LLM outputs in external knowledge."
+    requires: [dense-retrieval, transformer]
+    viz: 13-rag-pipeline.html
+
+  - id: adaptive-rag
+    file: adaptive-rag.md
+    year: 2024
+    tier: applied
+    tags: [rag, routing, adaptive, query-complexity]
+    summary: "Route queries to simple/iterative/no-retrieval strategies by complexity."
+    requires: [rag-pipeline]
+    viz: 14-adaptive-rag.html
+
+  - id: graph-rag
+    file: graph-rag.md
+    year: 2024
+    tier: applied
+    tags: [rag, knowledge-graph, community, global-queries]
+    summary: "Build a knowledge graph from corpus; answer global questions via communities."
+    requires: [rag-pipeline, kg-construction]
+    viz: 15-graph-rag.html
+
+  - id: rag-at-scale
+    file: rag-at-scale.md
+    year: 2022
+    tier: applied
+    tags: [rag, production, chunking, reranking, hybrid]
+    summary: "Production RAG: chunking strategies, reranking, eval, latency tradeoffs."
+    requires: [rag-pipeline, hybrid-search]
+    viz: 16-rag-at-scale.html
+
+  - id: diskann
+    file: diskann.md
+    year: 2019
+    tier: advanced
+    tags: [vector-search, ann, disk, graph, billion-scale]
+    summary: "Graph-based ANN that streams from SSD; billion-scale on a single machine."
+    requires: [dense-retrieval, linear-algebra]
+    viz: 17-diskann.html
+
+  - id: aisaq
+    file: aisaq.md
+    year: 2024
+    tier: advanced
+    tags: [vector-search, quantization, anisotropic, ann]
+    summary: "Anisotropic scalar quantisation preserves inner-product ranking for ANN."
+    requires: [diskann, quantization]
+    viz: 18-aisaq.html
+
+  - id: hnsw
+    file: hnsw.md
+    year: 2016
+    tier: core
+    tags: [vector-search, ann, graph, navigable-small-world]
+    summary: "Hierarchical graph index for approximate nearest neighbour; O(log n) query."
+    requires: [dense-retrieval, linear-algebra]
+    viz: 19-hnsw.html
+
+  - id: hybrid-search
+    file: hybrid-search.md
+    year: 2024
+    tier: applied
+    tags: [retrieval, bm25, dense, rrf, fusion]
+    summary: "Combine BM25 sparse + dense vector search via Reciprocal Rank Fusion."
+    requires: [dense-retrieval, hnsw]
+    viz: 20-hybrid-search.html
+
+  - id: kg-construction
+    file: kg-construction.md
+    year: 2024
+    tier: applied
+    tags: [knowledge-graph, extraction, llm, entities, relations]
+    summary: "Use LLMs to extract entities + relations and build a queryable knowledge graph."
+    requires: [rag-pipeline, embeddings]
+    viz: 21-kg-construction.html
+
+  - id: cag-vs-rag
+    file: cag-vs-rag.md
+    year: 2025
+    tier: applied
+    tags: [rag, cag, long-context, cache, tradeoffs]
+    summary: "Cache-Augmented Generation vs RAG: when long-context KV cache beats retrieval."
+    requires: [rag-pipeline, paged-attention]
+    viz: 22-cag-vs-rag.html
+
+  - id: embeddings
+    file: embeddings.md
+    year: 2018
+    tier: core
+    tags: [embeddings, word2vec, bert, sentence-transformers, semantic]
+    summary: "Map tokens/sentences to dense vectors capturing semantic similarity."
+    requires: [linear-algebra, tokenization]
+    viz: 23-embeddings.html
+
+  - id: tokenization
+    file: tokenization.md
+    year: 2016
+    tier: core
+    tags: [tokenization, bpe, wordpiece, sentencepiece, vocabulary]
+    summary: "Convert raw text to integer token IDs via BPE/WordPiece/SentencePiece."
+    requires: [linear-algebra]
+    viz: 24-tokenization.html
+
+  - id: training-loss
+    file: training-loss.md
+    year: 2017
+    tier: core
+    tags: [training, loss, cross-entropy, perplexity, backprop, optimiser]
+    summary: "Next-token cross-entropy loss + gradient descent: how LLMs are trained."
+    requires: [transformer, tokenization]
+    viz: 25-training-loss.html
+
+  - id: quantization
+    file: quantization.md
+    year: 2023
+    tier: applied
+    tags: [quantization, int8, int4, gptq, awq, memory]
+    summary: "Reduce model precision to INT8/INT4; 2–4× memory with minimal quality loss."
+    requires: [training-loss, linear-algebra]
+    viz: 26-quantization.html
+
+  - id: lora
+    file: lora.md
+    year: 2021
+    tier: applied
+    tags: [fine-tuning, lora, qlora, low-rank, adapters, peft]
+    summary: "Inject trainable low-rank matrices BA into frozen weights; <1% params updated."
+    requires: [transformer, training-loss, quantization]
+    viz: 27-lora.html
+
+  - id: decoding
+    file: decoding.md
+    year: 2019
+    tier: core
+    tags: [decoding, sampling, beam-search, temperature, top-k, top-p, greedy]
+    summary: "How LLMs pick the next token: greedy, beam, nucleus, and temperature sampling."
+    requires: [gpt2, training-loss]
+    viz: 28-decoding.html

@@ -1,0 +1,1036 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p23.title">23. Embeddings — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .embed-canvas{width:100%;height:520px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);cursor:grab}
+    .embed-canvas:active{cursor:grabbing}
+    .vec-canvas{width:100%;height:380px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .sim-canvas{width:100%;height:360px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);cursor:grab}
+    .sim-canvas:active{cursor:grabbing}
+    .ctrl-btns{display:flex;gap:10px;justify-content:center;margin:12px 0;flex-wrap:wrap}
+    .ctrl-btns button{padding:8px 22px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text);transition:all .2s}
+    .ctrl-btns button:hover{border-color:var(--accent);color:var(--accent)}
+    .ctrl-btns button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .legend-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+    .legend-item{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--text-dim)}
+    .legend-dot{width:12px;height:12px;border-radius:50%}
+    .analogy-display{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin:16px 0;font-size:1.3rem;font-weight:700}
+    .analogy-display .op{color:var(--text-dim);font-size:1.5rem}
+    .analogy-display .word-box{padding:8px 18px;border-radius:10px;border:2px solid var(--border);background:var(--surface)}
+    .analogy-display .answer-box{padding:8px 18px;border-radius:10px;border:2px dashed var(--accent);background:rgba(91,91,214,.06);min-width:80px;text-align:center}
+    .era-timeline{display:flex;gap:0;margin:20px 0;position:relative}
+    .era-card{flex:1;padding:20px 16px;border:2px solid var(--border);text-align:center;cursor:pointer;transition:all .3s;position:relative}
+    .era-card:first-child{border-radius:var(--radius) 0 0 var(--radius)}
+    .era-card:last-child{border-radius:0 var(--radius) var(--radius) 0}
+    .era-card.active{border-color:var(--accent);background:rgba(91,91,214,.06);transform:translateY(-4px);z-index:2}
+    .era-card h4{margin:0 0 4px;font-size:.95rem}
+    .era-card .era-year{font-size:.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
+    .era-card .era-desc{font-size:.78rem;color:var(--text-dim);margin-top:6px;line-height:1.4}
+    .context-demo{margin:20px 0;padding:20px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .context-demo input[type=text]{width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:.95rem;outline:none;transition:border-color .2s;margin-bottom:8px}
+    .context-demo input[type=text]:focus{border-color:var(--accent)}
+    .context-result{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+    .context-vec{padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-family:'Courier New',monospace;font-size:.78rem;text-align:center;min-width:200px}
+    .context-vec .vec-label{font-weight:700;font-size:.85rem;margin-bottom:4px;font-family:system-ui}
+    .dim-progress{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .dim-step{padding:8px 16px;border-radius:8px;border:2px solid var(--border);background:var(--surface);font-weight:700;font-size:.88rem;transition:all .3s;cursor:pointer}
+    .dim-step.active{border-color:var(--accent);background:rgba(91,91,214,.08);transform:scale(1.1)}
+    .dim-arrow{color:var(--text-dim);font-size:1.2rem}
+    .metric-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:16px 0}
+    .metric-card{padding:16px;border:2px solid var(--border);border-radius:var(--radius);text-align:center;transition:all .3s}
+    .metric-card.active{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+    .metric-card h4{margin:0 0 8px;font-size:.95rem}
+    .metric-card .metric-val{font-size:1.6rem;font-weight:800;font-family:'Courier New',monospace}
+    .metric-card .metric-formula{font-size:.72rem;color:var(--text-dim);margin-top:6px;font-family:'Courier New',monospace}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+    .stat-badge .val{font-size:1.4rem;font-weight:800}
+    .stat-badge .lbl{font-size:.72rem;color:var(--text-dim);text-transform:uppercase}
+    .formula-box{padding:14px 20px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);font-family:'Courier New',monospace;font-size:.88rem;text-align:center;margin:12px 0;line-height:1.8}
+    .threshold-slider{display:flex;align-items:center;gap:12px;justify-content:center;margin:10px 0;flex-wrap:wrap}
+    .threshold-slider label{font-weight:600;font-size:.88rem;color:var(--text-dim)}
+    .threshold-slider input[type=range]{width:180px;accent-color:var(--accent)}
+    .threshold-slider .slider-val{font-weight:800;font-size:1rem;color:var(--accent);min-width:40px}
+    @media(max-width:700px){.metric-cards{grid-template-columns:1fr}.era-timeline{flex-direction:column}.era-card,.era-card:first-child,.era-card:last-child{border-radius:var(--radius)}}
+  </style>
+</head><body>
+
+<h1 data-i18n="p23.heading">Embeddings — How Text Becomes Vectors</h1>
+<p class="subtitle" data-i18n="p23.subtitle">From words to numbers. Understanding how machines represent meaning in vector space.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span>Embeddings</span></p>
+
+<div class="container">
+
+  <!-- Section 1: Words in Space -->
+  <div class="card">
+    <span class="badge badge-purple" data-i18n="p23.s1.badge">Interactive</span>
+    <h2 data-i18n="p23.s1.title">Words in Space — 2D Embedding Explorer</h2>
+    <p data-i18n="p23.s1.desc" data-i18n-html="1">Words with <strong>similar meanings</strong> cluster together in vector space. Drag words around to explore. Hover to see the <strong>3 nearest neighbors</strong> and cosine distances. Lines connect words that are close enough (similarity &gt; threshold).</p>
+    <canvas id="embedCanvas" class="embed-canvas"></canvas>
+    <div class="threshold-slider">
+      <label data-i18n="p23.s1.threshold">Similarity Threshold:</label>
+      <input type="range" id="thresholdSlider" min="0" max="100" value="70" oninput="onThresholdChange()">
+      <span class="slider-val" id="thresholdVal">0.70</span>
+    </div>
+    <div class="legend-row" id="clusterLegend"></div>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="resetEmbeddings()" data-i18n="btn.reset">Reset</button>
+      <button onclick="shuffleEmbeddings()" data-i18n="btn.randomize">Randomize</button>
+    </div>
+    <div class="stat-row">
+      <div class="stat-badge"><div class="val" style="color:var(--accent)">30</div><div class="lbl" data-i18n="p23.s1.stat_words">Words</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)">5</div><div class="lbl" data-i18n="p23.s1.stat_clusters">Clusters</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)">2D</div><div class="lbl" data-i18n="p23.s1.stat_dims">Projection</div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: Vector Arithmetic -->
+  <div class="card">
+    <span class="badge badge-green" data-i18n="p23.s2.badge">Game</span>
+    <h2 data-i18n="p23.s2.title">Vector Arithmetic — king - man + woman = ?</h2>
+    <p data-i18n="p23.s2.desc" data-i18n-html="1">The famous Word2Vec discovery: word vectors support <strong>algebraic operations</strong> that capture semantic relationships. Solve 5 analogy puzzles!</p>
+    <canvas id="vecCanvas" class="vec-canvas"></canvas>
+    <div class="analogy-display" id="analogyDisplay"></div>
+    <div class="game-options" id="analogyOptions"></div>
+    <div class="game-feedback" id="analogyFeedback"></div>
+    <div class="game-score">
+      <div class="game-score-item"><div class="score-val" id="analogyScore">0</div><div class="score-label" data-i18n="p23.s2.score">Score</div></div>
+      <div class="game-score-item"><div class="score-val" id="analogyRound">1/5</div><div class="score-label" data-i18n="p23.s2.round">Round</div></div>
+    </div>
+    <div class="ctrl-btns" id="analogyNextBtn" style="display:none">
+      <button class="primary" onclick="nextAnalogyRound()" data-i18n="btn.nextRound">Next Round</button>
+    </div>
+  </div>
+
+  <!-- Section 3: How Embeddings Are Made -->
+  <div class="card">
+    <span class="badge badge-orange" data-i18n="p23.s3.badge">Architecture</span>
+    <h2 data-i18n="p23.s3.title">How Embeddings Are Made</h2>
+    <p data-i18n="p23.s3.desc" data-i18n-html="1">Three eras of embedding models, each solving limitations of the previous one. Click an era to explore.</p>
+    <div class="era-timeline" id="eraTimeline">
+      <div class="era-card active" onclick="selectEra(0)">
+        <div class="era-year">2013</div>
+        <h4>Word2Vec</h4>
+        <div class="era-desc" data-i18n="p23.s3.era1">Skip-gram & CBOW. One fixed vector per word. 100-300 dimensions.</div>
+      </div>
+      <div class="era-card" onclick="selectEra(1)">
+        <div class="era-year">2018</div>
+        <h4>BERT</h4>
+        <div class="era-desc" data-i18n="p23.s3.era2">Contextual embeddings. Same word gets different vectors based on context. 768 dimensions.</div>
+      </div>
+      <div class="era-card" onclick="selectEra(2)">
+        <div class="era-year">2019</div>
+        <h4>Sentence-BERT</h4>
+        <div class="era-desc" data-i18n="p23.s3.era3">Full sentence to single vector via siamese networks. 768-1024 dimensions.</div>
+      </div>
+    </div>
+    <div id="eraDetail" class="context-demo">
+      <p style="text-align:center;font-weight:600;margin-bottom:12px" data-i18n="p23.s3.context_title">Contextual Embedding Demo: type "bank" in two different sentences</p>
+      <input type="text" id="ctxSent1" value="I sat by the river bank" placeholder="Sentence 1 with 'bank'...">
+      <input type="text" id="ctxSent2" value="I deposited money at the bank" placeholder="Sentence 2 with 'bank'...">
+      <div class="context-result" id="ctxResult"></div>
+    </div>
+    <p style="text-align:center;font-size:.85rem;color:var(--text-dim);margin-top:12px" data-i18n="p23.s3.dim_title">Embedding Dimension Progression</p>
+    <div class="dim-progress">
+      <div class="dim-step" style="border-color:var(--accent4)">100d</div>
+      <div class="dim-arrow">&rarr;</div>
+      <div class="dim-step" style="border-color:var(--accent)">768d</div>
+      <div class="dim-arrow">&rarr;</div>
+      <div class="dim-step" style="border-color:var(--accent2)">1024d</div>
+      <div class="dim-arrow">&rarr;</div>
+      <div class="dim-step active" style="border-color:var(--accent3)">3072d</div>
+    </div>
+    <div class="formula-box">Word2Vec: 100-300d &nbsp;|&nbsp; BERT: 768d &nbsp;|&nbsp; text-embedding-3-large: 3072d</div>
+  </div>
+
+  <!-- Section 4: Similarity Measures -->
+  <div class="card">
+    <span class="badge badge-red" data-i18n="p23.s4.badge">Interactive</span>
+    <h2 data-i18n="p23.s4.title">Similarity Measures</h2>
+    <p data-i18n="p23.s4.desc" data-i18n-html="1">Three ways to measure how close two vectors are. <strong>Drag the arrow tips</strong> to see all metrics update in real-time.</p>
+    <canvas id="simCanvas" class="sim-canvas"></canvas>
+    <div class="metric-cards" id="metricCards">
+      <div class="metric-card active" style="border-color:var(--accent)">
+        <h4 style="color:var(--accent)" data-i18n="p23.s4.cosine">Cosine Similarity</h4>
+        <div class="metric-val" id="metricCosine" style="color:var(--accent)">1.000</div>
+        <div class="metric-formula">cos(&theta;) = (A &middot; B) / (|A| |B|)</div>
+        <p style="font-size:.75rem;color:var(--text-dim);margin-top:6px" data-i18n="p23.s4.cosine_note">Angle between vectors. Scale-invariant.</p>
+      </div>
+      <div class="metric-card" style="border-color:var(--accent2)">
+        <h4 style="color:var(--accent2)" data-i18n="p23.s4.euclidean">Euclidean Distance</h4>
+        <div class="metric-val" id="metricEuclid" style="color:var(--accent2)">0.000</div>
+        <div class="metric-formula">d = &radic;(&Sigma;(A<sub>i</sub> - B<sub>i</sub>)&sup2;)</div>
+        <p style="font-size:.75rem;color:var(--text-dim);margin-top:6px" data-i18n="p23.s4.euclid_note">Straight-line distance. Sensitive to magnitude.</p>
+      </div>
+      <div class="metric-card" style="border-color:var(--accent4)">
+        <h4 style="color:var(--accent4)" data-i18n="p23.s4.dot">Dot Product</h4>
+        <div class="metric-val" id="metricDot" style="color:var(--accent4)">0.000</div>
+        <div class="metric-formula">A &middot; B = &Sigma;(A<sub>i</sub> &times; B<sub>i</sub>)</div>
+        <p style="font-size:.75rem;color:var(--text-dim);margin-top:6px" data-i18n="p23.s4.dot_note">Combines angle and magnitude. Used in attention.</p>
+      </div>
+    </div>
+    <div class="ctrl-btns">
+      <button class="primary" onclick="resetSimilarity()" data-i18n="btn.reset">Reset</button>
+    </div>
+  </div>
+
+  <!-- Section 5: Embedding Quiz -->
+  <div class="card">
+    <span class="badge badge-purple" data-i18n="p23.s5.badge">Quiz</span>
+    <h2 data-i18n="p23.s5.title">Embedding Quiz</h2>
+    <p data-i18n="p23.s5.desc">Test your understanding of embeddings with 5 questions.</p>
+    <div class="game-scenario" id="quizQuestion"></div>
+    <div class="game-options" id="quizOptions"></div>
+    <div class="game-feedback" id="quizFeedback"></div>
+    <div class="game-score">
+      <div class="game-score-item"><div class="score-val" id="quizScore">0</div><div class="score-label" data-i18n="p23.s5.score">Score</div></div>
+      <div class="game-score-item"><div class="score-val" id="quizRound">1/5</div><div class="score-label" data-i18n="p23.s5.question">Question</div></div>
+    </div>
+    <div class="ctrl-btns" id="quizNextBtn" style="display:none">
+      <button class="primary" onclick="nextQuizRound()" data-i18n="btn.nextRound">Next Round</button>
+    </div>
+  </div>
+
+</div>
+
+<footer><p>Embeddings — Word2Vec (Mikolov 2013), Sentence-BERT (Reimers 2019)</p><p>LLM Algorithm Visualizations v2.1.0</p></footer>
+
+<script src="../shared/i18n.js"></script><script src="../shared/nav.js"></script><script src="../shared/animations.js"></script><script src="../shared/progress.js"></script>
+
+<script>
+// ===================== SECTION 1: Words in Space =====================
+var clusters = [
+  {name:'Animals', color:'#5b5bd6', words:['cat','dog','fish','bird','horse','whale']},
+  {name:'Food', color:'#0d9488', words:['pizza','pasta','sushi','burger','salad','rice']},
+  {name:'Tech', color:'#e11d48', words:['computer','phone','code','algorithm','GPU','server']},
+  {name:'Emotions', color:'#ea580c', words:['happy','sad','angry','love','fear','joy']},
+  {name:'Countries', color:'#7c3aed', words:['Japan','France','USA','China','Brazil','India']}
+];
+
+var words = [];
+var threshold = 0.70;
+var dragIdx = -1;
+var hoverIdx = -1;
+var embedCanvas, embedCtx;
+
+function initWords(){
+  words = [];
+  var cx = 0, cy = 0;
+  // Cluster centers spread around canvas
+  var centers = [
+    {x:0.2,y:0.25},{x:0.75,y:0.2},{x:0.5,y:0.55},{x:0.2,y:0.8},{x:0.8,y:0.75}
+  ];
+  clusters.forEach(function(cl, ci){
+    var ctr = centers[ci];
+    cl.words.forEach(function(w, wi){
+      var angle = (wi / cl.words.length) * Math.PI * 2;
+      var r = 0.06 + Math.random() * 0.04;
+      words.push({
+        text: w,
+        x: ctr.x + Math.cos(angle) * r,
+        y: ctr.y + Math.sin(angle) * r,
+        origX: ctr.x + Math.cos(angle) * r,
+        origY: ctr.y + Math.sin(angle) * r,
+        cluster: ci,
+        color: cl.color
+      });
+    });
+  });
+}
+
+function cosineSim2D(a, b){
+  var dot = a.x * b.x + a.y * b.y;
+  var magA = Math.sqrt(a.x*a.x + a.y*a.y);
+  var magB = Math.sqrt(b.x*b.x + b.y*b.y);
+  if(magA < 0.001 || magB < 0.001) return 0;
+  return dot / (magA * magB);
+}
+
+function eucDist(a, b){
+  var dx = a.x - b.x, dy = a.y - b.y;
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
+function getNearest(idx, n){
+  var dists = [];
+  for(var i=0;i<words.length;i++){
+    if(i===idx) continue;
+    dists.push({idx:i, dist:eucDist(words[idx], words[i])});
+  }
+  dists.sort(function(a,b){return a.dist - b.dist;});
+  return dists.slice(0, n);
+}
+
+function drawEmbeddings(){
+  var c = embedCanvas;
+  if(!c) return;
+  var r = c.getBoundingClientRect(), d = window.devicePixelRatio||1;
+  c.width = r.width*d; c.height = r.height*d;
+  var x = c.getContext('2d'); x.scale(d,d);
+  var W = r.width, H = r.height;
+  var s = getComputedStyle(document.documentElement);
+  var tc = s.getPropertyValue('--text').trim();
+  var dc = s.getPropertyValue('--text-dim').trim();
+  var bc = s.getPropertyValue('--border').trim();
+
+  x.clearRect(0,0,W,H);
+
+  // Draw connection lines where distance < threshold-based value
+  var maxDist = threshold > 0 ? (1 - threshold) * 0.4 : 0;
+  for(var i=0;i<words.length;i++){
+    for(var j=i+1;j<words.length;j++){
+      var dist = eucDist(words[i], words[j]);
+      if(dist < maxDist){
+        var alpha = Math.max(0.05, 1 - dist/maxDist);
+        x.strokeStyle = 'rgba(128,128,128,' + (alpha*0.3) + ')';
+        x.lineWidth = 1;
+        x.beginPath();
+        x.moveTo(words[i].x*W, words[i].y*H);
+        x.lineTo(words[j].x*W, words[j].y*H);
+        x.stroke();
+      }
+    }
+  }
+
+  // Hover highlights
+  var nearest3 = hoverIdx >= 0 ? getNearest(hoverIdx, 3) : [];
+  if(hoverIdx >= 0){
+    nearest3.forEach(function(n){
+      x.strokeStyle = words[hoverIdx].color;
+      x.lineWidth = 2.5;
+      x.setLineDash([6,4]);
+      x.beginPath();
+      x.moveTo(words[hoverIdx].x*W, words[hoverIdx].y*H);
+      x.lineTo(words[n.idx].x*W, words[n.idx].y*H);
+      x.stroke();
+      x.setLineDash([]);
+      // Distance label
+      var mx = (words[hoverIdx].x + words[n.idx].x)/2 * W;
+      var my = (words[hoverIdx].y + words[n.idx].y)/2 * H;
+      x.fillStyle = tc; x.font = 'bold 10px system-ui'; x.textAlign = 'center';
+      x.fillText('d=' + n.dist.toFixed(2), mx, my - 6);
+    });
+  }
+
+  // Draw word nodes
+  var nearIdxSet = {};
+  nearest3.forEach(function(n){ nearIdxSet[n.idx] = true; });
+
+  for(var i=0;i<words.length;i++){
+    var w = words[i];
+    var px = w.x * W, py = w.y * H;
+    var isHover = i === hoverIdx;
+    var isNeighbor = nearIdxSet[i];
+    var nodeR = isHover ? 22 : (isNeighbor ? 18 : 14);
+
+    // Glow for hover
+    if(isHover){
+      x.shadowColor = w.color; x.shadowBlur = 16;
+    }
+
+    x.fillStyle = w.color;
+    x.globalAlpha = isHover ? 1 : (isNeighbor ? 0.9 : 0.7);
+    x.beginPath();
+    x.arc(px, py, nodeR, 0, Math.PI*2);
+    x.fill();
+    x.shadowBlur = 0;
+
+    // White text
+    x.globalAlpha = 1;
+    x.fillStyle = '#fff';
+    x.font = (isHover ? 'bold 11px' : '10px') + ' system-ui';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(w.text, px, py);
+  }
+  x.globalAlpha = 1;
+}
+
+function onThresholdChange(){
+  var v = document.getElementById('thresholdSlider').value;
+  threshold = v / 100;
+  document.getElementById('thresholdVal').textContent = threshold.toFixed(2);
+  drawEmbeddings();
+}
+
+function resetEmbeddings(){
+  words.forEach(function(w){ w.x = w.origX; w.y = w.origY; });
+  drawEmbeddings();
+}
+
+function shuffleEmbeddings(){
+  words.forEach(function(w){
+    w.x = 0.05 + Math.random() * 0.9;
+    w.y = 0.05 + Math.random() * 0.9;
+  });
+  drawEmbeddings();
+}
+
+function setupEmbedCanvas(){
+  embedCanvas = document.getElementById('embedCanvas');
+  if(!embedCanvas) return;
+
+  // Build legend
+  var leg = document.getElementById('clusterLegend');
+  clusters.forEach(function(cl){
+    var d = document.createElement('div'); d.className='legend-item';
+    d.innerHTML = '<div class="legend-dot" style="background:'+cl.color+'"></div>'+cl.name;
+    leg.appendChild(d);
+  });
+
+  var getMousePos = function(e){
+    var rect = embedCanvas.getBoundingClientRect();
+    return {x:(e.clientX - rect.left)/rect.width, y:(e.clientY - rect.top)/rect.height};
+  };
+
+  var findWord = function(pos){
+    var bestD = 0.03, bestI = -1;
+    for(var i=0;i<words.length;i++){
+      var d = eucDist(pos, words[i]);
+      if(d < bestD){ bestD = d; bestI = i; }
+    }
+    return bestI;
+  };
+
+  embedCanvas.addEventListener('mousedown', function(e){
+    var pos = getMousePos(e);
+    dragIdx = findWord(pos);
+  });
+  embedCanvas.addEventListener('mousemove', function(e){
+    var pos = getMousePos(e);
+    if(dragIdx >= 0){
+      words[dragIdx].x = Math.max(0.03, Math.min(0.97, pos.x));
+      words[dragIdx].y = Math.max(0.03, Math.min(0.97, pos.y));
+      drawEmbeddings();
+    } else {
+      var newHover = findWord(pos);
+      if(newHover !== hoverIdx){ hoverIdx = newHover; drawEmbeddings(); }
+    }
+  });
+  embedCanvas.addEventListener('mouseup', function(){ dragIdx = -1; });
+  embedCanvas.addEventListener('mouseleave', function(){ dragIdx = -1; hoverIdx = -1; drawEmbeddings(); });
+
+  // Touch support
+  embedCanvas.addEventListener('touchstart', function(e){
+    e.preventDefault();
+    var touch = e.touches[0];
+    var pos = getMousePos(touch);
+    dragIdx = findWord(pos);
+  }, {passive:false});
+  embedCanvas.addEventListener('touchmove', function(e){
+    e.preventDefault();
+    if(dragIdx >= 0){
+      var touch = e.touches[0];
+      var pos = getMousePos(touch);
+      words[dragIdx].x = Math.max(0.03, Math.min(0.97, pos.x));
+      words[dragIdx].y = Math.max(0.03, Math.min(0.97, pos.y));
+      drawEmbeddings();
+    }
+  }, {passive:false});
+  embedCanvas.addEventListener('touchend', function(){ dragIdx = -1; });
+
+  drawEmbeddings();
+}
+
+// ===================== SECTION 2: Vector Arithmetic =====================
+var analogies = [
+  {a:'King', b:'Man', c:'Woman', answer:'Queen', options:['Queen','Princess','Duchess','Lady']},
+  {a:'Paris', b:'France', c:'Japan', answer:'Tokyo', options:['Tokyo','Osaka','Kyoto','Beijing']},
+  {a:'Puppy', b:'Dog', c:'Cat', answer:'Kitten', options:['Kitten','Cub','Paw','Whisker']},
+  {a:'Hot', b:'Summer', c:'Winter', answer:'Cold', options:['Cold','Snow','Freeze','Ice']},
+  {a:'Walking', b:'Walk', c:'Swim', answer:'Swimming', options:['Swimming','Swam','Swimmer','Dive']}
+];
+var analogyIdx = 0, analogyScoreVal = 0, analogyAnswered = false;
+
+function showAnalogy(){
+  var q = analogies[analogyIdx];
+  var disp = document.getElementById('analogyDisplay');
+  disp.innerHTML =
+    '<span class="word-box" style="color:var(--accent)">'+q.a+'</span>'+
+    '<span class="op">-</span>'+
+    '<span class="word-box" style="color:var(--accent3)">'+q.b+'</span>'+
+    '<span class="op">+</span>'+
+    '<span class="word-box" style="color:var(--accent2)">'+q.c+'</span>'+
+    '<span class="op">=</span>'+
+    '<span class="answer-box" id="answerBox">?</span>';
+
+  var opts = document.getElementById('analogyOptions');
+  opts.innerHTML = '';
+  // Shuffle options
+  var shuffled = q.options.slice().sort(function(){return Math.random()-0.5;});
+  shuffled.forEach(function(opt){
+    var btn = document.createElement('div');
+    btn.className = 'game-option';
+    btn.textContent = opt;
+    btn.onclick = function(){ checkAnalogy(opt, btn); };
+    opts.appendChild(btn);
+  });
+
+  document.getElementById('analogyFeedback').textContent = '';
+  document.getElementById('analogyFeedback').className = 'game-feedback';
+  document.getElementById('analogyRound').textContent = (analogyIdx+1)+'/5';
+  document.getElementById('analogyNextBtn').style.display = 'none';
+  analogyAnswered = false;
+  drawVecArithmetic();
+}
+
+function checkAnalogy(chosen, btn){
+  if(analogyAnswered) return;
+  analogyAnswered = true;
+  var q = analogies[analogyIdx];
+  var fb = document.getElementById('analogyFeedback');
+  var allBtns = document.querySelectorAll('#analogyOptions .game-option');
+
+  allBtns.forEach(function(b){
+    b.classList.add('disabled');
+    if(b.textContent === q.answer) b.classList.add('correct-answer');
+  });
+
+  if(chosen === q.answer){
+    analogyScoreVal++;
+    document.getElementById('analogyScore').textContent = analogyScoreVal;
+    fb.textContent = t('p23.s2.correct');
+    fb.className = 'game-feedback correct';
+    btn.classList.add('correct-answer');
+  } else {
+    fb.textContent = t('p23.s2.wrong') + ' ' + q.answer;
+    fb.className = 'game-feedback wrong';
+    btn.classList.add('wrong-answer');
+  }
+
+  document.getElementById('answerBox').textContent = q.answer;
+
+  if(analogyIdx < analogies.length - 1){
+    document.getElementById('analogyNextBtn').style.display = '';
+  } else {
+    setTimeout(function(){
+      fb.textContent = t('p23.s2.final') + ' ' + analogyScoreVal + '/5';
+    }, 1200);
+  }
+  drawVecArithmetic(true);
+}
+
+function nextAnalogyRound(){
+  analogyIdx++;
+  showAnalogy();
+}
+
+function drawVecArithmetic(showAnswer){
+  var c = document.getElementById('vecCanvas');
+  if(!c) return;
+  var r = c.getBoundingClientRect(), d = window.devicePixelRatio||1;
+  c.width = r.width*d; c.height = r.height*d;
+  var x = c.getContext('2d'); x.scale(d,d);
+  var W = r.width, H = r.height;
+  var s = getComputedStyle(document.documentElement);
+  var tc = s.getPropertyValue('--text').trim();
+  var dc = s.getPropertyValue('--text-dim').trim();
+  var ac = s.getPropertyValue('--accent').trim();
+  var a2 = s.getPropertyValue('--accent2').trim();
+  var a3 = s.getPropertyValue('--accent3').trim();
+
+  x.clearRect(0,0,W,H);
+
+  var q = analogies[analogyIdx];
+  var ox = W*0.5, oy = H*0.65; // origin
+
+  // Draw axes
+  x.strokeStyle = 'rgba(128,128,128,.15)'; x.lineWidth = 1;
+  x.beginPath(); x.moveTo(40, oy); x.lineTo(W-40, oy); x.stroke();
+  x.beginPath(); x.moveTo(ox, 30); x.lineTo(ox, H-30); x.stroke();
+
+  // Arrow helper
+  function drawArrow(fx,fy,tx,ty,color,label,lw){
+    x.strokeStyle = color; x.lineWidth = lw||2.5; x.fillStyle = color;
+    x.beginPath(); x.moveTo(fx,fy); x.lineTo(tx,ty); x.stroke();
+    // Arrowhead
+    var angle = Math.atan2(ty-fy, tx-fx);
+    x.beginPath();
+    x.moveTo(tx, ty);
+    x.lineTo(tx - 10*Math.cos(angle-0.3), ty - 10*Math.sin(angle-0.3));
+    x.lineTo(tx - 10*Math.cos(angle+0.3), ty - 10*Math.sin(angle+0.3));
+    x.closePath(); x.fill();
+    // Label
+    var lx = (fx+tx)/2, ly = (fy+ty)/2 - 12;
+    x.font = 'bold 13px system-ui'; x.textAlign = 'center';
+    x.fillText(label, lx, ly);
+  }
+
+  // Simulated vector positions
+  var vecs = {
+    a: {x: 0.22, y: -0.28},   // King
+    b: {x: 0.12, y: -0.10},   // Man
+    c: {x: -0.12, y: -0.10},  // Woman
+    result: {x: -0.02, y: -0.28} // Queen = King - Man + Woman
+  };
+
+  var scale = Math.min(W,H) * 0.8;
+
+  // A vector (King)
+  drawArrow(ox, oy, ox + vecs.a.x*scale, oy + vecs.a.y*scale, ac, q.a, 3);
+  // B vector (Man) - dashed
+  x.setLineDash([5,5]);
+  drawArrow(ox, oy, ox + vecs.b.x*scale, oy + vecs.b.y*scale, a3, q.b, 2);
+  x.setLineDash([]);
+  // C vector (Woman)
+  drawArrow(ox, oy, ox + vecs.c.x*scale, oy + vecs.c.y*scale, a2, q.c, 2);
+
+  if(showAnswer){
+    // Result vector
+    drawArrow(ox, oy, ox + vecs.result.x*scale, oy + vecs.result.y*scale, '#7c3aed', q.answer, 3);
+    // A - B dashed line
+    x.strokeStyle = 'rgba(128,128,128,.4)'; x.lineWidth = 1; x.setLineDash([3,3]);
+    x.beginPath();
+    x.moveTo(ox + vecs.a.x*scale, oy + vecs.a.y*scale);
+    x.lineTo(ox + vecs.result.x*scale, oy + vecs.result.y*scale);
+    x.stroke();
+    x.setLineDash([]);
+  }
+
+  // Origin dot
+  x.fillStyle = tc; x.beginPath(); x.arc(ox, oy, 4, 0, Math.PI*2); x.fill();
+  x.font = '10px system-ui'; x.fillText('origin', ox+12, oy+14);
+}
+
+// ===================== SECTION 3: How Embeddings Are Made =====================
+var currentEra = 0;
+
+function selectEra(idx){
+  currentEra = idx;
+  var cards = document.querySelectorAll('.era-card');
+  cards.forEach(function(c,i){ c.classList.toggle('active', i===idx); });
+  updateContextDemo();
+}
+
+function updateContextDemo(){
+  var s1 = document.getElementById('ctxSent1').value;
+  var s2 = document.getElementById('ctxSent2').value;
+  var result = document.getElementById('ctxResult');
+
+  // Simulated vectors based on era
+  if(currentEra === 0){
+    // Word2Vec: same vector for "bank" regardless of context
+    result.innerHTML =
+      '<div class="context-vec"><div class="vec-label" style="color:var(--accent4)">Word2Vec: "bank"</div>[0.23, -0.41, 0.67, ...]<br><span style="color:var(--text-dim);font-size:.7rem">'+t('p23.s3.w2v_note')+'</span></div>';
+  } else if(currentEra === 1){
+    // BERT: different vectors
+    var hasBank1 = s1.toLowerCase().indexOf('bank') >= 0;
+    var hasBank2 = s2.toLowerCase().indexOf('bank') >= 0;
+    var hasRiver = s1.toLowerCase().indexOf('river') >= 0 || s1.toLowerCase().indexOf('water') >= 0;
+    var hasMoney = s2.toLowerCase().indexOf('money') >= 0 || s2.toLowerCase().indexOf('deposit') >= 0 || s2.toLowerCase().indexOf('account') >= 0;
+    var v1 = hasRiver ? '[0.81, -0.12, 0.34, ...]' : '[0.43, 0.22, -0.15, ...]';
+    var v2 = hasMoney ? '[-0.31, 0.76, 0.52, ...]' : '[0.43, 0.22, -0.15, ...]';
+    var sim = (hasRiver && hasMoney) ? '0.23' : (hasBank1 && hasBank2 ? '0.89' : '0.45');
+    result.innerHTML =
+      '<div class="context-vec"><div class="vec-label" style="color:var(--accent)">"bank" in Sent 1</div>'+v1+'</div>'+
+      '<div class="context-vec"><div class="vec-label" style="color:var(--accent2)">"bank" in Sent 2</div>'+v2+'<br><span style="color:var(--text-dim);font-size:.7rem">'+t('p23.s3.sim_label')+': '+sim+'</span></div>';
+  } else {
+    // Sentence-BERT: whole sentence vectors
+    result.innerHTML =
+      '<div class="context-vec"><div class="vec-label" style="color:var(--accent)">Sent 1 vector</div>[0.11, 0.54, -0.23, 0.87, ...]<br><span style="color:var(--text-dim);font-size:.7rem">768 dims</span></div>'+
+      '<div class="context-vec"><div class="vec-label" style="color:var(--accent2)">Sent 2 vector</div>[-0.32, 0.18, 0.71, -0.05, ...]<br><span style="color:var(--text-dim);font-size:.7rem">768 dims</span></div>';
+  }
+}
+
+// ===================== SECTION 4: Similarity Measures =====================
+var simA = {x:120, y:80};
+var simB = {x:200, y:100};
+var simDrag = null;
+var simCanvas, simOrigin;
+
+function drawSimilarity(){
+  var c = simCanvas;
+  if(!c) return;
+  var r = c.getBoundingClientRect(), d = window.devicePixelRatio||1;
+  c.width = r.width*d; c.height = r.height*d;
+  var x = c.getContext('2d'); x.scale(d,d);
+  var W = r.width, H = r.height;
+  var s = getComputedStyle(document.documentElement);
+  var tc = s.getPropertyValue('--text').trim();
+  var dc = s.getPropertyValue('--text-dim').trim();
+  var ac = s.getPropertyValue('--accent').trim();
+  var a2 = s.getPropertyValue('--accent2').trim();
+  var a4 = s.getPropertyValue('--accent4').trim();
+
+  simOrigin = {x: W*0.15, y: H*0.75};
+  var ox = simOrigin.x, oy = simOrigin.y;
+
+  x.clearRect(0,0,W,H);
+
+  // Grid
+  x.strokeStyle = 'rgba(128,128,128,.08)'; x.lineWidth = 1;
+  for(var i=0;i<W;i+=40){ x.beginPath(); x.moveTo(i,0); x.lineTo(i,H); x.stroke(); }
+  for(var i=0;i<H;i+=40){ x.beginPath(); x.moveTo(0,i); x.lineTo(W,i); x.stroke(); }
+
+  // Axes
+  x.strokeStyle = 'rgba(128,128,128,.3)'; x.lineWidth = 1.5;
+  x.beginPath(); x.moveTo(20, oy); x.lineTo(W-20, oy); x.stroke();
+  x.beginPath(); x.moveTo(ox, 20); x.lineTo(ox, H-20); x.stroke();
+
+  // Draw angle arc
+  var angA = Math.atan2(-(simA.y - oy), simA.x - ox);
+  var angB = Math.atan2(-(simB.y - oy), simB.x - ox);
+  var startAng = -Math.max(angA, angB);
+  var endAng = -Math.min(angA, angB);
+  x.strokeStyle = 'rgba(91,91,214,.4)'; x.lineWidth = 2;
+  x.beginPath();
+  x.arc(ox, oy, 40, startAng, endAng);
+  x.stroke();
+  // Theta label
+  var midAng = (startAng + endAng) / 2;
+  x.fillStyle = ac; x.font = 'bold 14px system-ui'; x.textAlign = 'center';
+  x.fillText('\u03B8', ox + 55*Math.cos(midAng), oy + 55*Math.sin(midAng));
+
+  // Arrow A
+  function drawArrow(fx,fy,tx,ty,color,label){
+    x.strokeStyle = color; x.lineWidth = 3; x.fillStyle = color;
+    x.beginPath(); x.moveTo(fx,fy); x.lineTo(tx,ty); x.stroke();
+    var angle = Math.atan2(ty-fy, tx-fx);
+    x.beginPath();
+    x.moveTo(tx, ty);
+    x.lineTo(tx - 12*Math.cos(angle-0.3), ty - 12*Math.sin(angle-0.3));
+    x.lineTo(tx - 12*Math.cos(angle+0.3), ty - 12*Math.sin(angle+0.3));
+    x.closePath(); x.fill();
+    x.font = 'bold 14px system-ui'; x.textAlign = 'center';
+    x.fillText(label, tx + 20*Math.cos(angle), ty + 20*Math.sin(angle));
+    // Draggable circle
+    x.beginPath(); x.arc(tx, ty, 8, 0, Math.PI*2); x.fill();
+  }
+
+  drawArrow(ox, oy, simA.x, simA.y, ac, 'A');
+  drawArrow(ox, oy, simB.x, simB.y, a2, 'B');
+
+  // Euclidean line
+  x.strokeStyle = 'rgba(234,88,12,.4)'; x.lineWidth = 1.5; x.setLineDash([4,4]);
+  x.beginPath(); x.moveTo(simA.x, simA.y); x.lineTo(simB.x, simB.y); x.stroke();
+  x.setLineDash([]);
+
+  // Compute metrics
+  var ax = simA.x - ox, ay = -(simA.y - oy);
+  var bx = simB.x - ox, by = -(simB.y - oy);
+  var dot = ax*bx + ay*by;
+  var magA = Math.sqrt(ax*ax + ay*ay);
+  var magB = Math.sqrt(bx*bx + by*by);
+  var cosine = (magA > 0.1 && magB > 0.1) ? dot / (magA * magB) : 0;
+  var euclid = Math.sqrt((simA.x-simB.x)*(simA.x-simB.x) + (simA.y-simB.y)*(simA.y-simB.y));
+
+  document.getElementById('metricCosine').textContent = cosine.toFixed(3);
+  document.getElementById('metricEuclid').textContent = euclid.toFixed(1);
+  document.getElementById('metricDot').textContent = dot.toFixed(0);
+}
+
+function resetSimilarity(){
+  var c = simCanvas;
+  if(!c) return;
+  var r = c.getBoundingClientRect();
+  simA = {x: r.width*0.5, y: r.height*0.25};
+  simB = {x: r.width*0.7, y: r.height*0.35};
+  drawSimilarity();
+}
+
+function setupSimCanvas(){
+  simCanvas = document.getElementById('simCanvas');
+  if(!simCanvas) return;
+
+  var r = simCanvas.getBoundingClientRect();
+  simA = {x: r.width*0.5, y: r.height*0.25};
+  simB = {x: r.width*0.7, y: r.height*0.35};
+
+  var getPos = function(e){
+    var rect = simCanvas.getBoundingClientRect();
+    return {x: e.clientX - rect.left, y: e.clientY - rect.top};
+  };
+
+  var findHandle = function(pos){
+    if(Math.hypot(pos.x - simA.x, pos.y - simA.y) < 20) return 'A';
+    if(Math.hypot(pos.x - simB.x, pos.y - simB.y) < 20) return 'B';
+    return null;
+  };
+
+  simCanvas.addEventListener('mousedown', function(e){ simDrag = findHandle(getPos(e)); });
+  simCanvas.addEventListener('mousemove', function(e){
+    if(!simDrag) return;
+    var pos = getPos(e);
+    if(simDrag === 'A'){ simA.x = pos.x; simA.y = pos.y; }
+    else { simB.x = pos.x; simB.y = pos.y; }
+    drawSimilarity();
+  });
+  simCanvas.addEventListener('mouseup', function(){ simDrag = null; });
+  simCanvas.addEventListener('mouseleave', function(){ simDrag = null; });
+
+  // Touch
+  simCanvas.addEventListener('touchstart', function(e){
+    e.preventDefault();
+    var touch = e.touches[0];
+    var rect = simCanvas.getBoundingClientRect();
+    simDrag = findHandle({x: touch.clientX - rect.left, y: touch.clientY - rect.top});
+  }, {passive:false});
+  simCanvas.addEventListener('touchmove', function(e){
+    e.preventDefault();
+    if(!simDrag) return;
+    var touch = e.touches[0];
+    var rect = simCanvas.getBoundingClientRect();
+    var pos = {x: touch.clientX - rect.left, y: touch.clientY - rect.top};
+    if(simDrag === 'A'){ simA.x = pos.x; simA.y = pos.y; }
+    else { simB.x = pos.x; simB.y = pos.y; }
+    drawSimilarity();
+  }, {passive:false});
+  simCanvas.addEventListener('touchend', function(){ simDrag = null; });
+
+  drawSimilarity();
+}
+
+// ===================== SECTION 5: Embedding Quiz =====================
+var quizQuestions = [
+  {q:'What do embeddings primarily preserve?',
+   options:['Spelling patterns','Semantic relationships','File sizes','Character counts'], answer:'Semantic relationships'},
+  {q:'Which similarity metric is scale-invariant?',
+   options:['Euclidean distance','Dot product','Cosine similarity','Manhattan distance'], answer:'Cosine similarity'},
+  {q:'What dimension does OpenAI text-embedding-3-large use?',
+   options:['128','768','1536','3072'], answer:'3072'},
+  {q:'What is the key innovation of contextual embeddings (BERT)?',
+   options:['Smaller vectors','Same word gets different vectors based on context','Faster training','Fewer parameters'], answer:'Same word gets different vectors based on context'},
+  {q:'In Word2Vec, what does "king - man + woman" approximate?',
+   options:['Prince','Queen','Princess','King'], answer:'Queen'}
+];
+var quizIdx = 0, quizScoreVal = 0, quizAnswered = false;
+
+function showQuiz(){
+  var q = quizQuestions[quizIdx];
+  document.getElementById('quizQuestion').innerHTML = '<div class="scenario-label">'+t('p23.s5.question')+' '+(quizIdx+1)+'/5</div><div class="scenario-value">'+t('p23.s5.q'+(quizIdx+1))+'</div>';
+
+  var opts = document.getElementById('quizOptions');
+  opts.innerHTML = '';
+  var shuffled = q.options.slice().sort(function(){return Math.random()-0.5;});
+  shuffled.forEach(function(opt){
+    var btn = document.createElement('div');
+    btn.className = 'game-option';
+    btn.textContent = opt;
+    btn.onclick = function(){ checkQuiz(opt, btn); };
+    opts.appendChild(btn);
+  });
+
+  document.getElementById('quizFeedback').textContent = '';
+  document.getElementById('quizFeedback').className = 'game-feedback';
+  document.getElementById('quizRound').textContent = (quizIdx+1)+'/5';
+  document.getElementById('quizNextBtn').style.display = 'none';
+  quizAnswered = false;
+}
+
+function checkQuiz(chosen, btn){
+  if(quizAnswered) return;
+  quizAnswered = true;
+  var q = quizQuestions[quizIdx];
+  var fb = document.getElementById('quizFeedback');
+  var allBtns = document.querySelectorAll('#quizOptions .game-option');
+  allBtns.forEach(function(b){
+    b.classList.add('disabled');
+    if(b.textContent === q.answer) b.classList.add('correct-answer');
+  });
+  if(chosen === q.answer){
+    quizScoreVal++;
+    document.getElementById('quizScore').textContent = quizScoreVal;
+    fb.textContent = t('p23.s5.correct');
+    fb.className = 'game-feedback correct';
+  } else {
+    fb.textContent = t('p23.s5.wrong') + ' ' + q.answer;
+    fb.className = 'game-feedback wrong';
+    btn.classList.add('wrong-answer');
+  }
+  if(quizIdx < quizQuestions.length - 1){
+    document.getElementById('quizNextBtn').style.display = '';
+  } else {
+    setTimeout(function(){
+      fb.textContent = t('p23.s5.final') + ' ' + quizScoreVal + '/5';
+    }, 1200);
+  }
+}
+
+function nextQuizRound(){
+  quizIdx++;
+  showQuiz();
+}
+
+// ===================== INIT =====================
+window.addEventListener('DOMContentLoaded', function(){
+  initWords();
+  setupEmbedCanvas();
+  showAnalogy();
+  updateContextDemo();
+  setupSimCanvas();
+  showQuiz();
+
+  // Listen for context demo changes
+  document.getElementById('ctxSent1').addEventListener('input', updateContextDemo);
+  document.getElementById('ctxSent2').addEventListener('input', updateContextDemo);
+
+  // Resize handler
+  window.addEventListener('resize', function(){
+    drawEmbeddings();
+    drawVecArithmetic(analogyAnswered);
+    drawSimilarity();
+  });
+});
+
+// ===================== i18n =====================
+i18nRegister({
+  'en':{
+    'p23.title':'23. Embeddings — LLM Algorithm Visualizations',
+    'p23.heading':'Embeddings — How Text Becomes Vectors',
+    'p23.subtitle':'From words to numbers. Understanding how machines represent meaning in vector space.',
+    'p23.s1.badge':'Interactive',
+    'p23.s1.title':'Words in Space — 2D Embedding Explorer',
+    'p23.s1.desc':'Words with <strong>similar meanings</strong> cluster together in vector space. Drag words around to explore. Hover to see the <strong>3 nearest neighbors</strong> and cosine distances. Lines connect words that are close enough (similarity &gt; threshold).',
+    'p23.s1.threshold':'Similarity Threshold:',
+    'p23.s1.stat_words':'Words',
+    'p23.s1.stat_clusters':'Clusters',
+    'p23.s1.stat_dims':'Projection',
+    'p23.s2.badge':'Game',
+    'p23.s2.title':'Vector Arithmetic — king - man + woman = ?',
+    'p23.s2.desc':'The famous Word2Vec discovery: word vectors support <strong>algebraic operations</strong> that capture semantic relationships. Solve 5 analogy puzzles!',
+    'p23.s2.score':'Score',
+    'p23.s2.round':'Round',
+    'p23.s2.correct':'Correct!',
+    'p23.s2.wrong':'Not quite. The answer is',
+    'p23.s2.final':'Final score:',
+    'p23.s3.badge':'Architecture',
+    'p23.s3.title':'How Embeddings Are Made',
+    'p23.s3.desc':'Three eras of embedding models, each solving limitations of the previous one. Click an era to explore.',
+    'p23.s3.era1':'Skip-gram & CBOW. One fixed vector per word. 100-300 dimensions.',
+    'p23.s3.era2':'Contextual embeddings. Same word gets different vectors based on context. 768 dimensions.',
+    'p23.s3.era3':'Full sentence to single vector via siamese networks. 768-1024 dimensions.',
+    'p23.s3.context_title':'Contextual Embedding Demo: type "bank" in two different sentences',
+    'p23.s3.w2v_note':'Same vector regardless of context (Word2Vec limitation)',
+    'p23.s3.sim_label':'Cosine similarity',
+    'p23.s3.dim_title':'Embedding Dimension Progression',
+    'p23.s4.badge':'Interactive',
+    'p23.s4.title':'Similarity Measures',
+    'p23.s4.desc':'Three ways to measure how close two vectors are. <strong>Drag the arrow tips</strong> to see all metrics update in real-time.',
+    'p23.s4.cosine':'Cosine Similarity',
+    'p23.s4.euclidean':'Euclidean Distance',
+    'p23.s4.dot':'Dot Product',
+    'p23.s4.cosine_note':'Angle between vectors. Scale-invariant.',
+    'p23.s4.euclid_note':'Straight-line distance. Sensitive to magnitude.',
+    'p23.s4.dot_note':'Combines angle and magnitude. Used in attention.',
+    'p23.s5.badge':'Quiz',
+    'p23.s5.title':'Embedding Quiz',
+    'p23.s5.desc':'Test your understanding of embeddings with 5 questions.',
+    'p23.s5.score':'Score',
+    'p23.s5.question':'Question',
+    'p23.s5.correct':'Correct!',
+    'p23.s5.wrong':'Not quite. The answer is',
+    'p23.s5.final':'Final score:',
+    'p23.s5.q1':'What do embeddings primarily preserve?',
+    'p23.s5.q2':'Which similarity metric is scale-invariant?',
+    'p23.s5.q3':'What dimension does OpenAI text-embedding-3-large use?',
+    'p23.s5.q4':'What is the key innovation of contextual embeddings (BERT)?',
+    'p23.s5.q5':'In Word2Vec, what does "king - man + woman" approximate?'
+  },
+  'zh-CN':{
+    'p23.title':'23. 嵌入向量 — 大语言模型算法可视化',
+    'p23.heading':'嵌入向量 — 文本如何变为向量',
+    'p23.subtitle':'从文字到数字。理解机器如何在向量空间中表示语义。',
+    'p23.s1.badge':'交互式',
+    'p23.s1.title':'词语空间 — 2D 嵌入探索器',
+    'p23.s1.desc':'<strong>语义相似</strong>的词在向量空间中聚集在一起。拖动词语进行探索。悬停查看<strong>最近的 3 个邻居</strong>及余弦距离。连线表示距离足够近的词（相似度 &gt; 阈值）。',
+    'p23.s1.threshold':'相似度阈值：',
+    'p23.s1.stat_words':'词语数',
+    'p23.s1.stat_clusters':'聚类数',
+    'p23.s1.stat_dims':'投影维度',
+    'p23.s2.badge':'游戏',
+    'p23.s2.title':'向量算术 — king - man + woman = ?',
+    'p23.s2.desc':'Word2Vec 的著名发现：词向量支持<strong>代数运算</strong>以捕捉语义关系。完成 5 个类比题！',
+    'p23.s2.score':'得分',
+    'p23.s2.round':'轮次',
+    'p23.s2.correct':'正确！',
+    'p23.s2.wrong':'不太对。答案是',
+    'p23.s2.final':'最终得分：',
+    'p23.s3.badge':'架构',
+    'p23.s3.title':'嵌入向量是如何生成的',
+    'p23.s3.desc':'嵌入模型的三个时代，每一代都解决了前一代的局限性。点击某个时代进行探索。',
+    'p23.s3.era1':'Skip-gram 和 CBOW。每个词一个固定向量。100-300 维。',
+    'p23.s3.era2':'上下文嵌入。同一个词在不同上下文中获得不同向量。768 维。',
+    'p23.s3.era3':'通过孪生网络将整个句子编码为单个向量。768-1024 维。',
+    'p23.s3.context_title':'上下文嵌入演示：在两个不同句子中输入 "bank"',
+    'p23.s3.w2v_note':'无论上下文如何，向量相同（Word2Vec 的局限）',
+    'p23.s3.sim_label':'余弦相似度',
+    'p23.s3.dim_title':'嵌入维度演进',
+    'p23.s4.badge':'交互式',
+    'p23.s4.title':'相似度度量',
+    'p23.s4.desc':'三种衡量向量距离的方法。<strong>拖动箭头末端</strong>实时查看所有指标更新。',
+    'p23.s4.cosine':'余弦相似度',
+    'p23.s4.euclidean':'欧氏距离',
+    'p23.s4.dot':'点积',
+    'p23.s4.cosine_note':'向量之间的夹角。与尺度无关。',
+    'p23.s4.euclid_note':'直线距离。对幅度敏感。',
+    'p23.s4.dot_note':'结合角度和幅度。用于注意力机制。',
+    'p23.s5.badge':'测验',
+    'p23.s5.title':'嵌入向量测验',
+    'p23.s5.desc':'用 5 个问题测试你对嵌入向量的理解。',
+    'p23.s5.score':'得分',
+    'p23.s5.question':'问题',
+    'p23.s5.correct':'正确！',
+    'p23.s5.wrong':'不太对。答案是',
+    'p23.s5.final':'最终得分：',
+    'p23.s5.q1':'嵌入向量主要保留什么？',
+    'p23.s5.q2':'哪种相似度度量与尺度无关？',
+    'p23.s5.q3':'OpenAI text-embedding-3-large 使用多少维？',
+    'p23.s5.q4':'上下文嵌入（BERT）的关键创新是什么？',
+    'p23.s5.q5':'在 Word2Vec 中，"king - man + woman" 近似于什么？'
+  },
+  'zh-TW':{
+    'p23.title':'23. 嵌入向量 — 大語言模型演算法視覺化',
+    'p23.heading':'嵌入向量 — 文字如何變為向量',
+    'p23.subtitle':'從文字到數字。理解機器如何在向量空間中表示語義。',
+    'p23.s1.badge':'互動式',
+    'p23.s1.title':'詞語空間 — 2D 嵌入探索器',
+    'p23.s1.desc':'<strong>語義相似</strong>的詞在向量空間中聚集在一起。拖曳詞語進行探索。懸停查看<strong>最近的 3 個鄰居</strong>及餘弦距離。連線表示距離足夠近的詞（相似度 &gt; 閾值）。',
+    'p23.s1.threshold':'相似度閾值：',
+    'p23.s1.stat_words':'詞語數',
+    'p23.s1.stat_clusters':'聚類數',
+    'p23.s1.stat_dims':'投影維度',
+    'p23.s2.badge':'遊戲',
+    'p23.s2.title':'向量算術 — king - man + woman = ?',
+    'p23.s2.desc':'Word2Vec 的著名發現：詞向量支持<strong>代數運算</strong>以捕捉語義關係。完成 5 個類比題！',
+    'p23.s2.score':'得分',
+    'p23.s2.round':'輪次',
+    'p23.s2.correct':'正確！',
+    'p23.s2.wrong':'不太對。答案是',
+    'p23.s2.final':'最終得分：',
+    'p23.s3.badge':'架構',
+    'p23.s3.title':'嵌入向量是如何生成的',
+    'p23.s3.desc':'嵌入模型的三個時代，每一代都解決了前一代的局限性。點擊某個時代進行探索。',
+    'p23.s3.era1':'Skip-gram 和 CBOW。每個詞一個固定向量。100-300 維。',
+    'p23.s3.era2':'上下文嵌入。同一個詞在不同上下文中獲得不同向量。768 維。',
+    'p23.s3.era3':'透過孿生網路將整個句子編碼為單一向量。768-1024 維。',
+    'p23.s3.context_title':'上下文嵌入演示：在兩個不同句子中輸入 "bank"',
+    'p23.s3.w2v_note':'無論上下文如何，向量相同（Word2Vec 的局限）',
+    'p23.s3.sim_label':'餘弦相似度',
+    'p23.s3.dim_title':'嵌入維度演進',
+    'p23.s4.badge':'互動式',
+    'p23.s4.title':'相似度度量',
+    'p23.s4.desc':'三種衡量向量距離的方法。<strong>拖曳箭頭末端</strong>即時查看所有指標更新。',
+    'p23.s4.cosine':'餘弦相似度',
+    'p23.s4.euclidean':'歐氏距離',
+    'p23.s4.dot':'點積',
+    'p23.s4.cosine_note':'向量之間的夾角。與尺度無關。',
+    'p23.s4.euclid_note':'直線距離。對幅度敏感。',
+    'p23.s4.dot_note':'結合角度和幅度。用於注意力機制。',
+    'p23.s5.badge':'測驗',
+    'p23.s5.title':'嵌入向量測驗',
+    'p23.s5.desc':'用 5 個問題測試你對嵌入向量的理解。',
+    'p23.s5.score':'得分',
+    'p23.s5.question':'問題',
+    'p23.s5.correct':'正確！',
+    'p23.s5.wrong':'不太對。答案是',
+    'p23.s5.final':'最終得分：',
+    'p23.s5.q1':'嵌入向量主要保留什麼？',
+    'p23.s5.q2':'哪種相似度度量與尺度無關？',
+    'p23.s5.q3':'OpenAI text-embedding-3-large 使用多少維？',
+    'p23.s5.q4':'上下文嵌入（BERT）的關鍵創新是什麼？',
+    'p23.s5.q5':'在 Word2Vec 中，"king - man + woman" 近似於什麼？'
+  }
+});
+</script>
+</body></html>

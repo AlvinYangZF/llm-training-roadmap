@@ -612,6 +612,36 @@ const GRAPH_NODES = [
   { id: '18', title: 'AiSAQ', cat: 'system', year: '2024',
     desc: 'DRAM-free ANN: ~10MB RAM for billion-scale search. Sub-ms index switching for RAG.',
     file: 'pages/18-aisaq.html' },
+  { id: '19', title: 'HNSW', cat: 'foundation', year: '2016',
+    desc: 'Hierarchical Navigable Small World — the default ANN algorithm in all vector databases.',
+    file: 'pages/19-hnsw.html' },
+  { id: '20', title: 'Hybrid Search', cat: 'compute', year: '2024',
+    desc: 'BM25 + Dense + Reranking fusion. RRF, SPLADE, cross-encoder pipeline.',
+    file: 'pages/20-hybrid-search.html' },
+  { id: '21', title: 'KG Construction', cat: 'compute', year: '2024',
+    desc: 'LLM-driven knowledge graph building. LightRAG, HippoRAG, entity extraction.',
+    file: 'pages/21-kg-construction.html' },
+  { id: '22', title: 'CAG vs RAG', cat: 'system', year: '2025',
+    desc: 'Cache-Augmented Generation: preload KV cache vs retrieve. When to use which.',
+    file: 'pages/22-cag-vs-rag.html' },
+  { id: '23', title: 'Embeddings', cat: 'foundation', year: 'Core',
+    desc: 'How text becomes vectors. Word2Vec, sentence transformers, similarity in vector space.',
+    file: 'pages/23-embeddings.html' },
+  { id: '24', title: 'Tokenization', cat: 'foundation', year: 'Core',
+    desc: 'BPE, SentencePiece, how models see text. Vocabulary design and subword splitting.',
+    file: 'pages/24-tokenization.html' },
+  { id: '25', title: 'Training & Loss', cat: 'compute', year: 'Core',
+    desc: 'Cross-entropy loss, backprop, learning rate schedules, gradient descent visualized.',
+    file: 'pages/25-training-loss.html' },
+  { id: '26', title: 'Quantization', cat: 'memory', year: '2023',
+    desc: 'FP32→INT8→INT4. GPTQ, AWQ, GGUF. How 70B models fit on consumer hardware.',
+    file: 'pages/26-quantization.html' },
+  { id: '27', title: 'LoRA', cat: 'compute', year: '2021',
+    desc: 'Low-Rank Adaptation. Fine-tune billion-parameter models with <1% trainable params.',
+    file: 'pages/27-lora.html' },
+  { id: '28', title: 'Decoding', cat: 'foundation', year: 'Core',
+    desc: 'Temperature, top-k, top-p, beam search. How models choose the next token.',
+    file: 'pages/28-decoding.html' },
 ];
 
 // Edges: [from, to] — "from" depends on "to"
@@ -642,6 +672,23 @@ const GRAPH_EDGES = [
   ['17', '12'], // DiskANN builds on dense retrieval (vector indexing)
   ['18', '17'], // AiSAQ extends DiskANN (DRAM-free variant)
   ['18', '13'], // AiSAQ enables multi-source RAG index switching
+  ['19', '12'], // HNSW is foundational vector search algorithm
+  ['17', '19'], // DiskANN builds on/competes with HNSW
+  ['20', '12'], // Hybrid Search combines BM25 + dense retrieval
+  ['20', '13'], // Hybrid Search enhances RAG pipeline
+  ['21', '15'], // KG Construction extends GraphRAG concepts
+  ['22', '13'], // CAG is alternative to RAG pipeline
+  ['22', '16'], // CAG vs RAG at Scale tradeoffs
+  ['23', '00'], // Embeddings build on linear algebra (vectors, dot products)
+  ['12', '23'], // Dense Retrieval uses embeddings
+  ['24', '01'], // Tokenization is input to Transformer
+  ['25', '00'], // Training uses linear algebra (gradients)
+  ['25', '01'], // Training trains Transformers
+  ['26', '06'], // Quantization compresses KV cache (PagedAttention context)
+  ['27', '25'], // LoRA is a fine-tuning technique (requires training knowledge)
+  ['27', '01'], // LoRA adapts Transformer weights
+  ['28', '01'], // Decoding is output of Transformer
+  ['28', '04'], // Decoding relates to prefill/decode phases
 ];
 
 const CAT_COLORS = {

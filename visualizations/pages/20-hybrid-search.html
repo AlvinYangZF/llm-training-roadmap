@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="p20.title">20. Hybrid Search — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .search-panel{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:20px 0}
+    .search-col{background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .search-col h3{margin-top:0;font-size:.95rem}
+    .doc-item{padding:10px;margin:8px 0;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:.82rem;line-height:1.6;position:relative;transition:all .3s}
+    .doc-item .score{position:absolute;right:8px;top:8px;font-weight:700;font-size:.78rem;padding:2px 8px;border-radius:6px}
+    .doc-item .score.high{background:rgba(13,148,136,.15);color:var(--accent2)}
+    .doc-item .score.med{background:rgba(234,88,12,.1);color:var(--accent4)}
+    .doc-item .score.low{background:rgba(100,116,139,.1);color:var(--text-dim)}
+    .doc-item .rank-badge{position:absolute;left:-6px;top:-6px;width:22px;height:22px;border-radius:50%;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;color:#fff}
+    .doc-item mark{background:rgba(91,91,214,.2);padding:1px 3px;border-radius:3px}
+    .doc-item mark.semantic{background:rgba(13,148,136,.2)}
+    .doc-item mark.hybrid{background:rgba(234,88,12,.2)}
+    .query-btns{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+    .query-btns button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:.82rem;font-weight:600;color:var(--text);transition:all .2s}
+    .query-btns button:hover,.query-btns button.active{border-color:var(--accent);color:var(--accent);background:rgba(91,91,214,.06)}
+    .stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+    .stat-badge{padding:10px 20px;border-radius:10px;text-align:center;border:1px solid var(--border);background:var(--surface)}
+    .stat-badge .val{font-size:1.4rem;font-weight:800}
+    .stat-badge .lbl{font-size:.72rem;color:var(--text-dim);text-transform:uppercase}
+    .formula-box{padding:14px 20px;background:var(--formula-bg);border:1px solid var(--border);border-radius:var(--radius);font-family:'Courier New',monospace;font-size:.88rem;text-align:center;margin:12px 0;line-height:1.8}
+    .rrf-canvas{width:100%;height:420px;display:block;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .drag-list{min-height:200px;padding:8px;background:var(--canvas-bg);border:1px solid var(--border);border-radius:var(--radius)}
+    .drag-item{padding:10px 14px;margin:6px 0;border:2px solid var(--border);border-radius:8px;background:var(--surface);cursor:grab;font-size:.85rem;font-weight:600;display:flex;justify-content:space-between;align-items:center;transition:all .2s;user-select:none}
+    .drag-item:active{cursor:grabbing;transform:scale(1.02)}
+    .drag-item .rrf-score{font-weight:800;font-size:.9rem;padding:2px 10px;border-radius:6px}
+    .rrf-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:16px 0}
+    .rrf-col h4{margin:0 0 8px;font-size:.88rem;text-align:center}
+    .arch-flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:20px 0}
+    .arch-box{padding:14px 18px;border-radius:var(--radius);text-align:center;font-weight:600;font-size:.82rem;border:1px solid var(--border);min-width:90px;position:relative}
+    .arch-box .count{font-size:.65rem;color:var(--text-dim);display:block;margin-top:4px}
+    .arch-arrow{font-size:1.4rem;color:var(--text-dim)}
+    .parallel-box{display:flex;flex-direction:column;gap:6px;border:2px dashed var(--border);border-radius:var(--radius);padding:10px}
+    .parallel-label{font-size:.65rem;color:var(--text-dim);text-align:center;margin-bottom:4px}
+    .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:16px 0}
+    .compare-side{border:2px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--surface)}
+    .compare-side h4{margin:0 0 10px;font-size:.92rem;text-align:center}
+    .compare-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:.82rem}
+    .compare-row:last-child{border-bottom:none}
+    .context-demo{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:16px 0}
+    .context-side{border:2px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--surface)}
+    .context-side h4{margin:0 0 10px;font-size:.92rem;text-align:center}
+    .chunk-box{padding:10px;margin:8px 0;border:1px solid var(--border);border-radius:8px;font-size:.8rem;line-height:1.5}
+    .chunk-box .ctx{color:var(--accent2);font-style:italic;font-size:.75rem}
+    .flow-arrow{text-align:center;font-size:1.6rem;color:var(--text-dim);margin:4px 0}
+    .game-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+    .game-row button{padding:10px 20px;border-radius:10px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-weight:700;font-size:.88rem;color:var(--text);transition:all .2s;min-width:200px;text-align:left}
+    .game-row button:hover{border-color:var(--accent);transform:scale(1.02)}
+    .game-row button.correct{border-color:var(--accent2);background:rgba(13,148,136,.1)}
+    .game-row button.wrong{border-color:var(--accent3);background:rgba(225,29,72,.08)}
+    .anim-btn{padding:8px 20px;border-radius:10px;border:2px solid var(--accent);background:rgba(91,91,214,.08);color:var(--accent);font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s}
+    .anim-btn:hover{background:rgba(91,91,214,.15);transform:translateY(-1px)}
+    @media(max-width:700px){.search-panel,.rrf-grid,.compare-grid,.context-demo{grid-template-columns:1fr}.game-row button{min-width:160px}}
+  </style>
+</head>
+<body>
+
+<h1 data-i18n="p20.heading">Hybrid Search — BM25 + Dense + Reranking</h1>
+<p class="subtitle" data-i18n="p20.subtitle">Combine keyword precision with semantic understanding. The modern retrieval pipeline that powers production RAG systems.</p>
+<p class="breadcrumb"><a href="../index.html" data-i18n="breadcrumb.home">Home</a> / <span data-i18n="p20.heading">Hybrid Search</span></p>
+
+<div class="container">
+
+  <!-- Section 1: Why Hybrid? -->
+  <div class="card">
+    <span class="badge" style="background:rgba(91,91,214,.1);color:var(--accent)">Interactive</span>
+    <h2 data-i18n="p20.s1.title">Why Hybrid?</h2>
+    <p data-i18n="p20.s1.desc" data-i18n-html="1">BM25 excels at <strong>exact keyword matches</strong> but misses synonyms. Dense retrieval captures <strong>semantic meaning</strong> but can miss specific terms. Hybrid search combines both for the best of both worlds.</p>
+    <div class="query-btns" id="hybridQueryBtns"></div>
+    <div class="search-panel">
+      <div class="search-col" id="bm25Col"><h3 style="color:var(--accent3)" data-i18n="p20.s1.bm25">BM25 (Keyword)</h3><div id="bm25Results"></div></div>
+      <div class="search-col" id="denseCol"><h3 style="color:var(--accent2)" data-i18n="p20.s1.dense">Dense (Semantic)</h3><div id="denseResults"></div></div>
+      <div class="search-col" id="hybridCol"><h3 style="color:var(--accent4)" data-i18n="p20.s1.hybrid">Hybrid (Fused)</h3><div id="hybridResults"></div></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)">+12%</div><div class="lbl" data-i18n="p20.s1.stat1">Recall vs BM25 Alone</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent)">+10%</div><div class="lbl" data-i18n="p20.s1.stat2">Recall vs Dense Alone</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)">93.2%</div><div class="lbl" data-i18n="p20.s1.stat3">Hybrid Recall@20</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent3)">BEIR avg</div><div class="lbl" data-i18n="p20.s1.stat4">Benchmark</div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: Reciprocal Rank Fusion -->
+  <div class="card">
+    <span class="badge" style="background:rgba(13,148,136,.1);color:var(--accent2)">Animation</span>
+    <h2 data-i18n="p20.s2.title">Reciprocal Rank Fusion (RRF)</h2>
+    <p data-i18n="p20.s2.desc" data-i18n-html="1">RRF merges multiple ranked lists without needing score calibration. Each document gets a fused score: <strong>RRF(d) = &Sigma; 1/(k + rank(d))</strong> where k=60. Simple, effective, and widely used in production.</p>
+    <div class="formula-box">RRF(d) = &sum;<sub>r &isin; Rankers</sub> 1 / (k + rank<sub>r</sub>(d)) &nbsp;&nbsp; where k = 60</div>
+    <div class="rrf-grid">
+      <div class="rrf-col">
+        <h4 style="color:var(--accent3)" data-i18n="p20.s2.bm25list">BM25 Ranked List</h4>
+        <div class="drag-list" id="rrfBm25"></div>
+      </div>
+      <div class="rrf-col">
+        <h4 style="color:var(--accent2)" data-i18n="p20.s2.denselist">Dense Ranked List</h4>
+        <div class="drag-list" id="rrfDense"></div>
+      </div>
+      <div class="rrf-col">
+        <h4 style="color:var(--accent4)" data-i18n="p20.s2.fusedlist">RRF Fused Result</h4>
+        <div class="drag-list" id="rrfFused"></div>
+      </div>
+    </div>
+    <div style="text-align:center;margin:12px 0">
+      <button class="anim-btn" onclick="animateRRF()" data-i18n="p20.s2.animate">Animate RRF Merge</button>
+      <button class="anim-btn" onclick="resetRRF()" style="margin-left:8px" data-i18n="p20.s2.reset">Reset</button>
+    </div>
+    <p style="text-align:center;font-size:.82rem;color:var(--text-dim)" data-i18n="p20.s2.hint">Drag documents in BM25 or Dense lists to change ranks and watch RRF scores update live!</p>
+  </div>
+
+  <!-- Section 3: Reranking Pipeline -->
+  <div class="card">
+    <span class="badge" style="background:rgba(234,88,12,.08);color:var(--accent4)">Architecture</span>
+    <h2 data-i18n="p20.s3.title">The Reranking Pipeline</h2>
+    <p data-i18n="p20.s3.desc" data-i18n-html="1">The full hybrid retrieval pipeline: parallel retrieval, fusion, cross-encoder reranking, then feed top results to the LLM. Each stage <strong>narrows the candidate set</strong> while increasing quality.</p>
+    <div class="arch-flow" id="pipelineFlow">
+      <div class="arch-box" style="background:rgba(91,91,214,.1);border-color:var(--accent)">Query<span class="count">1 query</span></div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="parallel-box">
+        <div class="parallel-label" data-i18n="p20.s3.parallel">Parallel Retrieval</div>
+        <div class="arch-box" style="background:rgba(225,29,72,.08);border-color:var(--accent3);font-size:.78rem">BM25<span class="count">1M docs &rarr; 50</span></div>
+        <div class="arch-box" style="background:rgba(13,148,136,.08);border-color:var(--accent2);font-size:.78rem">Dense (ANN)<span class="count">1M docs &rarr; 50</span></div>
+      </div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box" style="background:rgba(234,88,12,.1);border-color:var(--accent4)">RRF Merge<span class="count">100 &rarr; 20</span></div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box" style="background:rgba(91,91,214,.15);border-color:var(--accent)">Cross-Encoder<br>Reranker<span class="count">20 &rarr; 5</span></div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box" style="background:rgba(13,148,136,.15);border-color:var(--accent2)">LLM<span class="count">5 docs</span></div>
+    </div>
+    <h3 style="font-size:.95rem;margin-top:24px" data-i18n="p20.s3.compare_title">Cross-Encoder vs Bi-Encoder</h3>
+    <div class="compare-grid">
+      <div class="compare-side" style="border-color:var(--accent)">
+        <h4 style="color:var(--accent)" data-i18n="p20.s3.bienc">Bi-Encoder (DPR / E5)</h4>
+        <div class="compare-row"><span data-i18n="p20.s3.encoding">Encoding</span><strong data-i18n="p20.s3.bi_encoding">Separate q & d</strong></div>
+        <div class="compare-row"><span data-i18n="p20.s3.speed">Speed</span><strong style="color:var(--accent2)" data-i18n="p20.s3.bi_speed">~1000 q/s</strong></div>
+        <div class="compare-row"><span data-i18n="p20.s3.quality">Quality (MRR)</span><strong data-i18n="p20.s3.bi_quality">0.72</strong></div>
+        <div class="compare-row"><span data-i18n="p20.s3.usecase">Use Case</span><strong data-i18n="p20.s3.bi_usecase">First-stage retrieval</strong></div>
+      </div>
+      <div class="compare-side" style="border-color:var(--accent4)">
+        <h4 style="color:var(--accent4)" data-i18n="p20.s3.crossenc">Cross-Encoder (BGE-Reranker)</h4>
+        <div class="compare-row"><span data-i18n="p20.s3.encoding">Encoding</span><strong data-i18n="p20.s3.cross_encoding">Joint [q; d]</strong></div>
+        <div class="compare-row"><span data-i18n="p20.s3.speed">Speed</span><strong style="color:var(--accent3)" data-i18n="p20.s3.cross_speed">~10 q/s (100x slower)</strong></div>
+        <div class="compare-row"><span data-i18n="p20.s3.quality">Quality (MRR)</span><strong style="color:var(--accent2)" data-i18n="p20.s3.cross_quality">0.84 (+12%)</strong></div>
+        <div class="compare-row"><span data-i18n="p20.s3.usecase">Use Case</span><strong data-i18n="p20.s3.cross_usecase">Reranking top-K</strong></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)">+8-15%</div><div class="lbl" data-i18n="p20.s3.stat1">MRR Gain (Cross-Encoder)</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent3)">100x</div><div class="lbl" data-i18n="p20.s3.stat2">Slower Than Bi-Encoder</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)">20 docs</div><div class="lbl" data-i18n="p20.s3.stat3">Typical Rerank Window</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent)">5 to LLM</div><div class="lbl" data-i18n="p20.s3.stat4">Final Context</div></div>
+    </div>
+  </div>
+
+  <!-- Section 4: Contextual Retrieval & Late Chunking -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Advanced</span>
+    <h2 data-i18n="p20.s4.title">Contextual Retrieval & Late Chunking</h2>
+    <p data-i18n="p20.s4.desc" data-i18n-html="1">Two modern techniques to improve chunk quality: <strong>Contextual Retrieval</strong> (Anthropic) prepends document context to each chunk, and <strong>Late Chunking</strong> (Jina) embeds the full document first, then splits embeddings.</p>
+
+    <h3 style="font-size:.92rem;margin-top:16px" data-i18n="p20.s4.cr_title">Contextual Retrieval (Anthropic, 2024)</h3>
+    <div class="context-demo">
+      <div class="context-side" style="border-color:var(--accent3)">
+        <h4 style="color:var(--accent3)" data-i18n="p20.s4.standard">Standard Chunking</h4>
+        <div class="chunk-box" style="border-color:var(--accent3)">
+          <div data-i18n="p20.s4.std_chunk">"The agreement expires on March 15, 2025 unless renewed by written notice."</div>
+        </div>
+        <div class="flow-arrow">&darr;</div>
+        <div style="text-align:center;font-size:.78rem;color:var(--text-dim)" data-i18n="p20.s4.std_problem">Which agreement? What document? Context is lost.</div>
+      </div>
+      <div class="context-side" style="border-color:var(--accent2)">
+        <h4 style="color:var(--accent2)" data-i18n="p20.s4.contextual">Contextual Chunking</h4>
+        <div class="chunk-box" style="border-color:var(--accent2)">
+          <div class="ctx" data-i18n="p20.s4.ctx_prefix">"This chunk is from Section 4 of the ACME SaaS Service Agreement, which covers term and termination."</div>
+          <div style="margin-top:6px" data-i18n="p20.s4.ctx_chunk">"The agreement expires on March 15, 2025 unless renewed by written notice."</div>
+        </div>
+        <div class="flow-arrow">&darr;</div>
+        <div style="text-align:center;font-size:.78rem;color:var(--accent2);font-weight:600" data-i18n="p20.s4.ctx_benefit">Full context preserved! 35% fewer retrieval failures.</div>
+      </div>
+    </div>
+
+    <h3 style="font-size:.92rem;margin-top:24px" data-i18n="p20.s4.lc_title">Late Chunking (Jina, 2024)</h3>
+    <div class="context-demo">
+      <div class="context-side" style="border-color:var(--accent3)">
+        <h4 style="color:var(--accent3)" data-i18n="p20.s4.early">Early Chunking (Standard)</h4>
+        <div style="font-size:.8rem;text-align:center;padding:8px;color:var(--text-dim)" data-i18n="p20.s4.early_flow">Document &rarr; Split into chunks &rarr; Embed each chunk independently</div>
+        <div class="chunk-box" style="border-color:var(--accent3)">
+          <div>Chunk 1 &rarr; Embed(Chunk 1) &rarr; <strong>v<sub>1</sub></strong></div>
+          <div>Chunk 2 &rarr; Embed(Chunk 2) &rarr; <strong>v<sub>2</sub></strong></div>
+          <div>Chunk 3 &rarr; Embed(Chunk 3) &rarr; <strong>v<sub>3</sub></strong></div>
+        </div>
+        <div style="text-align:center;font-size:.78rem;color:var(--accent3);margin-top:6px" data-i18n="p20.s4.early_problem">Each chunk embedded without cross-chunk context</div>
+      </div>
+      <div class="context-side" style="border-color:var(--accent2)">
+        <h4 style="color:var(--accent2)" data-i18n="p20.s4.late">Late Chunking</h4>
+        <div style="font-size:.8rem;text-align:center;padding:8px;color:var(--text-dim)" data-i18n="p20.s4.late_flow">Document &rarr; Embed FULL doc &rarr; Split token embeddings by chunk boundaries</div>
+        <div class="chunk-box" style="border-color:var(--accent2)">
+          <div>Full Doc &rarr; BERT(Full Doc) &rarr; [t<sub>1</sub>...t<sub>N</sub>]</div>
+          <div style="margin-top:4px">Pool(t<sub>1</sub>...t<sub>k</sub>) &rarr; <strong>v<sub>1</sub></strong></div>
+          <div>Pool(t<sub>k+1</sub>...t<sub>m</sub>) &rarr; <strong>v<sub>2</sub></strong></div>
+          <div>Pool(t<sub>m+1</sub>...t<sub>N</sub>) &rarr; <strong>v<sub>3</sub></strong></div>
+        </div>
+        <div style="text-align:center;font-size:.78rem;color:var(--accent2);margin-top:6px" data-i18n="p20.s4.late_benefit">Each token attends to full document via self-attention</div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-badge"><div class="val" style="color:var(--accent2)">-35%</div><div class="lbl" data-i18n="p20.s4.stat1">Retrieval Failures (Contextual)</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent)">+6.3%</div><div class="lbl" data-i18n="p20.s4.stat2">NDCG@10 (Late Chunking)</div></div>
+      <div class="stat-badge"><div class="val" style="color:var(--accent4)">BGE-M3</div><div class="lbl" data-i18n="p20.s4.stat3">Multi-Granularity Embedding</div></div>
+    </div>
+  </div>
+
+  <!-- Section 5: Quiz -->
+  <div class="card">
+    <span class="badge" style="background:rgba(225,29,72,.08);color:var(--accent3)">Quiz</span>
+    <h2 data-i18n="p20.s5.title">Quiz: Hybrid Search Mastery</h2>
+    <p data-i18n="p20.s5.desc">Test your understanding of hybrid search, RRF, reranking, and advanced retrieval techniques!</p>
+    <div style="text-align:center;margin:12px 0">
+      <span data-i18n="p20.s5.round">Round</span>: <strong id="quizRound">1/5</strong> &nbsp; | &nbsp;
+      <span data-i18n="p20.s5.score">Score</span>: <strong id="quizScore">0</strong>
+    </div>
+    <div id="quizQuestion" style="text-align:center;font-size:1rem;font-weight:600;margin:12px 0;padding:14px;background:var(--formula-bg);border-radius:8px;border:1px solid var(--border)"></div>
+    <div class="game-row" id="quizOptions"></div>
+    <div id="quizFeedback" style="text-align:center;margin-top:12px;font-weight:600;min-height:24px"></div>
+  </div>
+
+</div>
+
+<footer>
+  <p>Hybrid Search — RRF (Cormack 2009), SPLADE (Formal 2022), BGE-M3 (Chen 2024)</p>
+  <p>LLM Algorithm Visualizations v2.1.0</p>
+</footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+<script>
+// ==================== i18n ==================== //
+i18nRegister({
+  'en':{
+    'p20.title':'20. Hybrid Search — LLM Algorithm Visualizations',
+    'p20.heading':'Hybrid Search — BM25 + Dense + Reranking',
+    'p20.subtitle':'Combine keyword precision with semantic understanding. The modern retrieval pipeline that powers production RAG systems.',
+    'p20.s1.title':'Why Hybrid?',
+    'p20.s1.desc':'BM25 excels at <strong>exact keyword matches</strong> but misses synonyms. Dense retrieval captures <strong>semantic meaning</strong> but can miss specific terms. Hybrid search combines both for the best of both worlds.',
+    'p20.s1.bm25':'BM25 (Keyword)','p20.s1.dense':'Dense (Semantic)','p20.s1.hybrid':'Hybrid (Fused)',
+    'p20.s1.stat1':'Recall vs BM25 Alone','p20.s1.stat2':'Recall vs Dense Alone','p20.s1.stat3':'Hybrid Recall@20','p20.s1.stat4':'Benchmark',
+    'p20.s2.title':'Reciprocal Rank Fusion (RRF)',
+    'p20.s2.desc':'RRF merges multiple ranked lists without needing score calibration. Each document gets a fused score: <strong>RRF(d) = &Sigma; 1/(k + rank(d))</strong> where k=60. Simple, effective, and widely used in production.',
+    'p20.s2.bm25list':'BM25 Ranked List','p20.s2.denselist':'Dense Ranked List','p20.s2.fusedlist':'RRF Fused Result',
+    'p20.s2.animate':'Animate RRF Merge','p20.s2.reset':'Reset',
+    'p20.s2.hint':'Drag documents in BM25 or Dense lists to change ranks and watch RRF scores update live!',
+    'p20.s3.title':'The Reranking Pipeline',
+    'p20.s3.desc':'The full hybrid retrieval pipeline: parallel retrieval, fusion, cross-encoder reranking, then feed top results to the LLM. Each stage <strong>narrows the candidate set</strong> while increasing quality.',
+    'p20.s3.parallel':'Parallel Retrieval',
+    'p20.s3.compare_title':'Cross-Encoder vs Bi-Encoder',
+    'p20.s3.bienc':'Bi-Encoder (DPR / E5)','p20.s3.crossenc':'Cross-Encoder (BGE-Reranker)',
+    'p20.s3.encoding':'Encoding','p20.s3.speed':'Speed','p20.s3.quality':'Quality (MRR)','p20.s3.usecase':'Use Case',
+    'p20.s3.bi_encoding':'Separate q & d','p20.s3.bi_speed':'~1000 q/s','p20.s3.bi_quality':'0.72','p20.s3.bi_usecase':'First-stage retrieval',
+    'p20.s3.cross_encoding':'Joint [q; d]','p20.s3.cross_speed':'~10 q/s (100x slower)','p20.s3.cross_quality':'0.84 (+12%)','p20.s3.cross_usecase':'Reranking top-K',
+    'p20.s3.stat1':'MRR Gain (Cross-Encoder)','p20.s3.stat2':'Slower Than Bi-Encoder','p20.s3.stat3':'Typical Rerank Window','p20.s3.stat4':'Final Context',
+    'p20.s4.title':'Contextual Retrieval & Late Chunking',
+    'p20.s4.desc':'Two modern techniques to improve chunk quality: <strong>Contextual Retrieval</strong> (Anthropic) prepends document context to each chunk, and <strong>Late Chunking</strong> (Jina) embeds the full document first, then splits embeddings.',
+    'p20.s4.cr_title':'Contextual Retrieval (Anthropic, 2024)',
+    'p20.s4.standard':'Standard Chunking','p20.s4.contextual':'Contextual Chunking',
+    'p20.s4.std_chunk':'"The agreement expires on March 15, 2025 unless renewed by written notice."',
+    'p20.s4.std_problem':'Which agreement? What document? Context is lost.',
+    'p20.s4.ctx_prefix':'"This chunk is from Section 4 of the ACME SaaS Service Agreement, which covers term and termination."',
+    'p20.s4.ctx_chunk':'"The agreement expires on March 15, 2025 unless renewed by written notice."',
+    'p20.s4.ctx_benefit':'Full context preserved! 35% fewer retrieval failures.',
+    'p20.s4.lc_title':'Late Chunking (Jina, 2024)',
+    'p20.s4.early':'Early Chunking (Standard)','p20.s4.late':'Late Chunking',
+    'p20.s4.early_flow':'Document \u2192 Split into chunks \u2192 Embed each chunk independently',
+    'p20.s4.late_flow':'Document \u2192 Embed FULL doc \u2192 Split token embeddings by chunk boundaries',
+    'p20.s4.early_problem':'Each chunk embedded without cross-chunk context',
+    'p20.s4.late_benefit':'Each token attends to full document via self-attention',
+    'p20.s4.stat1':'Retrieval Failures (Contextual)','p20.s4.stat2':'NDCG@10 (Late Chunking)','p20.s4.stat3':'Multi-Granularity Embedding',
+    'p20.s5.title':'Quiz: Hybrid Search Mastery',
+    'p20.s5.desc':'Test your understanding of hybrid search, RRF, reranking, and advanced retrieval techniques!',
+    'p20.s5.round':'Round','p20.s5.score':'Score',
+    'p20.s5.correct':'Correct!','p20.s5.wrong':'Wrong! The answer is:',
+    'p20.s5.q0':'In the RRF formula RRF(d) = \u03a3 1/(k + rank(d)), what is the typical value of k?',
+    'p20.s5.q1':'Why does hybrid search outperform using BM25 or dense retrieval alone?',
+    'p20.s5.q2':'What is the main advantage of a cross-encoder over a bi-encoder?',
+    'p20.s5.q3':'What does Contextual Retrieval (Anthropic) prepend to each chunk?',
+    'p20.s5.q4':'In a typical hybrid pipeline, how many documents reach the LLM?',
+    'p20.s5.a0_0':'60','p20.s5.a0_1':'1','p20.s5.a0_2':'100','p20.s5.a0_3':'0.5',
+    'p20.s5.a1_0':'It combines keyword precision with semantic recall','p20.s5.a1_1':'It uses a larger model','p20.s5.a1_2':'It requires less compute','p20.s5.a1_3':'It only works with English text',
+    'p20.s5.a2_0':'Higher accuracy by jointly encoding query and document','p20.s5.a2_1':'Faster inference speed','p20.s5.a2_2':'Lower memory usage','p20.s5.a2_3':'Supports more languages',
+    'p20.s5.a3_0':'Document-level context describing the chunk\'s source','p20.s5.a3_1':'A random unique ID','p20.s5.a3_2':'The query text','p20.s5.a3_3':'Token position indices',
+    'p20.s5.a4_0':'3-5 documents','p20.s5.a4_1':'All 1M documents','p20.s5.a4_2':'100 documents','p20.s5.a4_3':'50 documents',
+    'p20.q.0':'API rate limiting best practices','p20.q.1':'how to prevent server overload','p20.q.2':'Python async error handling',
+    'p20.doc.0':'Rate limiting protects APIs by capping request frequency per client using token buckets or sliding windows.',
+    'p20.doc.1':'Load balancing distributes traffic across servers to prevent overload and ensure high availability.',
+    'p20.doc.2':'Circuit breakers halt requests to failing services, preventing cascade failures in microservices.',
+    'p20.doc.3':'Python\'s asyncio module provides try/except patterns for handling errors in concurrent coroutines.',
+    'p20.doc.4':'Throttling mechanisms control the pace of incoming requests using leaky bucket algorithms.',
+    'p20.doc.5':'Server scaling strategies include horizontal auto-scaling and resource monitoring with alerting thresholds.',
+    'p20.rrf.docA':'Rate Limiting','p20.rrf.docB':'Load Balancing','p20.rrf.docC':'Circuit Breaker','p20.rrf.docD':'Async Errors','p20.rrf.docE':'Throttling',
+  },
+  'zh-CN':{
+    'p20.title':'20. 混合搜索 — 大语言模型算法可视化',
+    'p20.heading':'混合搜索 — BM25 + 稠密检索 + 重排序',
+    'p20.subtitle':'结合关键词精确度与语义理解。驱动生产级 RAG 系统的现代检索管线。',
+    'p20.s1.title':'为什么需要混合搜索？',
+    'p20.s1.desc':'BM25 擅长<strong>精确关键词匹配</strong>但会遗漏同义词。稠密检索捕捉<strong>语义含义</strong>但可能遗漏特定术语。混合搜索结合两者优势。',
+    'p20.s1.bm25':'BM25（关键词）','p20.s1.dense':'稠密（语义）','p20.s1.hybrid':'混合（融合）',
+    'p20.s1.stat1':'相比仅 BM25 的召回提升','p20.s1.stat2':'相比仅稠密的召回提升','p20.s1.stat3':'混合 Recall@20','p20.s1.stat4':'基准测试',
+    'p20.s2.title':'倒数排名融合（RRF）',
+    'p20.s2.desc':'RRF 无需分数校准即可合并多个排名列表。每个文档获得融合分数：<strong>RRF(d) = &Sigma; 1/(k + rank(d))</strong>，其中 k=60。简单、有效，广泛用于生产环境。',
+    'p20.s2.bm25list':'BM25 排名列表','p20.s2.denselist':'稠密排名列表','p20.s2.fusedlist':'RRF 融合结果',
+    'p20.s2.animate':'播放 RRF 合并动画','p20.s2.reset':'重置',
+    'p20.s2.hint':'拖动 BM25 或稠密列表中的文档改变排名，实时观察 RRF 分数更新！',
+    'p20.s3.title':'重排序管线',
+    'p20.s3.desc':'完整混合检索管线：并行检索、融合、交叉编码器重排序，最后将结果送入 LLM。每个阶段<strong>缩小候选集</strong>的同时提升质量。',
+    'p20.s3.parallel':'并行检索',
+    'p20.s3.compare_title':'交叉编码器 vs 双编码器',
+    'p20.s3.bienc':'双编码器（DPR / E5）','p20.s3.crossenc':'交叉编码器（BGE-Reranker）',
+    'p20.s3.encoding':'编码方式','p20.s3.speed':'速度','p20.s3.quality':'质量（MRR）','p20.s3.usecase':'使用场景',
+    'p20.s3.bi_encoding':'分别编码 q 和 d','p20.s3.bi_speed':'~1000 q/s','p20.s3.bi_quality':'0.72','p20.s3.bi_usecase':'第一阶段检索',
+    'p20.s3.cross_encoding':'联合编码 [q; d]','p20.s3.cross_speed':'~10 q/s（慢 100 倍）','p20.s3.cross_quality':'0.84（+12%）','p20.s3.cross_usecase':'重排序 top-K',
+    'p20.s3.stat1':'MRR 提升（交叉编码器）','p20.s3.stat2':'慢于双编码器','p20.s3.stat3':'典型重排序窗口','p20.s3.stat4':'最终上下文',
+    'p20.s4.title':'上下文检索与后分块',
+    'p20.s4.desc':'两种现代技术提升分块质量：<strong>上下文检索</strong>（Anthropic）在每个分块前添加文档上下文，<strong>后分块</strong>（Jina）先嵌入完整文档再拆分嵌入。',
+    'p20.s4.cr_title':'上下文检索（Anthropic, 2024）',
+    'p20.s4.standard':'标准分块','p20.s4.contextual':'上下文分块',
+    'p20.s4.std_chunk':'"本协议在 2025 年 3 月 15 日到期，除非通过书面通知续约。"',
+    'p20.s4.std_problem':'哪个协议？哪个文档？上下文丢失了。',
+    'p20.s4.ctx_prefix':'"本分块来自 ACME SaaS 服务协议第 4 条，涉及期限和终止。"',
+    'p20.s4.ctx_chunk':'"本协议在 2025 年 3 月 15 日到期，除非通过书面通知续约。"',
+    'p20.s4.ctx_benefit':'完整上下文保留！检索失败减少 35%。',
+    'p20.s4.lc_title':'后分块（Jina, 2024）',
+    'p20.s4.early':'前分块（标准）','p20.s4.late':'后分块',
+    'p20.s4.early_flow':'文档 \u2192 切分成块 \u2192 独立嵌入每个块',
+    'p20.s4.late_flow':'文档 \u2192 嵌入完整文档 \u2192 按块边界切分 token 嵌入',
+    'p20.s4.early_problem':'每个块独立嵌入，缺少跨块上下文',
+    'p20.s4.late_benefit':'每个 token 通过自注意力关注整个文档',
+    'p20.s4.stat1':'检索失败减少（上下文检索）','p20.s4.stat2':'NDCG@10 提升（后分块）','p20.s4.stat3':'多粒度嵌入',
+    'p20.s5.title':'测验：混合搜索精通',
+    'p20.s5.desc':'测试你对混合搜索、RRF、重排序和高级检索技术的理解！',
+    'p20.s5.round':'轮次','p20.s5.score':'得分',
+    'p20.s5.correct':'正确！','p20.s5.wrong':'错误！答案是：',
+    'p20.s5.q0':'在 RRF 公式 RRF(d) = \u03a3 1/(k + rank(d)) 中，k 的典型值是多少？',
+    'p20.s5.q1':'为什么混合搜索优于单独使用 BM25 或稠密检索？',
+    'p20.s5.q2':'交叉编码器相比双编码器的主要优势是什么？',
+    'p20.s5.q3':'上下文检索（Anthropic）在每个分块前添加了什么？',
+    'p20.s5.q4':'在典型的混合管线中，有多少文档最终送入 LLM？',
+    'p20.s5.a0_0':'60','p20.s5.a0_1':'1','p20.s5.a0_2':'100','p20.s5.a0_3':'0.5',
+    'p20.s5.a1_0':'它结合了关键词精确度和语义召回','p20.s5.a1_1':'它使用了更大的模型','p20.s5.a1_2':'它需要更少的计算','p20.s5.a1_3':'它只支持英文文本',
+    'p20.s5.a2_0':'通过联合编码查询和文档获得更高准确度','p20.s5.a2_1':'更快的推理速度','p20.s5.a2_2':'更低的内存使用','p20.s5.a2_3':'支持更多语言',
+    'p20.s5.a3_0':'描述分块来源的文档级上下文','p20.s5.a3_1':'随机唯一 ID','p20.s5.a3_2':'查询文本','p20.s5.a3_3':'Token 位置索引',
+    'p20.s5.a4_0':'3-5 个文档','p20.s5.a4_1':'全部 100 万文档','p20.s5.a4_2':'100 个文档','p20.s5.a4_3':'50 个文档',
+    'p20.q.0':'API 限流最佳实践','p20.q.1':'如何防止服务器过载','p20.q.2':'Python 异步错误处理',
+    'p20.doc.0':'限流通过令牌桶或滑动窗口限制每个客户端的请求频率来保护 API。',
+    'p20.doc.1':'负载均衡将流量分配到多台服务器以防止过载并确保高可用。',
+    'p20.doc.2':'熔断器暂停对故障服务的请求，防止微服务中的级联故障。',
+    'p20.doc.3':'Python 的 asyncio 模块提供 try/except 模式用于处理并发协程中的错误。',
+    'p20.doc.4':'节流机制使用漏桶算法控制传入请求的速率。',
+    'p20.doc.5':'服务器扩展策略包括水平自动扩展和带报警阈值的资源监控。',
+    'p20.rrf.docA':'限流','p20.rrf.docB':'负载均衡','p20.rrf.docC':'熔断器','p20.rrf.docD':'异步错误','p20.rrf.docE':'节流',
+  },
+  'zh-TW':{
+    'p20.title':'20. 混合搜尋 — 大語言模型演算法視覺化',
+    'p20.heading':'混合搜尋 — BM25 + 稠密檢索 + 重排序',
+    'p20.subtitle':'結合關鍵詞精確度與語義理解。驅動生產級 RAG 系統的現代檢索管線。',
+    'p20.s1.title':'為什麼需要混合搜尋？',
+    'p20.s1.desc':'BM25 擅長<strong>精確關鍵詞匹配</strong>但會遺漏同義詞。稠密檢索捕捉<strong>語義含義</strong>但可能遺漏特定術語。混合搜尋結合兩者優勢。',
+    'p20.s1.bm25':'BM25（關鍵詞）','p20.s1.dense':'稠密（語義）','p20.s1.hybrid':'混合（融合）',
+    'p20.s1.stat1':'相比僅 BM25 的召回提升','p20.s1.stat2':'相比僅稠密的召回提升','p20.s1.stat3':'混合 Recall@20','p20.s1.stat4':'基準測試',
+    'p20.s2.title':'倒數排名融合（RRF）',
+    'p20.s2.desc':'RRF 無需分數校準即可合併多個排名列表。每個文件獲得融合分數：<strong>RRF(d) = &Sigma; 1/(k + rank(d))</strong>，其中 k=60。簡單、有效，廣泛用於生產環境。',
+    'p20.s2.bm25list':'BM25 排名列表','p20.s2.denselist':'稠密排名列表','p20.s2.fusedlist':'RRF 融合結果',
+    'p20.s2.animate':'播放 RRF 合併動畫','p20.s2.reset':'重置',
+    'p20.s2.hint':'拖動 BM25 或稠密列表中的文件改變排名，即時觀察 RRF 分數更新！',
+    'p20.s3.title':'重排序管線',
+    'p20.s3.desc':'完整混合檢索管線：並行檢索、融合、交叉編碼器重排序，最後將結果送入 LLM。每個階段<strong>縮小候選集</strong>的同時提升品質。',
+    'p20.s3.parallel':'並行檢索',
+    'p20.s3.compare_title':'交叉編碼器 vs 雙編碼器',
+    'p20.s3.bienc':'雙編碼器（DPR / E5）','p20.s3.crossenc':'交叉編碼器（BGE-Reranker）',
+    'p20.s3.encoding':'編碼方式','p20.s3.speed':'速度','p20.s3.quality':'品質（MRR）','p20.s3.usecase':'使用場景',
+    'p20.s3.bi_encoding':'分別編碼 q 和 d','p20.s3.bi_speed':'~1000 q/s','p20.s3.bi_quality':'0.72','p20.s3.bi_usecase':'第一階段檢索',
+    'p20.s3.cross_encoding':'聯合編碼 [q; d]','p20.s3.cross_speed':'~10 q/s（慢 100 倍）','p20.s3.cross_quality':'0.84（+12%）','p20.s3.cross_usecase':'重排序 top-K',
+    'p20.s3.stat1':'MRR 提升（交叉編碼器）','p20.s3.stat2':'慢於雙編碼器','p20.s3.stat3':'典型重排序視窗','p20.s3.stat4':'最終上下文',
+    'p20.s4.title':'上下文檢索與後分塊',
+    'p20.s4.desc':'兩種現代技術提升分塊品質：<strong>上下文檢索</strong>（Anthropic）在每個分塊前加入文件上下文，<strong>後分塊</strong>（Jina）先嵌入完整文件再拆分嵌入。',
+    'p20.s4.cr_title':'上下文檢索（Anthropic, 2024）',
+    'p20.s4.standard':'標準分塊','p20.s4.contextual':'上下文分塊',
+    'p20.s4.std_chunk':'"本協議在 2025 年 3 月 15 日到期，除非透過書面通知續約。"',
+    'p20.s4.std_problem':'哪個協議？哪個文件？上下文遺失了。',
+    'p20.s4.ctx_prefix':'"本分塊來自 ACME SaaS 服務協議第 4 條，涉及期限和終止。"',
+    'p20.s4.ctx_chunk':'"本協議在 2025 年 3 月 15 日到期，除非透過書面通知續約。"',
+    'p20.s4.ctx_benefit':'完整上下文保留！檢索失敗減少 35%。',
+    'p20.s4.lc_title':'後分塊（Jina, 2024）',
+    'p20.s4.early':'前分塊（標準）','p20.s4.late':'後分塊',
+    'p20.s4.early_flow':'文件 \u2192 切分成塊 \u2192 獨立嵌入每個塊',
+    'p20.s4.late_flow':'文件 \u2192 嵌入完整文件 \u2192 按塊邊界切分 token 嵌入',
+    'p20.s4.early_problem':'每個塊獨立嵌入，缺少跨塊上下文',
+    'p20.s4.late_benefit':'每個 token 透過自注意力關注整個文件',
+    'p20.s4.stat1':'檢索失敗減少（上下文檢索）','p20.s4.stat2':'NDCG@10 提升（後分塊）','p20.s4.stat3':'多粒度嵌入',
+    'p20.s5.title':'測驗：混合搜尋精通',
+    'p20.s5.desc':'測試你對混合搜尋、RRF、重排序和高級檢索技術的理解！',
+    'p20.s5.round':'輪次','p20.s5.score':'得分',
+    'p20.s5.correct':'正確！','p20.s5.wrong':'錯誤！答案是：',
+    'p20.s5.q0':'在 RRF 公式 RRF(d) = \u03a3 1/(k + rank(d)) 中，k 的典型值是多少？',
+    'p20.s5.q1':'為什麼混合搜尋優於單獨使用 BM25 或稠密檢索？',
+    'p20.s5.q2':'交叉編碼器相比雙編碼器的主要優勢是什麼？',
+    'p20.s5.q3':'上下文檢索（Anthropic）在每個分塊前加入了什麼？',
+    'p20.s5.q4':'在典型的混合管線中，有多少文件最終送入 LLM？',
+    'p20.s5.a0_0':'60','p20.s5.a0_1':'1','p20.s5.a0_2':'100','p20.s5.a0_3':'0.5',
+    'p20.s5.a1_0':'它結合了關鍵詞精確度和語義召回','p20.s5.a1_1':'它使用了更大的模型','p20.s5.a1_2':'它需要更少的計算','p20.s5.a1_3':'它只支援英文文本',
+    'p20.s5.a2_0':'透過聯合編碼查詢和文件獲得更高準確度','p20.s5.a2_1':'更快的推理速度','p20.s5.a2_2':'更低的記憶體使用','p20.s5.a2_3':'支援更多語言',
+    'p20.s5.a3_0':'描述分塊來源的文件級上下文','p20.s5.a3_1':'隨機唯一 ID','p20.s5.a3_2':'查詢文本','p20.s5.a3_3':'Token 位置索引',
+    'p20.s5.a4_0':'3-5 個文件','p20.s5.a4_1':'全部 100 萬文件','p20.s5.a4_2':'100 個文件','p20.s5.a4_3':'50 個文件',
+    'p20.q.0':'API 限流最佳實踐','p20.q.1':'如何防止伺服器過載','p20.q.2':'Python 非同步錯誤處理',
+    'p20.doc.0':'限流透過令牌桶或滑動視窗限制每個客戶端的請求頻率來保護 API。',
+    'p20.doc.1':'負載均衡將流量分配到多台伺服器以防止過載並確保高可用。',
+    'p20.doc.2':'熔斷器暫停對故障服務的請求，防止微服務中的級聯故障。',
+    'p20.doc.3':'Python 的 asyncio 模組提供 try/except 模式用於處理並行協程中的錯誤。',
+    'p20.doc.4':'節流機制使用漏桶演算法控制傳入請求的速率。',
+    'p20.doc.5':'伺服器擴展策略包括水平自動擴展和帶報警閾值的資源監控。',
+    'p20.rrf.docA':'限流','p20.rrf.docB':'負載均衡','p20.rrf.docC':'熔斷器','p20.rrf.docD':'非同步錯誤','p20.rrf.docE':'節流',
+  }
+});
+
+// ==================== Section 1: Why Hybrid? ==================== //
+function getDocs() { return [t('p20.doc.0'),t('p20.doc.1'),t('p20.doc.2'),t('p20.doc.3'),t('p20.doc.4'),t('p20.doc.5')]; }
+
+var HYBRID_QUERIES = [
+  {
+    qk:'p20.q.0',
+    bm25:[0.82,0.0,0.0,0.0,0.45,0.0],
+    dense:[0.78,0.12,0.15,0.08,0.72,0.10],
+    hybrid:[0.92,0.06,0.08,0.04,0.71,0.05],
+    bm25kw:['rate','limiting','API','request'],
+    densekw:['Rate limiting','protects','APIs','request frequency','token buckets','sliding windows','Throttling','pace','incoming requests','leaky bucket'],
+    hybridkw:['Rate limiting','APIs','request frequency','token buckets','Throttling','leaky bucket']
+  },
+  {
+    qk:'p20.q.1',
+    bm25:[0.0,0.35,0.0,0.0,0.0,0.48],
+    dense:[0.52,0.88,0.65,0.08,0.48,0.82],
+    hybrid:[0.30,0.78,0.38,0.04,0.28,0.80],
+    bm25kw:['server','overload','prevent'],
+    densekw:['protects','distributes traffic','prevent overload','high availability','cascade failures','auto-scaling','monitoring','alerting'],
+    hybridkw:['protects','distributes traffic','prevent overload','high availability','cascade failures','auto-scaling','monitoring']
+  },
+  {
+    qk:'p20.q.2',
+    bm25:[0.0,0.0,0.0,0.88,0.0,0.0],
+    dense:[0.10,0.05,0.42,0.82,0.08,0.06],
+    hybrid:[0.06,0.03,0.25,0.94,0.05,0.03],
+    bm25kw:['Python','async','error','handling'],
+    densekw:['asyncio','try/except','errors','concurrent','coroutines','Circuit breakers','failing','failures'],
+    hybridkw:['Python','asyncio','try/except','errors','concurrent','coroutines']
+  }
+];
+var currentHybridQuery = 0;
+
+function renderHybridSearch() {
+  var btns = document.getElementById('hybridQueryBtns');
+  btns.innerHTML = '';
+  HYBRID_QUERIES.forEach(function(qo,i) {
+    var b = document.createElement('button');
+    b.textContent = '"' + t(qo.qk) + '"';
+    if (i === currentHybridQuery) b.classList.add('active');
+    b.onclick = function() { currentHybridQuery = i; renderHybridSearch(); };
+    btns.appendChild(b);
+  });
+
+  var qo = HYBRID_QUERIES[currentHybridQuery];
+  var DOCS = getDocs();
+
+  // BM25
+  var bm25El = document.getElementById('bm25Results'); bm25El.innerHTML = '';
+  var bm25Sorted = DOCS.map(function(d,i){ return {txt:d,sc:qo.bm25[i],idx:i}; }).sort(function(a,b){ return b.sc-a.sc; });
+  bm25Sorted.forEach(function(item,rank) {
+    var div = document.createElement('div'); div.className = 'doc-item';
+    var txt = item.txt;
+    qo.bm25kw.forEach(function(kw) { txt = txt.replace(new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'), '<mark>$1</mark>'); });
+    var cls = item.sc > 0.4 ? 'high' : item.sc > 0.1 ? 'med' : 'low';
+    div.innerHTML = txt + '<span class="score '+cls+'">'+item.sc.toFixed(2)+'</span>';
+    if (item.sc === 0) div.style.opacity = '0.35';
+    bm25El.appendChild(div);
+  });
+
+  // Dense
+  var denseEl = document.getElementById('denseResults'); denseEl.innerHTML = '';
+  var denseSorted = DOCS.map(function(d,i){ return {txt:d,sc:qo.dense[i],idx:i}; }).sort(function(a,b){ return b.sc-a.sc; });
+  denseSorted.forEach(function(item,rank) {
+    var div = document.createElement('div'); div.className = 'doc-item';
+    var txt = item.txt;
+    qo.densekw.forEach(function(kw) { txt = txt.replace(new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'), '<mark class="semantic">$1</mark>'); });
+    var cls = item.sc > 0.6 ? 'high' : item.sc > 0.3 ? 'med' : 'low';
+    div.innerHTML = txt + '<span class="score '+cls+'">'+item.sc.toFixed(2)+'</span>';
+    if (item.sc < 0.1) div.style.opacity = '0.35';
+    denseEl.appendChild(div);
+  });
+
+  // Hybrid
+  var hybridEl = document.getElementById('hybridResults'); hybridEl.innerHTML = '';
+  var hybridSorted = DOCS.map(function(d,i){ return {txt:d,sc:qo.hybrid[i],idx:i}; }).sort(function(a,b){ return b.sc-a.sc; });
+  hybridSorted.forEach(function(item,rank) {
+    var div = document.createElement('div'); div.className = 'doc-item';
+    var txt = item.txt;
+    qo.hybridkw.forEach(function(kw) { txt = txt.replace(new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'), '<mark class="hybrid">$1</mark>'); });
+    var cls = item.sc > 0.6 ? 'high' : item.sc > 0.2 ? 'med' : 'low';
+    div.innerHTML = txt + '<span class="score '+cls+'">'+item.sc.toFixed(2)+'</span>';
+    if (item.sc < 0.05) div.style.opacity = '0.35';
+    hybridEl.appendChild(div);
+  });
+}
+
+// ==================== Section 2: RRF Interactive ==================== //
+var RRF_K = 60;
+var rrfDocs = [
+  { id:'A', color:'var(--accent3)' },
+  { id:'B', color:'var(--accent2)' },
+  { id:'C', color:'var(--accent)' },
+  { id:'D', color:'var(--accent4)' },
+  { id:'E', color:'var(--text-dim)' }
+];
+var bm25Order = [0,4,1,2,3]; // A, E, B, C, D
+var denseOrder = [1,2,0,3,4]; // B, C, A, D, E
+var rrfAnimating = false;
+
+function rrfScore(docIdx) {
+  var bm25Rank = bm25Order.indexOf(docIdx) + 1;
+  var denseRank = denseOrder.indexOf(docIdx) + 1;
+  var s = 0;
+  if (bm25Rank > 0) s += 1.0 / (RRF_K + bm25Rank);
+  if (denseRank > 0) s += 1.0 / (RRF_K + denseRank);
+  return s;
+}
+
+function renderRRFList(containerId, order, colorSide) {
+  var el = document.getElementById(containerId);
+  el.innerHTML = '';
+  order.forEach(function(docIdx, rank) {
+    var doc = rrfDocs[docIdx];
+    var div = document.createElement('div');
+    div.className = 'drag-item';
+    div.draggable = true;
+    div.dataset.docIdx = docIdx;
+    div.dataset.listId = containerId;
+    var rankLabel = '#' + (rank + 1);
+    var score = (1.0 / (RRF_K + rank + 1)).toFixed(4);
+    div.innerHTML = '<span><strong style="color:'+doc.color+'">Doc ' + t('p20.rrf.doc'+doc.id) + '</strong> <span style="color:var(--text-dim);font-size:.75rem">' + rankLabel + ' \u2192 1/(' + RRF_K + '+' + (rank+1) + ') = ' + score + '</span></span>';
+    // Drag events
+    div.addEventListener('dragstart', function(e) {
+      e.dataTransfer.setData('text/plain', JSON.stringify({docIdx:docIdx, listId:containerId}));
+      div.style.opacity = '0.5';
+    });
+    div.addEventListener('dragend', function() { div.style.opacity = '1'; });
+    div.addEventListener('dragover', function(e) { e.preventDefault(); div.style.borderColor = 'var(--accent)'; });
+    div.addEventListener('dragleave', function() { div.style.borderColor = 'var(--border)'; });
+    div.addEventListener('drop', function(e) {
+      e.preventDefault();
+      div.style.borderColor = 'var(--border)';
+      var data = JSON.parse(e.dataTransfer.getData('text/plain'));
+      if (data.listId !== containerId) return;
+      var arr = containerId === 'rrfBm25' ? bm25Order : denseOrder;
+      var fromIdx = arr.indexOf(data.docIdx);
+      var toIdx = arr.indexOf(docIdx);
+      arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, data.docIdx);
+      renderAllRRF();
+    });
+    el.appendChild(div);
+  });
+}
+
+function renderRRFFused() {
+  var el = document.getElementById('rrfFused');
+  el.innerHTML = '';
+  var scores = rrfDocs.map(function(doc,i) {
+    return { idx:i, score: rrfScore(i) };
+  });
+  scores.sort(function(a,b) { return b.score - a.score; });
+  scores.forEach(function(item, rank) {
+    var doc = rrfDocs[item.idx];
+    var div = document.createElement('div');
+    div.className = 'drag-item';
+    div.style.cursor = 'default';
+    div.innerHTML = '<span><strong style="color:'+doc.color+'">Doc ' + t('p20.rrf.doc'+doc.id) + '</strong></span><span class="rrf-score" style="background:rgba(234,88,12,.12);color:var(--accent4)">' + item.score.toFixed(4) + '</span>';
+    el.appendChild(div);
+  });
+}
+
+function renderAllRRF() {
+  renderRRFList('rrfBm25', bm25Order, 'var(--accent3)');
+  renderRRFList('rrfDense', denseOrder, 'var(--accent2)');
+  renderRRFFused();
+}
+
+function animateRRF() {
+  if (rrfAnimating) return;
+  rrfAnimating = true;
+  var fusedEl = document.getElementById('rrfFused');
+  fusedEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-dim);font-style:italic">Calculating RRF scores...</div>';
+
+  var scores = rrfDocs.map(function(doc,i) {
+    return { idx:i, score: rrfScore(i) };
+  });
+  scores.sort(function(a,b) { return b.score - a.score; });
+
+  var step = 0;
+  var iv = setInterval(function() {
+    if (step >= scores.length) {
+      clearInterval(iv);
+      rrfAnimating = false;
+      if (typeof markGameCompleted === 'function') markGameCompleted('20');
+      return;
+    }
+    if (step === 0) fusedEl.innerHTML = '';
+    var item = scores[step];
+    var doc = rrfDocs[item.idx];
+    var div = document.createElement('div');
+    div.className = 'drag-item';
+    div.style.cursor = 'default';
+    div.style.opacity = '0';
+    div.style.transform = 'translateY(-10px)';
+    var bm25R = bm25Order.indexOf(item.idx) + 1;
+    var denseR = denseOrder.indexOf(item.idx) + 1;
+    div.innerHTML = '<span><strong style="color:'+doc.color+'">Doc ' + t('p20.rrf.doc'+doc.id) + '</strong> <span style="font-size:.72rem;color:var(--text-dim)">1/(60+'+bm25R+') + 1/(60+'+denseR+')</span></span><span class="rrf-score" style="background:rgba(234,88,12,.12);color:var(--accent4)">' + item.score.toFixed(4) + '</span>';
+    fusedEl.appendChild(div);
+    requestAnimationFrame(function() {
+      div.style.transition = 'all .4s ease';
+      div.style.opacity = '1';
+      div.style.transform = 'translateY(0)';
+    });
+    step++;
+  }, 500);
+}
+
+function resetRRF() {
+  bm25Order = [0,4,1,2,3];
+  denseOrder = [1,2,0,3,4];
+  rrfAnimating = false;
+  renderAllRRF();
+}
+
+// ==================== Section 5: Quiz ==================== //
+var QUIZ_DATA = [
+  { qk:'p20.s5.q0', correct:0, answers:['p20.s5.a0_0','p20.s5.a0_1','p20.s5.a0_2','p20.s5.a0_3'] },
+  { qk:'p20.s5.q1', correct:0, answers:['p20.s5.a1_0','p20.s5.a1_1','p20.s5.a1_2','p20.s5.a1_3'] },
+  { qk:'p20.s5.q2', correct:0, answers:['p20.s5.a2_0','p20.s5.a2_1','p20.s5.a2_2','p20.s5.a2_3'] },
+  { qk:'p20.s5.q3', correct:0, answers:['p20.s5.a3_0','p20.s5.a3_1','p20.s5.a3_2','p20.s5.a3_3'] },
+  { qk:'p20.s5.q4', correct:0, answers:['p20.s5.a4_0','p20.s5.a4_1','p20.s5.a4_2','p20.s5.a4_3'] }
+];
+var quizIdx = 0, quizScore = 0;
+
+function shuffleQuizAnswers(q) {
+  var indices = q.answers.map(function(_,i){ return i; });
+  for (var i = indices.length-1; i > 0; i--) {
+    var j = Math.floor(Math.random()*(i+1));
+    var tmp = indices[i]; indices[i] = indices[j]; indices[j] = tmp;
+  }
+  return indices;
+}
+
+function renderQuiz() {
+  var q = QUIZ_DATA[quizIdx];
+  document.getElementById('quizRound').textContent = (quizIdx+1) + '/5';
+  document.getElementById('quizScore').textContent = quizScore;
+  document.getElementById('quizQuestion').textContent = t(q.qk);
+  document.getElementById('quizFeedback').textContent = '';
+  var opts = document.getElementById('quizOptions');
+  opts.innerHTML = '';
+
+  var shuffled = shuffleQuizAnswers(q);
+  shuffled.forEach(function(origIdx) {
+    var b = document.createElement('button');
+    b.textContent = t(q.answers[origIdx]);
+    b.dataset.origIdx = origIdx;
+    b.onclick = function() { checkQuiz(origIdx, b); };
+    opts.appendChild(b);
+  });
+}
+
+function checkQuiz(pick, btn) {
+  var q = QUIZ_DATA[quizIdx];
+  var allBtns = document.getElementById('quizOptions').querySelectorAll('button');
+  allBtns.forEach(function(b) { b.disabled = true; });
+
+  if (pick === q.correct) {
+    btn.classList.add('correct');
+    quizScore++;
+    document.getElementById('quizFeedback').innerHTML = '<span style="color:var(--accent2)">' + t('p20.s5.correct') + '</span>';
+  } else {
+    btn.classList.add('wrong');
+    allBtns.forEach(function(b) {
+      if (parseInt(b.dataset.origIdx) === q.correct) b.classList.add('correct');
+    });
+    document.getElementById('quizFeedback').innerHTML = '<span style="color:var(--accent3)">' + t('p20.s5.wrong') + ' ' + t(q.answers[q.correct]) + '</span>';
+  }
+  document.getElementById('quizScore').textContent = quizScore;
+  setTimeout(function() {
+    quizIdx++;
+    if (quizIdx < 5) {
+      renderQuiz();
+    } else {
+      document.getElementById('quizFeedback').innerHTML = '<strong>Final: ' + quizScore + '/5</strong>';
+      if (typeof markGameCompleted === 'function') markGameCompleted('20');
+    }
+  }, 2200);
+}
+
+// ==================== Init ==================== //
+window.addEventListener('load', function() {
+  renderHybridSearch();
+  renderAllRRF();
+  renderQuiz();
+});
+</script>
+</body>
+</html>

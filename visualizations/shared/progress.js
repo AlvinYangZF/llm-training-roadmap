@@ -1,7 +1,7 @@
 // ==================== LLM Algorithm Visualization — Progress Tracker ==================== //
 
 const PROGRESS_KEY = 'llm-viz-progress';
-const TOTAL_PAGES = 17;
+const TOTAL_PAGES = 29;
 
 function getProgress() {
   try {
