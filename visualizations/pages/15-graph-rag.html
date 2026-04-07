@@ -128,10 +128,51 @@
 <footer><small data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</small></footer>
 
 <script src="../shared/i18n.js"></script>
+<script src="../shared/concept-intro.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
 <script>
+// Concept Intro i18n
+i18nRegister({
+  'en':{
+    'p15.ci.badge':'Concept Overview',
+    'p15.ci.title':'GraphRAG — From Vector Similarity to Structural Reasoning',
+    'p15.ci.problem':'Vector RAG only finds locally similar chunks — it cannot answer "summarize the whole document" or "what are the major themes across all data." Global/corpus-level reasoning is fundamentally out of reach.',
+    'p15.ci.solution':'GraphRAG builds a <strong>knowledge graph</strong> from the corpus, detects communities with Leiden algorithm, pre-generates community summaries at multiple levels — enabling both local entity lookup and <strong>global thematic reasoning</strong>.',
+    'p15.ci.insight':'Core insight: Structure is information — by extracting entity relationships and community structures, RAG gains a "bird\'s-eye view" of the entire corpus.',
+    'p15.ci.flow.0':'Extract',
+    'p15.ci.flow.1':'Build KG',
+    'p15.ci.flow.2':'Community',
+    'p15.ci.flow.3':'Summarize',
+    'p15.ci.flow.4':'Query'
+  },
+  'zh-CN':{
+    'p15.ci.badge':'概念导读',
+    'p15.ci.title':'GraphRAG — 从向量相似度到结构化推理',
+    'p15.ci.problem':'向量 RAG 只能找到局部相似的片段——无法回答"总结整个文档"或"数据中有哪些主要主题"。语料级全局推理从根本上无法实现。',
+    'p15.ci.solution':'GraphRAG 从语料构建<strong>知识图谱</strong>，用 Leiden 算法发现社区，在多层级预生成社区摘要——同时支持局部实体查找和<strong>全局主题推理</strong>。',
+    'p15.ci.insight':'核心洞察：结构即信息——通过提取实体关系和社区结构，RAG 获得了对整个语料的"鸟瞰视角"。',
+    'p15.ci.flow.0':'提取',
+    'p15.ci.flow.1':'构建图谱',
+    'p15.ci.flow.2':'社区检测',
+    'p15.ci.flow.3':'生成摘要',
+    'p15.ci.flow.4':'查询'
+  },
+  'zh-TW':{
+    'p15.ci.badge':'概念導讀',
+    'p15.ci.title':'GraphRAG — 從向量相似度到結構化推理',
+    'p15.ci.problem':'向量 RAG 只能找到局部相似的片段——無法回答「總結整個文件」或「資料中有哪些主要主題」。語料級全域推理從根本上無法實現。',
+    'p15.ci.solution':'GraphRAG 從語料構建<strong>知識圖譜</strong>，用 Leiden 演算法發現社群，在多層級預生成社群摘要——同時支援局部實體查找和<strong>全域主題推理</strong>。',
+    'p15.ci.insight':'核心洞察：結構即資訊——透過提取實體關係和社群結構，RAG 獲得了對整個語料的「鳥瞰視角」。',
+    'p15.ci.flow.0':'提取',
+    'p15.ci.flow.1':'建構圖譜',
+    'p15.ci.flow.2':'社群偵測',
+    'p15.ci.flow.3':'生成摘要',
+    'p15.ci.flow.4':'查詢'
+  }
+});
+
 i18nRegister({
   'en':{'p15.title':'15. GraphRAG — LLM Algorithm Visualizations','p15.heading':'GraphRAG — Knowledge Graph Communities','p15.subtitle':'From scattered chunks to structured reasoning.','p15.s1.title':'Why Vector RAG Fails on Global Questions','p15.s1.desc':'Vector RAG retrieves chunks similar to the query. But for questions like <strong>"What are the main themes?"</strong>, no single chunk contains the answer.','p15.s2.title':'Knowledge Graph — Entity Extraction','p15.s2.desc':'An LLM extracts <strong>entities</strong> (nodes) and <strong>relationships</strong> (edges) from text.','p15.s3.title':'Leiden Community Detection','p15.s3.desc':'The Leiden algorithm clusters graph nodes into <strong>communities</strong> of related entities.','p15.s4.title':'Map-Reduce Answer Generation','p15.s4.desc':'GraphRAG uses a <strong>map-reduce</strong> pipeline: each community generates a partial answer.','p15.s5.title':'Local vs Global — Which RAG Wins?','p15.s5.desc':'Some questions are local, others global. Predict which RAG wins!',
     'p15.kgs.0':'Apple Inc. was founded by Steve Jobs in Cupertino, California.','p15.kgs.1':'Tim Cook became CEO of Apple in 2011 after Steve Jobs resigned.','p15.kgs.2':'Apple launched the iPhone in 2007, revolutionizing the smartphone industry.','p15.kgs.3':'The App Store, created by Apple, hosts millions of applications.',
@@ -223,7 +264,23 @@ var gi=0,gs=0;
 function renderG(){document.getElementById('gRound').textContent=(gi+1)+'/6';document.getElementById('gScore').textContent=gs;document.getElementById('gQ').textContent=t(GR[gi].qk);document.getElementById('gFb').textContent='';var o=document.getElementById('gOpts');o.innerHTML='';['Vector RAG','GraphRAG'].forEach(function(opt){var d=document.createElement('div');d.className='game-opt';d.textContent=opt;d.onclick=function(){checkG(opt,d);};o.appendChild(d);});}
 function checkG(pick,el){var all=document.getElementById('gOpts').querySelectorAll('.game-opt');all.forEach(function(d){d.style.pointerEvents='none';});if(pick===GR[gi].best){el.classList.add('correct');gs++;document.getElementById('gFb').innerHTML='<span style="color:var(--accent2)">'+t('p15.correct')+'</span> '+t(GR[gi].ek);}else{el.classList.add('wrong');all.forEach(function(d){if(d.textContent===GR[gi].best)d.classList.add('correct');});document.getElementById('gFb').innerHTML='<span style="color:var(--accent3)">'+GR[gi].best+' wins.</span> '+t(GR[gi].ek);}document.getElementById('gScore').textContent=gs;setTimeout(function(){gi++;if(gi<6)renderG();else{document.getElementById('gFb').innerHTML='<strong>Final: '+gs+'/6</strong>';if(typeof markGameCompleted==='function')markGameCompleted('15');}},2500);}
 
-window.addEventListener('load',function(){drawKG();drawComm();renderG();});
+window.addEventListener('load',function(){
+  renderConceptIntro({
+    badge:'p15.ci.badge',
+    title:'p15.ci.title',
+    problem:'p15.ci.problem',
+    solution:'p15.ci.solution',
+    insight:'p15.ci.insight',
+    formula:'Corpus → Entities+Relations → KG → Leiden Communities → Multi-level Summaries',
+    flow:['p15.ci.flow.0','p15.ci.flow.1','p15.ci.flow.2','p15.ci.flow.3','p15.ci.flow.4'],
+    stats:[
+      {value:'72-83%',label:'Comprehensiveness'},
+      {value:'Multi-level',label:'Community hierarchy'},
+      {value:'Global+Local',label:'Query modes'}
+    ]
+  });
+  drawKG();drawComm();renderG();
+});
 window.addEventListener('themechange',function(){drawKG();drawComm();});
 window.addEventListener('resize',function(){drawKG();drawComm();});
 </script>

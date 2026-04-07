@@ -150,6 +150,7 @@
 </footer>
 
 <script src="../shared/i18n.js"></script>
+<script src="../shared/concept-intro.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
@@ -239,6 +240,46 @@ i18nRegister({
     'p17.quiz.q3':'BeamSearch 如何改善基於 SSD 的搜尋？',
     'p17.quiz.q4':'DiskANN 的每個 SSD 磁區上共存了什麼？',
     'p17.correct':'正確！','p17.wrong':'錯誤！'
+  }
+});
+
+// Concept Intro i18n
+i18nRegister({
+  'en':{
+    'p17.ci.badge':'Concept Overview',
+    'p17.ci.title':'DiskANN — Billion-Scale Vector Search with SSD',
+    'p17.ci.problem':'HNSW keeps the entire graph in RAM — at billion scale this means hundreds of GB. Memory cost becomes prohibitive for most organizations.',
+    'p17.ci.solution':'DiskANN uses Vamana graph with two-pass build (α=1 then α>1 for long-range edges), stores <strong>PQ codes in RAM + full vectors on SSD</strong>. Beam search with prefetch achieves 95%+ recall with only ~3.5 SSD reads per query.',
+    'p17.ci.insight':'Core insight: Split the index across memory tiers — cheap approximate search in RAM to narrow candidates, then precise verification from SSD.',
+    'p17.ci.flow.0':'PQ Filter',
+    'p17.ci.flow.1':'Beam Search',
+    'p17.ci.flow.2':'SSD Read',
+    'p17.ci.flow.3':'Rerank',
+    'p17.ci.flow.4':'Results'
+  },
+  'zh-CN':{
+    'p17.ci.badge':'概念导读',
+    'p17.ci.title':'DiskANN — 基于 SSD 的十亿级向量搜索',
+    'p17.ci.problem':'HNSW 将整个图存储在内存中——十亿规模意味着数百 GB 内存。对大多数组织来说内存成本令人望而却步。',
+    'p17.ci.solution':'DiskANN 使用 Vamana 图，两轮构建（α=1 再 α>1 增加长程边），<strong>PQ 压缩码存内存 + 完整向量存 SSD</strong>。带预取的束搜索每次查询仅需约 3.5 次 SSD 读取，即达 95%+ 召回率。',
+    'p17.ci.insight':'核心洞察：将索引分层存储——RAM 中用廉价近似搜索缩小候选集，再从 SSD 精确验证。',
+    'p17.ci.flow.0':'PQ 过滤',
+    'p17.ci.flow.1':'束搜索',
+    'p17.ci.flow.2':'SSD 读取',
+    'p17.ci.flow.3':'重排',
+    'p17.ci.flow.4':'结果'
+  },
+  'zh-TW':{
+    'p17.ci.badge':'概念導讀',
+    'p17.ci.title':'DiskANN — 基於 SSD 的十億級向量搜尋',
+    'p17.ci.problem':'HNSW 將整個圖儲存在記憶體中——十億規模意味著數百 GB 記憶體。對大多數組織來說記憶體成本令人望而卻步。',
+    'p17.ci.solution':'DiskANN 使用 Vamana 圖，兩輪構建（α=1 再 α>1 增加長程邊），<strong>PQ 壓縮碼存記憶體 + 完整向量存 SSD</strong>。帶預取的束搜尋每次查詢僅需約 3.5 次 SSD 讀取，即達 95%+ 召回率。',
+    'p17.ci.insight':'核心洞察：將索引分層儲存——RAM 中用廉價近似搜尋縮小候選集，再從 SSD 精確驗證。',
+    'p17.ci.flow.0':'PQ 過濾',
+    'p17.ci.flow.1':'束搜尋',
+    'p17.ci.flow.2':'SSD 讀取',
+    'p17.ci.flow.3':'重排',
+    'p17.ci.flow.4':'結果'
   }
 });
 
@@ -867,6 +908,20 @@ function checkQuiz(pick,el){
 
 // ==================== Init ==================== //
 window.addEventListener('load',function(){
+  renderConceptIntro({
+    badge:'p17.ci.badge',
+    title:'p17.ci.title',
+    problem:'p17.ci.problem',
+    solution:'p17.ci.solution',
+    insight:'p17.ci.insight',
+    formula:'Vamana(α>1) + PQ-in-RAM + SSD-beam-search → 95%+ recall @ 1B vectors',
+    flow:['p17.ci.flow.0','p17.ci.flow.1','p17.ci.flow.2','p17.ci.flow.3','p17.ci.flow.4'],
+    stats:[
+      {value:'1B+',label:'Vector scale'},
+      {value:'~3.5',label:'SSD reads/query'},
+      {value:'95%+',label:'Recall@10'}
+    ]
+  });
   setScale(0);
   genVamanaPoints();drawVamana();
   initBeamGraph();drawBeamSearch();

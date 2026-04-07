@@ -125,6 +125,7 @@
 <footer><small data-i18n="footer.text">LLM Algorithm Visualization Series — Built for interactive learning</small></footer>
 
 <script src="../shared/i18n.js"></script>
+<script src="../shared/concept-intro.js"></script>
 <script src="../shared/nav.js"></script>
 <script src="../shared/animations.js"></script>
 <script src="../shared/progress.js"></script>
@@ -142,6 +143,46 @@ i18nRegister({
     'p16.chart.title':'困惑度 vs 模型參數','p16.chart.params':'參數量（對數刻度）','p16.chart.ppl':'困惑度 ↓','p16.chart.std':'標準 LM','p16.chart.retro':'RETRO（+ 檢索）','p16.chart.eq':'≈ 相同困惑度！',
     'p16.quiz.q0':'創造了「RAG」術語。將 DPR 檢索器與 BART 生成器結合。文件作為潛變數。','p16.quiz.q1':'稠密雙編碼器比 BM25 高 +19.3%。批內負樣本訓練技巧。','p16.quiz.q2':'7.5B 參數 + 從 2T token 檢索匹配 175B GPT-3。','p16.quiz.q3':'先生成假設答案，然後用其嵌入進行檢索。','p16.quiz.q4':'4 種反思 token：[Retrieve]、[IsRel]、[IsSup]、[IsUse]。ICLR 2024 口頭報告。','p16.quiz.q5':'T5 評估器觸發 3 條路徑：正確、錯誤（網路回退）、模糊。','p16.quiz.q6':'生成過程中 token 信心度低於閾值時觸發主動檢索。','p16.quiz.q7':'在知識圖譜上進行 Leiden 社群偵測。對社群摘要執行 Map-Reduce。',
     'p16.correct':'正確！','p16.itwas':'應該是'}
+});
+
+// Concept Intro i18n
+i18nRegister({
+  'en':{
+    'p16.ci.badge':'Concept Overview',
+    'p16.ci.title':'RAG at Scale — When Retrieval Meets Large-Scale Systems',
+    'p16.ci.problem':'Scaling RAG to billions of documents introduces bottlenecks: index size explodes, retrieval latency grows, and naive chunk-and-retrieve loses coherence. Single-node vector search can\'t handle production traffic.',
+    'p16.ci.solution':'RETRO demonstrates that a <strong>7.5B model + retrieval</strong> can match 175B GPT-3. Techniques include RRF hybrid retrieval, cross-encoder reranking (retrieve 20, rerank to 5), chunked cross-attention, and modular RAG architectures.',
+    'p16.ci.insight':'Core insight: Retrieval can substitute for parameters — a smaller model with good retrieval outperforms a giant model relying solely on memorization.',
+    'p16.ci.flow.0':'Chunk',
+    'p16.ci.flow.1':'Hybrid Retrieve',
+    'p16.ci.flow.2':'Rerank',
+    'p16.ci.flow.3':'Cross-Attn',
+    'p16.ci.flow.4':'Generate'
+  },
+  'zh-CN':{
+    'p16.ci.badge':'概念导读',
+    'p16.ci.title':'大规模 RAG — 当检索遇上大规模系统',
+    'p16.ci.problem':'将 RAG 扩展到数十亿文档引入瓶颈：索引体积爆炸、检索延迟增加，朴素的分块检索丢失上下文连贯性。单节点向量搜索无法承受生产级流量。',
+    'p16.ci.solution':'RETRO 证明 <strong>7.5B 模型 + 检索</strong>可以匹敌 175B 的 GPT-3。关键技术包括 RRF 混合检索、交叉编码器重排（检索 20 篇，重排到 5 篇）、分块交叉注意力和模块化 RAG 架构。',
+    'p16.ci.insight':'核心洞察：检索可以替代参数——小模型 + 好检索，胜过仅靠记忆的巨型模型。',
+    'p16.ci.flow.0':'分块',
+    'p16.ci.flow.1':'混合检索',
+    'p16.ci.flow.2':'重排',
+    'p16.ci.flow.3':'交叉注意力',
+    'p16.ci.flow.4':'生成'
+  },
+  'zh-TW':{
+    'p16.ci.badge':'概念導讀',
+    'p16.ci.title':'大規模 RAG — 當檢索遇上大規模系統',
+    'p16.ci.problem':'將 RAG 擴展到數十億文件引入瓶頸：索引體積爆炸、檢索延遲增加，樸素的分塊檢索丟失上下文連貫性。單節點向量搜尋無法承受生產級流量。',
+    'p16.ci.solution':'RETRO 證明 <strong>7.5B 模型 + 檢索</strong>可以匹敵 175B 的 GPT-3。關鍵技術包括 RRF 混合檢索、交叉編碼器重排（檢索 20 篇，重排到 5 篇）、分塊交叉注意力和模組化 RAG 架構。',
+    'p16.ci.insight':'核心洞察：檢索可以替代參數——小模型 + 好檢索，勝過僅靠記憶的巨型模型。',
+    'p16.ci.flow.0':'分塊',
+    'p16.ci.flow.1':'混合檢索',
+    'p16.ci.flow.2':'重排',
+    'p16.ci.flow.3':'交叉注意力',
+    'p16.ci.flow.4':'生成'
+  }
 });
 
 // ===== Section 1: Scaling Chart =====
@@ -244,7 +285,23 @@ function renderQuiz(){document.getElementById('qRound').textContent=(qi+1)+'/8';
 function checkQuiz(pick,el){var all=document.getElementById('qOpts').querySelectorAll('.game-opt');all.forEach(function(d){d.style.pointerEvents='none';});if(pick===QUIZ[qi].ans){el.classList.add('correct');qs++;document.getElementById('qFb').innerHTML='<span style="color:var(--accent2)">'+t('p16.correct')+'</span>';}else{el.classList.add('wrong');all.forEach(function(d){if(d.textContent===QUIZ[qi].ans)d.classList.add('correct');});document.getElementById('qFb').innerHTML='<span style="color:var(--accent3)">'+t('p16.itwas')+' '+QUIZ[qi].ans+'</span>';}document.getElementById('qScore').textContent=qs;setTimeout(function(){qi++;if(qi<8)renderQuiz();else{document.getElementById('qFb').innerHTML='<strong>Final: '+qs+'/8</strong>';if(typeof markGameCompleted==='function')markGameCompleted('16');}},2000);}
 
 // Init
-window.addEventListener('load',function(){drawScale();drawCCA();setEra(0);renderTax();renderQuiz();});
+window.addEventListener('load',function(){
+  renderConceptIntro({
+    badge:'p16.ci.badge',
+    title:'p16.ci.title',
+    problem:'p16.ci.problem',
+    solution:'p16.ci.solution',
+    insight:'p16.ci.insight',
+    formula:'RETRO: 7.5B + retrieval ≈ 175B GPT-3 (zero-shot)',
+    flow:['p16.ci.flow.0','p16.ci.flow.1','p16.ci.flow.2','p16.ci.flow.3','p16.ci.flow.4'],
+    stats:[
+      {value:'7.5B',label:'Model size'},
+      {value:'≈175B',label:'Equivalent perf'},
+      {value:'R20→K5',label:'Rerank ratio'}
+    ]
+  });
+  drawScale();drawCCA();setEra(0);renderTax();renderQuiz();
+});
 window.addEventListener('themechange',function(){drawScale();drawCCA();});
 window.addEventListener('resize',function(){drawScale();drawCCA();});
 </script>
