@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>21 KG Construction · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+.kg-svg { width:100%; height: 380px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.triples { display: grid; gap: 4px; font-family: var(--mono); font-size: 12px; margin: 12px 0; }
+.triple { display: grid; grid-template-columns: 1fr 100px 1fr; gap: 10px; padding: 8px 12px; background: var(--bg); border:1px solid var(--rule); border-radius: 2px; align-items: center; }
+.triple .s { color: var(--ink); font-weight: 600; }
+.triple .p { color: var(--accent); text-align: center; font-size: 11px; letter-spacing: 0.04em; }
+.triple .o { color: var(--ink-2); text-align: right; }
+
+.cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.cmp-card { padding: 14px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.cmp-card h4 { font-size: 14px; color: var(--ink); margin-bottom: 8px; }
+.cmp-card .name { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+.cmp-card p { font-size: 12px; color: var(--ink-2); line-height: 1.55; margin-bottom: 6px; }
+.cmp-card ul { font-family: var(--mono); font-size: 11px; color: var(--mute); list-style: none; padding-left: 0; }
+.cmp-card li { padding: 2px 0; }
+.cmp-card li::before { content: "› "; color: var(--accent); }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top"><div><a href="../index.html" class="brand">llm-viz</a></div><div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div></nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat compute">Compute</span><span class="sep">/</span><span class="here">21 KG Construction</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 21</span><span class="sep">·</span><span>Compute</span><span class="sep">·</span><span>2024 · 10 min read</span></div>
+    <div class="phero-grid"><div class="phero-num">21</div><div>
+      <h1>Let the LLM build its own <em>graph</em>.</h1>
+      <div class="dek">LightRAG and HippoRAG turn unstructured text into entity-relation graphs at ingest time. The graph becomes a second retrieval modality — multi-hop traversal where vector search alone fails.</div>
+    </div></div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">LightRAG</div><div class="l">Dual-level retrieval</div></div>
+      <div class="c"><div class="v">HippoRAG</div><div class="l">PageRank over KG</div></div>
+      <div class="c"><div class="v">+20%</div><div class="l">Multi-hop QA accuracy</div></div>
+      <div class="c"><div class="v">3×</div><div class="l">Ingest cost vs vector</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">Vector search finds documents that look like the query. It can\'t answer "find people connected to Alice through three or fewer relationships" — that\'s a graph traversal. KG construction wants the best of both.</p>
+
+      <h2 id="s1" data-n="§ 01"><span>Extraction · the LLM does the work</span></h2>
+      <p>Feed each chunk to the LLM with a prompt: "extract entities (with types) and relations (subject, predicate, object) as JSON." Cache and dedupe. Run a second pass to merge near-duplicate entities ("Alice", "Alice Smith", "A. Smith"). Cost: ~$0.50 / 1k chunks with a small model.</p>
+      <div class="triples">
+        <div class="triple"><span class="s">Vaswani et al.</span><span class="p">authored</span><span class="o">Attention Is All You Need</span></div>
+        <div class="triple"><span class="s">Attention Is All You Need</span><span class="p">introduced</span><span class="o">Transformer architecture</span></div>
+        <div class="triple"><span class="s">Transformer architecture</span><span class="p">used in</span><span class="o">GPT-2</span></div>
+        <div class="triple"><span class="s">GPT-2</span><span class="p">released by</span><span class="o">OpenAI · 2019</span></div>
+        <div class="triple"><span class="s">FlashAttention</span><span class="p">improves</span><span class="o">Transformer efficiency</span></div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>The graph · render</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Extracted KG fragment</span><span class="tag">data</span></div>
+        <div class="dbd">
+          <svg class="kg-svg" id="kg" viewBox="0 0 900 380"></svg>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>LightRAG vs HippoRAG</span></h2>
+      <div class="cmp">
+        <div class="cmp-card"><div class="name">LightRAG · 2024</div><h4>Dual-level retrieval</h4><p>Two parallel queries: <strong>low-level</strong> (entities and relations relevant to the query) and <strong>high-level</strong> (themes and concepts). Both feed the LLM context.</p><ul><li>Cheap incremental updates</li><li>Lower extraction cost than GraphRAG</li><li>Hybrid with vector search</li></ul></div>
+        <div class="cmp-card"><div class="name">HippoRAG · 2024</div><h4>PageRank over KG</h4><p>Inspired by hippocampus indexing. Build a KG once. At query time: identify seed nodes from the query, run personalized PageRank, return top-N nodes\' source documents.</p><ul><li>Multi-hop reasoning · single retrieval call</li><li>Beats iterative RAG on MuSiQue / 2WikiMQA</li><li>Synaptic vs episodic memory analogy</li></ul></div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>When it earns its keep</span></h2>
+      <p>KG construction is 3× the ingest cost of plain vector RAG. Use it when:</p>
+      <ul style="list-style:none;padding-left:0;margin:8px 0">
+        <li style="padding:6px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-size:14px">› Queries need <strong style="color:var(--ink)">multi-hop reasoning</strong> ("who works on the team that built X")</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-size:14px">› Corpus has <strong style="color:var(--ink)">structured entities</strong> (people, products, events) with stable types</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-size:14px">› You need to answer <strong style="color:var(--ink)">"summarise everything about X"</strong> across the whole corpus</li>
+        <li style="padding:6px 0;color:var(--ink-2);font-size:14px">› Avoid for: short, factoid queries · cost-sensitive ingest · heterogeneous web-scale text</li>
+      </ul>
+
+      <h2 id="s5" data-n="§ 05"><span>Mini-game</span></h2>
+      <div class="demo"><div class="dhd"><span class="ttl">Game · KG construction</span><span class="tag" id="gameTag">0 / 5</span></div><div class="dbd">
+        <div id="gameArea">
+          <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+          <div class="game-q" id="gameQ"></div>
+          <div class="game-board" id="gameBoard"></div>
+        </div>
+        <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+          <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+          <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+        </div>
+      </div></div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Extraction</span></a>
+        <a href="#s2"><span class="n">02</span><span>The graph</span></a>
+        <a href="#s3"><span class="n">03</span><span>LightRAG vs HippoRAG</span></a>
+        <a href="#s4"><span class="n">04</span><span>When to use</span></a>
+        <a href="#s5"><span class="n">05</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 21 KG Construction <span class="dot">·</span> Compute</div><div>chapter 21 of 29 <span class="dot">●</span> 10 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks"><div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div><div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+  <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+  <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "21"</div></div></div>
+  <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number</div></div></div>
+</div></div></aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'21', related:['12','13','15','16','22'] });
+
+(function(){
+  const N = [
+    {id:'V',l:'Vaswani et al.', x:130,y:80, t:'person'},
+    {id:'A',l:'Attention Is All You Need', x:380,y:80, t:'paper'},
+    {id:'T',l:'Transformer', x:620,y:80, t:'concept'},
+    {id:'G',l:'GPT-2', x:820,y:170, t:'model'},
+    {id:'O',l:'OpenAI', x:620,y:280, t:'org'},
+    {id:'F',l:'FlashAttention', x:380,y:280, t:'tech'},
+    {id:'D',l:'DeepMind', x:130,y:280, t:'org'},
+    {id:'R',l:'RETRO', x:130,y:180, t:'paper'},
+  ];
+  const E = [
+    [0,1,'authored'],[1,2,'introduced'],[2,3,'used in'],[3,4,'released by'],
+    [5,2,'improves'],[7,6,'authored by'],[7,1,'extends'],
+  ];
+  let g='';
+  E.forEach(([a,b,p])=>{
+    const A=N[a],B=N[b];
+    g+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#3a4a5e" stroke-width="1" opacity="0.4"/>`;
+    const mx=(A.x+B.x)/2,my=(A.y+B.y)/2;
+    g+=`<rect x="${mx-30}" y="${my-9}" width="60" height="18" fill="#fbf6e7" stroke="#e8dfc5" rx="2"/>`;
+    g+=`<text x="${mx}" y="${my+3}" font-family="JetBrains Mono, monospace" font-size="9" fill="#b8471f" text-anchor="middle">${p}</text>`;
+  });
+  N.forEach(n=>{
+    const w = Math.max(n.l.length*7+16, 90);
+    g+=`<g><rect x="${n.x-w/2}" y="${n.y-15}" width="${w}" height="30" fill="${n.t==='paper'?'#fff8e9':'#fbf6e7'}" stroke="#1a1810" stroke-width="1.2" rx="2"/>`;
+    g+=`<text x="${n.x}" y="${n.y+4}" font-family="Inter, sans-serif" font-size="12" fill="#1a1810" text-anchor="middle" font-weight="600">${n.l}</text></g>`;
+  });
+  document.getElementById('kg').innerHTML=g;
+})();
+
+const GAME=[
+  {q:'A KG triple looks like?',opts:[{t:'(subject, predicate, object) — e.g. (Alice, worksAt, Acme)',h:'RDF-style',c:true},{t:'(query, doc, score)',h:'That\'s retrieval'},{t:'A vector',h:'No'},{t:'A token sequence',h:'No'}]},
+  {q:'HippoRAG\'s retrieval mechanism?',opts:[{t:'Personalized PageRank seeded from query entities',h:'Hippocampus analogy',c:true},{t:'Vector cosine similarity',h:'That\'s vector RAG'},{t:'BM25',h:'No'},{t:'Brute force scan',h:'No'}]},
+  {q:'LightRAG\'s "dual-level" means?',opts:[{t:'Low-level entity/relation lookup + high-level theme retrieval, both feed context',h:'Two parallel queries',c:true},{t:'Two LLMs',h:'No'},{t:'Two indexes',h:'Partial — but the dual is about query levels'},{t:'Two embedding models',h:'No'}]},
+  {q:'KG construction is worth the cost when?',opts:[{t:'Multi-hop reasoning queries dominate',h:'"Who works on the team that built X"',c:true},{t:'Short factoid queries',h:'Vector wins there'},{t:'Cost-sensitive ingest',h:'KG is 3× more expensive'},{t:'Always',h:'Not always'}]},
+  {q:'Entity deduplication ("Alice" = "Alice Smith") is done by?',opts:[{t:'A second LLM pass + embedding similarity threshold',h:'Often called "entity resolution"',c:true},{t:'String equality',h:'Misses variants'},{t:'A regex',h:'Too brittle'},{t:'Manual review',h:'Not at scale'}]},
+];
+let gI=0,gS=0;
+function rg(){
+  if(gI>=GAME.length){document.getElementById('gameArea').style.display='none';document.getElementById('gameDone').style.display='block';document.getElementById('gameFinal').textContent=`${gS} / ${GAME.length}`;const g=JSON.parse(localStorage.getItem('llm-viz-games')||'{}');g['21']=gS;localStorage.setItem('llm-viz-games',JSON.stringify(g));return;}
+  const q=GAME[gI];document.getElementById('gameIdx').textContent=gI+1;document.getElementById('gameScore').textContent=gS;document.getElementById('gameTag').textContent=`${gI} / ${GAME.length}`;document.getElementById('gameQ').innerHTML=q.q;
+  const b=document.getElementById('gameBoard');b.innerHTML='';let an=false;
+  q.opts.forEach(o=>{const e=document.createElement('button');e.className='game-opt';e.innerHTML=`<div class="q">${o.t}</div><div class="h">${o.h}</div>`;e.addEventListener('click',()=>{if(an)return;an=true;if(o.c){e.classList.add('correct');gS++;}else{e.classList.add('wrong');b.querySelectorAll('.game-opt').forEach((x,i)=>{if(q.opts[i].c)x.classList.add('correct');});}setTimeout(()=>{gI++;rg();},1100);});b.appendChild(e);});
+}
+document.getElementById('gameRestart').addEventListener('click',()=>{gI=0;gS=0;document.getElementById('gameArea').style.display='block';document.getElementById('gameDone').style.display='none';rg();});
+rg();
+</script>
+</body>
+</html>

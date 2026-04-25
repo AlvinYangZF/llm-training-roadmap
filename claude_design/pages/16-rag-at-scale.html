@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>16 RAG at Scale · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.taxa { display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0; }
+.taxa-card { padding: 16px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.taxa-card .num { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+.taxa-card h4 { font-size: 15px; color: var(--ink); margin-bottom: 8px; font-weight: 700; }
+.taxa-card p { font-size: 12px; color: var(--ink-2); line-height: 1.55; margin-bottom: 8px; }
+.taxa-card ul { font-family: var(--mono); font-size: 11px; color: var(--mute); list-style: none; padding-left: 0; }
+.taxa-card li { padding: 2px 0; }
+.taxa-card li::before { content: "› "; color: var(--accent); }
+
+.scale-chart { width:100%; height: 280px; background: var(--bg); border: 1px solid var(--rule); border-radius:3px; }
+
+.retro-row { display: grid; grid-template-columns: 50px 1fr 1fr; gap: 12px; margin-bottom: 6px; align-items: center; font-family: var(--mono); font-size: 11px; }
+.retro-row .lbl { color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; }
+.retro-row .bar { height: 22px; background: var(--accent-bg); border: 1px solid var(--rule); border-radius: 2px; position: relative; }
+.retro-row .bar .fill { height: 100%; background: var(--accent); border-radius: 1px; }
+.retro-row .bar.alt .fill { background: var(--ink-2); }
+.retro-row .v { color: var(--ink); font-weight: 600; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top"><div><a href="../index.html" class="brand">llm-viz</a></div><div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div></nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat system">RAG &amp; System</span><span class="sep">/</span><span class="here">16 RAG at Scale</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 16</span><span class="sep">·</span><span>RAG &amp; System</span><span class="sep">·</span><span>2022 · 13 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">16</div>
+      <div>
+        <h1>A 7.5B model with retrieval beats <em>175B</em>.</h1>
+        <div class="dek">DeepMind\'s RETRO showed that a small Transformer plus a 2-trillion-token retrieval index matches GPT-3 at a fraction of the parameters. The lesson stuck. Modern RAG taxonomy: Naive → Advanced → Modular.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">7.5B</div><div class="l">RETRO params</div></div>
+      <div class="c"><div class="v">175B</div><div class="l">GPT-3 params · matched</div></div>
+      <div class="c"><div class="v">2T tok</div><div class="l">RETRO retrieval index</div></div>
+      <div class="c"><div class="v">25×</div><div class="l">Param efficiency</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">"Make the model bigger" hits a wall. RETRO\'s answer: keep the model small, push knowledge into a non-parametric index. The architectural pattern — and the operational taxonomy that grew from it — is now industry-standard.</p>
+
+      <h2 id="s1" data-n="§ 01"><span>RETRO · the 2022 paper</span></h2>
+      <p>Borgeaud et al, DeepMind, 2022. Architecturally: every <em>chunk</em> of 64 tokens in the input is used as a query against a 2-trillion-token retrieval index. The top-k neighbours are encoded by a frozen BERT and cross-attended into the main Transformer via dedicated <em>RETRO blocks</em>. Training is end-to-end except the retriever.</p>
+      <div class="callout">
+        <strong>Key insight.</strong> Retrieval gives access to facts seen <em>during training</em> as well — it\'s not just for "new" knowledge. The model learns to defer factual recall to the index and use its parameters for reasoning and composition.
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>The param-vs-knowledge tradeoff</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · LM perplexity vs index size</span><span class="tag">data</span></div>
+        <div class="dbd">
+          <svg class="scale-chart" id="scaleChart" viewBox="0 0 900 280" preserveAspectRatio="none"></svg>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:8px;letter-spacing:0.06em;text-transform:uppercase">// x-axis · log10(retrieval index tokens)   y-axis · LM bits-per-byte (lower is better)</div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>Three generations · the taxonomy</span></h2>
+      <p>Gao et al, 2024 survey, codified what production teams were already shipping:</p>
+      <div class="taxa">
+        <div class="taxa-card"><div class="num">Gen 01 · Naive RAG</div><h4>Retrieve → augment → generate.</h4><p>One vector index. One similarity search. Stuff top-k into the prompt. Most demos. Brittle.</p><ul><li>FAISS or Pinecone</li><li>Single-step retrieval</li><li>No grading, no fusion</li></ul></div>
+        <div class="taxa-card"><div class="num">Gen 02 · Advanced</div><h4>Pre + post-retrieval optimization.</h4><p>Query rewriting (HyDE), chunk reranking (cross-encoders), context compression, hybrid scoring (BM25 + dense).</p><ul><li>HyDE · rerank · RRF</li><li>Recursive retrieval</li><li>Chunk overlap tuning</li></ul></div>
+        <div class="taxa-card"><div class="num">Gen 03 · Modular</div><h4>Composable retrieval orchestration.</h4><p>Decoupled router, retriever, generator, memory, validator. Each module swappable. Self-RAG, CRAG, FLARE all live here.</p><ul><li>Router → retriever → critic</li><li>Multi-hop, agentic</li><li>Tool-use blends in</li></ul></div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>RETRO vs GPT-3 · the chart</span></h2>
+      <p>Same evaluation tasks, RETRO with retrieval reaches GPT-3 quality at 25× fewer parameters.</p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Param efficiency</span><span class="tag">benchmark</span></div>
+        <div class="dbd" style="padding:14px">
+          <div class="retro-row"><div class="lbl">RETRO 7.5B</div><div class="bar"><div class="fill" style="width:30%"></div></div><div class="v">7.5B params</div></div>
+          <div class="retro-row"><div class="lbl">GPT-3 175B</div><div class="bar alt"><div class="fill" style="width:100%"></div></div><div class="v">175B params</div></div>
+          <div class="retro-row"><div class="lbl">RETRO ppl</div><div class="bar"><div class="fill" style="width:74%"></div></div><div class="v">~equal</div></div>
+          <div class="retro-row"><div class="lbl">GPT-3 ppl</div><div class="bar alt"><div class="fill" style="width:75%"></div></div><div class="v">~equal</div></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:14px;letter-spacing:0.06em;text-transform:uppercase">// Pile validation set · bits-per-byte · lower is better</div>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>What ships in 2025</span></h2>
+      <ul style="list-style:none;padding-left:0;margin:12px 0">
+        <li style="padding:8px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-size:14px"><strong style="color:var(--ink)">Hybrid retrieval</strong> · BM25 + dense + cross-encoder rerank is the boring default; <a href="20-hybrid-search.html">chapter 20</a></li>
+        <li style="padding:8px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-size:14px"><strong style="color:var(--ink)">Late interaction</strong> · ColBERT v2 / PLAID — token-level scoring at index time</li>
+        <li style="padding:8px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-size:14px"><strong style="color:var(--ink)">Long-context contests RAG</strong> · 1M-token context windows make naive RAG less compelling for some workloads — but cost still favours retrieval at scale</li>
+        <li style="padding:8px 0;color:var(--ink-2);font-size:14px"><strong style="color:var(--ink)">Cache-Augmented Generation</strong> · CAG preloads the corpus into the KV cache; useful for small-corpus, high-QPS apps. <a href="22-cag-vs-rag.html">chapter 22</a></li>
+      </ul>
+
+      <h2 id="s6" data-n="§ 06"><span>Mini-game</span></h2>
+      <div class="demo"><div class="dhd"><span class="ttl">Game · Pick the right architecture</span><span class="tag" id="gameTag">0 / 5</span></div><div class="dbd">
+        <div id="gameArea">
+          <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+          <div class="game-q" id="gameQ"></div>
+          <div class="game-board" id="gameBoard"></div>
+        </div>
+        <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+          <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+          <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+        </div>
+      </div></div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>RETRO · the paper</span></a>
+        <a href="#s2"><span class="n">02</span><span>Param vs knowledge</span></a>
+        <a href="#s3"><span class="n">03</span><span>Three generations</span></a>
+        <a href="#s4"><span class="n">04</span><span>RETRO vs GPT-3</span></a>
+        <a href="#s5"><span class="n">05</span><span>What ships in 2025</span></a>
+        <a href="#s6"><span class="n">06</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 16 RAG at Scale <span class="dot">·</span> RAG &amp; System</div><div>chapter 16 of 29 <span class="dot">●</span> 13 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "16" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'16', related:['08','13','14','15','22'] });
+
+/* scaling chart */
+(function(){
+  const svg=document.getElementById('scaleChart');
+  const W=900,H=280,pad=44;
+  const xs=[3,4,5,6,7,8,9,10,11,12]; // log10 tokens
+  const noRet=[1.10,1.08,1.05,1.02,0.99,0.97,0.95,0.94,0.93,0.92];
+  const ret=[1.00,0.93,0.85,0.78,0.72,0.66,0.61,0.57,0.54,0.52];
+  const xMap=v=>pad+(W-2*pad)*(v-3)/(12-3);
+  const yMap=v=>pad+(H-2*pad)*(v-0.5)/(1.2-0.5);
+  let g='';
+  for(let i=0;i<=4;i++){const yy=pad+(H-2*pad)*i/4;g+=`<line x1="${pad}" y1="${yy}" x2="${W-pad}" y2="${yy}" stroke="#e8dfc5" stroke-width="0.5" stroke-dasharray="2 3"/>`;}
+  let p1='',p2='';
+  xs.forEach((x,i)=>{p1+=`${i===0?'M':'L'} ${xMap(x)} ${yMap(noRet[i])} `;p2+=`${i===0?'M':'L'} ${xMap(x)} ${yMap(ret[i])} `;});
+  g+=`<path d="${p1}" stroke="#3a4a5e" stroke-width="2" fill="none" stroke-dasharray="4 4"/>`;
+  g+=`<path d="${p2}" stroke="#b8471f" stroke-width="2.5" fill="none"/>`;
+  // labels
+  g+=`<text x="${xMap(11.5)}" y="${yMap(0.92)-8}" font-family="JetBrains Mono, monospace" font-size="11" fill="#3a4a5e" text-anchor="end">no retrieval</text>`;
+  g+=`<text x="${xMap(11.5)}" y="${yMap(0.52)+18}" font-family="JetBrains Mono, monospace" font-size="11" fill="#b8471f" text-anchor="end">+ retrieval index</text>`;
+  for(let v=3;v<=12;v+=2){g+=`<text x="${xMap(v)}" y="${H-pad+14}" font-family="JetBrains Mono, monospace" font-size="9" fill="#7a6f60" text-anchor="middle">10^${v}</text>`;}
+  svg.innerHTML=g;
+})();
+
+const GAME = [
+  { q: 'RETRO\'s core finding?', opts: [
+    { t: '7.5B + retrieval index ≈ 175B GPT-3 on perplexity', h: 'Retrieval substitutes for parameters', c: true },
+    { t: 'Bigger is always better', h: 'Opposite of the paper' },
+    { t: 'Retrieval doesn\'t help', h: 'No' },
+    { t: 'Only useful for QA', h: 'It improves LM perplexity broadly' },
+  ]},
+  { q: 'Modular RAG\'s defining property?', opts: [
+    { t: 'Decoupled, swappable router/retriever/critic/generator components', h: 'Self-RAG, CRAG, FLARE all live here', c: true },
+    { t: 'Single retrieval call', h: 'That\'s naive' },
+    { t: 'Uses BM25 only', h: 'No' },
+    { t: 'Requires fine-tuning', h: 'Not necessarily' },
+  ]},
+  { q: 'Naive RAG fails most often when?', opts: [
+    { t: 'Top-k retrieval misses or returns irrelevant chunks; no grading or fusion', h: 'Production teams hit this fast', c: true },
+    { t: 'When the LLM is too big', h: 'No' },
+    { t: 'When BM25 is used', h: 'BM25 alone is fine for many domains' },
+    { t: 'When chunks are too small', h: 'Tunable' },
+  ]},
+  { q: 'Why use retrieval if context windows are now 1M tokens?', opts: [
+    { t: 'Cost — retrieval is cheaper per query than putting 1M tokens in context', h: 'Bandwidth, attention quality too', c: true },
+    { t: 'Long context doesn\'t exist', h: 'It does' },
+    { t: 'Context windows are smaller than indexes', h: 'Different reason' },
+    { t: 'Retrieval is more accurate at trivia', h: 'Tied' },
+  ]},
+  { q: 'Where do Self-RAG / CRAG / FLARE sit in the taxonomy?', opts: [
+    { t: 'Modular RAG — Gen 03', h: 'Composable orchestration patterns', c: true },
+    { t: 'Naive RAG', h: 'No, they are adaptive' },
+    { t: 'Outside the taxonomy', h: 'They fit Gen 03' },
+    { t: 'Pre-retrieval only', h: 'They span the whole pipeline' },
+  ]},
+];
+let gIdx=0,gScore=0;
+function renderG(){
+  if(gIdx>=GAME.length){document.getElementById('gameArea').style.display='none';document.getElementById('gameDone').style.display='block';document.getElementById('gameFinal').textContent=`${gScore} / ${GAME.length}`;const g=JSON.parse(localStorage.getItem('llm-viz-games')||'{}');g['16']=gScore;localStorage.setItem('llm-viz-games',JSON.stringify(g));return;}
+  const q=GAME[gIdx];document.getElementById('gameIdx').textContent=gIdx+1;document.getElementById('gameScore').textContent=gScore;document.getElementById('gameTag').textContent=`${gIdx} / ${GAME.length}`;document.getElementById('gameQ').innerHTML=q.q;
+  const b=document.getElementById('gameBoard');b.innerHTML='';let answered=false;
+  q.opts.forEach(o=>{const el=document.createElement('button');el.className='game-opt';el.innerHTML=`<div class="q">${o.t}</div><div class="h">${o.h}</div>`;el.addEventListener('click',()=>{if(answered)return;answered=true;if(o.c){el.classList.add('correct');gScore++;}else{el.classList.add('wrong');b.querySelectorAll('.game-opt').forEach((x,i)=>{if(q.opts[i].c)x.classList.add('correct');});}setTimeout(()=>{gIdx++;renderG();},1100);});b.appendChild(el);});
+}
+document.getElementById('gameRestart').addEventListener('click',()=>{gIdx=0;gScore=0;document.getElementById('gameArea').style.display='block';document.getElementById('gameDone').style.display='none';renderG();});
+renderG();
+</script>
+</body>
+</html>

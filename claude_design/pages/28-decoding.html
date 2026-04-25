@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>28 Decoding · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.dist-row { display: grid; grid-template-columns: 110px 1fr 70px; gap: 12px; align-items: center; padding: 4px 0; font-family: var(--mono); font-size: 12px; }
+.dist-row .word { color: var(--ink); font-weight: 500; }
+.dist-row .word.kept { color: var(--accent); }
+.dist-row .word.cut { color: var(--mute); text-decoration: line-through; }
+.dist-bar-wrap { background: var(--surface-2); height: 16px; border-radius: 2px; overflow: hidden; position: relative; border: 1px solid var(--rule); }
+.dist-bar { height: 100%; background: var(--accent); transition: width 0.3s; }
+.dist-bar.cut { background: var(--rule); }
+.dist-bar.kept { background: var(--accent); }
+.dist-row .pct { text-align: right; color: var(--accent); font-weight: 600; font-size: 11px; font-feature-settings: 'tnum'; }
+.dist-row .pct.cut { color: var(--mute); }
+
+.cut-indicator { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; margin: 4px 0; border-top: 1px dashed var(--accent); border-bottom: 1px dashed var(--accent); font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; }
+
+.beam-svg { width: 100%; height: auto; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.beam-node { fill: var(--surface); stroke: var(--rule); stroke-width: 1.5; }
+.beam-node.alive { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 2; }
+.beam-node.kept { fill: var(--moss); fill-opacity: 0.2; stroke: var(--moss); stroke-width: 2; }
+.beam-node.dead { stroke: var(--rule); stroke-dasharray: 2 2; opacity: 0.5; }
+.beam-text { font-family: var(--mono); font-size: 11px; }
+.beam-edge { stroke: var(--rule); stroke-width: 1.2; fill: none; }
+.beam-edge.alive { stroke: var(--accent); stroke-width: 1.8; }
+.beam-edge.kept { stroke: var(--moss); stroke-width: 2; }
+.beam-edge.dead { stroke: var(--rule); stroke-dasharray: 2 2; opacity: 0.4; }
+
+.gen-output { padding: 14px 16px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; font-family: var(--serif); font-size: 15px; line-height: 1.7; color: var(--ink); min-height: 80px; }
+.gen-output .new-tok { background: color-mix(in oklab, var(--accent) 22%, transparent); padding: 0 2px; border-radius: 2px; transition: background 1.2s; }
+
+.ctrl-row { display:flex; gap:16px; align-items:center; margin:10px 0; flex-wrap: wrap; }
+.ctrl-row label { font-family: var(--mono); font-size:11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; min-width: 80px; }
+.ctrl-row input[type=range] { flex: 1; min-width: 140px; }
+.ctrl-row .val { font-family: var(--mono); font-size: 12px; color: var(--accent); font-weight: 600; min-width: 56px; text-align: right; }
+
+.method-toggle { display: flex; gap: 4px; padding: 3px; background: var(--surface-2); border-radius: 4px; }
+.method-toggle button { flex: 1; padding: 7px 12px; border: 0; background: transparent; cursor: pointer; font: inherit; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; border-radius: 3px; transition: all 0.15s; }
+.method-toggle button.on { background: var(--bg); color: var(--accent); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+.compare-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+.compare-card { padding: 14px 16px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.compare-card .h { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+.compare-card .t { color: var(--ink); font-size: 13px; line-height: 1.55; font-family: var(--serif); }
+
+.game-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.45; padding: 12px 0 16px; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="read-bar"><div class="fill"></div></div>
+
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right">
+    <a href="../index.html">roadmap</a>
+    <span class="divider"></span>
+    <a id="themeBtn">◐ theme</a>
+  </div>
+</nav>
+
+<div class="crumbs">
+  <a href="../index.html">Roadmap</a>
+  <span class="sep">/</span>
+  <span class="cat foundation">Foundations</span>
+  <span class="sep">/</span>
+  <span class="here">28 Decoding</span>
+</div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 28</span><span class="sep">·</span><span>Foundations</span><span class="sep">·</span><span>core · 13 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">28</div>
+      <div>
+        <h1>The model gives you a <em>distribution</em>. You have to pick.</h1>
+        <div class="dek">After every forward pass, the LLM hands back a probability distribution over its 200K-token vocabulary. The decoding strategy decides which token actually gets emitted — and that decision is the difference between a robotic recital, a creative riff, and a hallucination.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">200K+</div><div class="l">Vocab to choose from</div></div>
+      <div class="c"><div class="v">τ = 1</div><div class="l">Identity temperature</div></div>
+      <div class="c"><div class="v">top-p = 0.9</div><div class="l">Sane default</div></div>
+      <div class="c"><div class="v">1× / token</div><div class="l">Decoding cost</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        After softmax, every possible next token has a probability. Greedy decoding picks the max. Sampling rolls a weighted die. Both are valid — what matters is how you <i>shape</i> that distribution before sampling.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>Where decoding lives</span> <em>after softmax, before the user sees anything</em></h2>
+      <p>
+        Each forward pass of the LLM ends with a logit vector $z \in \mathbb{R}^{|V|}$ — one real number per vocabulary entry. The standard softmax converts logits to probabilities:
+      </p>
+      <div class="math-block">
+        <div class="label">// from logits to probabilities</div>
+        $$p_i \;=\; \frac{\exp(z_i / \tau)}{\sum_j \exp(z_j / \tau)}$$
+      </div>
+      <p>
+        That $\tau$ is <b>temperature</b> — the single most important knob in the whole stack. Once you have probabilities, the decoder picks one token. That token gets appended to the context, and the loop runs again.
+      </p>
+
+      <h2 id="s2" data-n="§ 02"><span>Temperature</span> <em>flatten or sharpen</em></h2>
+      <p>
+        Temperature divides the logits before softmax. Low temperature ($\tau \to 0$) makes the distribution spike at the top token — the model becomes deterministic. High temperature ($\tau \to \infty$) flattens it toward uniform — the model becomes wildly random.
+      </p>
+      <ul>
+        <li><b>τ = 0</b> → greedy. Always picks argmax. Boring but reproducible.</li>
+        <li><b>τ = 0.7</b> → typical chat. Some variety, mostly coherent.</li>
+        <li><b>τ = 1.0</b> → identity. Use the model's raw distribution.</li>
+        <li><b>τ = 1.5+</b> → creative writing. Watch out for nonsense.</li>
+      </ul>
+
+      <h2 id="s3" data-n="§ 03"><span>Top-k and top-p</span> <em>truncate the long tail</em></h2>
+      <p>
+        Even at $\tau = 0.7$, most of those 200K tokens have non-zero probability. The bottom 99.99% are nonsense — but their combined mass is non-trivial, and you'll occasionally roll one. Two truncation strategies fix this:
+      </p>
+      <ul>
+        <li><b>Top-k.</b> Keep only the $k$ highest-probability tokens. Renormalize. Sample. Simple, but $k$ is fixed across all contexts.</li>
+        <li><b>Top-p (nucleus).</b> Keep the smallest set of tokens whose cumulative probability exceeds $p$. Adapts: confident contexts get few candidates, ambiguous ones get many. Holtzman et al. (2019).</li>
+      </ul>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Sampling distribution</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div style="margin-bottom:14px">
+            <div class="method-toggle" id="methodTog">
+              <button data-m="greedy">greedy</button>
+              <button data-m="topk">top-k</button>
+              <button data-m="topp" class="on">top-p</button>
+              <button data-m="all">all</button>
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <label>temperature τ</label>
+            <input type="range" id="tempSl" min="0.1" max="2.0" step="0.05" value="0.8"/>
+            <span class="val" id="tempLab">0.80</span>
+          </div>
+          <div class="ctrl-row" id="kRow" style="display:none">
+            <label>top-k</label>
+            <input type="range" id="kSl" min="1" max="10" step="1" value="3"/>
+            <span class="val" id="kLab">3</span>
+          </div>
+          <div class="ctrl-row" id="pRow">
+            <label>top-p</label>
+            <input type="range" id="pSl" min="0.1" max="1.0" step="0.05" value="0.9"/>
+            <span class="val" id="pLab">0.90</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.08em;text-transform:uppercase;margin:18px 0 8px">// next-token distribution after "The cat sat on the"</div>
+          <div id="distBox"></div>
+          <div style="margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--ink-2);text-align:right">candidates kept: <span style="color:var(--accent);font-weight:600" id="kept">—</span> · effective entropy: <span style="color:var(--accent);font-weight:600" id="ent">—</span> bits</div>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>Watch a sentence assemble</span> <em>token by token</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Live generation</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="gen-output" id="genOut">
+            <span style="color:var(--mute)">// click "generate" to start</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+            <button class="btn pri" id="genStart">▶ generate</button>
+            <button class="btn" id="genReset">⟲ reset</button>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-left:auto">τ=<span id="genTemp">0.80</span> · top-p=<span id="genP">0.90</span> · uses sliders above</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Beam search</span> <em>keep your options open</em></h2>
+      <p>
+        The greedy/sampling approaches commit to one token per step. <b>Beam search</b> keeps the top-$B$ partial sequences alive in parallel, scoring each by joint probability. At every step, it expands all $B$ beams, scores all candidates, and re-prunes to the top $B$.
+      </p>
+      <svg id="beamSvg" viewBox="0 0 600 280" class="beam-svg" style="margin: 16px 0"></svg>
+      <p style="font-size:12px;color:var(--mute);font-family:var(--mono);margin-top:-4px">// orange = surviving beams · gray dashed = pruned · green = final winner. B = 3.</p>
+      <p>
+        Beam is great for translation and constrained generation, where there's a "right" answer. It's bad for open-ended chat — it produces flat, repetitive text because high-probability sequences cluster.
+      </p>
+      <div class="callout warn">
+        <div class="lab">// the 2018 finding that changed everything</div>
+        Holtzman's "The Curious Case of Neural Text Degeneration" showed that beam search and pure greedy both produce repetitive, degenerate text on open-ended generation. Sampling with truncation (top-p) was the fix. Most of today's chat APIs default to top-p.
+      </div>
+
+      <h2 id="s6" data-n="§ 06"><span>Same prompt, three strategies</span> <em>side by side</em></h2>
+      <div class="compare-grid">
+        <div class="compare-card">
+          <div class="h">τ = 0 · greedy</div>
+          <div class="t">"The cat sat on the mat. The cat sat on the mat. The cat sat on the mat..."</div>
+        </div>
+        <div class="compare-card">
+          <div class="h">τ = 0.7 · top-p 0.9</div>
+          <div class="t">"The cat sat on the windowsill, watching the rain trace lazy paths down the glass."</div>
+        </div>
+        <div class="compare-card">
+          <div class="h">τ = 1.6 · no top-p</div>
+          <div class="t">"The cat sat on the philosophical brick of midnight, juggling adverbs through gravity..."</div>
+        </div>
+      </div>
+
+      <h2 id="s7" data-n="§ 07"><span>Production checklist</span></h2>
+      <ul>
+        <li><b>Code / math / extraction:</b> τ = 0 (greedy). Reproducibility &gt; creativity.</li>
+        <li><b>Chat / Q&amp;A:</b> τ = 0.7, top-p = 0.9. The boring default, and it's right.</li>
+        <li><b>Creative writing:</b> τ = 1.0–1.3, top-p = 0.95, presence_penalty &gt; 0 to dampen repetition.</li>
+        <li><b>Structured output (JSON, tools):</b> τ = 0 + grammar/regex constrained decoding.</li>
+        <li><b>Translation:</b> beam search with B = 4–8 still beats sampling.</li>
+      </ul>
+
+      <h2 id="s8" data-n="§ 08"><span>Mini-game</span> <em>pick the right knob</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Tune the decoder</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div class="game-status"><span>QUESTION <span id="gameIdx">1</span> / 5</span><span class="score">SCORE <span id="gameScore">0</span></span></div>
+          <div id="gameArea">
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+
+    </article>
+
+    <aside class="rail">
+      <div>
+        <div class="lab">On this page</div>
+        <div class="toc">
+          <a href="#s1"><span class="n">01</span><span>Where decoding lives</span></a>
+          <a href="#s2"><span class="n">02</span><span>Temperature</span></a>
+          <a href="#s3"><span class="n">03</span><span>Top-k and top-p</span></a>
+          <a href="#s4"><span class="n">04</span><span>Live generation</span></a>
+          <a href="#s5"><span class="n">05</span><span>Beam search</span></a>
+          <a href="#s6"><span class="n">06</span><span>Side-by-side</span></a>
+          <a href="#s7"><span class="n">07</span><span>Checklist</span></a>
+          <a href="#s8"><span class="n">08</span><span>Mini-game</span></a>
+        </div>
+      </div>
+      <div>
+        <div class="lab">Related</div>
+        <div class="related"></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+
+  <footer class="foot">
+    <div>llm-viz <span class="dot">·</span> 28 Decoding <span class="dot">·</span> Foundations</div>
+    <div>chapter 28 of 29 <span class="dot">●</span> 13 min read</div>
+  </footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body">
+    <div class="tw-label">Hero layout</div>
+    <div class="tw-options" id="twHeroOpts">
+      <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Editorial headline</div></div></div>
+      <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "28" alongside title</div></div></div>
+      <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors the hero</div></div></div>
+    </div>
+  </div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '28', related: ['24', '02', '04', '01'] });
+
+/* === Sample distribution after "The cat sat on the" === */
+const VOCAB = [
+  { w: 'mat',         logit: 4.2 },
+  { w: 'floor',       logit: 3.6 },
+  { w: 'rug',         logit: 3.3 },
+  { w: 'windowsill',  logit: 2.8 },
+  { w: 'couch',       logit: 2.5 },
+  { w: 'roof',        logit: 1.9 },
+  { w: 'fence',       logit: 1.4 },
+  { w: 'porch',       logit: 1.0 },
+  { w: 'piano',       logit: 0.4 },
+  { w: 'philosophical', logit: -0.2 },
+];
+let method = 'topp';
+function softmax(zs, t) {
+  const ezs = zs.map(z => Math.exp(z / t));
+  const s = ezs.reduce((a,b)=>a+b, 0);
+  return ezs.map(e => e / s);
+}
+function renderDist() {
+  const t = parseFloat(document.getElementById('tempSl').value);
+  const k = parseInt(document.getElementById('kSl').value);
+  const p = parseFloat(document.getElementById('pSl').value);
+  document.getElementById('tempLab').textContent = t.toFixed(2);
+  document.getElementById('kLab').textContent = k;
+  document.getElementById('pLab').textContent = p.toFixed(2);
+  document.getElementById('genTemp').textContent = t.toFixed(2);
+  document.getElementById('genP').textContent = p.toFixed(2);
+
+  const probs = softmax(VOCAB.map(v => v.logit), t);
+  const ranked = VOCAB.map((v, i) => ({...v, p: probs[i]})).sort((a,b)=>b.p-a.p);
+
+  let cutIdx = ranked.length;
+  if (method === 'greedy') cutIdx = 1;
+  else if (method === 'topk') cutIdx = Math.min(k, ranked.length);
+  else if (method === 'topp') {
+    let cum = 0;
+    for (let i = 0; i < ranked.length; i++) {
+      cum += ranked[i].p;
+      if (cum >= p) { cutIdx = i + 1; break; }
+    }
+  }
+
+  const box = document.getElementById('distBox');
+  const max = ranked[0].p;
+  let html = '';
+  ranked.forEach((tok, i) => {
+    const kept = i < cutIdx;
+    if (i === cutIdx && i > 0 && i < ranked.length) {
+      html += `<div class="cut-indicator"><span>↑ kept (${cutIdx})</span><span>${method === 'topp' ? `cumulative ≥ ${p.toFixed(2)}` : method === 'topk' ? `top-${k}` : 'argmax'}</span><span>${ranked.length - cutIdx} pruned ↓</span></div>`;
+    }
+    const widthPct = (tok.p / max) * 100;
+    html += `<div class="dist-row">
+      <span class="word ${kept ? 'kept' : 'cut'}">${tok.w}</span>
+      <div class="dist-bar-wrap"><div class="dist-bar ${kept ? 'kept' : 'cut'}" style="width:${widthPct}%"></div></div>
+      <span class="pct ${kept ? '' : 'cut'}">${(tok.p * 100).toFixed(1)}%</span>
+    </div>`;
+  });
+  box.innerHTML = html;
+
+  // entropy on kept set (renormalized)
+  const kept = ranked.slice(0, cutIdx);
+  const totK = kept.reduce((s,x)=>s+x.p, 0);
+  const ent = -kept.reduce((s, x) => { const q = x.p / totK; return s + q * Math.log2(q); }, 0);
+  document.getElementById('kept').textContent = cutIdx;
+  document.getElementById('ent').textContent = ent.toFixed(2);
+}
+document.querySelectorAll('#methodTog button').forEach(b => {
+  b.addEventListener('click', () => {
+    method = b.dataset.m;
+    document.querySelectorAll('#methodTog button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById('kRow').style.display = method === 'topk' ? 'flex' : 'none';
+    document.getElementById('pRow').style.display = method === 'topp' ? 'flex' : 'none';
+    renderDist();
+  });
+});
+['tempSl','kSl','pSl'].forEach(id => document.getElementById(id).addEventListener('input', renderDist));
+renderDist();
+
+/* === Live generation — toy markov over a curated lexicon === */
+const TOY_GRAM = {
+  'The cat sat on the': [['mat',0.40],['floor',0.18],['windowsill',0.14],['rug',0.10],['couch',0.08],['porch',0.06],['piano',0.03],['philosophical',0.01]],
+  'mat': [['and',0.35],['watching',0.20],['purring',0.18],[',',0.12],['quietly',0.08],['like',0.07]],
+  'floor': [[', ',0.30],['and',0.25],['watching',0.15],['near',0.12],['under',0.10],['waiting',0.08]],
+  'windowsill': [[',',0.40],['watching',0.30],['as',0.15],['in',0.10],['with',0.05]],
+  'rug': [['and',0.35],[', ',0.30],['near',0.20],['by',0.15]],
+  'couch': [['watching',0.30],['and',0.25],[', ',0.25],['like',0.20]],
+  'porch': [['watching',0.40],['as',0.30],[', ',0.30]],
+  'piano': [['like',0.50],[', ',0.30],['stunned',0.20]],
+  'philosophical': [['brick',0.50],['question',0.30],['void',0.20]],
+  'and': [['watched',0.40],['stared',0.30],['waited',0.20],['purred',0.10]],
+  'watching': [['the',0.50],['rain',0.30],['birds',0.20]],
+  'the': [['rain',0.30],['street',0.20],['birds',0.20],['sun',0.15],['stars',0.15]],
+  'rain': [['fall',0.40],['trace',0.30],['outside',0.30]],
+  'fall': [['onto',0.50],['against',0.30],['silently',0.20]],
+  'trace': [['lazy',0.50],['silver',0.30],['quiet',0.20]],
+  'lazy': [['paths',1.0]],
+  'paths': [['down',1.0]],
+  'down': [['the',1.0]],
+  'glass': [['.',1.0]],
+  'street': [['below',0.50],['outside',0.50]],
+  'below': [['.',1.0]],
+  'birds': [['outside',0.50],['flit',0.50]],
+  'outside': [['.',1.0]],
+  'silver': [['threads',1.0]],
+  'threads': [['down',1.0]],
+};
+let genState = { seq: ['The','cat','sat','on','the'], stopped: false };
+function genStep() {
+  const last = genState.seq[genState.seq.length - 1];
+  const ctxKey = genState.seq.length === 5 ? 'The cat sat on the' : last;
+  let candidates = TOY_GRAM[ctxKey];
+  if (!candidates) {
+    // fallback: end sentence
+    genState.seq.push('.');
+    genState.stopped = true;
+    return '.';
+  }
+  const t = parseFloat(document.getElementById('tempSl').value);
+  const p = parseFloat(document.getElementById('pSl').value);
+  // apply temperature: convert probs to logits, scale, resoftmax
+  const logits = candidates.map(([w, q]) => Math.log(q + 1e-9) / t);
+  const ezs = logits.map(z => Math.exp(z));
+  const s = ezs.reduce((a,b)=>a+b, 0);
+  const probs = candidates.map((c, i) => ({ w: c[0], p: ezs[i] / s }));
+  probs.sort((a,b) => b.p - a.p);
+  // top-p truncation (when method = topp or all/etc, just always apply for the demo)
+  let cum = 0, cut = probs.length;
+  for (let i = 0; i < probs.length; i++) { cum += probs[i].p; if (cum >= p) { cut = i + 1; break; } }
+  const kept = probs.slice(0, cut);
+  const totK = kept.reduce((s, x) => s + x.p, 0);
+  const r = Math.random() * totK;
+  let acc = 0, pick = kept[0].w;
+  for (const k of kept) { acc += k.p; if (r <= acc) { pick = k.w; break; } }
+  genState.seq.push(pick);
+  if (pick === '.' || genState.seq.length > 26) genState.stopped = true;
+  return pick;
+}
+let genTimer = null;
+function renderGen(animateLast) {
+  const out = document.getElementById('genOut');
+  const text = genState.seq.map((w, i) => {
+    const space = (i > 0 && !/^[.,!?;:]/.test(w)) ? ' ' : '';
+    if (animateLast && i === genState.seq.length - 1) {
+      return `${space}<span class="new-tok">${w}</span>`;
+    }
+    return space + w;
+  }).join('');
+  out.innerHTML = text;
+  setTimeout(() => out.querySelectorAll('.new-tok').forEach(el => el.style.background = 'transparent'), 1100);
+}
+document.getElementById('genStart').addEventListener('click', () => {
+  if (genTimer) { clearInterval(genTimer); genTimer = null; document.getElementById('genStart').textContent = '▶ generate'; return; }
+  genState.stopped = false;
+  document.getElementById('genStart').textContent = '⏸ pause';
+  renderGen(false);
+  genTimer = setInterval(() => {
+    if (genState.stopped) { clearInterval(genTimer); genTimer = null; document.getElementById('genStart').textContent = '▶ generate'; return; }
+    genStep();
+    renderGen(true);
+  }, 380);
+});
+document.getElementById('genReset').addEventListener('click', () => {
+  if (genTimer) { clearInterval(genTimer); genTimer = null; document.getElementById('genStart').textContent = '▶ generate'; }
+  genState = { seq: ['The','cat','sat','on','the'], stopped: false };
+  renderGen(false);
+});
+renderGen(false);
+
+/* === Beam search visualization === */
+function renderBeam() {
+  const svg = document.getElementById('beamSvg');
+  const W = 600, H = 280;
+  const steps = [
+    { x: 50, nodes: [{y:140, l:'<bos>', state:'kept'}] },
+    { x: 175, nodes: [
+      {y:60,  l:'The',   state:'kept', from:0},
+      {y:140, l:'A',     state:'alive', from:0},
+      {y:220, l:'My',    state:'dead',  from:0},
+    ]},
+    { x: 320, nodes: [
+      {y:40,  l:'cat',   state:'kept',  from:0, edgeS:'kept'},
+      {y:90,  l:'dog',   state:'alive', from:0, edgeS:'alive'},
+      {y:140, l:'cat',   state:'alive', from:1, edgeS:'alive'},
+      {y:200, l:'tree',  state:'dead',  from:1, edgeS:'dead'},
+      {y:240, l:'house', state:'dead',  from:1, edgeS:'dead'},
+    ]},
+    { x: 465, nodes: [
+      {y:40,  l:'sat',   state:'kept',  from:0, edgeS:'kept'},
+      {y:100, l:'ran',   state:'alive', from:1, edgeS:'alive'},
+      {y:160, l:'sat',   state:'alive', from:2, edgeS:'alive'},
+      {y:230, l:'jumped',state:'dead',  from:2, edgeS:'dead'},
+    ]},
+    { x: 580, nodes: [
+      {y:80,  l:'(top)', state:'kept',  from:0, edgeS:'kept'},
+    ]},
+  ];
+  let html = '';
+  // edges
+  for (let i = 1; i < steps.length; i++) {
+    steps[i].nodes.forEach(n => {
+      const src = steps[i-1].nodes[n.from];
+      const cls = n.edgeS || src.state || 'dead';
+      html += `<path class="beam-edge ${cls}" d="M${steps[i-1].x + 30} ${src.y} C ${steps[i-1].x + 80} ${src.y}, ${steps[i].x - 50} ${n.y}, ${steps[i].x - 30} ${n.y}"/>`;
+    });
+  }
+  // nodes
+  steps.forEach((step) => {
+    step.nodes.forEach(n => {
+      html += `<rect class="beam-node ${n.state}" x="${step.x - 30}" y="${n.y - 14}" width="60" height="28" rx="4"/>`;
+      html += `<text class="beam-text" x="${step.x}" y="${n.y + 4}" text-anchor="middle" fill="var(--ink)">${n.l}</text>`;
+    });
+  });
+  // step labels
+  html += `<text class="beam-text" x="50"  y="265" text-anchor="middle" fill="var(--mute)">t = 0</text>`;
+  html += `<text class="beam-text" x="175" y="265" text-anchor="middle" fill="var(--mute)">t = 1</text>`;
+  html += `<text class="beam-text" x="320" y="265" text-anchor="middle" fill="var(--mute)">t = 2</text>`;
+  html += `<text class="beam-text" x="465" y="265" text-anchor="middle" fill="var(--mute)">t = 3</text>`;
+  html += `<text class="beam-text" x="580" y="265" text-anchor="middle" fill="var(--mute)">final</text>`;
+  svg.innerHTML = html;
+}
+renderBeam();
+
+/* === Mini-game === */
+const QS = [
+  { q: 'You are extracting structured JSON from a contract. Best decoding settings?', opts: [
+    { t: 'τ = 0 (greedy) + grammar-constrained decoding', c: true, h: 'reproducibility + valid output' },
+    { t: 'τ = 1.5, top-p 0.95', h: 'too random for structured output' },
+    { t: 'Beam search B = 8', h: 'overkill, can still produce invalid JSON' },
+    { t: 'Pure random sampling', h: 'guaranteed invalid' },
+  ]},
+  { q: 'You raise temperature from 0.7 to 1.5. The distribution becomes…', opts: [
+    { t: 'Flatter — more low-probability tokens become viable', c: true, h: 'τ ↑ flattens softmax' },
+    { t: 'Sharper — more peaked at the top token', h: 'that is τ → 0' },
+    { t: 'Unchanged in shape, only the argmax changes', h: 'no — full reshape' },
+    { t: 'Always uniform', h: 'only at τ = ∞' },
+  ]},
+  { q: 'top-p = 0.9 means…', opts: [
+    { t: 'Keep the smallest set of tokens whose cumulative probability ≥ 0.9', c: true, h: 'nucleus sampling' },
+    { t: 'Keep exactly 90 tokens', h: 'that would be top-k = 90' },
+    { t: 'Discard tokens with probability < 0.9', h: 'almost all tokens are < 0.9' },
+    { t: 'Set temperature to 0.9', h: 'unrelated knob' },
+  ]},
+  { q: 'Why does pure greedy decoding produce repetitive text on open-ended generation?', opts: [
+    { t: 'High-prob continuations cluster — once in a loop, the loop is locally optimal', c: true, h: 'self-reinforcing' },
+    { t: 'The model is undertrained', h: 'happens even on best models' },
+    { t: 'Greedy ignores attention', h: 'attention still runs' },
+    { t: 'Greedy uses τ = ∞', h: 'opposite — τ = 0' },
+  ]},
+  { q: 'Beam search with B = 4 vs greedy: what is the trade-off?', opts: [
+    { t: '4× the per-step compute and KV memory, in exchange for jointly higher-prob sequences', c: true, h: 'parallel candidates' },
+    { t: 'Same cost, just better output', h: 'no — runs B forward passes per step' },
+    { t: '4× cheaper because of caching', h: 'no — caches are per-beam' },
+    { t: 'No trade-off, just always better', h: 'flat & repetitive on chat' },
+  ]},
+];
+let gIdx = 0, gScore = 0, answered = false;
+function renderGame() {
+  if (gIdx >= QS.length) {
+    document.getElementById('gameArea').style.display = 'none';
+    document.getElementById('gameDone').style.display = 'block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${QS.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games') || '{}');
+    games['28'] = gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games));
+    return;
+  }
+  answered = false;
+  const q = QS[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx + 1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${QS.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const board = document.getElementById('gameBoard');
+  board.innerHTML = '';
+  q.opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'game-opt';
+    b.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    b.addEventListener('click', () => {
+      if (answered) return;
+      answered = true;
+      if (o.c) { b.classList.add('correct'); gScore++; }
+      else { b.classList.add('wrong'); board.querySelectorAll('.game-opt').forEach((el, idx) => { if (q.opts[idx].c) el.classList.add('correct'); }); }
+      document.getElementById('gameScore').textContent = gScore;
+      setTimeout(() => { gIdx++; renderGame(); }, 1100);
+    });
+    board.appendChild(b);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx = 0; gScore = 0;
+  document.getElementById('gameArea').style.display = 'block';
+  document.getElementById('gameDone').style.display = 'none';
+  renderGame();
+});
+renderGame();
+</script>
+</body>
+</html>

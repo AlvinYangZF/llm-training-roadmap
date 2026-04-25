@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>13 RAG Pipeline · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.pipeline { display:grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 20px 0; }
+.stage { padding: 16px 12px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; cursor: pointer; transition: all 0.2s; text-align: center; }
+.stage:hover { border-color: var(--ink-2); }
+.stage.active { background: var(--accent-bg); border-color: var(--accent); }
+.stage .ix { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.1em; }
+.stage .nm { font-size: 13px; font-weight: 600; color: var(--ink); margin-top: 6px; }
+.stage .d { font-size: 11px; color: var(--mute); margin-top: 4px; line-height: 1.4; }
+
+.stage-detail { padding: 24px; background: var(--surface); border: 1px solid var(--rule); border-radius: 3px; margin-top: 4px; min-height: 220px; }
+.stage-detail h5 { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
+.stage-detail .q-text { font-family: var(--mono); font-size: 14px; color: var(--ink); padding: 10px 14px; background: var(--bg); border-left: 2px solid var(--accent); margin: 10px 0; border-radius: 0 3px 3px 0; }
+.stage-detail pre { font-family: var(--mono); font-size: 12px; color: var(--ink-2); background: var(--bg); padding: 12px 14px; border: 1px solid var(--rule); border-radius: 3px; line-height: 1.7; white-space: pre-wrap; margin: 10px 0; }
+.stage-detail .docs { display:flex; flex-direction: column; gap: 8px; }
+.stage-detail .doc { padding: 10px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; font-size: 12px; color: var(--ink-2); line-height: 1.5; display:grid; grid-template-columns: 50px 1fr 60px; gap: 12px; align-items: center; }
+.stage-detail .doc .rk { font-family: var(--mono); color: var(--mute); font-size: 11px; }
+.stage-detail .doc .sc { font-family: var(--mono); color: var(--accent); font-size: 11px; text-align: right; font-weight: 600; }
+.stage-detail .final-ans { padding: 14px 16px; background: color-mix(in oklab, var(--moss) 10%, transparent); border: 1px solid var(--moss); border-left: 3px solid var(--moss); border-radius: 0 3px 3px 0; font-size: 13px; color: var(--ink); line-height: 1.6; }
+
+.hyde-compare { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+.hyde-col { padding: 14px 16px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.hyde-col h5 { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+.hyde-col.plain h5 { color: var(--mute); }
+.hyde-col.hyde h5 { color: var(--accent); }
+.hyde-col p { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+
+.game-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+.game-q code { font-family: var(--mono); font-size: 14px; background: var(--surface-2); padding: 1px 6px; border-radius: 2px; border:1px solid var(--rule); }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div>
+</nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat foundation">Foundations</span><span class="sep">/</span><span class="here">13 RAG Pipeline</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 13</span><span class="sep">·</span><span>Foundations</span><span class="sep">·</span><span>2020 · 18 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">13</div>
+      <div>
+        <h1>Retrieve, then <em>generate</em>.</h1>
+        <div class="dek">RAG is a two-step procedure: fetch the relevant evidence from a knowledge store, then hand it to the LLM as context. It's the reason modern chatbots can cite today's news without ever being trained on it.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">2020</div><div class="l">Lewis et al. (RAG)</div></div>
+      <div class="c"><div class="v">5</div><div class="l">Canonical stages</div></div>
+      <div class="c"><div class="v">4–8</div><div class="l">Top-k docs (typical)</div></div>
+      <div class="c"><div class="v">−70%</div><div class="l">Hallucination rate</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        A parametric model knows only what it saw during training. RAG flips that: freeze the model, put your knowledge in an external store, and inject the top-k relevant chunks into the prompt at query time. Your model gets <i>current</i> knowledge, <i>cited</i> answers, and <i>updatable</i> facts — without a single gradient step.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>The five-stage pipeline</span> <em>everything fits here</em></h2>
+      <p>
+        Every RAG system — naïve, advanced, modular — is a pipeline through these five stages. Skip any one and quality collapses. Click a stage to see what happens inside:
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Interactive pipeline</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="pipeline" id="pipeline">
+            <div class="stage active" data-s="0"><div class="ix">01</div><div class="nm">Query</div><div class="d">User asks</div></div>
+            <div class="stage" data-s="1"><div class="ix">02</div><div class="nm">Rewrite</div><div class="d">HyDE / expand</div></div>
+            <div class="stage" data-s="2"><div class="ix">03</div><div class="nm">Retrieve</div><div class="d">Dense ANN top-k</div></div>
+            <div class="stage" data-s="3"><div class="ix">04</div><div class="nm">Rerank</div><div class="d">Cross-encoder</div></div>
+            <div class="stage" data-s="4"><div class="ix">05</div><div class="nm">Generate</div><div class="d">LLM + context</div></div>
+          </div>
+          <div class="stage-detail" id="stageDetail"></div>
+        </div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>Chunking</span> <em>before any of this works</em></h2>
+      <p>
+        Documents must be <b>split</b> before indexing. A naïve split (every 512 tokens, no overlap) is almost always wrong — sentences get cut, context disappears. Modern chunking strategies:
+      </p>
+      <ul>
+        <li><b>Fixed-size with overlap.</b> 512 tokens, 64-token overlap. Safe default.</li>
+        <li><b>Recursive.</b> Split on paragraph, then sentence, then token. Preserves semantic boundaries.</li>
+        <li><b>Semantic.</b> Embed sentences, group by cosine similarity. Expensive but quality-aware.</li>
+        <li><b>Structure-aware.</b> Respect markdown headings, HTML sections, code blocks.</li>
+      </ul>
+      <div class="callout warn">
+        <div class="lab">// common failure</div>
+        "Our RAG doesn't work." 90% of the time, your chunks are either too small (no context for the LLM) or your split mid-sentence (ruins the embedding). Before debugging the retriever, look at 50 random chunks.
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>HyDE</span> <em>hallucinate to retrieve better</em></h2>
+      <p>
+        A query like <code>"what's long covid?"</code> is 4 tokens. A real answer passage is 200 tokens, filled with technical vocabulary your 4-token query doesn't contain. The embedding gap can be brutal.
+      </p>
+      <p>
+        <b>HyDE</b> (Hypothetical Document Embeddings, Gao et al. 2022) sidesteps this: ask the LLM to <i>hallucinate</i> an answer first, then embed that hallucinated answer and retrieve against it. The fake answer lands much closer to real answers in embedding space than the short query ever did.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · HyDE vs plain query</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <p style="font-size:13px;color:var(--ink-2);margin-bottom:10px">User query: <code style="font-family:var(--mono);background:var(--surface-2);padding:2px 8px;border-radius:3px">what's long covid?</code></p>
+          <div class="hyde-compare">
+            <div class="hyde-col plain">
+              <h5>// plain embedding</h5>
+              <p>4 tokens. Embedding is short, topically ambiguous. Retrieves: generic COVID articles, unrelated "long" content, random medical chunks.</p>
+              <div style="margin-top:10px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--rule);border-radius:2px;font-family:var(--mono);font-size:11px;color:var(--mute)">NDCG@10 · 0.42</div>
+            </div>
+            <div class="hyde-col hyde">
+              <h5>// HyDE-augmented</h5>
+              <p style="color:var(--ink)"><i>LLM-generated hypothetical:</i></p>
+              <p style="color:var(--ink-2);font-style:italic;margin-top:4px">"Long COVID refers to post-acute sequelae of SARS-CoV-2 infection, characterized by symptoms persisting beyond 12 weeks — including fatigue, brain fog, shortness of breath, and cardiovascular complications…"</p>
+              <div style="margin-top:10px;padding:8px 10px;background:var(--accent-bg);border:1px solid var(--accent);border-radius:2px;font-family:var(--mono);font-size:11px;color:var(--accent)">NDCG@10 · 0.71 <b style="margin-left:8px">+0.29</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>The RAG formula</span> <em>generation conditioned on retrieval</em></h2>
+      <div class="math-block">
+        <div class="label">// marginalization over retrieved docs</div>
+        $$p(y \mid x) = \sum_{z \in \text{top-k}(p_{\eta}(\cdot \mid x))} p_{\eta}(z \mid x) \cdot p_{\theta}(y \mid x, z)$$
+        <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px">retriever $p_{\eta}$ scores docs; generator $p_{\theta}$ produces answers; output marginalizes over top-k.</div>
+      </div>
+      <p>
+        In practice, production systems skip the marginalization: concatenate the top-k docs into the prompt and let the LLM attend over them. It's sloppy, it's fast, it works.
+      </p>
+
+      <h2 id="s5" data-n="§ 05"><span>Mini-game</span> <em>debug the pipeline</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Diagnose the failure mode</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div id="gameArea">
+            <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s6" data-n="§ 06"><span>Where this leads</span></h2>
+      <div class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+        <a href="14-adaptive-rag.html" class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px;text-decoration:none">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase">→ 14 Adaptive RAG</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:8px">Retrieve only when needed. Self-RAG, CRAG, FLARE.</div>
+        </a>
+        <a href="15-graphrag.html" class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px;text-decoration:none">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase">→ 15 GraphRAG</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:8px">When vector retrieval isn't enough: knowledge graphs for corpus-level questions.</div>
+        </a>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Five-stage pipeline</span></a>
+        <a href="#s2"><span class="n">02</span><span>Chunking</span></a>
+        <a href="#s3"><span class="n">03</span><span>HyDE</span></a>
+        <a href="#s4"><span class="n">04</span><span>The RAG formula</span></a>
+        <a href="#s5"><span class="n">05</span><span>Mini-game</span></a>
+        <a href="#s6"><span class="n">06</span><span>Where this leads</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+      <div><div class="lab">Reference</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--ink-2);line-height:1.5">
+          Lewis et al. 2020<br/><span style="color:var(--mute)">Retrieval-Augmented Generation for Knowledge-Intensive NLP</span>
+          <div style="margin-top:8px">Gao et al. 2022<br/><span style="color:var(--mute)">Precise Zero-Shot Dense Retrieval without Relevance Labels (HyDE)</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 13 RAG Pipeline <span class="dot">·</span> Foundations</div><div>chapter 13 of 29 <span class="dot">●</span> 18 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category · year overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "13" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '13', related: ['12','14','15','16','22'] });
+
+/* Pipeline stage interactive */
+const STAGES = [
+  {
+    title: 'User query arrives',
+    body: `
+      <div class="q-text">"what were the main findings of the 2024 cdc report on long covid?"</div>
+      <p style="color:var(--ink-2);font-size:13px;line-height:1.6">A short, factual question. The LLM alone cannot answer — it may not know the 2024 CDC report. We need retrieval.</p>
+    `
+  },
+  {
+    title: 'Query rewriting / HyDE',
+    body: `
+      <p style="color:var(--ink-2);font-size:13px;margin-bottom:6px">LLM generates a hypothetical answer to retrieve against:</p>
+      <pre>In 2024, the CDC published findings showing that long COVID
+affects approximately 6.9% of US adults, with symptoms
+including fatigue, brain fog, shortness of breath, and
+cardiovascular issues. The report called for expanded
+clinical care pathways and disability accommodations…</pre>
+      <p style="color:var(--mute);font-size:11px;font-family:var(--mono)">// this hallucinated passage is now embedded instead of the 12-token query.</p>
+    `
+  },
+  {
+    title: 'Dense retrieval (ANN top-k)',
+    body: `
+      <p style="color:var(--ink-2);font-size:13px;margin-bottom:10px">Vector DB returns top-8 by cosine similarity:</p>
+      <div class="docs">
+        <div class="doc"><div class="rk">#1</div><div>CDC MMWR 2024-07: "Prevalence of Long COVID…" — 6.9% of adults affected…</div><div class="sc">0.891</div></div>
+        <div class="doc"><div class="rk">#2</div><div>CDC 2024 report summary: symptoms persist &gt;12 weeks in 3.8M Americans…</div><div class="sc">0.874</div></div>
+        <div class="doc"><div class="rk">#3</div><div>PASC clinical guidelines, HHS 2024 — disability pathway recommendations…</div><div class="sc">0.852</div></div>
+        <div class="doc"><div class="rk">#4</div><div>Nature 2024: autoimmune signatures in long covid patients…</div><div class="sc">0.801</div></div>
+        <div class="doc"><div class="rk">#5</div><div>NEJM commentary — post-acute care shortfalls, 2023…</div><div class="sc">0.780</div></div>
+      </div>
+    `
+  },
+  {
+    title: 'Cross-encoder rerank',
+    body: `
+      <p style="color:var(--ink-2);font-size:13px;margin-bottom:10px">A cross-encoder re-scores each (query, doc) pair jointly. Order shifts — the truly relevant docs float up:</p>
+      <div class="docs">
+        <div class="doc"><div class="rk">#1 ↑</div><div>CDC MMWR 2024-07: Prevalence of Long COVID — the actual paper</div><div class="sc">0.962</div></div>
+        <div class="doc"><div class="rk">#2 ↑</div><div>CDC 2024 report summary: key-findings page</div><div class="sc">0.944</div></div>
+        <div class="doc"><div class="rk">#3 ↓</div><div>PASC clinical guidelines — relevant but not the report itself</div><div class="sc">0.703</div></div>
+        <div class="doc"><div class="rk">#4 —</div><div>Nature 2024 autoimmune study</div><div class="sc">0.612</div></div>
+      </div>
+      <p style="color:var(--mute);font-size:11px;font-family:var(--mono);margin-top:10px">// cross-encoder is slower but reads both texts together — strictly higher quality.</p>
+    `
+  },
+  {
+    title: 'Generation with context',
+    body: `
+      <p style="color:var(--ink-2);font-size:13px;margin-bottom:8px">Top-3 reranked docs are injected into the prompt. The LLM generates:</p>
+      <div class="final-ans">
+        The CDC's 2024 report estimated that <b>6.9% of US adults</b> (≈3.8 million) were experiencing long COVID at the time of survey. Key findings included symptoms persisting beyond 12 weeks in a majority of cases — <i>fatigue, cognitive dysfunction, and cardiovascular complications</i> being the most common — and the agency called for expanded clinical care pathways and disability accommodations. <sup style="color:var(--accent)">[1][2]</sup>
+      </div>
+      <p style="color:var(--mute);font-size:11px;font-family:var(--mono);margin-top:10px">// grounded, citable, up-to-date — none of it memorized.</p>
+    `
+  },
+];
+const pipe = document.getElementById('pipeline');
+const detail = document.getElementById('stageDetail');
+function renderStage(i) {
+  const s = STAGES[i];
+  detail.innerHTML = `<h5>Stage 0${i+1} — ${s.title}</h5>${s.body}`;
+  pipe.querySelectorAll('.stage').forEach((el, j) => el.classList.toggle('active', j === i));
+}
+pipe.querySelectorAll('.stage').forEach((el, i) => el.addEventListener('click', () => renderStage(i)));
+renderStage(0);
+
+/* Mini-game */
+const GAME = [
+  { q: 'Your RAG answers are <b>close to the question topic</b> but <b>factually wrong</b>. Most likely cause?', opts: [
+    { t: 'Retriever returns irrelevant docs', h: 'Would be off-topic entirely' },
+    { t: 'LLM hallucinates despite good context', h: 'Possible but rare with good context' },
+    { t: 'Context contains wrong / stale docs', h: 'Index is outdated', c: true },
+    { t: 'Temperature too low', h: 'Unrelated' },
+  ]},
+  { q: 'Average retrieval score is 0.4 and NDCG@10 is bad. Users type <code>"fix"</code>, docs use <code>"repair"</code>. Best fix?', opts: [
+    { t: 'Increase top-k to 50', h: 'Still wrong order' },
+    { t: 'Add HyDE query rewriting', h: 'Expands short queries', c: true },
+    { t: 'Switch from LLM to rule-based', h: 'No' },
+    { t: 'Add temperature', h: 'Generation, not retrieval' },
+  ]},
+  { q: 'Retriever returns good docs in top-20 but top-5 is noisy. Which stage fixes this?', opts: [
+    { t: 'Chunking', h: 'Upstream' },
+    { t: 'Query rewrite', h: 'Upstream' },
+    { t: 'Cross-encoder rerank', h: 'Re-order top-k', c: true },
+    { t: 'Temperature', h: 'Generator' },
+  ]},
+  { q: 'Your docs are 30-page PDFs. RAG quality is poor even with perfect retrieval. Likely cause?', opts: [
+    { t: 'Chunk size too large — LLM context drowns', h: 'Full PDF in prompt', c: true },
+    { t: 'Dense embeddings need training', h: 'Possible but secondary' },
+    { t: 'Wrong LLM', h: 'Usually not' },
+    { t: 'No reranker', h: 'Possible but not primary' },
+  ]},
+  { q: 'You need "<b>what do all these docs say about X?</b>" (corpus-wide synthesis). Which method is needed?', opts: [
+    { t: 'Bigger top-k', h: 'Still local' },
+    { t: 'GraphRAG / community summaries', h: 'Designed for this', c: true },
+    { t: 'Better reranker', h: 'Still local' },
+    { t: 'BM25', h: 'Lexical-only' },
+  ]},
+];
+let gIdx=0, gScore=0;
+function renderG(){
+  if (gIdx >= GAME.length) {
+    document.getElementById('gameArea').style.display='none';
+    document.getElementById('gameDone').style.display='block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${GAME.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games')||'{}'); games['13'] = gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games));
+    return;
+  }
+  const q = GAME[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx+1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${GAME.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const b = document.getElementById('gameBoard'); b.innerHTML = '';
+  let answered = false;
+  q.opts.forEach(o => {
+    const el = document.createElement('button'); el.className='game-opt';
+    el.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    el.addEventListener('click', () => {
+      if (answered) return; answered = true;
+      if (o.c) { el.classList.add('correct'); gScore++; }
+      else { el.classList.add('wrong'); b.querySelectorAll('.game-opt').forEach((x,i)=>{ if (q.opts[i].c) x.classList.add('correct'); }); }
+      setTimeout(()=>{ gIdx++; renderG(); }, 1100);
+    });
+    b.appendChild(el);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx=0; gScore=0;
+  document.getElementById('gameArea').style.display='block';
+  document.getElementById('gameDone').style.display='none';
+  renderG();
+});
+renderG();
+</script>
+</body>
+</html>

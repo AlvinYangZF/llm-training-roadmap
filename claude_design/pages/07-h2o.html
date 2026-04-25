@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>07 H2O · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.heat-canvas { width:100%; aspect-ratio: 16/8; background: var(--bg); border:1px solid var(--rule); border-radius: 3px; display: block; }
+.power-svg { width:100%; height: 220px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.evict { display:flex; gap: 3px; flex-wrap: wrap; padding: 14px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; min-height: 60px; align-items:center; }
+.tk { width: 24px; height: 28px; background: var(--surface); border: 1px solid var(--rule); border-radius:2px; font-family:var(--mono); font-size:9px; color: var(--mute); display:flex; align-items:center; justify-content:center; transition: all 0.4s; }
+.tk.sink { background: var(--ink-blue); border-color: var(--ink-blue); color: var(--bg); }
+.tk.heavy { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.tk.evict { background: color-mix(in oklab, var(--accent) 25%, transparent); border-color: var(--accent); opacity: 0; transform: translateY(-6px); }
+.knobs { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px; margin: 12px 0; }
+.knob { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.knob .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom:6px; }
+.knob .vl { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+.knob .row { display:flex; align-items:center; gap:10px; }
+.metric { padding: 14px; background: var(--surface); border:1px solid var(--rule); border-radius:3px; }
+.metric .v { font-size: 24px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; font-feature-settings: 'tnum'; }
+.metric .l { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+
+.strat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:12px 0; }
+.strat { padding: 14px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.strat h5 { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+.strat .lane { display:flex; gap: 2px; margin: 8px 0; }
+.strat .lane .c { width: 6px; height: 18px; border-radius: 1px; background: var(--rule); }
+.strat .lane .c.k { background: var(--accent); }
+.strat .lane .c.s { background: var(--ink-blue); }
+.strat .pp { font-family:var(--mono); font-size:13px; color:var(--ink); margin-top:8px; }
+.strat .pp .n { color: var(--accent); font-weight: 600; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+.game-q code { font-family: var(--mono); font-size: 14px; background: var(--surface-2); padding: 1px 6px; border-radius: 2px; border:1px solid var(--rule); }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div>
+</nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat memory">Memory &amp; Serving</span><span class="sep">/</span><span class="here">07 H2O</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 07</span><span class="sep">·</span><span>Memory &amp; Serving</span><span class="sep">·</span><span>2023 · 14 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">07</div>
+      <div>
+        <h1>Most attention is wasted on <em>almost no one</em>.</h1>
+        <div class="dek">In a real attention layer, ~5% of tokens absorb ~80% of the attention mass. Keep those — and a handful of "sink" tokens — and the rest of the KV cache can be thrown out. 20× compression, &lt;3% perplexity hit.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">95%+</div><div class="l">Attention sparsity</div></div>
+      <div class="c"><div class="v">20×</div><div class="l">KV compression</div></div>
+      <div class="c"><div class="v">&lt;3%</div><div class="l">PPL degradation</div></div>
+      <div class="c"><div class="v">2023</div><div class="l">NeurIPS · Zhang et al.</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        Attention is dense in shape but sparse in practice. If you actually look at the weight matrix on a real model, almost everything is dark. The H2O paper noticed this empirical regularity, named the bright dots "heavy hitters," and built an eviction policy around them.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>The sparsity heatmap</span> <em>look at it once and the policy is obvious</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Attention matrix on OPT-6.7B layer 8</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <canvas class="heat-canvas" id="heat" width="900" height="450"></canvas>
+          <div class="knobs">
+            <div class="knob"><div class="lab">Layer</div><div class="row"><input id="kLayer" type="range" min="1" max="32" value="8" style="flex:1"><span class="vl" id="vLayer">8</span></div></div>
+            <div class="knob"><div class="lab">Threshold (highlight ≥)</div><div class="row"><input id="kThr" type="range" min="0" max="100" value="20" style="flex:1"><span class="vl" id="vThr">0.20</span></div></div>
+            <div class="knob"><div class="lab">Captured by top-5%</div><div class="row"><span class="vl" id="vCap" style="font-size:18px">79%</span></div></div>
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:6px;letter-spacing:0.04em">
+            // most cells dark · few "heavy hitters" carry the layer · pattern is stable across most layers.
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>The power law</span> <em>tail goes on forever</em></h2>
+      <p>
+        Sort tokens by their cumulative attention score. The top few capture most of the mass; the rest is asymptotic noise. Drag the cutoff to see how much is left when you only keep the top 5/10/20%.
+      </p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Sorted attention mass</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <svg class="power-svg" id="power" viewBox="0 0 900 220" preserveAspectRatio="none"></svg>
+          <div style="display:grid;grid-template-columns:1fr 200px;gap:14px;margin-top:14px;align-items:center">
+            <div class="knob" style="margin:0">
+              <div class="lab">Heavy-hitter cutoff (top %)</div>
+              <div class="row"><input id="kCut" type="range" min="2" max="40" value="5" style="flex:1"><span class="vl" id="vCut">5%</span></div>
+            </div>
+            <div class="metric"><div class="v" id="vMass">80%</div><div class="l">Attention captured</div></div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>The H2O eviction loop</span> <em>sinks · heavy-hitters · drop the rest</em></h2>
+      <p>
+        At each generation step, score every active token by its cumulative attention. Keep the first 4 tokens (the "sinks" — empirically essential), keep the top heavy-hitters under your budget, evict everyone else.
+      </p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Eviction over 40 generated tokens</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="evict" id="evict"></div>
+          <div style="display:flex;gap:14px;font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:10px;letter-spacing:0.06em;text-transform:uppercase;flex-wrap:wrap">
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--ink-blue);vertical-align:-1px;margin-right:4px"></span>sink</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);vertical-align:-1px;margin-right:4px"></span>heavy-hitter retained</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--rule);vertical-align:-1px;margin-right:4px"></span>active</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:14px">
+            <div class="metric"><div class="v" id="evictBudget">20%</div><div class="l">Cache budget</div></div>
+            <div class="metric"><div class="v" id="evictKept">—</div><div class="l">Tokens retained</div></div>
+            <div class="metric"><div class="v" id="evictDrop">—</div><div class="l">Tokens evicted</div></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn" id="evictPlay">▶ play</button>
+            <button class="btn" id="evictStep">step</button>
+            <button class="btn" id="evictReset">reset</button>
+            <input id="kBudget" type="range" min="5" max="100" value="20" style="flex:1;margin-left:14px">
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>Quality vs budget</span> <em>where the knee is</em></h2>
+      <div class="qkv-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0">
+        <div class="metric"><div class="v">PPL · 10.8</div><div class="l">100% cache (baseline)</div></div>
+        <div class="metric"><div class="v">PPL · 11.1</div><div class="l">20% cache · &lt;3% loss</div></div>
+        <div class="metric"><div class="v">PPL · 12.5</div><div class="l">10% cache · ~16% loss</div></div>
+        <div class="metric"><div class="v">PPL · 15.2</div><div class="l">5% cache · 41% loss</div></div>
+      </div>
+      <div class="callout tip">
+        <div class="lab">// rule of thumb</div>
+        20% is the sweet spot for OPT-6.7B and similar. Below 10%, perplexity degrades fast — you've started evicting actual heavy-hitters, not noise.
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Why <em>both</em> sinks and heavy-hitters</span></h2>
+      <p>Three retention strategies, same 20% budget:</p>
+      <div class="strat-grid">
+        <div class="strat">
+          <h5>recent window only</h5>
+          <div class="lane" id="strat-a"></div>
+          <p style="font-size:12px;color:var(--ink-2);line-height:1.5">Last N tokens. Loses long-range context. Output drifts off-topic.</p>
+          <div class="pp">PPL · <span class="n">14.2</span></div>
+        </div>
+        <div class="strat">
+          <h5>heavy-hitter only</h5>
+          <div class="lane" id="strat-b"></div>
+          <p style="font-size:12px;color:var(--ink-2);line-height:1.5">No first-token sink. Softmax goes haywire when attention has nowhere to dump excess mass.</p>
+          <div class="pp">PPL · <span class="n">12.8</span></div>
+        </div>
+        <div class="strat">
+          <h5>H2O · sink + heavy-hitter</h5>
+          <div class="lane" id="strat-c"></div>
+          <p style="font-size:12px;color:var(--ink-2);line-height:1.5">Sinks anchor the softmax; heavy-hitters carry semantics. Both matter.</p>
+          <div class="pp">PPL · <span class="n">11.1</span></div>
+        </div>
+      </div>
+
+      <h2 id="s6" data-n="§ 06"><span>Mini-game</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Diagnose the eviction</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div id="gameArea">
+            <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Sparsity heatmap</span></a>
+        <a href="#s2"><span class="n">02</span><span>Power law</span></a>
+        <a href="#s3"><span class="n">03</span><span>Eviction loop</span></a>
+        <a href="#s4"><span class="n">04</span><span>Quality vs budget</span></a>
+        <a href="#s5"><span class="n">05</span><span>Sinks + heavy-hitters</span></a>
+        <a href="#s6"><span class="n">06</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+      <div><div class="lab">Reference</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--ink-2);line-height:1.5">
+          Zhang et al. 2023<br/><span style="color:var(--mute)">H2O: Heavy-Hitter Oracle for Efficient Generative Inference · NeurIPS</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 07 H2O <span class="dot">·</span> Memory &amp; Serving</div><div>chapter 07 of 29 <span class="dot">●</span> 14 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "07" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'07', related:['06','08','11','26'] });
+
+/* heatmap */
+const heat = document.getElementById('heat');
+const hctx = heat.getContext('2d');
+function rng(seed){ let s = seed; return () => { s = (s*9301 + 49297) % 233280; return s/233280; }; }
+function genAttn(layer) {
+  const N = 64;
+  const r = rng(layer*7+13);
+  const m = [];
+  // a few "heavy" columns
+  const heavyCols = [1,3,8,17,33,52];
+  for (let i = 0; i < N; i++) {
+    const row = [];
+    for (let j = 0; j <= i; j++) {
+      let v = r() * 0.04;
+      if (heavyCols.includes(j)) v += r() * 0.5;
+      if (j < 4) v += 0.15 + r()*0.1; // sinks
+      if (j === i) v += 0.05 + r()*0.05;
+      row.push(v);
+    }
+    const sum = row.reduce((a,b)=>a+b,0);
+    for (let j = 0; j < row.length; j++) row[j] /= sum;
+    m.push(row);
+  }
+  return m;
+}
+let attn = genAttn(8);
+function drawHeat() {
+  const r = heat.getBoundingClientRect();
+  const dpr = window.devicePixelRatio||1;
+  heat.width = r.width*dpr; heat.height = r.height*dpr;
+  heat.style.width = r.width+'px'; heat.style.height = r.height+'px';
+  hctx.setTransform(dpr,0,0,dpr,0,0);
+  hctx.clearRect(0,0,r.width,r.height);
+  const N = attn.length;
+  const cw = r.width/N, ch = r.height/N;
+  const thr = parseInt(document.getElementById('kThr').value)/100;
+  for (let i=0;i<N;i++) for (let j=0;j<=i;j++) {
+    const v = attn[i][j];
+    const norm = Math.min(1, v / 0.5);
+    if (v >= thr) {
+      const t = Math.min(1, v/0.5);
+      hctx.fillStyle = `rgba(184,71,31,${0.3 + t*0.7})`;
+    } else {
+      hctx.fillStyle = `rgba(26,18,10,${0.05 + norm*0.25})`;
+    }
+    hctx.fillRect(j*cw, i*ch, cw+0.5, ch+0.5);
+  }
+}
+function refreshHeat() {
+  const L = parseInt(document.getElementById('kLayer').value);
+  document.getElementById('vLayer').textContent = L;
+  document.getElementById('vThr').textContent = (parseInt(document.getElementById('kThr').value)/100).toFixed(2);
+  attn = genAttn(L);
+  // capture stat
+  let total = 0, top = 0;
+  const flat = [];
+  attn.forEach(r => r.forEach(v => { total += v; flat.push(v); }));
+  flat.sort((a,b)=>b-a);
+  const k = Math.ceil(flat.length*0.05);
+  for (let i=0;i<k;i++) top += flat[i];
+  document.getElementById('vCap').textContent = Math.round(top/total*100) + '%';
+  drawHeat();
+}
+['kLayer','kThr'].forEach(id => document.getElementById(id).addEventListener('input', refreshHeat));
+window.addEventListener('resize', drawHeat);
+setTimeout(refreshHeat, 60);
+
+/* power-law SVG */
+const power = document.getElementById('power');
+function drawPower() {
+  const N = 64, W = 900, H = 220;
+  const scores = [];
+  // synthetic power-law weights
+  for (let i=0;i<N;i++) scores.push(Math.pow(0.85, i) + 0.005*Math.random());
+  const total = scores.reduce((a,b)=>a+b,0);
+  const cut = parseInt(document.getElementById('kCut').value);
+  const cutN = Math.max(1, Math.round(N*cut/100));
+  let captured = 0;
+  for (let i=0;i<cutN;i++) captured += scores[i];
+  document.getElementById('vCut').textContent = cut + '%';
+  document.getElementById('vMass').textContent = Math.round(captured/total*100) + '%';
+  const barW = W/N - 1;
+  let bars = '';
+  scores.forEach((s,i) => {
+    const h = (s/scores[0])*(H-30);
+    const x = i*(W/N);
+    const fill = i < cutN ? '#b8471f' : '#d8cba5';
+    bars += `<rect x="${x}" y="${H-h-10}" width="${barW}" height="${h}" fill="${fill}" rx="1"/>`;
+  });
+  const cutX = cutN*(W/N);
+  power.innerHTML = bars + `
+    <line x1="${cutX}" y1="0" x2="${cutX}" y2="${H-6}" stroke="#1a120a" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="${cutX+6}" y="14" font-family="JetBrains Mono, monospace" font-size="10" fill="#1a120a" font-weight="600">cutoff</text>
+  `;
+}
+document.getElementById('kCut').addEventListener('input', drawPower);
+drawPower();
+
+/* eviction */
+const evictEl = document.getElementById('evict');
+let tokenList = []; // each: {ix, score, kept, sink}
+let genIx = 0;
+function resetEvict() {
+  tokenList = []; genIx = 0;
+  // start with prompt of 8 tokens
+  for (let i = 0; i < 8; i++) {
+    tokenList.push({ ix:i, score: i<4 ? 1.0 : Math.random()*0.4 + 0.1, kept: true, sink: i<4 });
+  }
+  drawEvict();
+}
+function stepEvict() {
+  if (genIx >= 40) return;
+  // append new generated token
+  const newScore = Math.random() < 0.1 ? 0.7 + Math.random()*0.3 : Math.random()*0.3;
+  tokenList.push({ ix: tokenList.length, score: newScore, kept: true, sink: false });
+  // update scores
+  tokenList.forEach(t => { if (!t.sink) t.score = t.score * 0.92 + Math.random()*0.05; });
+  // budget = N% of total
+  const budget = parseInt(document.getElementById('kBudget').value);
+  const keepN = Math.max(4, Math.ceil(tokenList.length * budget / 100));
+  // sort non-sinks by score
+  const sinks = tokenList.filter(t => t.sink);
+  const others = tokenList.filter(t => !t.sink);
+  others.sort((a,b)=>b.score - a.score);
+  const keepOthers = new Set(others.slice(0, keepN - sinks.length).map(t=>t.ix));
+  tokenList.forEach(t => { t.kept = t.sink || keepOthers.has(t.ix); });
+  genIx++;
+  drawEvict();
+}
+function drawEvict() {
+  evictEl.innerHTML = '';
+  const visible = tokenList.filter(t => t.kept).slice(-60);
+  visible.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'tk' + (t.sink ? ' sink' : t.score > 0.5 ? ' heavy' : '');
+    el.textContent = t.ix < 100 ? t.ix : '';
+    evictEl.appendChild(el);
+  });
+  document.getElementById('evictKept').textContent = tokenList.filter(t=>t.kept).length;
+  document.getElementById('evictDrop').textContent = tokenList.filter(t=>!t.kept).length;
+  document.getElementById('evictBudget').textContent = document.getElementById('kBudget').value + '%';
+}
+let evictTimer = null;
+document.getElementById('evictPlay').addEventListener('click', () => {
+  if (evictTimer) { clearInterval(evictTimer); evictTimer = null; return; }
+  evictTimer = setInterval(() => { stepEvict(); if (genIx >= 40) { clearInterval(evictTimer); evictTimer = null; } }, 200);
+});
+document.getElementById('evictStep').addEventListener('click', stepEvict);
+document.getElementById('evictReset').addEventListener('click', resetEvict);
+document.getElementById('kBudget').addEventListener('input', drawEvict);
+resetEvict();
+
+/* strategy lanes */
+function laneFill(elId, kind) {
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  for (let i = 0; i < 80; i++) {
+    const c = document.createElement('div');
+    c.className = 'c';
+    if (kind === 'a' && i >= 64) c.classList.add('k');
+    if (kind === 'b' && [5,9,17,23,38,45,51,62,71].includes(i)) c.classList.add('k');
+    if (kind === 'c') {
+      if (i < 4) c.classList.add('s');
+      else if ([12,21,33,46,53,68,75].includes(i)) c.classList.add('k');
+    }
+    el.appendChild(c);
+  }
+}
+laneFill('strat-a','a'); laneFill('strat-b','b'); laneFill('strat-c','c');
+
+/* mini-game */
+const GAME = [
+  { q: 'You evict the first 4 tokens. Output quality collapses immediately. Why?', opts: [
+    { t: 'Sink tokens absorb softmax overflow; without them attention destabilizes', h: 'Streaming-LLM finding', c: true },
+    { t: 'Position embeddings break', h: 'Different mechanism' },
+    { t: 'Token IDs are corrupted', h: 'No' },
+    { t: 'GPU recompiles', h: 'Unrelated' },
+  ]},
+  { q: 'H2O at 5% cache budget gives PPL 15.2 (vs baseline 10.8). What\'s happening?', opts: [
+    { t: 'Below the knee — actual heavy-hitters being evicted', h: 'Past the safe range', c: true },
+    { t: 'Sink tokens evicted', h: 'Sinks always retained' },
+    { t: 'Numerical overflow', h: 'No' },
+    { t: 'Random initialization', h: 'Irrelevant' },
+  ]},
+  { q: 'You combine PagedAttention with H2O. Which works <b>without</b> conflict?', opts: [
+    { t: 'Yes — paging is allocation, H2O is selection; orthogonal', h: 'They compose', c: true },
+    { t: 'No — paging breaks heavy-hitter scoring', h: 'False' },
+    { t: 'Only with naive allocation', h: 'False' },
+    { t: 'Only with FlashAttention disabled', h: 'False' },
+  ]},
+  { q: 'The "heavy hitter" status of a token is decided by?', opts: [
+    { t: 'Token frequency in training data', h: 'No' },
+    { t: 'Position in sequence', h: 'Sinks yes, others no' },
+    { t: 'Cumulative attention received during generation', h: 'Dynamic per-step', c: true },
+    { t: 'Embedding magnitude', h: 'Unrelated' },
+  ]},
+  { q: 'Recent-window-only retention degrades on long-range tasks because?', opts: [
+    { t: 'Lost first-token sink + lost relevant heavy-hitters far back', h: 'Both failures', c: true },
+    { t: 'Compute bandwidth is wasted', h: 'No' },
+    { t: 'Softmax saturates', h: 'Different issue' },
+    { t: 'KV quantization error', h: 'Different mechanism' },
+  ]},
+];
+let gIdx=0, gScore=0;
+function renderG(){
+  if (gIdx >= GAME.length){
+    document.getElementById('gameArea').style.display='none';
+    document.getElementById('gameDone').style.display='block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${GAME.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games')||'{}'); games['07']=gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games)); return;
+  }
+  const q = GAME[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx+1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${GAME.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const b = document.getElementById('gameBoard'); b.innerHTML='';
+  let answered=false;
+  q.opts.forEach(o => {
+    const el = document.createElement('button'); el.className='game-opt';
+    el.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    el.addEventListener('click', () => {
+      if (answered) return; answered=true;
+      if (o.c) { el.classList.add('correct'); gScore++; }
+      else { el.classList.add('wrong'); b.querySelectorAll('.game-opt').forEach((x,i)=>{ if (q.opts[i].c) x.classList.add('correct'); }); }
+      setTimeout(()=>{ gIdx++; renderG(); }, 1100);
+    });
+    b.appendChild(el);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx=0; gScore=0;
+  document.getElementById('gameArea').style.display='block';
+  document.getElementById('gameDone').style.display='none';
+  renderG();
+});
+renderG();
+</script>
+</body>
+</html>

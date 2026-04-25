@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<title>LLM Viz — Terminal Grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ───────────────────────────── tokens ─────────────────────────── */
+:root, [data-theme="light"] {
+  --bg:        #f6f1e8;          /* warm cream */
+  --bg-2:      #efe7d6;
+  --surface:   #fbf7ef;
+  --surface-2: #f3ecdc;
+  --ink:       #221a10;
+  --ink-2:     #3a2e1e;
+  --mute:      #8a7a5e;
+  --rule:      #ddd0b4;
+  --rule-2:    #e8dec6;
+
+  --amber:     #c2410c;          /* terracotta / burnt-amber */
+  --amber-2:   #9a3412;
+  --amber-bg:  rgba(194,65,12,0.08);
+  --ochre:     #b45309;
+  --moss:      #4d6a2e;
+  --ink-blue:  #3b4a63;
+
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+[data-theme="dark"] {
+  --bg:        #141008;
+  --bg-2:      #1b150b;
+  --surface:   #1c160c;
+  --surface-2: #231b10;
+  --ink:       #f3e9d2;
+  --ink-2:     #d9cca9;
+  --mute:      #8f7f60;
+  --rule:      #30261a;
+  --rule-2:    #261e14;
+
+  --amber:     #f4a259;
+  --amber-2:   #e38338;
+  --amber-bg:  rgba(244,162,89,0.10);
+  --ochre:     #d4923a;
+  --moss:      #9ab973;
+  --ink-blue:  #8aa2c4;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink); font-family: var(--sans); }
+body {
+  min-height: 100vh;
+  font-feature-settings: 'ss01', 'cv11';
+  background-image:
+    linear-gradient(var(--rule-2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule-2) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: -1px -1px;
+}
+a { color: inherit; text-decoration: none; }
+
+/* ───────────────────────────── top nav ─────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px;
+  background: color-mix(in oklab, var(--bg) 86%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: -0.01em; }
+.brand-mark {
+  width: 22px; height: 22px; border-radius: 4px;
+  background: var(--ink); color: var(--bg);
+  display: grid; place-items: center;
+  font-weight: 700; font-size: 11px;
+}
+.brand-path { color: var(--mute); }
+.brand-path b { color: var(--ink); font-weight: 600; }
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+.topbar-right .kbd {
+  display: inline-flex; gap: 4px; align-items: center;
+  padding: 3px 8px; border: 1px solid var(--rule); border-radius: 4px;
+  color: var(--mute);
+}
+.topbar-right .kbd kbd {
+  font: inherit; color: var(--ink-2);
+  padding: 1px 5px; background: var(--surface-2);
+  border: 1px solid var(--rule-2); border-radius: 3px;
+  font-size: 10px;
+}
+.iconbtn {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  border: 1px solid var(--rule); border-radius: 4px;
+  background: var(--surface); cursor: pointer; color: var(--ink-2);
+}
+.iconbtn:hover { border-color: var(--amber); color: var(--amber); }
+
+/* ───────────────────────────── hero ─────────────────────────── */
+.shell { max-width: 1240px; margin: 0 auto; padding: 40px 28px 80px; }
+
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: end;
+  padding: 28px 0 56px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 48px;
+}
+.hero-caption {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--mute);
+  letter-spacing: 0.04em;
+  margin-bottom: 18px;
+}
+.hero-caption .dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--amber); margin-right: 8px;
+  animation: pulse 2.2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in oklab, var(--amber) 40%, transparent); }
+  50%     { opacity: 0.6; box-shadow: 0 0 0 6px transparent; }
+}
+.hero h1 {
+  font-size: clamp(44px, 5.4vw, 76px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  color: var(--ink);
+  margin-bottom: 20px;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--amber);
+}
+.hero p {
+  max-width: 42ch;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.55;
+}
+/* Right column — stat block */
+.stat-block {
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 28px 28px 24px;
+  font-family: var(--mono);
+}
+.stat-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px dashed var(--rule-2); }
+.stat-row:last-child { border: 0; padding-bottom: 0; }
+.stat-row:first-child { padding-top: 0; }
+.stat-big { font-size: 58px; font-weight: 600; letter-spacing: -0.03em; color: var(--ink); line-height: 1; }
+.stat-big sup { font-size: 14px; color: var(--amber); vertical-align: top; margin-left: 6px; font-weight: 500; }
+.stat-label { color: var(--mute); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; }
+.stat-small { font-size: 24px; font-weight: 500; color: var(--ink-2); letter-spacing: -0.02em; }
+.progress-strip {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(29, 1fr);
+  gap: 3px;
+}
+.progress-strip span {
+  height: 10px; border-radius: 2px; background: var(--rule);
+}
+.progress-strip span.visited { background: var(--amber); opacity: 0.45; }
+.progress-strip span.done    { background: var(--amber); }
+
+/* ───────────────────────────── filter bar ─────────────────────────── */
+.filter-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 20px;
+  font-family: var(--mono); font-size: 12px;
+}
+.chip {
+  padding: 5px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all .15s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.chip:hover { border-color: var(--ink-2); color: var(--ink); }
+.chip.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip .count { opacity: 0.6; font-size: 10px; }
+.filter-sep { flex: 1; height: 1px; background: var(--rule); min-width: 20px; }
+
+/* ───────────────────────────── section heading ─────────────────────────── */
+.section-head {
+  display: flex; align-items: baseline; gap: 16px; margin: 36px 0 16px;
+  font-family: var(--mono);
+}
+.section-head .tag {
+  font-size: 11px; color: var(--amber); font-weight: 600; letter-spacing: 0.08em;
+}
+.section-head .title {
+  font-family: var(--sans); font-size: 18px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink);
+}
+.section-head .rule { flex: 1; height: 1px; background: var(--rule); }
+.section-head .meta { font-size: 11px; color: var(--mute); }
+
+/* ───────────────────────────── cards ─────────────────────────── */
+.topic-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+}
+.topic {
+  position: relative;
+  padding: 22px 22px 20px;
+  background: var(--surface);
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 180px;
+  transition: background .15s;
+}
+.topic:hover {
+  background: var(--surface-2);
+}
+.topic:hover .topic-num { color: var(--amber); }
+.topic:hover .topic-arrow { opacity: 1; transform: translate(2px, -2px); }
+
+.topic-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--mono); font-size: 11px;
+}
+.topic-num {
+  color: var(--mute);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: color .15s;
+}
+.topic-num::before { content: '['; }
+.topic-num::after  { content: ']'; }
+.topic-year { color: var(--mute); }
+.topic-arrow {
+  position: absolute; top: 16px; right: 16px;
+  width: 14px; height: 14px; opacity: 0.3;
+  transition: all .2s;
+}
+.topic-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  line-height: 1.25;
+}
+.topic-desc {
+  color: var(--mute);
+  font-size: 13px;
+  line-height: 1.5;
+  flex: 1;
+}
+.topic-foot {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 10px;
+  color: var(--mute);
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+.topic-foot .status { color: var(--amber); }
+.topic-foot .status.done { color: var(--moss); }
+.cat {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--ink-2);
+}
+.cat::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+}
+.cat.foundation::before { background: var(--ink-blue); }
+.cat.compute::before    { background: var(--moss); }
+.cat.memory::before     { background: var(--amber); }
+.cat.system::before     { background: var(--ochre); }
+
+/* ───────────────────────────── graph panel ─────────────────────────── */
+.graph-panel {
+  margin-top: 56px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.graph-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--rule);
+  font-family: var(--mono); font-size: 12px;
+}
+.graph-head .legend { display: flex; gap: 18px; color: var(--mute); font-size: 11px; }
+.graph-head .legend .sw { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.graph-body {
+  position: relative;
+  height: 360px;
+  background:
+    radial-gradient(circle at 12% 20%, color-mix(in oklab, var(--amber) 10%, transparent) 0%, transparent 40%),
+    radial-gradient(circle at 88% 80%, color-mix(in oklab, var(--ink-blue) 10%, transparent) 0%, transparent 40%),
+    var(--surface);
+  overflow: hidden;
+}
+.graph-body::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--rule-2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule-2) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.5;
+}
+.g-node {
+  position: absolute;
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center;
+  font: 600 11px var(--mono);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  cursor: pointer;
+  transition: transform .15s;
+}
+.g-node:hover { transform: scale(1.15); }
+.g-node.n-found { background: var(--ink-blue); }
+.g-node.n-comp  { background: var(--moss); }
+.g-node.n-mem   { background: var(--amber); }
+.g-node.n-sys   { background: var(--ochre); }
+.g-edge {
+  position: absolute;
+  height: 1px;
+  background: var(--rule);
+  transform-origin: 0 50%;
+  opacity: 0.55;
+}
+
+/* footer */
+.foot {
+  margin-top: 80px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--mono); font-size: 11px; color: var(--mute);
+}
+.foot b { color: var(--ink-2); font-weight: 500; }
+
+/* dark-mode scrollbars polish skipped for brevity */
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; }
+  .topic-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .topic-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="brand">
+    <span class="brand-mark">L</span>
+    <span class="brand-path"><b>llm-viz</b> / <span>roadmap</span></span>
+  </div>
+  <div class="topbar-right">
+    <span class="kbd"><kbd>⌘</kbd><kbd>K</kbd> search</span>
+    <button class="iconbtn" id="themeBtn" title="Toggle theme">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <button class="iconbtn" title="Language">EN</button>
+  </div>
+</nav>
+
+<main class="shell">
+
+  <!-- ╭─ HERO ─╮ -->
+  <section class="hero">
+    <div>
+      <div class="hero-caption"><span class="dot"></span>ROADMAP · v2.1 · 2026-03-31</div>
+      <h1>An interactive map of how <em>modern LLMs</em> actually work.</h1>
+      <p>Twenty-nine visual walkthroughs from linear-algebra primitives to production-scale KV-cache disaggregation. Built for people who learn by poking at things.</p>
+    </div>
+    <aside class="stat-block" id="statBlock">
+      <div class="stat-row">
+        <div class="stat-big">29<sup>★</sup></div>
+        <div class="stat-label">Topics<br/>total</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-small">7 / 29</div>
+        <div class="stat-label">visited</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-small">3 / 29</div>
+        <div class="stat-label">completed</div>
+      </div>
+      <div class="progress-strip" id="progressStrip"></div>
+    </aside>
+  </section>
+
+  <!-- ╭─ FILTERS ─╮ -->
+  <div class="filter-bar">
+    <span class="chip active">all <span class="count">29</span></span>
+    <span class="chip"><span style="width:6px;height:6px;border-radius:50%;background:var(--ink-blue);display:inline-block"></span> foundation <span class="count">09</span></span>
+    <span class="chip"><span style="width:6px;height:6px;border-radius:50%;background:var(--moss);display:inline-block"></span> compute <span class="count">06</span></span>
+    <span class="chip"><span style="width:6px;height:6px;border-radius:50%;background:var(--amber);display:inline-block"></span> memory <span class="count">05</span></span>
+    <span class="chip"><span style="width:6px;height:6px;border-radius:50%;background:var(--ochre);display:inline-block"></span> system <span class="count">09</span></span>
+    <div class="filter-sep"></div>
+    <span class="chip">grid ⌗</span>
+    <span class="chip">graph ⊙</span>
+  </div>
+
+  <!-- ╭─ SECTION: FOUNDATIONS ─╮ -->
+  <div class="section-head">
+    <span class="tag">// 00 — 03</span>
+    <span class="title">Foundations</span>
+    <span class="rule"></span>
+    <span class="meta">math · attention · gpt-2</span>
+  </div>
+  <div class="topic-grid" id="grid1"></div>
+
+  <!-- ╭─ SECTION: COMPUTE ─╮ -->
+  <div class="section-head">
+    <span class="tag">// 04 — 05</span>
+    <span class="title">Compute Optimization</span>
+    <span class="rule"></span>
+    <span class="meta">2022 · prefill/decode · flash-attention</span>
+  </div>
+  <div class="topic-grid" id="grid2"></div>
+
+  <!-- ╭─ SECTION: MEMORY ─╮ -->
+  <div class="section-head">
+    <span class="tag">// 06 — 11</span>
+    <span class="title">Memory & Serving</span>
+    <span class="rule"></span>
+    <span class="meta">2023 — 2026 · vLLM · H2O · Mooncake</span>
+  </div>
+  <div class="topic-grid" id="grid3"></div>
+
+  <!-- ╭─ GRAPH PANEL ─╮ -->
+  <div class="section-head" style="margin-top:56px">
+    <span class="tag">// REL</span>
+    <span class="title">Dependency Graph</span>
+    <span class="rule"></span>
+    <span class="meta">drag · zoom · click</span>
+  </div>
+  <div class="graph-panel">
+    <div class="graph-head">
+      <div class="legend">
+        <span><span class="sw" style="background:var(--ink-blue)"></span>foundation</span>
+        <span><span class="sw" style="background:var(--moss)"></span>compute</span>
+        <span><span class="sw" style="background:var(--amber)"></span>memory</span>
+        <span><span class="sw" style="background:var(--ochre)"></span>system</span>
+      </div>
+      <div style="color:var(--mute)">29 nodes · 34 edges</div>
+    </div>
+    <div class="graph-body" id="graph"></div>
+  </div>
+
+  <footer class="foot">
+    <div><b>LLM_VIZ</b> · 29 interactive lessons · v2.1.0</div>
+    <div>2026-03-31 · <span style="color:var(--amber)">● live</span></div>
+  </footer>
+</main>
+
+<script>
+// ── data (subset for mock) ──
+const TOPICS = [
+  {id:'00', year:'math', cat:'foundation', title:'Linear Algebra Basics', desc:'Vectors, dot products, matmul, softmax — the math behind every attention head.', status:'done'},
+  {id:'01', year:'2017', cat:'foundation', title:'Transformer Basics', desc:'"Attention Is All You Need" — an interactive QKV walkthrough.', status:'done'},
+  {id:'02', year:'2019', cat:'foundation', title:'GPT-2 Architecture', desc:'Decoder-only, Pre-LN, BPE tokenization, weight tying — visually.', status:'visited'},
+  {id:'03', year:'2019', cat:'foundation', title:'Sparse Transformers', desc:'O(N√N) attention via local + strided patterns. Up to 65K tokens.', status:''},
+
+  {id:'04', year:'core', cat:'compute', title:'Prefill & Decode', desc:'Two-phase inference — compute-bound prefill, memory-bound autoregression.', status:'done'},
+  {id:'05', year:'2022', cat:'compute', title:'FlashAttention', desc:'IO-aware tiling + online softmax. Never materialize the N×N matrix.', status:'visited'},
+
+  {id:'06', year:'2023', cat:'memory', title:'PagedAttention / vLLM', desc:'OS-style KV cache paging. 2–4× throughput by killing fragmentation.', status:'visited'},
+  {id:'07', year:'2023', cat:'memory', title:'H2O — Heavy-Hitter Oracle', desc:'95%+ attention sparsity → 20× KV compression by keeping only heavy hitters.', status:''},
+  {id:'08', year:'2024', cat:'system', title:'StreamingLLM', desc:'Attention sinks + sliding window for constant-memory streaming.', status:''},
+  {id:'09', year:'2025', cat:'system', title:'PD Separation', desc:'Disaggregate prefill and decode into independent GPU pools.', status:'visited'},
+  {id:'10', year:'2025', cat:'system', title:'Mooncake Architecture', desc:'KV-cache-centric 3-tier disaggregated serving. USENIX FAST 2025.', status:''},
+  {id:'11', year:'2026', cat:'memory', title:'TurboQuant', desc:'Training-free KV quantization via random rotation + QJL. 6× compression.', status:''},
+];
+
+const ARROW = '<svg class="topic-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+
+function card(t) {
+  const statusText = t.status === 'done' ? '✓ completed' : t.status === 'visited' ? '● visited' : '○ unread';
+  const statusClass = t.status === 'done' ? 'done' : '';
+  return `
+    <a class="topic" href="#">
+      <div class="topic-head">
+        <span class="topic-num">${t.id}</span>
+        <span class="topic-year">${t.year}</span>
+      </div>
+      ${ARROW}
+      <div class="topic-title">${t.title}</div>
+      <div class="topic-desc">${t.desc}</div>
+      <div class="topic-foot">
+        <span class="cat ${t.cat}">${t.cat}</span>
+        <span style="color:var(--rule)">·</span>
+        <span class="status ${statusClass}">${statusText}</span>
+      </div>
+    </a>
+  `;
+}
+
+document.getElementById('grid1').innerHTML = TOPICS.filter(t=>['00','01','02','03'].includes(t.id)).map(card).join('');
+document.getElementById('grid2').innerHTML = TOPICS.filter(t=>['04','05'].includes(t.id)).map(card).join('') + `<div class="topic" style="display:flex;align-items:center;justify-content:center;color:var(--mute);font-family:var(--mono);font-size:11px;min-height:180px">[ + 0 more ]</div>`;
+document.getElementById('grid3').innerHTML = TOPICS.filter(t=>['06','07','08','09','10','11'].includes(t.id)).map(card).join('');
+
+// progress strip
+const PROGRESS = Array.from({length: 29}, (_, i) => {
+  if (i < 3) return 'done';
+  if (i < 7) return 'visited';
+  return '';
+});
+document.getElementById('progressStrip').innerHTML = PROGRESS.map(c => `<span class="${c}"></span>`).join('');
+
+// graph stub
+const GNODES = [
+  {id:'00', cat:'n-found', x:10, y:60},
+  {id:'01', cat:'n-found', x:20, y:25},
+  {id:'02', cat:'n-found', x:30, y:55},
+  {id:'03', cat:'n-found', x:26, y:82},
+  {id:'04', cat:'n-comp',  x:44, y:35},
+  {id:'05', cat:'n-comp',  x:40, y:65},
+  {id:'06', cat:'n-mem',   x:58, y:50},
+  {id:'07', cat:'n-mem',   x:56, y:78},
+  {id:'08', cat:'n-sys',   x:72, y:65},
+  {id:'09', cat:'n-sys',   x:72, y:30},
+  {id:'10', cat:'n-sys',   x:85, y:48},
+  {id:'11', cat:'n-mem',   x:88, y:74},
+];
+const GEDGES = [
+  ['01','00'],['02','01'],['03','01'],['04','02'],['05','01'],['05','04'],
+  ['06','04'],['07','01'],['07','06'],['08','07'],['09','04'],['09','06'],
+  ['10','09'],['10','06'],['11','06'],['11','07'],
+];
+const g = document.getElementById('graph');
+const W = g.clientWidth || 1100;
+const H = 360;
+GEDGES.forEach(([a,b]) => {
+  const A = GNODES.find(n=>n.id===a), B = GNODES.find(n=>n.id===b);
+  if (!A || !B) return;
+  const ax = A.x/100*W, ay = A.y/100*H, bx = B.x/100*W, by = B.y/100*H;
+  const dx = bx-ax, dy = by-ay;
+  const len = Math.hypot(dx,dy);
+  const ang = Math.atan2(dy, dx) * 180/Math.PI;
+  const el = document.createElement('div');
+  el.className = 'g-edge';
+  el.style.left = ax+'px';
+  el.style.top  = ay+'px';
+  el.style.width = len+'px';
+  el.style.transform = `rotate(${ang}deg)`;
+  g.appendChild(el);
+});
+GNODES.forEach(n => {
+  const el = document.createElement('div');
+  el.className = `g-node ${n.cat}`;
+  el.style.left = `calc(${n.x}% - 18px)`;
+  el.style.top  = `calc(${n.y}% - 18px)`;
+  el.textContent = n.id;
+  g.appendChild(el);
+});
+
+// theme toggle
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+});
+</script>
+</body>
+</html>

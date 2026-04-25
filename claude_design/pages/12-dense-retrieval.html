@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>12 Dense Retrieval · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.search-box { padding: 16px 18px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; margin-bottom: 18px; display:flex; gap:12px; align-items:center; }
+.search-box input { flex:1; border:0; background: transparent; font: inherit; font-family: var(--mono); font-size: 14px; color: var(--ink); outline: none; }
+.search-box .lbl { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.14em; text-transform: uppercase; }
+.results { display: flex; flex-direction: column; gap: 10px; }
+.r-row { display:grid; grid-template-columns: 40px 1fr 90px 90px; gap: 14px; align-items:center; padding: 12px 14px; border: 1px solid var(--rule); background: var(--bg); border-radius: 3px; transition: all 0.15s; }
+.r-row:hover { border-color: var(--accent); }
+.r-row .rank { font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.1em; }
+.r-row .text { font-size: 13px; color: var(--ink); line-height: 1.5; }
+.r-row .score { font-family: var(--mono); font-size: 12px; text-align: right; }
+.r-row .score.dense { color: var(--accent); font-weight: 600; }
+.r-row .score.bm25 { color: var(--mute); }
+.r-row mark { background: color-mix(in oklab, var(--accent) 25%, transparent); color: var(--ink); padding: 0 2px; border-radius: 1px; }
+.mode-toggle { display:inline-flex; border:1px solid var(--rule); border-radius:4px; background: var(--surface); padding:3px; }
+.mode-toggle button { border:0; background: transparent; font: inherit; font-size: 11px; font-family: var(--mono); padding: 5px 12px; border-radius: 3px; color: var(--ink-2); cursor: pointer; letter-spacing: 0.04em; }
+.mode-toggle button.active { background: var(--ink); color: var(--bg); }
+
+.colbert-viz { position:relative; border:1px solid var(--rule); background: var(--bg); border-radius: 3px; padding: 18px; margin: 16px 0; }
+.cb-query { display:flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.cb-doc { display:flex; gap: 6px; flex-wrap: wrap; padding-top: 14px; border-top: 1px dashed var(--rule); }
+.cb-tok { padding: 4px 9px; border: 1px solid var(--rule); border-radius: 2px; font-family: var(--mono); font-size: 11px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.cb-tok.q { background: var(--accent); color: var(--bg); border-color: var(--accent); cursor: default; }
+.cb-tok.match { background: color-mix(in oklab, var(--accent) 20%, transparent); border-color: var(--accent); color: var(--accent); }
+.cb-legend { display:flex; gap: 14px; font-family: var(--mono); font-size: 10px; color: var(--mute); margin-top: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.game-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+.game-q code { font-family: var(--mono); font-size: 14px; background: var(--surface-2); padding: 1px 6px; border-radius: 2px; border:1px solid var(--rule); }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right">
+    <a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a>
+  </div>
+</nav>
+<div class="crumbs">
+  <a href="../index.html">Roadmap</a><span class="sep">/</span>
+  <span class="cat foundation">Foundations</span><span class="sep">/</span>
+  <span class="here">12 Dense Retrieval</span>
+</div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 12</span><span class="sep">·</span><span>Foundations</span><span class="sep">·</span><span>2020 · 16 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">12</div>
+      <div>
+        <h1>Retrieval became <em>semantic</em>.</h1>
+        <div class="dek">For 20 years, search meant term overlap — TF-IDF, BM25. In 2020, dense retrievers trained on question-answer pairs beat BM25 by <b>+19 points</b>. Here's the mechanism.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">2020</div><div class="l">DPR paper</div></div>
+      <div class="c"><div class="v">+19%</div><div class="l">EM vs BM25</div></div>
+      <div class="c"><div class="v">768</div><div class="l">Vector dim (typical)</div></div>
+      <div class="c"><div class="v">Dual · Late</div><div class="l">Two architectures</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        You type "symptoms of long covid." BM25 looks for documents containing those words. A dense retriever looks for documents <i>about</i> those words — even if they use completely different vocabulary. This chapter is about the shift from lexical to semantic matching.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>Why lexical search breaks</span> <em>the vocabulary mismatch problem</em></h2>
+      <p>
+        BM25 is a 30-year-old scoring function. It counts how often query terms appear in a document, weighted by rarity. It's fast, interpretable, and — on out-of-distribution queries — shockingly hard to beat. But it has one fundamental flaw: <b>it only matches words you typed</b>.</p>
+      <p>
+        Ask it for "car insurance" and it won't return pages about "auto coverage." Ask for "how to stop hiccups" and it misses "ending a bout of singultus." This is the <b>vocabulary mismatch</b> problem, and for most real queries it's the single biggest source of missed results.
+      </p>
+      <div class="callout">
+        <div class="lab">// the asymmetry</div>
+        BM25 treats the query and document identically — both are bags of words. A dense retriever treats them asymmetrically: the query is encoded by a question-tower; the document is encoded by a passage-tower. Both project to the same vector space, but they're trained for different roles.
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>Dense Passage Retrieval (DPR)</span> <em>two BERTs, one space</em></h2>
+      <p>
+        Facebook AI's DPR (Karpukhin et al., 2020) uses two separate BERT encoders. One maps questions to 768-dimensional vectors. The other maps passages. At search time, you encode the question once, then find the nearest passage vectors by dot product.
+      </p>
+      <div class="math-block">
+        <div class="label">// DPR scoring</div>
+        $$\text{sim}(q, p) = E_Q(q)^{\top} E_P(p)$$
+        <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px">where $E_Q$ is the question encoder and $E_P$ is the passage encoder.</div>
+      </div>
+      <p>
+        The clever bit is <b>training</b>. Each question comes with one positive passage (contains the answer) and several negatives (don't). DPR uses <i>in-batch negatives</i>: during training, the other batch members' positives act as this question's negatives. Free supervision, at scale.
+      </p>
+
+      <div class="demo">
+        <div class="dhd">
+          <span class="ttl">Demo · Dense vs BM25 on vocabulary-mismatch queries</span>
+          <span class="tag live">live</span>
+        </div>
+        <div class="dbd">
+          <div class="search-box">
+            <span class="lbl">query</span>
+            <input id="qBox" value="how to stop hiccups" />
+            <div class="mode-toggle" id="modeToggle">
+              <button class="active" data-m="dense">dense</button>
+              <button data-m="bm25">BM25</button>
+            </div>
+          </div>
+          <div class="results" id="results"></div>
+          <p style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:14px">
+            // toggle modes on each query. watch how BM25 collapses when vocabulary doesn't overlap.
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>The dual-encoder vs late-interaction split</span> <em>ColBERT enters the chat</em></h2>
+      <p>
+        DPR's dual encoder compresses a whole passage into one vector. That's fast — an ANN index over N vectors answers queries in milliseconds — but it loses information. A passage that matches on <i>one</i> critical keyword plus many unrelated ones can get buried because averaging dilutes the signal.
+      </p>
+      <p>
+        ColBERT (Khattab &amp; Zaharia, 2020) keeps <b>one vector per token</b> on both sides, then computes similarity via a late-interaction MaxSim:
+      </p>
+      <div class="math-block">
+        <div class="label">// ColBERT MaxSim</div>
+        $$\text{sim}(q, d) = \sum_{i \in q} \max_{j \in d} \; E_q^{(i)} \cdot E_d^{(j)}$$
+        <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px">each query token takes the max similarity to any doc token; results summed.</div>
+      </div>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · ColBERT late-interaction</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <p style="font-size:13px;color:var(--ink-2);margin-bottom:12px">Click a query token to see which document token it matches. Each query token picks its own best match.</p>
+          <div class="colbert-viz">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Query</div>
+            <div class="cb-query" id="cbQuery"></div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Document</div>
+            <div class="cb-doc" id="cbDoc"></div>
+            <div class="cb-legend">
+              <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);vertical-align:-1px;margin-right:4px"></span>query token</span>
+              <span><span style="display:inline-block;width:10px;height:10px;background:color-mix(in oklab, var(--accent) 20%, transparent);border:1px solid var(--accent);vertical-align:-1px;margin-right:4px"></span>best match</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>Three families of retrievers</span> <em>know the trade-offs</em></h2>
+      <div class="analogy-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:16px 0">
+        <div class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px">Sparse (BM25)</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55">Term overlap, tf-idf weighted. Fast, zero training, strong baseline. Misses synonyms.</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px;letter-spacing:0.05em">1992 · still everywhere</div>
+        </div>
+        <div class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px">Dense (DPR)</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55">One vector per passage. Semantic, cheap index, needs training data. Loses fine-grained detail.</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px;letter-spacing:0.05em">2020 · RAG backbone</div>
+        </div>
+        <div class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px">Late-interaction (ColBERT)</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55">One vector per token. Best quality, biggest index — ~100× storage of DPR.</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px;letter-spacing:0.05em">2020 · top of leaderboards</div>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Mini-game</span> <em>pick the right retriever</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Which retriever fits?</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div id="gameArea">
+            <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s6" data-n="§ 06"><span>Where this leads</span></h2>
+      <p>Dense retrieval is the entry point to modern RAG. Read on:</p>
+      <div class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+        <a href="13-rag-pipeline.html" class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px;text-decoration:none">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase">→ 13 RAG Pipeline</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:8px">Retrieve-then-generate. Where this chapter's retrievers plug in.</div>
+        </a>
+        <a href="19-hnsw.html" class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px;text-decoration:none">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase">→ 19 HNSW</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:8px">How to actually find nearest neighbors among a billion vectors.</div>
+        </a>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Vocabulary mismatch</span></a>
+        <a href="#s2"><span class="n">02</span><span>Dense Passage Retrieval</span></a>
+        <a href="#s3"><span class="n">03</span><span>ColBERT late-interaction</span></a>
+        <a href="#s4"><span class="n">04</span><span>Three families</span></a>
+        <a href="#s5"><span class="n">05</span><span>Mini-game</span></a>
+        <a href="#s6"><span class="n">06</span><span>Where this leads</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+      <div><div class="lab">Reference</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--ink-2);line-height:1.5">
+          Karpukhin et al. 2020<br/><span style="color:var(--mute)">Dense Passage Retrieval for Open-Domain QA</span>
+          <div style="margin-top:8px">Khattab &amp; Zaharia 2020<br/><span style="color:var(--mute)">ColBERT: Efficient and Effective Passage Search</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 12 Dense Retrieval <span class="dot">·</span> Foundations</div><div>chapter 12 of 29 <span class="dot">●</span> 16 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category · year overhead, editorial headline</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "12" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors the hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '12', related: ['13','17','19','20'] });
+
+/* ==== Demo 1: dense vs BM25 ==== */
+const CORPUS = [
+  { text: 'Drinking a glass of water while holding your breath often ends an attack of singultus.', tokens: ['drinking','glass','water','holding','breath','ends','attack','singultus'], topic: 'hiccups' },
+  { text: 'To get rid of hiccups, try holding your breath for 10 seconds.', tokens: ['get','rid','hiccups','try','holding','breath','10','seconds'], topic: 'hiccups' },
+  { text: 'Singultus is the medical term for involuntary diaphragm spasms.', tokens: ['singultus','medical','term','involuntary','diaphragm','spasms'], topic: 'hiccups' },
+  { text: 'Car insurance rates depend on driving history and vehicle type.', tokens: ['car','insurance','rates','depend','driving','history','vehicle','type'], topic: 'insurance' },
+  { text: 'Automobile coverage policies vary by state and provider.', tokens: ['automobile','coverage','policies','vary','state','provider'], topic: 'insurance' },
+  { text: 'Long covid symptoms include fatigue, brain fog, and shortness of breath.', tokens: ['long','covid','symptoms','fatigue','brain','fog','shortness','breath'], topic: 'covid' },
+  { text: 'Post-acute sequelae of SARS-CoV-2 affects multiple organ systems.', tokens: ['post','acute','sequelae','sars','cov','affects','multiple','organ','systems'], topic: 'covid' },
+];
+const TOPIC_MAP = {
+  'hiccups': ['hiccups','stop','singultus','breath','diaphragm','rid','attack','spasms'],
+  'insurance': ['insurance','car','auto','automobile','coverage','vehicle','rates','policies'],
+  'covid': ['covid','long','symptoms','fatigue','sars','sequelae','post','acute'],
+};
+
+function inferTopic(q) {
+  const ql = q.toLowerCase();
+  let best = null, bestScore = 0;
+  Object.entries(TOPIC_MAP).forEach(([t, kws]) => {
+    const s = kws.reduce((n,kw) => n + (ql.includes(kw) ? 1 : 0), 0);
+    if (s > bestScore) { bestScore = s; best = t; }
+  });
+  return best;
+}
+
+function scoreBM25(q, doc) {
+  const qts = q.toLowerCase().split(/\s+/).filter(Boolean);
+  let s = 0;
+  qts.forEach(qt => {
+    if (doc.tokens.some(t => t === qt)) s += 1.5;
+    else if (doc.tokens.some(t => t.includes(qt) || qt.includes(t))) s += 0.3;
+  });
+  return Math.min(1, s / Math.max(1, qts.length));
+}
+function scoreDense(q, doc) {
+  const topic = inferTopic(q);
+  if (!topic) return 0.1;
+  const match = doc.topic === topic;
+  const bm = scoreBM25(q, doc);
+  return match ? (0.55 + 0.35 * (1 - Math.random()*0.3) + bm*0.1) : (0.1 + bm*0.2);
+}
+const modeToggle = document.getElementById('modeToggle');
+let mode = 'dense';
+modeToggle.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+  modeToggle.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active'); mode = b.dataset.m; renderResults();
+}));
+const qBox = document.getElementById('qBox');
+qBox.addEventListener('input', renderResults);
+
+function highlight(text, q) {
+  const qts = q.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  let r = text;
+  qts.forEach(qt => {
+    const re = new RegExp('\\b(' + qt.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'ig');
+    r = r.replace(re, '<mark>$1</mark>');
+  });
+  return r;
+}
+function renderResults() {
+  const q = qBox.value;
+  const scored = CORPUS.map(d => ({ ...d, s: mode === 'dense' ? scoreDense(q, d) : scoreBM25(q, d) }))
+    .sort((a,b) => b.s - a.s).slice(0, 5);
+  const el = document.getElementById('results');
+  el.innerHTML = scored.map((r, i) => `
+    <div class="r-row">
+      <div class="rank">#${i+1}</div>
+      <div class="text">${highlight(r.text, q)}</div>
+      <div class="score ${mode}">${mode === 'dense' ? r.s.toFixed(3) : r.s.toFixed(2)}</div>
+      <div class="score bm25">${r.topic}</div>
+    </div>
+  `).join('');
+}
+renderResults();
+
+/* ==== Demo 2: ColBERT ==== */
+const cbQuery = document.getElementById('cbQuery');
+const cbDoc = document.getElementById('cbDoc');
+const Q_TOKS = ['how','to','stop','hiccups'];
+const D_TOKS = ['drinking','water','while','holding','breath','ends','singultus','attack'];
+// hand-authored best-match map
+const MATCH = { 'how':'drinking', 'to':'while', 'stop':'ends', 'hiccups':'singultus' };
+Q_TOKS.forEach(t => {
+  const el = document.createElement('span');
+  el.className = 'cb-tok q';
+  el.textContent = t;
+  el.addEventListener('mouseenter', () => highlightMatch(t));
+  el.addEventListener('mouseleave', clearMatch);
+  cbQuery.appendChild(el);
+});
+D_TOKS.forEach(t => {
+  const el = document.createElement('span');
+  el.className = 'cb-tok';
+  el.textContent = t;
+  el.dataset.tok = t;
+  cbDoc.appendChild(el);
+});
+function highlightMatch(qt) {
+  clearMatch();
+  const m = MATCH[qt];
+  if (!m) return;
+  cbDoc.querySelector(`[data-tok="${m}"]`)?.classList.add('match');
+}
+function clearMatch() {
+  cbDoc.querySelectorAll('.cb-tok').forEach(x => x.classList.remove('match'));
+}
+
+/* ==== Mini-game ==== */
+const GAME = [
+  { q: 'Your corpus is 100K legal contracts and your users search by exact clause names like <code>§ 7(b)</code>. Best first choice?', opts: [
+    { t: 'BM25', h: 'Lexical exact match', c: true },
+    { t: 'DPR dense', h: 'Semantic embedding' },
+    { t: 'ColBERT', h: 'Late interaction' },
+    { t: 'GraphRAG', h: 'Knowledge graph' },
+  ]},
+  { q: 'Users ask <code>"how do i fix the car"</code> and expect docs about <code>"vehicle repair procedure"</code>. Best?', opts: [
+    { t: 'BM25', h: 'Term overlap' },
+    { t: 'DPR dense', h: 'Semantic match', c: true },
+    { t: 'Regex', h: 'Pattern matching' },
+    { t: 'Boolean AND', h: 'Strict' },
+  ]},
+  { q: 'You need 5 ms latency, billion-scale index, and <code>"good enough"</code> quality. Pick?', opts: [
+    { t: 'ColBERT full', h: 'Token-level index is 100×' },
+    { t: 'DPR + HNSW', h: 'One vector, fast ANN', c: true },
+    { t: 'Exhaustive cross-encoder', h: 'Too slow' },
+    { t: 'BM25 alone', h: 'Misses synonyms' },
+  ]},
+  { q: 'You want the <b>absolute best</b> NDCG@10, storage is not a concern. Pick?', opts: [
+    { t: 'BM25', h: 'Fast but weak' },
+    { t: 'DPR only', h: 'Compressed' },
+    { t: 'ColBERT (late interaction)', h: 'Top of leaderboards', c: true },
+    { t: 'TF-IDF', h: '1972' },
+  ]},
+  { q: 'In DPR training, what are <b>in-batch negatives</b>?', opts: [
+    { t: 'Other queries\' positives, used as this query\'s negatives', h: 'Free supervision', c: true },
+    { t: 'Hard negatives mined after training', h: 'Separate step' },
+    { t: 'Synthetic passages from GPT', h: 'Different technique' },
+    { t: 'The query itself, masked', h: 'That would be SimCSE' },
+  ]},
+];
+let gIdx = 0, gScore = 0;
+function renderG() {
+  if (gIdx >= GAME.length) {
+    document.getElementById('gameArea').style.display = 'none';
+    document.getElementById('gameDone').style.display = 'block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${GAME.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games') || '{}');
+    games['12'] = gScore; localStorage.setItem('llm-viz-games', JSON.stringify(games));
+    return;
+  }
+  const q = GAME[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx + 1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${GAME.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const b = document.getElementById('gameBoard');
+  b.innerHTML = '';
+  let answered = false;
+  q.opts.forEach(o => {
+    const el = document.createElement('button');
+    el.className = 'game-opt';
+    el.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    el.addEventListener('click', () => {
+      if (answered) return; answered = true;
+      if (o.c) { el.classList.add('correct'); gScore++; }
+      else { el.classList.add('wrong'); b.querySelectorAll('.game-opt').forEach((x,i) => { if (q.opts[i].c) x.classList.add('correct'); }); }
+      setTimeout(() => { gIdx++; renderG(); }, 1100);
+    });
+    b.appendChild(el);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx = 0; gScore = 0;
+  document.getElementById('gameArea').style.display = 'block';
+  document.getElementById('gameDone').style.display = 'none';
+  renderG();
+});
+renderG();
+</script>
+</body>
+</html>
