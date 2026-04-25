@@ -47,6 +47,7 @@ const NAV_TOPICS = [
     { num: '26', title: 'Quantization', file: '26-quantization.html', year: '2023' },
     { num: '27', title: 'LoRA Fine-tuning', file: '27-lora.html', year: '2021' },
     { num: '28', title: 'Decoding Strategies', file: '28-decoding.html', year: 'Core' },
+    { num: '29', title: 'DFlash', file: '29-dflash.html', year: '2026' },
   ]},
 ];
 
@@ -81,6 +82,7 @@ const NAV_ORDERED = [
   '26-quantization.html',
   '27-lora.html',
   '28-decoding.html',
+  '29-dflash.html',
 ];
 
 function getCurrentPage() {

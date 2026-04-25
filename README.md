@@ -130,7 +130,7 @@ See [LEARNING_PLAN.md](LEARNING_PLAN.md) for the full detailed plan with all 54 
 
 ## Key Papers Studied
 
-36 papers on LLM inference optimization, organized by topic:
+37 papers on LLM inference optimization, organized by topic:
 - **Paging & KV Management**: PagedAttention/vLLM
 - **Disaggregated Serving**: Mooncake (FAST'25 Best Paper), DistServe
 - **Attention Optimization**: FlashAttention 1&2, FlashInfer, MQA, GQA
@@ -139,6 +139,7 @@ See [LEARNING_PLAN.md](LEARNING_PLAN.md) for the full detailed plan with all 54 
 - **Offloading**: FlexGen, InfiniGen, KVSwap
 - **Caching**: SGLang/RadixAttention, LMCache, CachedAttention
 - **Distributed**: InfiniteLLM, DejaVu, TraCT
+- **Speculative Decoding**: DFlash block diffusion drafter for lossless accelerated inference
 
 ## License
 
