@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>29. DFlash — LLM Algorithm Visualizations</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <script src="../shared/theme.js"></script>
+  <style>
+    .dflash-hero {
+      margin: 0 auto 24px;
+      max-width: 1080px;
+      padding: 26px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(13,148,136,0.12), transparent 48%),
+        linear-gradient(225deg, rgba(234,88,12,0.12), transparent 55%),
+        var(--surface);
+      box-shadow: var(--shadow-md);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      align-items: center;
+    }
+    .hero-kicker {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 8px;
+    }
+    .hero-copy h2 {
+      font-size: 2rem;
+      line-height: 1.15;
+      margin: 0 0 12px;
+      color: var(--text);
+    }
+    .hero-copy p {
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin: 0;
+    }
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .metric {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.45);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    [data-theme="dark"] .metric { background: rgba(255,255,255,0.04); }
+    .metric strong {
+      display: block;
+      font-size: 1.3rem;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .metric span {
+      display: block;
+      margin-top: 5px;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      line-height: 1.35;
+    }
+    .hero-diagram {
+      min-height: 250px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--canvas-bg);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-diagram canvas {
+      width: 100%;
+      height: 250px;
+      display: block;
+    }
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 18px 0 10px;
+    }
+    .flow-card {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 14px;
+      min-height: 135px;
+      transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+    }
+    .flow-card.active {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 3px rgba(13,148,136,0.12);
+      transform: translateY(-2px);
+    }
+    .flow-card .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      background: rgba(13,148,136,0.12);
+      color: var(--accent2);
+      font-weight: 800;
+      font-size: 0.76rem;
+      margin-bottom: 8px;
+    }
+    .flow-card h3 {
+      font-size: 0.95rem;
+      margin: 0 0 6px;
+      color: var(--text);
+    }
+    .flow-card p {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin: 0;
+    }
+    .stage-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 16px 0 0;
+      flex-wrap: wrap;
+    }
+    .stage-controls button,
+    .sim-controls button {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 0.18s, color 0.18s, background 0.18s;
+    }
+    .stage-controls button.primary,
+    .sim-controls button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .stage-controls button:hover,
+    .sim-controls button:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+    .pipeline-canvas,
+    .latency-canvas {
+      width: 100%;
+      height: 380px;
+      display: block;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--canvas-bg);
+    }
+    .sim-panel {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+    .sim-controls {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: var(--surface);
+    }
+    .sim-controls label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--text-dim);
+      margin: 12px 0 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .sim-controls input[type=range] {
+      width: 100%;
+      accent-color: var(--accent2);
+    }
+    .readout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 14px 0;
+    }
+    .readout div {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      background: var(--formula-bg);
+    }
+    .readout strong {
+      display: block;
+      font-size: 1.25rem;
+      color: var(--accent2);
+      line-height: 1;
+    }
+    .readout span {
+      display: block;
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      margin-top: 5px;
+    }
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .compare-card {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .compare-card h3 {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 0.95rem;
+    }
+    .compare-card p {
+      margin: 0;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      line-height: 1.55;
+    }
+    .source-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .source-list a {
+      display: block;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      text-decoration: none;
+      color: var(--text);
+      background: var(--surface);
+      transition: border-color 0.18s, transform 0.18s;
+    }
+    .source-list a:hover {
+      border-color: var(--accent2);
+      transform: translateX(3px);
+    }
+    .source-list small {
+      display: block;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+    @media(max-width:900px){
+      .hero-grid,.sim-panel{grid-template-columns:1fr}
+      .flow-grid,.compare-grid{grid-template-columns:1fr 1fr}
+      .hero-copy h2{font-size:1.55rem}
+    }
+    @media(max-width:560px){
+      .metric-strip,.flow-grid,.compare-grid,.readout{grid-template-columns:1fr}
+      .pipeline-canvas,.latency-canvas{height:330px}
+    }
+  </style>
+</head>
+<body>
+
+<h1>DFlash</h1>
+<p class="subtitle">Block diffusion for flash speculative decoding: parallel draft blocks, target-model verification.</p>
+<p class="breadcrumb"><a href="../index.html">Home</a> / <span>DFlash</span></p>
+
+<div class="container">
+  <section class="dflash-hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <div class="hero-kicker">Speculative decoding, rebuilt around block diffusion</div>
+        <h2>Make the draft stage parallel instead of token-by-token.</h2>
+        <p>DFlash keeps the target LLM as the authority, but replaces autoregressive drafting with a lightweight block diffusion model. The drafter proposes a whole token block in one parallel pass; the target LLM verifies the block and accepts the longest correct prefix.</p>
+        <div class="metric-strip">
+          <div class="metric"><strong>6x+</strong><span>reported lossless acceleration on selected tasks</span></div>
+          <div class="metric"><strong>16</strong><span>typical draft block size in the paper examples</span></div>
+          <div class="metric"><strong>1 pass</strong><span>parallel diffusion draft instead of k draft steps</span></div>
+        </div>
+      </div>
+      <div class="hero-diagram">
+        <canvas id="heroCanvas"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <span class="badge badge-green">Architecture</span>
+    <h2>End-to-end inference loop</h2>
+    <p>DFlash is not a standalone serving engine. It is a speculative-decoding path that plugs into engines such as SGLang or vLLM. Step through the loop below to see where the target model, feature fusion, diffusion drafter, and verifier interact.</p>
+    <canvas id="pipelineCanvas" class="pipeline-canvas"></canvas>
+    <div class="flow-grid">
+      <div class="flow-card active" data-stage-card="0"><span class="num">1</span><h3>Target pass</h3><p>Run prefill or verification and expose selected hidden states from the target LLM.</p></div>
+      <div class="flow-card" data-stage-card="1"><span class="num">2</span><h3>Fuse features</h3><p>Project target hidden states into compact conditioning context for the draft model.</p></div>
+      <div class="flow-card" data-stage-card="2"><span class="num">3</span><h3>Diffuse block</h3><p>Generate multiple draft tokens in parallel from masked positions.</p></div>
+      <div class="flow-card" data-stage-card="3"><span class="num">4</span><h3>Verify prefix</h3><p>The target LLM accepts the longest matching prefix and corrects the first mismatch.</p></div>
+    </div>
+    <div class="stage-controls">
+      <button onclick="prevStage()">Previous</button>
+      <button class="primary" onclick="nextStage()">Next stage</button>
+      <button onclick="animatePipeline()">Animate loop</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <span class="badge badge-orange">Simulator</span>
+    <h2>Why block diffusion changes latency</h2>
+    <p>Autoregressive drafters pay one draft step per candidate token. DFlash pays roughly one block-draft pass, then target verification. Adjust block size and acceptance rate to see how the effective speedup changes.</p>
+    <div class="sim-panel">
+      <div class="sim-controls">
+        <label for="blockSlider">Draft block size: <span id="blockVal">16</span></label>
+        <input id="blockSlider" type="range" min="4" max="32" step="4" value="16" oninput="updateLatency()">
+
+        <label for="acceptSlider">Acceptance rate: <span id="acceptVal">70%</span></label>
+        <input id="acceptSlider" type="range" min="30" max="95" step="5" value="70" oninput="updateLatency()">
+
+        <label for="draftCostSlider">Draft cost ratio: <span id="draftCostVal">0.25x</span></label>
+        <input id="draftCostSlider" type="range" min="10" max="60" step="5" value="25" oninput="updateLatency()">
+
+        <div class="readout">
+          <div><strong id="acceptedVal">11.2</strong><span>accepted tokens / loop</span></div>
+          <div><strong id="speedVal">3.6x</strong><span>rough speedup</span></div>
+        </div>
+        <button class="primary" onclick="updateLatency()">Recompute</button>
+      </div>
+      <canvas id="latencyCanvas" class="latency-canvas"></canvas>
+    </div>
+  </section>
+
+  <section class="card">
+    <span class="badge badge-purple">Comparison</span>
+    <h2>Where DFlash fits</h2>
+    <div class="compare-grid">
+      <div class="compare-card"><h3>Vanilla decode</h3><p>One target-model pass per token. Simple and exact, but fully sequential during decode.</p></div>
+      <div class="compare-card"><h3>EAGLE-style</h3><p>Uses target features, but drafting remains autoregressive, so longer candidate sequences add draft latency.</p></div>
+      <div class="compare-card"><h3>Medusa</h3><p>Adds multiple prediction heads to a target model. Fast, but more tightly coupled to model architecture.</p></div>
+      <div class="compare-card"><h3>DFlash</h3><p>Uses target-conditioned block diffusion: parallel drafting with target verification for lossless output.</p></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <span class="badge badge-red">Production checklist</span>
+    <h2>Before using it in serving</h2>
+    <ul>
+      <li>Measure acceptance length on your real prompts, not only benchmark prompts.</li>
+      <li>Track TTFT, inter-token latency, throughput, and memory overhead separately.</li>
+      <li>Verify that draft checkpoints match the exact target model family and tokenizer.</li>
+      <li>Test high-temperature sampling, long contexts, and rejection-heavy prompts.</li>
+      <li>Confirm fallback behavior: rejected draft tokens must never change final target-model semantics.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <span class="badge badge-green">Sources</span>
+    <h2>Paper and implementation references</h2>
+    <div class="source-list">
+      <a href="https://arxiv.org/abs/2602.06036" target="_blank" rel="noreferrer">DFlash: Block Diffusion for Flash Speculative Decoding <small>arXiv preprint by Jian Chen, Yesheng Liang, Zhijian Liu</small></a>
+      <a href="https://z-lab.ai/projects/dflash/" target="_blank" rel="noreferrer">Z Lab project page <small>Overview, results, quick start, and architecture explanation</small></a>
+      <a href="https://github.com/z-lab/dflash" target="_blank" rel="noreferrer">z-lab/dflash <small>Reference code and model links</small></a>
+      <a href="https://docs.vllm.ai/en/stable/api/vllm/v1/spec_decode/dflash/" target="_blank" rel="noreferrer">vLLM DFlash proposer API <small>Serving-engine integration path for DFlash speculative decoding</small></a>
+    </div>
+  </section>
+</div>
+
+<footer><p>DFlash — Block Diffusion for Flash Speculative Decoding</p><p>LLM Algorithm Visualizations v2.1.0</p></footer>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/nav.js"></script>
+<script src="../shared/animations.js"></script>
+<script src="../shared/progress.js"></script>
+
+<script>
+var stage = 0;
+var stageNames = ['Target LLM', 'Feature Fusion', 'Block Diffusion', 'Verification'];
+var stageColors = ['#5b5bd6', '#0d9488', '#ea580c', '#e11d48'];
+
+function theme(){
+  var s = getComputedStyle(document.documentElement);
+  return {
+    text: s.getPropertyValue('--text').trim(),
+    dim: s.getPropertyValue('--text-dim').trim(),
+    border: s.getPropertyValue('--border').trim(),
+    surface: s.getPropertyValue('--surface').trim(),
+    canvas: s.getPropertyValue('--canvas-bg').trim(),
+    accent: s.getPropertyValue('--accent').trim(),
+    accent2: s.getPropertyValue('--accent2').trim()
+  };
+}
+
+function setupCanvas(id){
+  var c = document.getElementById(id);
+  var r = c.getBoundingClientRect();
+  var d = window.devicePixelRatio || 1;
+  c.width = r.width * d;
+  c.height = r.height * d;
+  var x = c.getContext('2d');
+  x.setTransform(d,0,0,d,0,0);
+  return {c:c,x:x,W:r.width,H:r.height};
+}
+
+function roundRect(x, ctx, px, py, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(px+r, py);
+  ctx.lineTo(px+w-r, py);
+  ctx.quadraticCurveTo(px+w, py, px+w, py+r);
+  ctx.lineTo(px+w, py+h-r);
+  ctx.quadraticCurveTo(px+w, py+h, px+w-r, py+h);
+  ctx.lineTo(px+r, py+h);
+  ctx.quadraticCurveTo(px, py+h, px, py+h-r);
+  ctx.lineTo(px, py+r);
+  ctx.quadraticCurveTo(px, py, px+r, py);
+  ctx.closePath();
+}
+
+function arrow(ctx, x1, y1, x2, y2, color){
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  var a = Math.atan2(y2-y1, x2-x1);
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2-10*Math.cos(a-.38), y2-10*Math.sin(a-.38));
+  ctx.lineTo(x2-10*Math.cos(a+.38), y2-10*Math.sin(a+.38));
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawHero(){
+  var cv = setupCanvas('heroCanvas'), ctx = cv.x, t = theme();
+  ctx.clearRect(0,0,cv.W,cv.H);
+  var cx = cv.W/2, cy = cv.H/2;
+  for(var i=0;i<18;i++){
+    var ang = (Math.PI*2*i/18) + performance.now()/2500;
+    var r = 66 + (i%3)*18;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(ang)*r, cy + Math.sin(ang)*r, 4 + (i%4), 0, Math.PI*2);
+    ctx.fillStyle = i%3===0 ? '#0d9488' : (i%3===1 ? '#ea580c' : '#5b5bd6');
+    ctx.globalAlpha = 0.82;
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  roundRect(null, ctx, cx-72, cy-36, 144, 72, 16);
+  ctx.fillStyle = t.surface;
+  ctx.fill();
+  ctx.strokeStyle = t.border;
+  ctx.stroke();
+  ctx.fillStyle = t.text;
+  ctx.font = '800 18px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('DFlash', cx, cy-4);
+  ctx.font = '600 11px Segoe UI, sans-serif';
+  ctx.fillStyle = t.dim;
+  ctx.fillText('block diffusion drafter', cx, cy+18);
+  requestAnimationFrame(drawHero);
+}
+
+function drawPipeline(){
+  var cv = setupCanvas('pipelineCanvas'), ctx = cv.x, t = theme();
+  ctx.clearRect(0,0,cv.W,cv.H);
+  var top = cv.H < 360 ? 70 : 92;
+  var boxW = Math.min(172, (cv.W - 80) / 4);
+  var gap = (cv.W - boxW*4) / 5;
+  var boxes = [];
+  for(var i=0;i<4;i++){
+    boxes.push({x: gap + i*(boxW+gap), y: top, w: boxW, h: 92});
+  }
+  boxes.forEach(function(b,i){
+    roundRect(null, ctx, b.x, b.y, b.w, b.h, 14);
+    ctx.fillStyle = i===stage ? 'rgba(13,148,136,0.16)' : t.surface;
+    ctx.fill();
+    ctx.strokeStyle = i===stage ? stageColors[i] : t.border;
+    ctx.lineWidth = i===stage ? 3 : 1.5;
+    ctx.stroke();
+    ctx.fillStyle = stageColors[i];
+    ctx.font = '800 13px Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(stageNames[i], b.x+b.w/2, b.y+30);
+    ctx.fillStyle = t.dim;
+    ctx.font = '12px Segoe UI, sans-serif';
+    var sub = ['hidden states', 'projection', 'parallel tokens', 'accept prefix'][i];
+    ctx.fillText(sub, b.x+b.w/2, b.y+58);
+    if(i<3) arrow(ctx, b.x+b.w+8, b.y+b.h/2, boxes[i+1].x-8, boxes[i+1].y+boxes[i+1].h/2, t.dim);
+  });
+
+  var tokenY = top + 150;
+  ctx.fillStyle = t.text;
+  ctx.font = '700 14px Segoe UI, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Draft block:', gap, tokenY-18);
+  for(var j=0;j<16;j++){
+    var x = gap + j*31;
+    var accepted = j < Math.round(10 + Math.sin(stage + j)*2);
+    roundRect(null, ctx, x, tokenY, 24, 24, 6);
+    ctx.fillStyle = accepted ? 'rgba(13,148,136,0.22)' : 'rgba(225,29,72,0.16)';
+    ctx.fill();
+    ctx.strokeStyle = accepted ? '#0d9488' : '#e11d48';
+    ctx.stroke();
+    ctx.fillStyle = accepted ? '#0d9488' : '#e11d48';
+    ctx.font = '800 12px Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(accepted ? '✓' : '×', x+12, tokenY+17);
+  }
+  ctx.fillStyle = t.dim;
+  ctx.font = '12px Segoe UI, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('The target model verifies the block. Only the longest valid prefix is committed.', gap, tokenY+56);
+}
+
+function setStage(n){
+  stage = (n + 4) % 4;
+  document.querySelectorAll('[data-stage-card]').forEach(function(el){
+    el.classList.toggle('active', Number(el.getAttribute('data-stage-card')) === stage);
+  });
+  drawPipeline();
+}
+function nextStage(){ setStage(stage+1); }
+function prevStage(){ setStage(stage-1); }
+function animatePipeline(){
+  var i = 0;
+  var timer = setInterval(function(){
+    setStage(i++);
+    if(i > 7) clearInterval(timer);
+  }, 650);
+}
+
+function updateLatency(){
+  var block = Number(document.getElementById('blockSlider').value);
+  var accept = Number(document.getElementById('acceptSlider').value) / 100;
+  var draftRatio = Number(document.getElementById('draftCostSlider').value) / 100;
+  var accepted = block * accept;
+  var vanilla = accepted;
+  var arDraft = accepted + block * draftRatio + 1;
+  var dflash = 1 + draftRatio * 1.4;
+  var speed = vanilla / dflash;
+  document.getElementById('blockVal').textContent = block;
+  document.getElementById('acceptVal').textContent = Math.round(accept*100) + '%';
+  document.getElementById('draftCostVal').textContent = draftRatio.toFixed(2) + 'x';
+  document.getElementById('acceptedVal').textContent = accepted.toFixed(1);
+  document.getElementById('speedVal').textContent = speed.toFixed(1) + 'x';
+  drawLatency(vanilla, arDraft, dflash, accepted);
+}
+
+function drawLatency(vanilla, arDraft, dflash, accepted){
+  var cv = setupCanvas('latencyCanvas'), ctx = cv.x, t = theme();
+  ctx.clearRect(0,0,cv.W,cv.H);
+  var rows = [
+    {name:'Vanilla target decode', value:vanilla, color:'#5b5bd6'},
+    {name:'Autoregressive speculative', value:arDraft, color:'#ea580c'},
+    {name:'DFlash block diffusion', value:dflash, color:'#0d9488'}
+  ];
+  var max = Math.max(vanilla, arDraft, dflash) * 1.12;
+  ctx.font = '700 13px Segoe UI, sans-serif';
+  rows.forEach(function(r,i){
+    var y = 70 + i*82;
+    ctx.fillStyle = t.text;
+    ctx.textAlign = 'left';
+    ctx.fillText(r.name, 24, y-12);
+    var w = (cv.W - 180) * (r.value / max);
+    roundRect(null, ctx, 24, y, w, 30, 8);
+    ctx.fillStyle = r.color;
+    ctx.fill();
+    ctx.fillStyle = t.dim;
+    ctx.textAlign = 'left';
+    ctx.fillText(r.value.toFixed(2) + ' normalized time', 36 + w, y+20);
+  });
+  ctx.fillStyle = t.dim;
+  ctx.font = '12px Segoe UI, sans-serif';
+  ctx.fillText('Model: generate about ' + accepted.toFixed(1) + ' accepted tokens per loop. Lower bar is faster.', 24, cv.H-28);
+}
+
+window.addEventListener('resize', function(){
+  drawPipeline();
+  updateLatency();
+});
+document.addEventListener('DOMContentLoaded', function(){
+  drawHero();
+  drawPipeline();
+  updateLatency();
+});
+</script>
+</body>
+</html>

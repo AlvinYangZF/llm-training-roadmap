@@ -1,6 +1,6 @@
 version: "1.0"
-updated: 2026-04-07
-total: 29
+updated: 2026-04-25
+total: 30
 description: >
   Machine-readable registry of all LLM learning wiki topics.
   Agent query: python -c "import yaml; [print(t['id'],t['summary']) for t in yaml.safe_load(open('wiki/INDEX.yaml'))['topics']]"
@@ -267,3 +267,12 @@ topics:
     summary: "How LLMs pick the next token: greedy, beam, nucleus, and temperature sampling."
     requires: [gpt2, training-loss]
     viz: 28-decoding.html
+
+  - id: dflash
+    file: dflash.md
+    year: 2026
+    tier: advanced
+    tags: [inference, speculative-decoding, diffusion, serving, sglang, vllm]
+    summary: "Block diffusion drafter for speculative decoding: parallel draft blocks, target LLM verifies."
+    requires: [decoding, prefill-decode, transformer]
+    viz: 29-dflash.html
