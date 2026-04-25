@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>15 BM25 · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.knobs { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+.knob { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.knob .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom:6px; }
+.knob .vl { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+.knob .row { display:flex; align-items:center; gap:10px; }
+.knob input[type=range] { flex:1; }
+
+.metric { padding: 14px; background: var(--surface); border:1px solid var(--rule); border-radius:3px; }
+.metric .v { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; font-feature-settings:'tnum'; }
+.metric .l { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+
+.chart { width:100%; height: 240px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+
+.idx { display:grid; grid-template-columns: 110px 1fr; gap: 8px; padding: 10px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; font-family: var(--mono); font-size: 12px; align-items: center; }
+.idx .term { color: var(--accent); font-weight: 600; }
+.idx .post { color: var(--ink-2); display:flex; gap:6px; flex-wrap:wrap; }
+.idx .post .p { padding: 2px 6px; background: var(--surface); border:1px solid var(--rule); border-radius: 2px; font-size: 11px; }
+
+.docs { display:grid; gap:6px; }
+.doc { padding: 10px 12px; background: var(--bg); border: 1px solid var(--rule); border-radius:3px; }
+.doc.hit { border-color: var(--accent); background: var(--accent-bg); }
+.doc .h { display:flex; justify-content: space-between; gap:14px; margin-bottom: 4px; }
+.doc .id { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; }
+.doc .score { font-family: var(--mono); font-size: 11px; color: var(--accent); font-weight: 600; }
+.doc .t { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+.doc .t mark { background: var(--accent); color: var(--bg); padding: 0 3px; border-radius: 1px; }
+.doc .breakdown { font-family: var(--mono); font-size: 10px; color: var(--mute); margin-top: 4px; letter-spacing: 0.04em; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div>
+</nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat system">RAG &amp; System</span><span class="sep">/</span><span class="here">15 BM25</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 15</span><span class="sep">·</span><span>RAG &amp; System</span><span class="sep">·</span><span>1994 · 11 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">15</div>
+      <div>
+        <h1>The lexical baseline that <em>still</em> wins.</h1>
+        <div class="dek">BM25 is thirty years old, runs on a single CPU, and beats half the modern dense retrievers on out-of-domain benchmarks. Three knobs — k₁, b, and your tokenizer — and an inverted index. That\'s the whole thing.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">Robertson 1994</div><div class="l">Okapi BM25 · TREC-3</div></div>
+      <div class="c"><div class="v">k₁ ≈ 1.2</div><div class="l">TF saturation</div></div>
+      <div class="c"><div class="v">b ≈ 0.75</div><div class="l">Length normalization</div></div>
+      <div class="c"><div class="v">~5 ms</div><div class="l">10M-doc query</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        Every "we tried embeddings, BM25 was better" tweet is real. Lexical retrieval has near-zero training data dependence, no embedding drift, and a deterministic failure mode. Knowing it cold is non-negotiable.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>The formula</span></h2>
+      <div class="callout math">
+        $$\text{BM25}(q,d) = \sum_{t \in q} \text{IDF}(t) \cdot \frac{f(t,d) \cdot (k_1+1)}{f(t,d) + k_1 \cdot (1 - b + b \cdot \frac{|d|}{\bar{d}})}$$
+        <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px;letter-spacing:0.04em">// f = term freq · |d| = doc length · d̄ = avg length · IDF = log((N − n + 0.5)/(n + 0.5) + 1)</div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>The two knobs · k₁ and b</span></h2>
+      <p>
+        <strong>k₁</strong> controls how fast term frequency saturates — high k₁, the 5th occurrence still matters; low k₁, after 1-2 occurrences nothing changes. <strong>b</strong> controls how much you penalize long documents — b=0, ignore length; b=1, fully normalize.
+      </p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · TF saturation curve</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="knobs">
+            <div class="knob"><div class="lab">k₁</div><div class="row"><input id="kK1" type="range" min="0" max="500" value="120"><span class="vl" id="vK1">1.20</span></div></div>
+            <div class="knob"><div class="lab">b</div><div class="row"><input id="kB" type="range" min="0" max="100" value="75"><span class="vl" id="vB">0.75</span></div></div>
+            <div class="knob"><div class="lab">|d| / d̄</div><div class="row"><input id="kLen" type="range" min="20" max="300" value="100"><span class="vl" id="vLen">1.00×</span></div></div>
+          </div>
+          <svg class="chart" id="curve" viewBox="0 0 900 240" preserveAspectRatio="none"></svg>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:6px;letter-spacing:0.06em;text-transform:uppercase">// x-axis · term frequency f(t,d)   y-axis · score contribution before IDF</div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>Inverted index · the data structure</span></h2>
+      <p>
+        BM25 doesn\'t scan documents at query time. It looks up each query term in an <em>inverted index</em> — a dict from term to posting list (doc id, term frequency). Sum across query terms, sort, return top-k.
+      </p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Index for a 12-doc corpus</span><span class="tag">data</span></div>
+        <div class="dbd">
+          <div style="display:grid;gap:6px" id="invIdx"></div>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 02"><span>Live · score every doc</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · BM25 over a small corpus</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase">query</span>
+            <input id="qInput" type="text" value="multi head attention transformer" style="flex:1;padding:8px 10px;border:1px solid var(--rule);background:var(--bg);font:inherit;font-family:var(--mono);font-size:12px;border-radius:2px;color:var(--ink)"/>
+          </div>
+          <div class="docs" id="docs"></div>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>BM25 vs dense · when each wins</span></h2>
+      <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;margin:12px 0">
+        <thead><tr><th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase">Scenario</th><th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase">BM25</th><th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase">Dense</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Rare codes · ICD-10, error codes</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--moss)">★ wins</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--mute)">smears</td></tr>
+          <tr><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Paraphrase · synonyms</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--mute)">misses</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--moss)">★ wins</td></tr>
+          <tr><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Out-of-domain · BEIR</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--moss)">★ stable</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--mute)">degrades</td></tr>
+          <tr><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Latency · 10M docs · 1 CPU</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--moss)">★ ~5 ms</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--mute)">ANN required</td></tr>
+          <tr><td style="padding:8px 10px">Multilingual · cross-language</td><td style="padding:8px 10px;color:var(--mute)">misses</td><td style="padding:8px 10px;color:var(--moss)">★ wins</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s6" data-n="§ 06"><span>Mini-game</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Tune BM25</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div id="gameArea">
+            <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Formula</span></a>
+        <a href="#s2"><span class="n">02</span><span>k₁ and b</span></a>
+        <a href="#s3"><span class="n">03</span><span>Inverted index</span></a>
+        <a href="#s4"><span class="n">04</span><span>Live demo</span></a>
+        <a href="#s5"><span class="n">05</span><span>BM25 vs dense</span></a>
+        <a href="#s6"><span class="n">06</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 15 BM25 <span class="dot">·</span> RAG &amp; System</div><div>chapter 15 of 29 <span class="dot">●</span> 11 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "15" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'15', related:['08','12','16','22'] });
+
+/* curve */
+function drawCurve(){
+  const k1 = parseInt(document.getElementById('kK1').value)/100;
+  const b = parseInt(document.getElementById('kB').value)/100;
+  const len = parseInt(document.getElementById('kLen').value)/100;
+  document.getElementById('vK1').textContent = k1.toFixed(2);
+  document.getElementById('vB').textContent = b.toFixed(2);
+  document.getElementById('vLen').textContent = len.toFixed(2)+'×';
+  const svg = document.getElementById('curve');
+  const W=900,H=240,pad=40;
+  let g = '';
+  for (let i = 0; i <= 4; i++){
+    const yy = pad + (H-2*pad)*i/4;
+    g += `<line x1="${pad}" y1="${yy}" x2="${W-pad}" y2="${yy}" stroke="#e8dfc5" stroke-width="0.5" stroke-dasharray="2 3"/>`;
+  }
+  // score(f) = f*(k1+1) / (f + k1*(1-b+b*len))
+  const denom = (f) => f + k1*(1-b+b*len);
+  const score = (f) => denom(f)>0 ? f*(k1+1)/denom(f) : 0;
+  const fmax = 20;
+  const ymax = (k1+1)*1.1;
+  const xs = [], ys = [];
+  for (let f = 0; f <= fmax; f += 0.25) {
+    xs.push(pad + (W-2*pad)*f/fmax);
+    ys.push(pad + (H-2*pad)*(1 - score(f)/ymax));
+  }
+  let path = '';
+  xs.forEach((x,i) => { path += `${i===0?'M':'L'} ${x} ${ys[i]} `; });
+  g += `<path d="${path}" stroke="#b8471f" stroke-width="2.5" fill="none"/>`;
+  // asymptote
+  const yA = pad + (H-2*pad)*(1 - (k1+1)/ymax);
+  g += `<line x1="${pad}" y1="${yA}" x2="${W-pad}" y2="${yA}" stroke="#3a4a5e" stroke-width="1" stroke-dasharray="4 4" opacity="0.5"/>`;
+  g += `<text x="${W-pad-8}" y="${yA-6}" font-family="JetBrains Mono, monospace" font-size="10" fill="#3a4a5e" text-anchor="end">asymptote · k₁+1 = ${(k1+1).toFixed(2)}</text>`;
+  // x-axis ticks
+  for (let f = 0; f <= fmax; f += 5) {
+    const x = pad + (W-2*pad)*f/fmax;
+    g += `<text x="${x}" y="${H-pad+14}" font-family="JetBrains Mono, monospace" font-size="9" fill="#7a6f60" text-anchor="middle">${f}</text>`;
+  }
+  svg.innerHTML = g;
+}
+['kK1','kB','kLen'].forEach(id => document.getElementById(id).addEventListener('input', drawCurve));
+drawCurve();
+
+/* corpus + bm25 */
+const CORPUS = [
+  { id:'D01', text:'Self attention computes a weighted sum where weights are dot products of queries and keys.' },
+  { id:'D02', text:'Multi head attention runs several attention layers in parallel and concatenates their outputs in the transformer.' },
+  { id:'D03', text:'The Transformer architecture was introduced in the 2017 paper Attention Is All You Need.' },
+  { id:'D04', text:'BM25 ranks documents by term frequency and inverse document frequency with length normalization.' },
+  { id:'D05', text:'Dense retrieval encodes queries and documents into a shared embedding space.' },
+  { id:'D06', text:'Reciprocal rank fusion merges multiple ranked lists by summing 1 over k plus rank.' },
+  { id:'D07', text:'PagedAttention manages KV cache memory in fixed size blocks like an operating system.' },
+  { id:'D08', text:'HNSW is a graph based approximate nearest neighbour index with logarithmic search.' },
+  { id:'D09', text:'Cross encoders score a query document pair jointly and are accurate but slow.' },
+  { id:'D10', text:'GPT-2 was released in 2019 and demonstrated zero shot generalization on many tasks.' },
+  { id:'D11', text:'Tokenization splits text into sub word units before embedding into the model.' },
+  { id:'D12', text:'FlashAttention tiles the attention matrix to fit on chip SRAM and reduces memory traffic dramatically.' },
+];
+function tok(s){ return s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean); }
+const tokenized = CORPUS.map(d => ({ ...d, toks: tok(d.text) }));
+const avgLen = tokenized.reduce((a,d)=>a+d.toks.length,0)/tokenized.length;
+const N = tokenized.length;
+function df(term){ return tokenized.filter(d => d.toks.includes(term)).length; }
+function idf(term){ const n = df(term); return Math.log(((N-n+0.5)/(n+0.5))+1); }
+
+/* inverted index render */
+const KEY_TERMS = ['attention','transformer','dense','bm25','memory','flash','retrieval','rank'];
+const idxEl = document.getElementById('invIdx');
+KEY_TERMS.forEach(t => {
+  const row = document.createElement('div'); row.className = 'idx';
+  const post = tokenized.filter(d => d.toks.includes(t)).map(d => {
+    const f = d.toks.filter(x => x===t).length;
+    return `<span class="p">${d.id}·tf${f}</span>`;
+  }).join('');
+  row.innerHTML = `<span class="term">${t}</span><span class="post">${post||'<span style="color:var(--mute)">— no postings —</span>'}</span>`;
+  idxEl.appendChild(row);
+});
+
+/* search */
+function bm25(q){
+  const qts = tok(q);
+  const k1 = parseInt(document.getElementById('kK1').value)/100;
+  const b = parseInt(document.getElementById('kB').value)/100;
+  return tokenized.map(d => {
+    const dl = d.toks.length;
+    let s = 0; const breakdown = [];
+    qts.forEach(t => {
+      const f = d.toks.filter(x => x===t).length;
+      if (f === 0) return;
+      const i = idf(t);
+      const term = i * (f*(k1+1)) / (f + k1*(1 - b + b*dl/avgLen));
+      s += term;
+      breakdown.push(`${t}·${term.toFixed(2)}`);
+    });
+    return { ...d, score: s, breakdown: breakdown.join(' + ') };
+  }).sort((a,b)=>b.score-a.score);
+}
+function search(){
+  const q = document.getElementById('qInput').value;
+  const ranked = bm25(q).slice(0, 8);
+  const qts = tok(q);
+  const re = new RegExp('\\b('+qts.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','gi');
+  document.getElementById('docs').innerHTML = ranked.map((d,i) => {
+    const txt = d.text.replace(re, '<mark>$1</mark>');
+    return `<div class="doc${i<3 && d.score>0?' hit':''}">
+      <div class="h"><span class="id">${d.id} · rank ${i+1}</span><span class="score">${d.score.toFixed(2)}</span></div>
+      <div class="t">${txt}</div>
+      ${d.breakdown ? `<div class="breakdown">// ${d.breakdown}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+document.getElementById('qInput').addEventListener('input', search);
+['kK1','kB'].forEach(id => document.getElementById(id).addEventListener('input', search));
+search();
+
+/* mini-game */
+const GAME = [
+  { q: 'What does k₁ → 0 mean for term-frequency scoring?', opts: [
+    { t: 'TF saturates instantly — one occurrence ≈ ten occurrences', h: 'Score ≈ binary "term present"', c: true },
+    { t: 'TF is linear in count', h: 'Opposite — high k₁' },
+    { t: 'TF is squared', h: 'Never' },
+    { t: 'IDF dominates always', h: 'Partial' },
+  ]},
+  { q: 'b = 0 means?', opts: [
+    { t: 'Document length is ignored entirely', h: 'No length normalization', c: true },
+    { t: 'Document length fully normalizes', h: 'That\'s b = 1' },
+    { t: 'Score = 0', h: 'Wrong' },
+    { t: 'Removes IDF', h: 'b doesn\'t affect IDF' },
+  ]},
+  { q: 'BEIR benchmark · BM25 often beats fine-tuned dense retrievers because?', opts: [
+    { t: 'Dense models overfit train domain; BM25 has no domain bias', h: 'Out-of-domain stability', c: true },
+    { t: 'BM25 is faster', h: 'Speed isn\'t the metric' },
+    { t: 'Dense models lack capacity', h: 'They have more' },
+    { t: 'BEIR is lexical-only', h: 'It includes paraphrases' },
+  ]},
+  { q: 'IDF formula penalizes terms that?', opts: [
+    { t: 'Appear in many documents — common words contribute less', h: 'log inverse doc freq', c: true },
+    { t: 'Are short', h: 'Length is unrelated' },
+    { t: 'Are rare', h: 'Opposite — rare = high IDF' },
+    { t: 'Have many synonyms', h: 'BM25 doesn\'t know synonyms' },
+  ]},
+  { q: 'Best place to spend an afternoon improving BM25 quality?', opts: [
+    { t: 'Tokenizer · stemming · stop-words for your language', h: 'Garbage in, garbage out', c: true },
+    { t: 'Increase k₁ to 5', h: 'Diminishing returns' },
+    { t: 'Add neural rerank', h: 'Different layer' },
+    { t: 'Increase index size', h: 'Doesn\'t help quality' },
+  ]},
+];
+let gIdx=0, gScore=0;
+function renderG(){
+  if (gIdx >= GAME.length){
+    document.getElementById('gameArea').style.display='none';
+    document.getElementById('gameDone').style.display='block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${GAME.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games')||'{}'); games['15']=gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games)); return;
+  }
+  const q = GAME[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx+1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${GAME.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const b = document.getElementById('gameBoard'); b.innerHTML='';
+  let answered=false;
+  q.opts.forEach(o => {
+    const el = document.createElement('button'); el.className='game-opt';
+    el.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    el.addEventListener('click', () => {
+      if (answered) return; answered=true;
+      if (o.c) { el.classList.add('correct'); gScore++; }
+      else { el.classList.add('wrong'); b.querySelectorAll('.game-opt').forEach((x,i)=>{ if (q.opts[i].c) x.classList.add('correct'); }); }
+      setTimeout(()=>{ gIdx++; renderG(); }, 1100);
+    });
+    b.appendChild(el);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx=0; gScore=0;
+  document.getElementById('gameArea').style.display='block';
+  document.getElementById('gameDone').style.display='none';
+  renderG();
+});
+renderG();
+</script>
+</body>
+</html>

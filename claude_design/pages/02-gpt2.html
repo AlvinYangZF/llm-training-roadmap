@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>02 GPT-2 Architecture · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.variant-tbl { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
+.variant-tbl th, .variant-tbl td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--rule); font-family: var(--mono); }
+.variant-tbl th { font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; background: var(--surface-2); }
+.variant-tbl td { color: var(--ink-2); }
+.variant-tbl td.name { color: var(--ink); font-weight: 600; font-family: var(--sans); }
+.variant-tbl tr:hover td { background: var(--accent-bg); }
+
+.bpe-demo { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+@media (max-width: 720px) { .bpe-demo { grid-template-columns: 1fr; } }
+.bpe-input { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.bpe-tokens { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; min-height: 40px; }
+.bpe-tok { padding: 5px 10px; border-radius: 3px; font-family: var(--mono); font-size: 12px; border: 1px solid transparent; }
+.bpe-stats { font-family: var(--mono); font-size: 11px; color: var(--mute); margin-top: 14px; line-height: 1.8; }
+.bpe-stats b { color: var(--ink); }
+
+.pre-post { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 18px 0; }
+.pre-post .side { background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; padding: 18px; }
+.pre-post .side h4 { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+.pre-post .side svg { width: 100%; height: auto; }
+.pre-post .side.bad h4 { color: var(--mute); }
+
+.generate-box { background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; padding: 18px; font-family: var(--mono); font-size: 14px; line-height: 1.7; min-height: 120px; color: var(--ink); white-space: pre-wrap; }
+.generate-box .gen { color: var(--accent); }
+.generate-box .cursor { display: inline-block; width: 8px; height: 16px; background: var(--accent); vertical-align: -2px; animation: blink 0.8s infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.ctrl-row { display:flex; gap:16px; align-items:center; margin:10px 0; flex-wrap: wrap; }
+.ctrl-row label { font-family: var(--mono); font-size:11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; min-width: 50px; }
+.ctrl-row input[type=range] { flex: 1; min-width: 120px; }
+.ctrl-row .val { font-family: var(--mono); font-size:12px; color: var(--accent); font-weight: 600; min-width: 56px; text-align: right; }
+
+.game-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; letter-spacing: 0.02em; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.45; padding: 16px 0; font-weight: 500; }
+.game-q code { font-family: var(--mono); font-size: 14px; background: var(--surface-2); padding: 2px 8px; border-radius: 3px; border: 1px solid var(--rule); }
+</style>
+</head>
+<body>
+
+<div class="read-bar"><div class="fill"></div></div>
+
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right">
+    <a href="../index.html">roadmap</a>
+    <span class="divider"></span>
+    <a id="themeBtn">◐ theme</a>
+  </div>
+</nav>
+
+<div class="crumbs">
+  <a href="../index.html">Roadmap</a>
+  <span class="sep">/</span>
+  <span class="cat foundation">Foundations</span>
+  <span class="sep">/</span>
+  <span class="here">02 GPT-2 Architecture</span>
+</div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 02</span><span class="sep">·</span><span>Foundations</span><span class="sep">·</span><span>2019 · 18 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">02</div>
+      <div>
+        <h1>GPT-2 — the decoder-only <em>that scaled</em>.</h1>
+        <div class="dek">OpenAI took the right half of the original Transformer, stacked it 48 layers deep, trained it on 40 GB of text, and accidentally shipped the blueprint every major LLM still uses today. Four parameter counts, one recipe.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">1.5B</div><div class="l">Max params</div></div>
+      <div class="c"><div class="v">48</div><div class="l">Layers (XL)</div></div>
+      <div class="c"><div class="v">50,257</div><div class="l">Vocab size</div></div>
+      <div class="c"><div class="v">1024</div><div class="l">Context</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        The 2017 Transformer paper proposed an <i>encoder–decoder</i> architecture for translation. Two years later OpenAI threw out the encoder, flipped causal masking on, and asked: <b>what if we just predict the next token, very well, at scale?</b> The answer became GPT-2 — and the recipe underneath every LLM that followed.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>Decoder only</span> <em>half the Transformer, infinitely scalable</em></h2>
+      <p>
+        The original Transformer had two stacks: an <b>encoder</b> that reads the input sentence, and a <b>decoder</b> that emits the translation, attending to the encoder's output. For language modeling you don't need both — you just need to predict the next token given everything so far. So GPT keeps only the decoder, with two changes:
+      </p>
+      <ul>
+        <li><b>Causal masking.</b> Token $i$ can only attend to tokens $1, \dots, i$. Implemented by setting future positions to $-\infty$ before softmax.</li>
+        <li><b>No encoder cross-attention.</b> Each block is just self-attention + FFN.</li>
+      </ul>
+
+      <h2 id="s2" data-n="§ 02"><span>Four sizes, one recipe</span> <em>the scaling experiment</em></h2>
+      <p>
+        GPT-2 shipped in four sizes. Only three numbers change between them — depth, width, and heads. Everything else (vocab, optimizer, training data, tokenizer) is identical.
+      </p>
+
+      <table class="variant-tbl">
+        <thead>
+          <tr><th>name</th><th>params</th><th>layers (L)</th><th>d_model</th><th>heads (h)</th><th>d_head</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="name">GPT-2 Small</td>  <td>124 M</td><td>12</td><td>768</td> <td>12</td><td>64</td></tr>
+          <tr><td class="name">GPT-2 Medium</td> <td>355 M</td><td>24</td><td>1024</td><td>16</td><td>64</td></tr>
+          <tr><td class="name">GPT-2 Large</td>  <td>774 M</td><td>36</td><td>1280</td><td>20</td><td>64</td></tr>
+          <tr><td class="name">GPT-2 XL</td>     <td>1.5 B</td><td>48</td><td>1600</td><td>25</td><td>64</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <div class="lab">// observation</div>
+        Note that <code>d_head = 64</code> across <em>all</em> sizes. Every Transformer you will meet — Llama, Mistral, Claude, DeepSeek — keeps 64 or 128 as the head dimension. It's the lowest value that keeps attention expressive while staying friendly to GPU tensor cores.
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>BPE tokenization</span> <em>50,257 subwords beats 50,000 words</em></h2>
+      <p>
+        GPT-2 uses <b>byte-pair encoding</b> over bytes. Start with 256 bytes as your base vocabulary, then iteratively merge the most frequent adjacent pair until you have 50,257 tokens. This gives three properties at once:
+      </p>
+      <ul>
+        <li><b>Open vocabulary.</b> Any string can be encoded — if all else fails, drop to raw bytes.</li>
+        <li><b>Subword compositionality.</b> Rare words like <code>unhappiness</code> split into <code>un</code> + <code>happy</code> + <code>ness</code> — the model gets to reuse what it learned about each piece.</li>
+        <li><b>Fixed budget.</b> Exactly 50,257 embedding rows, regardless of corpus size.</li>
+      </ul>
+
+      <div class="demo bpe-demo">
+        <div class="dhd"><span class="ttl">Demo · Tokenize like GPT-2</span><span class="tag live">live</span></div>
+        <div class="dbd" style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+          <div>
+            <label style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.08em;text-transform:uppercase;display:block;margin-bottom:8px">Text to tokenize</label>
+            <input type="text" class="bpe-input" id="bpeInput" value="The Transformer is unbelievably efficient."/>
+            <div class="bpe-stats" id="bpeStats"></div>
+          </div>
+          <div>
+            <label style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.08em;text-transform:uppercase;display:block;margin-bottom:8px">Tokens (simulated BPE)</label>
+            <div class="bpe-tokens" id="bpeTokens"></div>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:var(--mute);font-family:var(--mono);margin-top:-8px">
+        // this demo uses heuristics; the real tiktoken gpt2 encoder is a merge-priority table with 50,257 entries.
+      </p>
+
+      <h2 id="s4" data-n="§ 04"><span>Pre-LN &gt; Post-LN</span> <em>the one change that made scale possible</em></h2>
+      <p>
+        The original paper placed LayerNorm <b>after</b> each sublayer (post-norm). GPT-2 moved it to <b>before</b> (pre-norm). This looks trivial; it isn't. With post-norm, gradient magnitudes grow with depth — past 24 layers, training becomes unstable without careful warmup. Pre-norm keeps gradients well-behaved and lets you stack to 100+ layers without tricks.
+      </p>
+
+      <div class="pre-post">
+        <div class="side bad">
+          <h4>Post-LN (2017 original)</h4>
+          <svg viewBox="0 0 220 200">
+            <defs><marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/></marker></defs>
+            <rect x="55" y="10" width="110" height="26" rx="2" fill="var(--surface)" stroke="var(--rule)"/>
+            <text x="110" y="27" font-family="Inter" font-size="11" fill="var(--ink)" text-anchor="middle">Attention</text>
+            <line x1="110" y1="36" x2="110" y2="52" stroke="var(--ink-2)" marker-end="url(#ap)"/>
+            <circle cx="110" cy="60" r="8" fill="var(--bg)" stroke="var(--rule)"/>
+            <text x="110" y="64" font-size="12" fill="var(--ink)" text-anchor="middle">+</text>
+            <line x1="110" y1="68" x2="110" y2="82" stroke="var(--ink-2)" marker-end="url(#ap)"/>
+            <rect x="55" y="82" width="110" height="24" rx="2" fill="color-mix(in oklab, var(--accent) 25%, transparent)" stroke="var(--accent)"/>
+            <text x="110" y="97" font-family="Inter" font-size="11" fill="var(--ink)" text-anchor="middle">LayerNorm</text>
+            <line x1="110" y1="106" x2="110" y2="120" stroke="var(--ink-2)" marker-end="url(#ap)"/>
+            <rect x="55" y="120" width="110" height="26" rx="2" fill="var(--surface)" stroke="var(--rule)"/>
+            <text x="110" y="137" font-family="Inter" font-size="11" fill="var(--ink)" text-anchor="middle">FFN</text>
+            <line x1="110" y1="146" x2="110" y2="162" stroke="var(--ink-2)" marker-end="url(#ap)"/>
+            <circle cx="110" cy="170" r="8" fill="var(--bg)" stroke="var(--rule)"/>
+            <text x="110" y="174" font-size="12" fill="var(--ink)" text-anchor="middle">+</text>
+            <path d="M 45 10 Q 20 10 20 60 L 100 60" fill="none" stroke="var(--accent)" stroke-dasharray="4 3"/>
+            <path d="M 45 82 Q 20 82 20 170 L 100 170" fill="none" stroke="var(--accent)" stroke-dasharray="4 3"/>
+          </svg>
+          <p style="font-size:11px;color:var(--mute);font-family:var(--mono);margin-top:8px">// LN sits on the residual path → gradients decay with depth</p>
+        </div>
+        <div class="side">
+          <h4>Pre-LN (GPT-2 and later)</h4>
+          <svg viewBox="0 0 220 200">
+            <defs><marker id="ap2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/></marker></defs>
+            <rect x="55" y="10" width="110" height="24" rx="2" fill="color-mix(in oklab, var(--accent) 25%, transparent)" stroke="var(--accent)"/>
+            <text x="110" y="25" font-family="Inter" font-size="11" fill="var(--ink)" text-anchor="middle">LayerNorm</text>
+            <line x1="110" y1="34" x2="110" y2="48" stroke="var(--ink-2)" marker-end="url(#ap2)"/>
+            <rect x="55" y="48" width="110" height="26" rx="2" fill="var(--surface)" stroke="var(--rule)"/>
+            <text x="110" y="65" font-family="Inter" font-size="11" fill="var(--ink)" text-anchor="middle">Attention</text>
+            <line x1="110" y1="74" x2="110" y2="88" stroke="var(--ink-2)" marker-end="url(#ap2)"/>
+            <circle cx="110" cy="96" r="8" fill="var(--bg)" stroke="var(--rule)"/>
+            <text x="110" y="100" font-size="12" fill="var(--ink)" text-anchor="middle">+</text>
+            <line x1="110" y1="104" x2="110" y2="116" stroke="var(--ink-2)" marker-end="url(#ap2)"/>
+            <rect x="55" y="116" width="110" height="24" rx="2" fill="color-mix(in oklab, var(--accent) 25%, transparent)" stroke="var(--accent)"/>
+            <text x="110" y="131" font-family="Inter" font-size="11" fill="var(--ink)" text-anchor="middle">LayerNorm</text>
+            <line x1="110" y1="140" x2="110" y2="154" stroke="var(--ink-2)" marker-end="url(#ap2)"/>
+            <rect x="55" y="154" width="110" height="26" rx="2" fill="var(--surface)" stroke="var(--rule)"/>
+            <text x="110" y="171" font-family="Inter" font-size="11" fill="var(--ink)" text-anchor="middle">FFN</text>
+            <path d="M 45 10 Q 20 10 20 96 L 100 96" fill="none" stroke="var(--moss)" stroke-dasharray="4 3"/>
+            <path d="M 45 116 Q 20 116 20 196 L 100 196" fill="none" stroke="var(--moss)" stroke-dasharray="4 3"/>
+            <line x1="110" y1="180" x2="110" y2="192" stroke="var(--ink-2)" marker-end="url(#ap2)"/>
+            <circle cx="110" cy="200" r="8" fill="var(--bg)" stroke="var(--rule)"/>
+          </svg>
+          <p style="font-size:11px;color:var(--moss);font-family:var(--mono);margin-top:8px">// residual is untouched → gradients flow through all L layers</p>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Weight tying</span> <em>one matrix, two jobs</em></h2>
+      <p>
+        The embedding matrix $E \in \mathbb{R}^{V \times d}$ maps tokens to vectors at the input. The LM head $W_{out} \in \mathbb{R}^{d \times V}$ maps hidden states back to vocabulary logits at the output. GPT-2 sets $W_{out} = E^{\top}$ — one shared matrix.
+      </p>
+      <p>
+        This saves $V \cdot d$ parameters (~39 M for GPT-2 Small) and gives a mild regularization effect. Every large LM since has done the same.
+      </p>
+
+      <h2 id="s6" data-n="§ 06"><span>Autoregressive generation</span> <em>what it feels like from outside</em></h2>
+      <p>
+        At inference, GPT-2 generates one token at a time. Feed the prompt, sample from the output distribution, append, repeat. Temperature and top-k shape the distribution:
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Sampling with temperature</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="ctrl-row"><label>T</label><input type="range" min="0.1" max="2.0" step="0.05" value="0.8" id="tempSl"/><span class="val" id="tempLab">0.80</span></div>
+          <div class="ctrl-row"><label>top-k</label><input type="range" min="1" max="50" step="1" value="40" id="topkSl"/><span class="val" id="topkLab">40</span></div>
+          <div style="display:flex;gap:10px;margin:16px 0">
+            <button class="btn pri" id="genBtn">▶ generate</button>
+            <button class="btn" id="resetBtn">reset</button>
+          </div>
+          <div class="generate-box" id="genOut">The Transformer architecture<span class="cursor"></span></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:10px">// simulated output — not a real model; illustrates how temp + top-k shape the stream</div>
+        </div>
+      </div>
+
+      <h2 id="s7" data-n="§ 07"><span>The lineage</span> <em>what GPT-2 set in stone</em></h2>
+      <p>
+        Every mainstream decoder-only LLM since 2019 inherits most of GPT-2 and changes only a few things:
+      </p>
+      <ul>
+        <li><b>GPT-3.</b> Same architecture. 96 layers, 12288 d_model, 175 B params. Same recipe, more scale.</li>
+        <li><b>Llama.</b> RMSNorm instead of LayerNorm. SwiGLU instead of GELU. Rotary position embeddings. Same skeleton.</li>
+        <li><b>DeepSeek-V3.</b> Multi-head latent attention, MoE FFN. Still pre-norm decoder blocks.</li>
+      </ul>
+      <p>
+        GPT-2's contribution wasn't a new idea — it was the demonstration that <b>the decoder-only Transformer, scaled, just works</b>.
+      </p>
+
+      <h2 id="s8" data-n="§ 08"><span>Mini-game</span> <em>GPT-2 spec recall</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Know your model</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div class="game-status"><span>QUESTION <span id="gameIdx">1</span> / 5</span><span class="score">SCORE <span id="gameScore">0</span></span></div>
+          <div id="gameArea">
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div>
+        <div class="lab">On this page</div>
+        <div class="toc">
+          <a href="#s1"><span class="n">01</span><span>Decoder only</span></a>
+          <a href="#s2"><span class="n">02</span><span>Four sizes</span></a>
+          <a href="#s3"><span class="n">03</span><span>BPE tokenization</span></a>
+          <a href="#s4"><span class="n">04</span><span>Pre-LN vs Post-LN</span></a>
+          <a href="#s5"><span class="n">05</span><span>Weight tying</span></a>
+          <a href="#s6"><span class="n">06</span><span>Generation</span></a>
+          <a href="#s7"><span class="n">07</span><span>The lineage</span></a>
+          <a href="#s8"><span class="n">08</span><span>Mini-game</span></a>
+        </div>
+      </div>
+      <div>
+        <div class="lab">Related</div>
+        <div class="related"></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+
+  <footer class="foot">
+    <div>llm-viz <span class="dot">·</span> 02 GPT-2 Architecture <span class="dot">·</span> Foundations</div>
+    <div>chapter 02 of 29 <span class="dot">●</span> 18 min read</div>
+  </footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body">
+    <div class="tw-label">Hero layout</div>
+    <div class="tw-options" id="twHeroOpts">
+      <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category · year overhead, editorial headline</div></div></div>
+      <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "02" alongside title</div></div></div>
+      <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors the hero</div></div></div>
+    </div>
+  </div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '02', related: ['01', '24', '28', '27'] });
+
+/* === BPE-ish tokenizer === */
+const bpeInput = document.getElementById('bpeInput');
+const bpeTokens = document.getElementById('bpeTokens');
+const bpeStats = document.getElementById('bpeStats');
+const TOK_COLORS = ['#b8471f','#374962','#556b2f','#a0681a','#8b3410'];
+
+function fakeTokenize(s) {
+  // Approximate GPT-2 BPE: leading-space preserved, subword splits on common prefixes
+  const out = [];
+  const MERGES = ['ing','ly','tion','able','ness','ment','un','re','pre','post','ist','ize','ful'];
+  const words = s.split(/(\s+)/);
+  for (const w of words) {
+    if (!w) continue;
+    if (/^\s+$/.test(w)) {
+      // merge whitespace into next via "Ġ" style
+      continue;
+    }
+    // split punctuation
+    const m = w.match(/^([A-Za-z0-9']+)(.*)$/);
+    if (!m) { out.push(w); continue; }
+    const [, word, punct] = m;
+    const prefix = (out.length > 0 && s.match(/\s/) ? 'Ġ' : '');
+    // try to split long words
+    if (word.length > 7) {
+      let rem = word;
+      let pieces = [];
+      for (const suf of MERGES) {
+        if (rem.toLowerCase().endsWith(suf) && rem.length > suf.length + 2) {
+          pieces.unshift(rem.slice(-suf.length));
+          rem = rem.slice(0, -suf.length);
+        }
+      }
+      pieces.unshift(rem);
+      pieces.forEach((p, i) => out.push((i===0 ? prefix : '') + p));
+    } else {
+      out.push(prefix + word);
+    }
+    if (punct) out.push(punct);
+  }
+  return out;
+}
+function renderBPE() {
+  const s = bpeInput.value;
+  const toks = fakeTokenize(s);
+  bpeTokens.innerHTML = toks.map((t, i) => {
+    const c = TOK_COLORS[i % TOK_COLORS.length];
+    return `<span class="bpe-tok" style="background:${c}22;color:${c};border-color:${c}44">${t.replace(/ /g,'·')}</span>`;
+  }).join('');
+  const chars = s.length;
+  bpeStats.innerHTML = `
+    <div><b>${chars}</b> chars · <b>${toks.length}</b> tokens · <b>${(chars / Math.max(1,toks.length)).toFixed(2)}</b> chars/token</div>
+    <div style="color:var(--mute)">// GPT-2 averages ~4 chars/token on English text</div>
+    <div style="color:var(--mute);margin-top:4px">// "Ġ" prefix marks a preceding space (real GPT-2 convention)</div>
+  `;
+}
+bpeInput.addEventListener('input', renderBPE);
+renderBPE();
+
+/* === Generation demo === */
+const PROMPT = "The Transformer architecture";
+const CONTINUATIONS = {
+  low: [" is fundamentally", " an elegant", " elegant mathematical", " the foundation", " a decoder-only"],
+  mid: [" revolutionized", " changed everything", " introduced attention", " stacked 48 layers", " traded recurrence"],
+  high: [" dazzled galaxies", " unfurled neon", " whispered theorems", " crept through entropy", " dreamt of softmax"],
+};
+function sample(T, k) {
+  const bucket = T < 0.6 ? CONTINUATIONS.low : T < 1.2 ? CONTINUATIONS.mid : CONTINUATIONS.high;
+  const pool = bucket.slice(0, Math.max(2, Math.min(k, bucket.length)));
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+const tempSl = document.getElementById('tempSl');
+const topkSl = document.getElementById('topkSl');
+const tempLab = document.getElementById('tempLab');
+const topkLab = document.getElementById('topkLab');
+tempSl.addEventListener('input', () => tempLab.textContent = parseFloat(tempSl.value).toFixed(2));
+topkSl.addEventListener('input', () => topkLab.textContent = topkSl.value);
+
+const genOut = document.getElementById('genOut');
+document.getElementById('genBtn').addEventListener('click', () => {
+  const T = parseFloat(tempSl.value);
+  const k = parseInt(topkSl.value);
+  let text = PROMPT;
+  genOut.innerHTML = text + '<span class="cursor"></span>';
+  let i = 0;
+  const STEPS = 8;
+  const iv = setInterval(() => {
+    if (i >= STEPS) { clearInterval(iv); genOut.innerHTML = text + '.'; return; }
+    text += sample(T, k);
+    genOut.innerHTML = PROMPT + '<span class="gen">' + text.slice(PROMPT.length) + '</span><span class="cursor"></span>';
+    i++;
+  }, 340);
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  genOut.innerHTML = PROMPT + '<span class="cursor"></span>';
+});
+
+/* === Mini-game === */
+const QS = [
+  { q: 'GPT-2 XL has <code>L = 48</code> layers and <code>d_model = 1600</code>. How many attention heads?',
+    opts: [ { t: '25', c: true, h: 'd_model / d_head = 1600 / 64' }, { t: '16', h: 'medium size' }, { t: '48', h: 'same as L' }, { t: '64', h: 'd_head' } ]},
+  { q: 'What does "decoder-only" mean in practice?',
+    opts: [
+      { t: 'Causal mask; no cross-attention', c: true, h: 'only self-attention, future positions masked' },
+      { t: 'Bidirectional attention', h: 'BERT-style' },
+      { t: 'No attention at all', h: 'just FFN' },
+      { t: 'Single layer', h: 'stack depth is unrelated' },
+    ]},
+  { q: 'Why does GPT-2 tie input embeddings to the output projection?',
+    opts: [
+      { t: 'Saves ~39 M params and regularizes', c: true, h: 'same matrix, two jobs' },
+      { t: 'Required by softmax', h: 'not a formal requirement' },
+      { t: 'Enables attention sinks', h: 'unrelated' },
+      { t: 'Prevents tokenization errors', h: 'unrelated' },
+    ]},
+  { q: 'Pre-LN vs post-LN — why did the field switch?',
+    opts: [
+      { t: 'Pre-LN keeps gradients stable at depth', c: true, h: 'residual path is untouched' },
+      { t: 'Pre-LN is mathematically equivalent', h: 'it is not' },
+      { t: 'Required for causal masking', h: 'independent' },
+      { t: 'Faster on GPU', h: 'not the primary reason' },
+    ]},
+  { q: 'BPE vocabulary is <code>50,257</code>. Why this odd number?',
+    opts: [
+      { t: '256 bytes + 50,000 merges + 1 special token', c: true, h: 'historical artifact of the training script' },
+      { t: 'Round number after compression', h: 'no such compression happens' },
+      { t: 'Optimal for GPU tensor cores', h: 'unrelated; 50257 is not tensor-core-friendly' },
+      { t: 'Matches WordNet', h: 'unrelated corpus' },
+    ]},
+];
+let gIdx = 0, gScore = 0, answered = false;
+const gq = document.getElementById('gameQ'), gb = document.getElementById('gameBoard');
+function renderGame() {
+  if (gIdx >= QS.length) {
+    document.getElementById('gameArea').style.display = 'none';
+    document.getElementById('gameDone').style.display = 'block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${QS.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games') || '{}');
+    games['02'] = gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games));
+    return;
+  }
+  answered = false;
+  const q = QS[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx + 1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${QS.length}`;
+  gq.innerHTML = q.q;
+  gb.innerHTML = '';
+  q.opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'game-opt';
+    b.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    b.addEventListener('click', () => {
+      if (answered) return;
+      answered = true;
+      if (o.c) { b.classList.add('correct'); gScore++; }
+      else { b.classList.add('wrong'); gb.querySelectorAll('.game-opt').forEach((el, idx) => { if (q.opts[idx].c) el.classList.add('correct'); }); }
+      document.getElementById('gameScore').textContent = gScore;
+      setTimeout(() => { gIdx++; renderGame(); }, 1100);
+    });
+    gb.appendChild(b);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx = 0; gScore = 0;
+  document.getElementById('gameArea').style.display = 'block';
+  document.getElementById('gameDone').style.display = 'none';
+  renderGame();
+});
+renderGame();
+</script>
+</body>
+</html>

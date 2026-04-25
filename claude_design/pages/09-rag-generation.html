@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>09 RAG Generation · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+.prompt { display: grid; grid-template-columns: 90px 1fr; gap: 12px; padding: 14px; background: var(--bg); border:1px solid var(--rule); border-radius: 3px; margin: 8px 0; font-family: var(--mono); font-size: 12px; line-height: 1.65; }
+.prompt .lab { color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; padding-top: 2px; }
+.prompt .body { color: var(--ink-2); }
+.prompt .body .sys { color: var(--ink-blue); font-weight: 600; }
+.prompt .body mark { background: var(--accent-bg); color: var(--accent); padding: 0 4px; border-radius: 1px; font-weight: 500; }
+
+.ctx-list { display: grid; gap: 6px; }
+.ctx-item { display:grid; grid-template-columns: 24px 1fr auto; gap: 10px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--rule); border-radius:3px; align-items:center; font-family: var(--mono); font-size: 12px; }
+.ctx-item .n { color: var(--accent); font-weight: 600; }
+.ctx-item .text { color: var(--ink-2); line-height: 1.45; }
+.ctx-item .tok { color: var(--mute); font-size: 10px; letter-spacing: 0.05em; }
+.ctx-item.dropped { opacity: 0.35; }
+.ctx-item.dropped .text { text-decoration: line-through; }
+
+.knobs { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+.knob { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.knob .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom:6px; }
+.knob .vl { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+.knob .row { display:flex; align-items:center; gap:10px; }
+.knob input[type=range] { flex:1; }
+
+.metric { padding: 14px; background: var(--surface); border:1px solid var(--rule); border-radius:3px; }
+.metric .v { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; font-feature-settings:'tnum'; }
+.metric .l { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+
+.chart { width:100%; height: 240px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.legend { display:flex; gap: 16px; font-family: var(--mono); font-size: 10px; color: var(--mute); margin-top: 8px; flex-wrap: wrap; letter-spacing: 0.06em; text-transform: uppercase; }
+.legend .sw { display:inline-block; width: 10px; height: 10px; vertical-align: -1px; margin-right: 4px; border-radius: 1px; }
+
+.ans { padding: 14px 16px; background: var(--bg); border-left: 3px solid var(--accent); border-radius: 0 3px 3px 0; font-size: 14px; color: var(--ink); line-height: 1.65; margin-top: 12px; }
+.ans .cite { color: var(--accent); font-weight: 600; font-family: var(--mono); font-size: 11px; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div>
+</nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat system">RAG &amp; System</span><span class="sep">/</span><span class="here">09 RAG Generation</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 09</span><span class="sep">·</span><span>RAG &amp; System</span><span class="sep">·</span><span>core · 12 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">09</div>
+      <div>
+        <h1>The model only sees what fits in <em>the prompt</em>.</h1>
+        <div class="dek">Retrieval delivers passages — generation has to assemble them, mark provenance, fit a context budget, and resist the "lost in the middle" failure where models forget what sits between the start and end of a long prompt.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">~20%</div><div class="l">Accuracy at middle position</div></div>
+      <div class="c"><div class="v">~85%</div><div class="l">Accuracy at start / end</div></div>
+      <div class="c"><div class="v">cite-or-die</div><div class="l">Production safety pattern</div></div>
+      <div class="c"><div class="v">Liu 2023</div><div class="l">Lost in the Middle · TACL</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        The retriever did its job. Now you have 30 candidate passages and 4k tokens of budget. How you order, truncate, and instruct the model on those passages is the whole game.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>Anatomy of a RAG prompt</span></h2>
+      <div class="prompt">
+        <div class="lab">system</div>
+        <div class="body"><span class="sys">Answer the question using only the provided context. Cite each claim by passage id <mark>[D03]</mark>. If the answer is not in context, say "I don\'t know."</span></div>
+      </div>
+      <div class="prompt">
+        <div class="lab">context</div>
+        <div class="body">
+          <mark>[D03]</mark> The Transformer architecture was introduced in 2017…<br>
+          <mark>[D01]</mark> Self-attention computes a weighted sum where weights are dot products…<br>
+          <mark>[D02]</mark> Multi-head attention runs several attention layers in parallel…
+        </div>
+      </div>
+      <div class="prompt">
+        <div class="lab">question</div>
+        <div class="body">When was the Transformer introduced and how does its attention mechanism work?</div>
+      </div>
+      <div class="ans">The Transformer was introduced in 2017 <span class="cite">[D03]</span>. Its attention mechanism computes a weighted sum of values where the weights are softmax-normalized dot products of queries and keys <span class="cite">[D01]</span>, run in parallel across multiple heads <span class="cite">[D02]</span>.</div>
+
+      <h2 id="s2" data-n="§ 02"><span>Context budget · pack, drop, reorder</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Pack 12 candidates into a context budget</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="knobs">
+            <div class="knob"><div class="lab">Context budget (tokens)</div><div class="row"><input id="kBudget" type="range" min="200" max="2000" step="50" value="600"><span class="vl" id="vBudget">600</span></div></div>
+            <div class="knob"><div class="lab">Order strategy</div>
+              <select id="kOrder" style="width:100%;padding:6px;border:1px solid var(--rule);background:var(--bg);font:inherit;font-family:var(--mono);font-size:12px">
+                <option value="rank">By score (default)</option>
+                <option value="ushape">U-shape (best at edges)</option>
+                <option value="random">Random</option>
+                <option value="recent">Recency</option>
+              </select>
+            </div>
+            <div class="knob"><div class="lab">Diversify (MMR λ)</div><div class="row"><input id="kMMR" type="range" min="0" max="100" value="0"><span class="vl" id="vMMR">0.00</span></div></div>
+          </div>
+          <div class="ctx-list" id="ctxList"></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px">
+            <div class="metric"><div class="v" id="oUsed">— / —</div><div class="l">Tokens used</div></div>
+            <div class="metric"><div class="v" id="oKept">—</div><div class="l">Passages kept</div></div>
+            <div class="metric"><div class="v" id="oDrop">—</div><div class="l">Dropped</div></div>
+            <div class="metric"><div class="v" id="oRecall">—</div><div class="l">Gold passages in context</div></div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>Lost in the middle</span></h2>
+      <p>
+        Liu et al. found that LLMs reliably attend to passages at the <em>start</em> and <em>end</em> of a long prompt — and forget the ones in the middle. The accuracy curve is U-shaped. Practically: put your highest-rank passages at positions 1, 2, last; never bury the gold in the middle.
+      </p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Accuracy by position of gold passage</span><span class="tag">empirical · 20-doc context</span></div>
+        <div class="dbd">
+          <svg class="chart" id="ushape" viewBox="0 0 900 240" preserveAspectRatio="none"></svg>
+          <div class="legend">
+            <span><span class="sw" style="background:var(--accent)"></span>Accuracy when gold is at position k</span>
+            <span style="color:var(--mute)">// shape from Liu et al. 2023 · GPT-3.5/Claude-1 · QA over 20 docs</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>Citation discipline</span></h2>
+      <div class="callout tip">
+        <div class="lab">// production rules</div>
+        <strong>Inline cite-IDs</strong> — every claim tied to a passage id the user can click.<br>
+        <strong>Refuse on miss</strong> — "I don\'t know" when context lacks the answer (do not let the model fall back on parametric memory).<br>
+        <strong>Reserve budget for refusal</strong> — leave ~50 tokens for "I couldn\'t find this" plus the next-step suggestion.
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>The full failure tree</span></h2>
+      <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;margin:12px 0">
+        <thead><tr><th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase">Symptom</th><th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase">Root cause</th><th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase">Fix</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Hallucination</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Gold not retrieved</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--accent)">Push retriever recall</td></tr>
+          <tr><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Refuses correct answer</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Gold buried mid-context</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--accent)">Reorder to U-shape</td></tr>
+          <tr><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Cites wrong passage</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Many similar passages, no rerank</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--accent)">Cross-encoder rerank · ch.16</td></tr>
+          <tr><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Mixes facts from two docs</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">No citation discipline</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--accent)">Force inline IDs</td></tr>
+          <tr><td style="padding:8px 10px">Truncated answer</td><td style="padding:8px 10px">Output budget too tight</td><td style="padding:8px 10px;color:var(--accent)">Reserve ≥30% for output</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s6" data-n="§ 06"><span>Mini-game</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Diagnose the RAG bug</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div id="gameArea">
+            <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Prompt anatomy</span></a>
+        <a href="#s2"><span class="n">02</span><span>Pack &amp; reorder</span></a>
+        <a href="#s3"><span class="n">03</span><span>Lost in the middle</span></a>
+        <a href="#s4"><span class="n">04</span><span>Citation discipline</span></a>
+        <a href="#s5"><span class="n">05</span><span>Failure tree</span></a>
+        <a href="#s6"><span class="n">06</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 09 RAG Generation <span class="dot">·</span> RAG &amp; System</div><div>chapter 09 of 29 <span class="dot">●</span> 12 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "09" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'09', related:['08','10','16','22','17'] });
+
+/* candidate passages: score, tokens, gold flag */
+const CANDS = [
+  { id:'D01', score:0.94, tok:120, text:'Self-attention is a weighted sum where weights are dot products of Q and K.', gold:true },
+  { id:'D02', score:0.87, tok:90,  text:'Multi-head attention runs several attention layers in parallel.', gold:true },
+  { id:'D03', score:0.82, tok:55,  text:'The Transformer was introduced in the 2017 paper "Attention Is All You Need".', gold:true },
+  { id:'D04', score:0.71, tok:140, text:'Self-attention has O(n^2) complexity in sequence length.', gold:false },
+  { id:'D05', score:0.66, tok:90,  text:'Positional encodings inject sequence-order information.', gold:false },
+  { id:'D06', score:0.60, tok:110, text:'Layer normalization stabilizes deep transformer training.', gold:false },
+  { id:'D07', score:0.55, tok:80,  text:'Feed-forward networks expand and contract the residual stream.', gold:false },
+  { id:'D08', score:0.49, tok:130, text:'Residual connections preserve gradient flow through stacked layers.', gold:false },
+  { id:'D09', score:0.41, tok:170, text:'Tokenization splits text into subword units before embedding.', gold:false },
+  { id:'D10', score:0.36, tok:160, text:'Modern transformers use rotary position embeddings (RoPE).', gold:false },
+  { id:'D11', score:0.31, tok:100, text:'GPT-2 was released in 2019 with strong zero-shot generalization.', gold:false },
+  { id:'D12', score:0.22, tok:140, text:'GPT-3 demonstrated few-shot in-context learning at 175B scale.', gold:false },
+];
+
+function pack(){
+  const budget = parseInt(document.getElementById('kBudget').value);
+  const order = document.getElementById('kOrder').value;
+  const mmr = parseInt(document.getElementById('kMMR').value)/100;
+  document.getElementById('vBudget').textContent = budget.toLocaleString();
+  document.getElementById('vMMR').textContent = mmr.toFixed(2);
+  // simulate MMR by perturbing scores slightly toward diversity
+  const ranked = CANDS.map((c,i) => ({ ...c, eff: c.score - mmr * (i*0.04) })).sort((a,b)=>b.eff-a.eff);
+  let used = 0; const kept = [];
+  for (const c of ranked) {
+    if (used + c.tok <= budget) { kept.push(c); used += c.tok; }
+  }
+  let arr = kept.slice();
+  if (order === 'ushape') {
+    const a = arr.slice().sort((x,y)=>y.eff-x.eff);
+    const result = []; let l=0, r=a.length-1, side=true;
+    while (l <= r) { if (side) result.push(a[l++]); else result.unshift(a[r--]); side=!side; }
+    arr = result;
+  } else if (order === 'random') {
+    arr.sort(()=>Math.random()-0.5);
+  } else if (order === 'recent') {
+    arr.sort((a,b)=>parseInt(b.id.slice(1))-parseInt(a.id.slice(1)));
+  }
+  // render full list (kept in order, dropped after)
+  const dropped = ranked.filter(c => !kept.includes(c));
+  const list = document.getElementById('ctxList'); list.innerHTML='';
+  arr.forEach((c,i) => {
+    const el = document.createElement('div'); el.className = 'ctx-item';
+    el.innerHTML = `<span class="n">${(i+1).toString().padStart(2,'0')}</span><span class="text">${c.gold?'★ ':''}${c.id} · ${c.text}</span><span class="tok">${c.tok} tok</span>`;
+    list.appendChild(el);
+  });
+  dropped.forEach(c => {
+    const el = document.createElement('div'); el.className = 'ctx-item dropped';
+    el.innerHTML = `<span class="n">—</span><span class="text">${c.gold?'★ ':''}${c.id} · ${c.text}</span><span class="tok">${c.tok} tok · dropped</span>`;
+    list.appendChild(el);
+  });
+  document.getElementById('oUsed').textContent = used + ' / ' + budget;
+  document.getElementById('oKept').textContent = kept.length;
+  document.getElementById('oDrop').textContent = dropped.length;
+  const goldKept = kept.filter(c=>c.gold).length;
+  const goldTot = CANDS.filter(c=>c.gold).length;
+  document.getElementById('oRecall').textContent = goldKept + ' / ' + goldTot;
+}
+['kBudget','kOrder','kMMR'].forEach(id => document.getElementById(id).addEventListener('input', pack));
+pack();
+
+/* U-shape */
+(function(){
+  const svg = document.getElementById('ushape');
+  const W=900, H=240, pad=40;
+  // simulated U-shape: 0.86, 0.72, 0.45, 0.22, 0.18, 0.20, 0.28, 0.55, 0.78, 0.84
+  const acc = [0.86, 0.72, 0.55, 0.38, 0.24, 0.22, 0.30, 0.48, 0.74, 0.84];
+  const xs = acc.map((_,i)=> pad + (W-2*pad)*i/(acc.length-1));
+  const y = (a) => pad + (H-2*pad)*(1-a);
+  let g = '';
+  // grid
+  for (let i = 0; i <= 4; i++) {
+    const yy = pad + (H-2*pad)*i/4;
+    g += `<line x1="${pad}" y1="${yy}" x2="${W-pad}" y2="${yy}" stroke="#e8dfc5" stroke-width="0.5" stroke-dasharray="2 3"/>`;
+  }
+  // bars
+  acc.forEach((a,i)=>{
+    const h = (H-2*pad)*a;
+    const fill = (i===0||i===acc.length-1) ? '#b8471f' : (a < 0.35 ? 'rgba(184,71,31,0.45)' : 'rgba(184,71,31,0.7)');
+    g += `<rect x="${xs[i]-30}" y="${H-pad-h}" width="60" height="${h}" fill="${fill}" rx="2"/>`;
+    g += `<text x="${xs[i]}" y="${H-pad-h-6}" font-family="JetBrains Mono, monospace" font-size="10" fill="#1a120a" text-anchor="middle" font-weight="600">${(a*100).toFixed(0)}%</text>`;
+    g += `<text x="${xs[i]}" y="${H-pad+16}" font-family="JetBrains Mono, monospace" font-size="9" fill="#7a6f60" text-anchor="middle">pos ${i+1}</text>`;
+  });
+  // line
+  let path = '';
+  acc.forEach((a,i)=>{ path += `${i===0?'M':'L'} ${xs[i]} ${y(a)} `; });
+  g += `<path d="${path}" stroke="#1a120a" stroke-width="1.5" fill="none" stroke-dasharray="3 4" opacity="0.7"/>`;
+  svg.innerHTML = g;
+})();
+
+/* mini-game */
+const GAME = [
+  { q: 'You retrieve gold passage at rank 1 but the model still answers wrong. Most likely cause?', opts: [
+    { t: 'Gold ended up in the middle of context — lost-in-the-middle', h: 'Reorder to edges', c: true },
+    { t: 'Embedding model is broken', h: 'Already retrieved correctly' },
+    { t: 'Tokenizer corruption', h: 'Unrelated' },
+    { t: 'GPU OOM', h: 'Different failure' },
+  ]},
+  { q: 'Model fabricates a citation that doesn\'t exist in context. Best fix?', opts: [
+    { t: 'Hard rule in system: cite or refuse + post-validation', h: 'Cite-or-die', c: true },
+    { t: 'Larger context', h: 'Doesn\'t fix it' },
+    { t: 'Lower temperature only', h: 'Helps, doesn\'t solve' },
+    { t: 'Switch retriever', h: 'Wrong layer' },
+  ]},
+  { q: 'Diversifying context (MMR λ↑) helps when?', opts: [
+    { t: 'Top-k passages are near-duplicates and waste budget', h: 'Redundancy is the disease', c: true },
+    { t: 'Always — diversity strictly better', h: 'No' },
+    { t: 'Only at small budgets', h: 'Wrong reason' },
+    { t: 'Only with reranking off', h: 'Independent' },
+  ]},
+  { q: 'You see refusals on questions the docs clearly answer. First thing to check?', opts: [
+    { t: 'Recall@k — is gold actually in context?', h: 'Generation can\'t fix retrieval', c: true },
+    { t: 'Output temperature', h: 'Late-stage' },
+    { t: 'Tokenizer', h: 'Unlikely' },
+    { t: 'Vector DB latency', h: 'Unrelated' },
+  ]},
+  { q: 'Long-context model (200k tokens). Should you stop reranking?', opts: [
+    { t: 'No — lost-in-the-middle still hits at long context; rerank + U-shape', h: 'Bigger window != better attention', c: true },
+    { t: 'Yes, dump everything in', h: 'Hurts accuracy' },
+    { t: 'Only if temperature is low', h: 'Unrelated' },
+    { t: 'Only if you have GPU budget', h: 'Wrong reason' },
+  ]},
+];
+let gIdx=0, gScore=0;
+function renderG(){
+  if (gIdx >= GAME.length){
+    document.getElementById('gameArea').style.display='none';
+    document.getElementById('gameDone').style.display='block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${GAME.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games')||'{}'); games['09']=gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games)); return;
+  }
+  const q = GAME[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx+1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${GAME.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const b = document.getElementById('gameBoard'); b.innerHTML='';
+  let answered=false;
+  q.opts.forEach(o => {
+    const el = document.createElement('button'); el.className='game-opt';
+    el.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    el.addEventListener('click', () => {
+      if (answered) return; answered=true;
+      if (o.c) { el.classList.add('correct'); gScore++; }
+      else { el.classList.add('wrong'); b.querySelectorAll('.game-opt').forEach((x,i)=>{ if (q.opts[i].c) x.classList.add('correct'); }); }
+      setTimeout(()=>{ gIdx++; renderG(); }, 1100);
+    });
+    b.appendChild(el);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx=0; gScore=0;
+  document.getElementById('gameArea').style.display='block';
+  document.getElementById('gameDone').style.display='none';
+  renderG();
+});
+renderG();
+</script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>20 Hybrid Search · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.pipe { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: stretch; margin: 14px 0; }
+.stage { padding: 14px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; position: relative; }
+.stage .num { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; }
+.stage h4 { font-size: 14px; color: var(--ink); margin: 6px 0 6px; font-weight: 700; }
+.stage p { font-size: 11px; color: var(--ink-2); line-height: 1.55; font-family: var(--mono); }
+.stage .out { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--rule); font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.06em; }
+.stage .out span { color: var(--accent); font-weight: 600; }
+
+.fuse-table { width:100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; margin: 12px 0; }
+.fuse-table th { text-align:left; padding: 8px 10px; border-bottom: 1px solid var(--rule); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
+.fuse-table td { padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+.fuse-table .rank { color: var(--accent); font-weight: 600; }
+.fuse-table .doc { color: var(--ink); }
+.fuse-table .sc { color: var(--ink-2); text-align:right; }
+
+.knobs { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 12px 0; }
+.knob { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.knob .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom:6px; }
+.knob .vl { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+.knob .row { display:flex; align-items:center; gap:10px; }
+.knob input[type=range] { flex:1; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top"><div><a href="../index.html" class="brand">llm-viz</a></div><div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div></nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat compute">Compute</span><span class="sep">/</span><span class="here">20 Hybrid Search</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 20</span><span class="sep">·</span><span>Compute</span><span class="sep">·</span><span>2024 · 11 min read</span></div>
+    <div class="phero-grid"><div class="phero-num">20</div><div>
+      <h1>BM25 + dense + rerank — the <em>boring</em> default that wins.</h1>
+      <div class="dek">Run lexical and semantic retrieval in parallel. Fuse with Reciprocal Rank Fusion. Rerank the top-50 with a cross-encoder. Three steps, one pipeline, near state-of-the-art on every public benchmark.</div>
+    </div></div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">+10–15%</div><div class="l">nDCG vs single retriever</div></div>
+      <div class="c"><div class="v">RRF</div><div class="l">Rank-based fusion · k=60</div></div>
+      <div class="c"><div class="v">~80 ms</div><div class="l">P50 end-to-end</div></div>
+      <div class="c"><div class="v">3 stages</div><div class="l">Retrieve · fuse · rerank</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">No clever tricks. Just admit BM25 and dense retrieval each catch failures the other misses, fuse their results with a robust rank-based formula, then let a strong but slow cross-encoder fix the top.</p>
+
+      <h2 id="s1" data-n="§ 01"><span>The pipeline</span></h2>
+      <div class="pipe">
+        <div class="stage"><div class="num">Stage 01 · Retrieve</div><h4>Two retrievers · in parallel</h4><p>BM25 over inverted index → top-100<br>Dense retriever (e.g. e5) → top-100</p><div class="out">// out · 200 candidates · &lt; 20 ms</div></div>
+        <div class="stage"><div class="num">Stage 02 · Fuse</div><h4>Reciprocal Rank Fusion</h4><p>Combine ranks not scores · doc score = Σ 1 / (k + rank). k=60 by convention. No score calibration needed.</p><div class="out">// out · top-50 · &lt; 1 ms</div></div>
+        <div class="stage"><div class="num">Stage 03 · Rerank</div><h4>Cross-encoder · top-50 → top-k</h4><p>Score (query, doc) jointly with a small BERT. Slow per pair, but only 50 pairs. Big quality lift.</p><div class="out">// out · final top-k · ~60 ms</div></div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>RRF · the formula</span></h2>
+      <div class="callout math">
+        $$\text{RRF}(d) = \sum_{r \in R} \frac{1}{k + \text{rank}_r(d)}$$
+        <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px;letter-spacing:0.04em">// R = set of retrievers · k = constant (60) · rank starts at 1 · doc absent → contribution 0</div>
+      </div>
+      <p>Why ranks not scores: BM25 returns log-IDF sums (range 0–30+); dense returns cosine similarities (range -1–1). Calibrating across them is fragile. Ranks are unitless and bounded.</p>
+
+      <h2 id="s3" data-n="§ 03"><span>Live · play with the fusion</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · BM25 vs Dense vs RRF</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="knobs">
+            <div class="knob"><div class="lab">k (fusion)</div><div class="row"><input id="kK" type="range" min="1" max="120" value="60"><span class="vl" id="vK">60</span></div></div>
+            <div class="knob"><div class="lab">BM25 weight</div><div class="row"><input id="kWB" type="range" min="0" max="100" value="50"><span class="vl" id="vWB">0.50</span></div></div>
+            <div class="knob"><div class="lab">Dense weight</div><div class="row"><input id="kWD" type="range" min="0" max="100" value="50"><span class="vl" id="vWD">0.50</span></div></div>
+          </div>
+          <table class="fuse-table"><thead><tr><th>#</th><th>Doc</th><th style="text-align:right">BM25 rank</th><th style="text-align:right">Dense rank</th><th style="text-align:right">Weighted RRF</th></tr></thead><tbody id="fuseTbl"></tbody></table>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>Cross-encoder · the rerank step</span></h2>
+      <p>A bi-encoder embeds query and doc <em>independently</em> — fast but information-poor. A cross-encoder concatenates query and doc, runs them through a single Transformer, outputs a score. Quality is dramatically higher; cost is one forward pass per pair.</p>
+      <p>Run only on the top-50 candidates from RRF. At ~5 ms per pair on a small (e.g. ms-marco-MiniLM-L-12-v2) model, that\'s 60 ms total — usually the dominant latency in the pipeline.</p>
+
+      <h2 id="s5" data-n="§ 05"><span>SPLADE · learned sparse</span></h2>
+      <p>SPLADE keeps lexical interpretability but learns the term weights with a Transformer. Output: a sparse vector of vocabulary-sized term weights. Index it like BM25 (inverted), retrieve like BM25, but each term\'s contribution is contextual. Often replaces BM25 in the pipeline\'s lexical leg.</p>
+
+      <h2 id="s6" data-n="§ 06"><span>Mini-game</span></h2>
+      <div class="demo"><div class="dhd"><span class="ttl">Game · Hybrid Search</span><span class="tag" id="gameTag">0 / 5</span></div><div class="dbd">
+        <div id="gameArea">
+          <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+          <div class="game-q" id="gameQ"></div>
+          <div class="game-board" id="gameBoard"></div>
+        </div>
+        <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+          <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+          <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+        </div>
+      </div></div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>The pipeline</span></a>
+        <a href="#s2"><span class="n">02</span><span>RRF formula</span></a>
+        <a href="#s3"><span class="n">03</span><span>Live fusion</span></a>
+        <a href="#s4"><span class="n">04</span><span>Cross-encoder</span></a>
+        <a href="#s5"><span class="n">05</span><span>SPLADE</span></a>
+        <a href="#s6"><span class="n">06</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 20 Hybrid Search <span class="dot">·</span> Compute</div><div>chapter 20 of 29 <span class="dot">●</span> 11 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks"><div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div><div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+  <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+  <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "20"</div></div></div>
+  <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number</div></div></div>
+</div></div></aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'20', related:['12','13','15','16','19'] });
+
+const DOCS = [
+  { id:'D01', title:'Hybrid retrieval combines BM25 and dense vectors with rank fusion.', bm:1, de:4 },
+  { id:'D02', title:'BM25 saturates term frequency with k1 and length-normalizes with b.', bm:2, de:9 },
+  { id:'D03', title:'Dense retrievers like DPR and ColBERT use Transformer embeddings.', bm:6, de:1 },
+  { id:'D04', title:'Reciprocal rank fusion sums 1 over k plus rank across rankers.', bm:3, de:7 },
+  { id:'D05', title:'Cross-encoders score query-doc pairs jointly with a Transformer.', bm:8, de:2 },
+  { id:'D06', title:'SPLADE learns sparse term weights with a Transformer encoder.', bm:5, de:5 },
+  { id:'D07', title:'HNSW is the default ANN algorithm for dense vector indexes.', bm:11, de:3 },
+  { id:'D08', title:'Lexical retrieval is robust on out-of-domain data and rare codes.', bm:4, de:12 },
+  { id:'D09', title:'Embedding models are trained on contrastive pairs.', bm:14, de:6 },
+  { id:'D10', title:'Adaptive RAG uses Self-RAG, CRAG, and FLARE strategies.', bm:7, de:8 },
+];
+function render(){
+  const k=parseInt(document.getElementById('kK').value);
+  const wb=parseInt(document.getElementById('kWB').value)/100;
+  const wd=parseInt(document.getElementById('kWD').value)/100;
+  document.getElementById('vK').textContent=k;
+  document.getElementById('vWB').textContent=wb.toFixed(2);
+  document.getElementById('vWD').textContent=wd.toFixed(2);
+  const scored = DOCS.map(d => ({ ...d, rrf: wb/(k+d.bm) + wd/(k+d.de) })).sort((a,b)=>b.rrf-a.rrf);
+  const t=document.getElementById('fuseTbl');
+  t.innerHTML = scored.slice(0,8).map((d,i)=>`<tr>
+    <td class="rank">${i+1}</td>
+    <td class="doc"><div style="color:var(--mute);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:2px">${d.id}</div>${d.title}</td>
+    <td class="sc">#${d.bm}</td>
+    <td class="sc">#${d.de}</td>
+    <td class="sc" style="color:var(--accent);font-weight:600">${d.rrf.toFixed(4)}</td>
+  </tr>`).join('');
+}
+['kK','kWB','kWD'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+render();
+
+const GAME=[
+  {q:'Why use ranks (RRF) instead of raw scores when fusing?',opts:[{t:'BM25 and dense scores live on different scales — ranks are calibrated',h:'No score normalization needed',c:true},{t:'Ranks are faster to compute',h:'Same speed'},{t:'Ranks have higher precision',h:'No'},{t:'Required by FAISS',h:'No'}]},
+  {q:'A cross-encoder is slow because?',opts:[{t:'Query and doc go through the model together — no pre-indexing possible',h:'1 forward pass per pair',c:true},{t:'Larger embedding dim',h:'No'},{t:'GPU not available',h:'No'},{t:'It uses BM25',h:'No'}]},
+  {q:'Standard k for RRF?',opts:[{t:'k=60 — empirical, robust across datasets',h:'TREC convention',c:true},{t:'k=1',h:'Too small'},{t:'k=10000',h:'Too large'},{t:'k=N (corpus size)',h:'No'}]},
+  {q:'SPLADE\'s output is?',opts:[{t:'A sparse vector of vocabulary-sized term weights',h:'Learned sparse retrieval',c:true},{t:'A dense 768-d vector',h:'That\'s a bi-encoder'},{t:'A graph',h:'No'},{t:'A relevance score',h:'A score, but the index is sparse vectors'}]},
+  {q:'Why rerank only top-50, not top-1000?',opts:[{t:'Cross-encoder is O(N) per query — cost would dominate',h:'~5 ms × 1000 = 5 s',c:true},{t:'Reranker can only see 50',h:'Not a hard limit'},{t:'Index too small',h:'No'},{t:'Memory limits',h:'Not the bottleneck'}]},
+];
+let gI=0,gS=0;
+function rg(){
+  if(gI>=GAME.length){document.getElementById('gameArea').style.display='none';document.getElementById('gameDone').style.display='block';document.getElementById('gameFinal').textContent=`${gS} / ${GAME.length}`;const g=JSON.parse(localStorage.getItem('llm-viz-games')||'{}');g['20']=gS;localStorage.setItem('llm-viz-games',JSON.stringify(g));return;}
+  const q=GAME[gI];document.getElementById('gameIdx').textContent=gI+1;document.getElementById('gameScore').textContent=gS;document.getElementById('gameTag').textContent=`${gI} / ${GAME.length}`;document.getElementById('gameQ').innerHTML=q.q;
+  const b=document.getElementById('gameBoard');b.innerHTML='';let an=false;
+  q.opts.forEach(o=>{const e=document.createElement('button');e.className='game-opt';e.innerHTML=`<div class="q">${o.t}</div><div class="h">${o.h}</div>`;e.addEventListener('click',()=>{if(an)return;an=true;if(o.c){e.classList.add('correct');gS++;}else{e.classList.add('wrong');b.querySelectorAll('.game-opt').forEach((x,i)=>{if(q.opts[i].c)x.classList.add('correct');});}setTimeout(()=>{gI++;rg();},1100);});b.appendChild(e);});
+}
+document.getElementById('gameRestart').addEventListener('click',()=>{gI=0;gS=0;document.getElementById('gameArea').style.display='block';document.getElementById('gameDone').style.display='none';rg();});
+rg();
+</script>
+</body>
+</html>

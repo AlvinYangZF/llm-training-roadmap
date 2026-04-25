@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<title>LLM Viz — Warm Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root, [data-theme="dark"] {
+  --bg:       #130d05;
+  --bg-2:     #1a1209;
+  --surface:  #1c130a;
+  --surface-2:#251a0f;
+  --ink:      #f3e5c7;
+  --ink-2:    #d4c4a0;
+  --mute:     #86765a;
+  --rule:     #3a2b18;
+  --rule-2:   #2a1f12;
+  --amber:    #f5a259;
+  --amber-2:  #e37b33;
+  --amber-bg: rgba(245,162,89,0.08);
+  --terra:    #d9583a;
+  --cream:    #ead4a6;
+  --moss:     #9ab973;
+  --ink-blue: #8aa2c4;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --sans: 'Inter', system-ui, sans-serif;
+}
+[data-theme="light"] {
+  --bg:       #f8f0df;
+  --bg-2:     #f1e7d0;
+  --surface:  #fdf6e4;
+  --surface-2:#f3ead2;
+  --ink:      #1f1608;
+  --ink-2:    #4a3a22;
+  --mute:     #8a7452;
+  --rule:     #d8c8a3;
+  --rule-2:   #e7dcba;
+  --amber:    #b8471f;
+  --amber-2:  #9a3712;
+  --amber-bg: rgba(184,71,31,0.08);
+  --terra:    #a33818;
+  --cream:    #5a4420;
+  --moss:     #556b2f;
+  --ink-blue: #3a4a65;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { background: var(--bg); color: var(--ink); font-family: var(--sans); }
+a { color: inherit; text-decoration: none; }
+
+/* ── top bar (terminal style) ── */
+.top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--mono); font-size: 11px;
+}
+.top .left { display: flex; align-items: center; gap: 14px; color: var(--mute); }
+.traffic { display: flex; gap: 6px; }
+.traffic span { width: 11px; height: 11px; border-radius: 50%; background: var(--rule); }
+.traffic span:nth-child(1) { background: var(--terra); }
+.traffic span:nth-child(2) { background: var(--amber); }
+.traffic span:nth-child(3) { background: var(--moss); }
+.top .path { color: var(--ink-2); }
+.top .path b { color: var(--ink); font-weight: 500; }
+.top .right { display: flex; gap: 14px; align-items: center; color: var(--mute); }
+.top .right a:hover { color: var(--amber); }
+
+/* ── layout ── */
+.shell { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 35px); }
+
+/* ── sidebar ── */
+.side {
+  border-right: 1px solid var(--rule);
+  padding: 20px 14px;
+  font-family: var(--mono); font-size: 12px;
+  background: var(--bg-2);
+}
+.side .cat-head {
+  color: var(--mute); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 14px 8px 6px;
+}
+.side .cat-head:first-child { padding-top: 0; }
+.side a {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  color: var(--ink-2); border-radius: 3px;
+}
+.side a:hover { background: var(--surface); color: var(--ink); }
+.side a.active { background: var(--amber-bg); color: var(--amber); }
+.side a .n { color: var(--mute); min-width: 22px; }
+.side a.active .n { color: var(--amber); }
+.side a .dot {
+  margin-left: auto; width: 5px; height: 5px; border-radius: 50%;
+}
+.side a .dot.visited { background: var(--amber); opacity: 0.5; }
+.side a .dot.done    { background: var(--moss); }
+
+/* ── main ── */
+.main { padding: 40px 48px 60px; max-width: 1100px; }
+
+/* ── hero ── */
+.prompt {
+  font-family: var(--mono); font-size: 12px; color: var(--mute);
+  margin-bottom: 18px;
+}
+.prompt .cmd { color: var(--amber); }
+.prompt .cursor {
+  display: inline-block; width: 8px; height: 14px; background: var(--amber);
+  vertical-align: -2px; animation: blink 1s steps(1) infinite; margin-left: 4px;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+.hero-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
+  padding-bottom: 40px; border-bottom: 1px solid var(--rule); margin-bottom: 40px;
+}
+.hero h1 {
+  font-size: clamp(40px, 5vw, 64px);
+  font-weight: 700; letter-spacing: -0.035em; line-height: 0.98;
+  color: var(--ink);
+}
+.hero h1 em {
+  font-style: normal; color: var(--amber);
+  background: linear-gradient(180deg, transparent 65%, var(--amber-bg) 65%);
+  padding: 0 0.05em;
+}
+.hero p { color: var(--ink-2); font-size: 15px; line-height: 1.6; margin-top: 20px; max-width: 44ch; }
+
+/* ── big number panel ── */
+.num-panel {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 20px;
+  font-family: var(--mono);
+  position: relative;
+  overflow: hidden;
+}
+.num-panel::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle at 100% 0, var(--amber-bg) 0%, transparent 60%);
+  pointer-events: none;
+}
+.np-head {
+  display: flex; justify-content: space-between; font-size: 11px; color: var(--mute);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding-bottom: 10px; border-bottom: 1px dashed var(--rule);
+}
+.np-head .tick {
+  display: inline-flex; align-items: center; gap: 6px; color: var(--moss);
+}
+.np-head .tick::before { content:''; width: 6px; height: 6px; border-radius: 50%; background: var(--moss); box-shadow: 0 0 0 3px color-mix(in oklab, var(--moss) 25%, transparent); }
+.np-body {
+  display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: end;
+  padding: 22px 0 14px;
+}
+.np-big {
+  font-size: 96px; font-weight: 600; letter-spacing: -0.04em;
+  color: var(--ink); line-height: 1; position: relative; z-index: 1;
+}
+.np-sub {
+  display: grid; gap: 12px; position: relative; z-index: 1;
+}
+.np-sub .row { display: flex; justify-content: space-between; font-size: 12px; }
+.np-sub .row .k { color: var(--mute); }
+.np-sub .row .v { color: var(--ink); font-weight: 500; }
+.np-sub .row .v .pct { color: var(--amber); }
+.np-strip {
+  display: grid; grid-template-columns: repeat(29, 1fr); gap: 2px; margin-top: 8px;
+}
+.np-strip span { height: 6px; border-radius: 1px; background: var(--rule); }
+.np-strip span.visited { background: var(--amber); opacity: 0.4; }
+.np-strip span.done    { background: var(--amber); }
+
+/* ── filter/tabs ── */
+.tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--rule); margin-bottom: 24px;
+  font-family: var(--mono); font-size: 12px;
+}
+.tabs a {
+  padding: 10px 16px; color: var(--mute); border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tabs a.active { color: var(--amber); border-bottom-color: var(--amber); }
+.tabs a:hover:not(.active) { color: var(--ink-2); }
+.tabs .spacer { flex: 1; }
+.tabs .meta { padding: 10px 0; color: var(--mute); font-size: 11px; }
+
+/* ── section header ── */
+.sect {
+  display: flex; align-items: baseline; gap: 14px; margin: 40px 0 18px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--rule-2);
+  font-family: var(--mono);
+}
+.sect .idx {
+  color: var(--amber); font-size: 11px; letter-spacing: 0.08em;
+}
+.sect h3 {
+  font-family: var(--sans); font-size: 17px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em;
+}
+.sect .note {
+  margin-left: auto; font-size: 11px; color: var(--mute); letter-spacing: 0.04em;
+}
+
+/* ── cards ── */
+.grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 6px; overflow: hidden;
+}
+.card {
+  position: relative;
+  padding: 20px;
+  background: var(--surface);
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 180px;
+  transition: background .15s;
+}
+.card:hover { background: var(--surface-2); }
+.card:hover .c-num { color: var(--amber); }
+.card:hover .c-arr { opacity: 1; transform: translate(3px, -3px); }
+
+.c-head { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); }
+.c-num { font-weight: 500; transition: color .15s; }
+.c-num::before { content: '['; } .c-num::after { content: ']'; }
+.c-year { letter-spacing: 0.04em; }
+.c-arr { position: absolute; top: 16px; right: 14px; width: 14px; height: 14px; color: var(--mute); opacity: 0.4; transition: all .2s; }
+.c-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); line-height: 1.25; }
+.c-desc  { font-size: 13px; line-height: 1.55; color: var(--ink-2); flex: 1; }
+.c-foot {
+  display: flex; align-items: center; gap: 8px; margin-top: 4px;
+  font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.05em;
+}
+.c-foot .cat { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); }
+.c-foot .cat::before { content:''; width: 6px; height: 6px; border-radius: 50%; }
+.cat.foundation::before { background: var(--ink-blue); }
+.cat.compute::before    { background: var(--moss); }
+.cat.memory::before     { background: var(--amber); }
+.cat.system::before     { background: var(--terra); }
+.c-foot .status { margin-left: auto; color: var(--amber); }
+.c-foot .status.done { color: var(--moss); }
+
+/* ── footer ── */
+.foot {
+  margin-top: 60px; padding-top: 18px; border-top: 1px solid var(--rule);
+  display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute);
+}
+
+@media (max-width: 1000px) {
+  .shell { grid-template-columns: 1fr; }
+  .side { display: none; }
+  .hero-grid { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; }
+  .main { padding: 24px 18px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="left">
+    <div class="traffic"><span></span><span></span><span></span></div>
+    <span class="path">~/<b>llm-viz</b>/roadmap</span>
+  </div>
+  <div class="right">
+    <a href="#">⌘K</a>
+    <a href="#">docs</a>
+    <a href="#" id="themeBtn">◐ theme</a>
+  </div>
+</nav>
+
+<div class="shell">
+  <!-- sidebar -->
+  <aside class="side">
+    <div class="cat-head">// roadmap</div>
+    <a href="#" class="active"><span class="n">00</span> Linear Algebra <span class="dot done"></span></a>
+    <a href="#"><span class="n">01</span> Transformer <span class="dot done"></span></a>
+    <a href="#"><span class="n">02</span> GPT-2 <span class="dot visited"></span></a>
+    <a href="#"><span class="n">03</span> Sparse <span class="dot"></span></a>
+
+    <div class="cat-head">// compute</div>
+    <a href="#"><span class="n">04</span> Prefill · Decode <span class="dot done"></span></a>
+    <a href="#"><span class="n">05</span> FlashAttention <span class="dot visited"></span></a>
+
+    <div class="cat-head">// memory</div>
+    <a href="#"><span class="n">06</span> PagedAttention <span class="dot visited"></span></a>
+    <a href="#"><span class="n">07</span> H2O <span class="dot"></span></a>
+    <a href="#"><span class="n">11</span> TurboQuant <span class="dot"></span></a>
+
+    <div class="cat-head">// system</div>
+    <a href="#"><span class="n">08</span> StreamingLLM <span class="dot"></span></a>
+    <a href="#"><span class="n">09</span> PD Separation <span class="dot visited"></span></a>
+    <a href="#"><span class="n">10</span> Mooncake <span class="dot"></span></a>
+  </aside>
+
+  <!-- main -->
+  <main class="main">
+    <div class="prompt">
+      <span class="cmd">llm-viz</span> <span>init</span> <span style="color:var(--ink-2)">--roadmap=complete</span>
+      <span class="cursor"></span>
+    </div>
+
+    <section class="hero-grid">
+      <div>
+        <h1>29 lessons on how <em>modern LLMs</em> actually work.</h1>
+        <p>A terminal-first, hands-on tour of Transformer internals, compute and memory optimizations, and production serving systems. Read, poke, play. Built for engineers who learn by debugging.</p>
+      </div>
+      <div class="num-panel">
+        <div class="np-head">
+          <span>progress.log</span>
+          <span class="tick">live</span>
+        </div>
+        <div class="np-body">
+          <div class="np-big">29</div>
+          <div class="np-sub">
+            <div class="row"><span class="k">topics</span><span class="v">29 total</span></div>
+            <div class="row"><span class="k">visited</span><span class="v">7 · <span class="pct">24%</span></span></div>
+            <div class="row"><span class="k">games cleared</span><span class="v">3 · <span class="pct">10%</span></span></div>
+          </div>
+        </div>
+        <div class="np-strip" id="strip"></div>
+      </div>
+    </section>
+
+    <!-- tabs -->
+    <nav class="tabs">
+      <a href="#" class="active">⌗ grid</a>
+      <a href="#">⊙ graph</a>
+      <a href="#">⊞ timeline</a>
+      <div class="spacer"></div>
+      <div class="meta">29 nodes · 34 edges</div>
+    </nav>
+
+    <!-- section -->
+    <div class="sect">
+      <span class="idx">$ cat foundations/*</span>
+      <h3>Foundations</h3>
+      <span class="note">2017 — 2019 · math · attention · gpt-2</span>
+    </div>
+    <div class="grid" id="g1"></div>
+
+    <div class="sect">
+      <span class="idx">$ cat compute/*</span>
+      <h3>Compute Optimization</h3>
+      <span class="note">2022 · prefill/decode · FlashAttention</span>
+    </div>
+    <div class="grid" id="g2"></div>
+
+    <div class="sect">
+      <span class="idx">$ cat memory/* system/*</span>
+      <h3>Memory &amp; Serving</h3>
+      <span class="note">2023 — 2026 · vLLM · H2O · Mooncake</span>
+    </div>
+    <div class="grid" id="g3"></div>
+
+    <footer class="foot">
+      <div>llm-viz · v2.1.0 · built for interactive learning</div>
+      <div>2026-03-31 · <span style="color:var(--amber)">◉ live</span></div>
+    </footer>
+  </main>
+</div>
+
+<script>
+const ARROW = '<svg class="c-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+const TOPICS = [
+  {id:'00', year:'math', cat:'foundation', title:'Linear Algebra Basics', desc:'Vectors, dot products, matmul, softmax — the math behind every attention head.', status:'done'},
+  {id:'01', year:'2017', cat:'foundation', title:'Transformer Basics', desc:'"Attention Is All You Need" — an interactive QKV walkthrough.', status:'done'},
+  {id:'02', year:'2019', cat:'foundation', title:'GPT-2 Architecture', desc:'Decoder-only, Pre-LN, BPE tokenization, weight tying — visually.', status:'visited'},
+  {id:'03', year:'2019', cat:'foundation', title:'Sparse Transformers', desc:'O(N√N) attention via local + strided patterns. Up to 65K tokens.', status:''},
+  {id:'04', year:'core', cat:'compute', title:'Prefill & Decode', desc:'Two-phase inference — compute-bound prefill, memory-bound decode.', status:'done'},
+  {id:'05', year:'2022', cat:'compute', title:'FlashAttention', desc:'IO-aware tiling + online softmax. Never materialize N×N in HBM.', status:'visited'},
+  {id:'06', year:'2023', cat:'memory', title:'PagedAttention / vLLM', desc:'OS-style KV cache paging with block tables. 2–4× throughput.', status:'visited'},
+  {id:'07', year:'2023', cat:'memory', title:'H2O', desc:'Heavy-Hitter Oracle. 20× KV compression via attention sparsity.', status:''},
+  {id:'08', year:'2024', cat:'system', title:'StreamingLLM', desc:'Attention sinks + sliding window for constant-memory streaming.', status:''},
+  {id:'09', year:'2025', cat:'system', title:'PD Separation', desc:'Disaggregate prefill/decode into independent GPU pools.', status:'visited'},
+  {id:'10', year:'2025', cat:'system', title:'Mooncake', desc:'KV-cache-centric 3-tier disaggregated serving architecture.', status:''},
+  {id:'11', year:'2026', cat:'memory', title:'TurboQuant', desc:'Training-free KV quantization via random rotation + QJL. 6×.', status:''},
+];
+function card(t){
+  const label = t.status==='done' ? '✓ done' : t.status==='visited' ? '● visited' : '○ unread';
+  const cls   = t.status==='done' ? 'done' : '';
+  return `<a class="card" href="#">
+    <div class="c-head"><span class="c-num">${t.id}</span><span class="c-year">${t.year}</span></div>
+    ${ARROW}
+    <div class="c-title">${t.title}</div>
+    <div class="c-desc">${t.desc}</div>
+    <div class="c-foot">
+      <span class="cat ${t.cat}">${t.cat}</span>
+      <span class="status ${cls}">${label}</span>
+    </div>
+  </a>`;
+}
+g1.innerHTML = TOPICS.filter(t=>['00','01','02','03'].includes(t.id)).map(card).join('');
+g2.innerHTML = TOPICS.filter(t=>['04','05'].includes(t.id)).map(card).join('')
+  + `<div class="card" style="display:flex;align-items:center;justify-content:center;color:var(--mute);font-family:var(--mono);font-size:11px">[ + continue ]</div>`;
+g3.innerHTML = TOPICS.filter(t=>['06','07','08','09','10','11'].includes(t.id)).map(card).join('');
+
+// strip
+const arr = Array.from({length:29}, (_,i)=> i<3?'done':i<7?'visited':'');
+strip.innerHTML = arr.map(c=>`<span class="${c}"></span>`).join('');
+
+document.getElementById('themeBtn').addEventListener('click', e=>{
+  e.preventDefault();
+  const cur = document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', cur==='dark'?'light':'dark');
+});
+</script>
+</body>
+</html>

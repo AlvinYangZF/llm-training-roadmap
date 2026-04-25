@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>11 KV-Cache · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.cache-grid { display:grid; gap: 6px; padding: 16px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.layer-row { display:grid; grid-template-columns: 70px 1fr; gap: 10px; align-items:center; }
+.layer-row .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; }
+.cells { display:flex; gap: 2px; flex-wrap: nowrap; }
+.cells .c { width: 11px; height: 18px; border-radius: 1px; background: var(--surface-2); border: 1px solid var(--rule); transition: all 0.4s; }
+.cells .c.k { background: var(--ink-blue); border-color: var(--ink-blue); }
+.cells .c.v { background: var(--accent); border-color: var(--accent); }
+.cells .c.new { animation: pop 0.4s ease-out; }
+@keyframes pop { 0%{transform:scale(0); opacity:0} 100%{transform:scale(1); opacity:1} }
+
+.calc { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 14px 0; }
+.calc .b { padding: 14px; background: var(--surface); border:1px solid var(--rule); border-radius:3px; }
+.calc .b .v { font-size: 28px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; font-feature-settings:'tnum'; }
+.calc .b .l { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+.calc .b .x { font-family: var(--mono); font-size: 11px; color: var(--ink-2); margin-top: 6px; }
+
+.knobs { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+.knob { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.knob .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom:6px; }
+.knob .vl { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+.knob .row { display:flex; align-items:center; gap:10px; }
+.knob input[type=range] { flex:1; }
+.knob select { padding: 6px 8px; border:1px solid var(--rule); background: var(--bg); border-radius: 2px; font: inherit; font-family: var(--mono); font-size: 12px; color: var(--ink); width: 100%; }
+
+.tbl { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; margin: 12px 0; }
+.tbl th, .tbl td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+.tbl th { font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
+.tbl td.r { text-align: right; }
+.tbl tr.high td { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+
+.flow { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 14px 0; }
+.flow-card { padding: 16px; border: 1px solid var(--rule); background: var(--bg); border-radius:3px; }
+.flow-card h5 { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px; }
+.flow-step { display:grid; grid-template-columns: 24px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--rule); }
+.flow-step:last-child { border:none; }
+.flow-step .n { font-family: var(--mono); font-size: 11px; color: var(--accent); font-weight: 600; }
+.flow-step .t { font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+.flow-step .t code { font-family: var(--mono); font-size: 11px; background: var(--surface-2); padding: 1px 5px; border-radius: 2px; }
+.flow-step .ops { font-family: var(--mono); font-size: 10px; color: var(--mute); margin-top: 3px; letter-spacing: 0.05em; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div>
+</nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat memory">Memory &amp; Serving</span><span class="sep">/</span><span class="here">11 KV-Cache</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 11</span><span class="sep">·</span><span>Memory &amp; Serving</span><span class="sep">·</span><span>core · 13 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">11</div>
+      <div>
+        <h1>Why decoding is fast: it <em>remembers</em> instead of recomputes.</h1>
+        <div class="dek">Without a KV cache, generating token N requires recomputing all N previous K/V projections — quadratic and stupid. With the cache, decode is O(N) compute and O(1) memory writes per step. Every modern serving stack is built around this object.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">2 × L × N × d</div><div class="l">Bytes per sequence</div></div>
+      <div class="c"><div class="v">~10 GB</div><div class="l">Llama-7B at 32k context</div></div>
+      <div class="c"><div class="v">99%</div><div class="l">Of decode is cache reads</div></div>
+      <div class="c"><div class="v">memory-bound</div><div class="l">Not compute-bound</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        The KV cache is the single most consequential data structure in modern inference. Every paged-attention scheme, every quantization trick, every batching decision exists to manage it. Understand its shape and the rest of the serving stack falls into place.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>Why caching works</span> <em>K and V depend on past tokens, not future ones</em></h2>
+      <p>
+        At each decode step, the new query attends to all previous keys and values. The clever observation: those keys and values were already computed when their token was processed — and they will never change. So you store them once and reuse forever.
+      </p>
+      <div class="callout math">
+        $$K_t = X_{1:t} W_K \quad V_t = X_{1:t} W_V \quad \text{Attn}_t = \text{softmax}(q_t K_t^\top / \sqrt{d}) V_t$$
+        <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px;letter-spacing:0.04em">// $K_{t-1}$ is a strict prefix of $K_t$. Append, don't recompute.</div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>Anatomy of the cache</span> <em>per layer · per head · per token</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Cache fills as tokens generate</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="cache-grid" id="cacheGrid"></div>
+          <div style="display:flex;gap:14px;font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:10px;letter-spacing:0.06em;text-transform:uppercase;flex-wrap:wrap">
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--ink-blue);vertical-align:-1px;margin-right:4px"></span>K projection</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);vertical-align:-1px;margin-right:4px"></span>V projection</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--surface-2);border:1px solid var(--rule);vertical-align:-1px;margin-right:4px"></span>unallocated</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+            <button class="btn pri" id="cgPlay">▶ play</button>
+            <button class="btn" id="cgStep">step</button>
+            <button class="btn" id="cgReset">reset</button>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-left:auto">step <span id="cgIdx" style="color:var(--accent);font-weight:600">0</span> / 24</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>The footprint formula</span> <em>worth memorizing</em></h2>
+      <div class="callout math">
+        $$\text{cache\_bytes} = 2 \times L \times N \times h \times d_h \times \text{bytes/elem}$$
+        <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px;letter-spacing:0.04em">// 2 = K and V · L = layers · N = seq len · h = heads · d_h = head dim</div>
+      </div>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Calculator</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="knobs">
+            <div class="knob"><div class="lab">Model preset</div>
+              <select id="kPreset">
+                <option value="custom">— custom —</option>
+                <option value="gpt2">GPT-2 (12L · 12h · 64d)</option>
+                <option value="llama7" selected>Llama-7B (32L · 32h · 128d)</option>
+                <option value="llama70">Llama-70B (80L · 64h · 128d)</option>
+                <option value="mistral7">Mistral-7B (32L · 8h · 128d · GQA)</option>
+              </select>
+            </div>
+            <div class="knob"><div class="lab">Sequence length</div><div class="row"><input id="kSeq" type="range" min="512" max="131072" step="512" value="8192"><span class="vl" id="vSeq">8192</span></div></div>
+            <div class="knob"><div class="lab">Batch size</div><div class="row"><input id="kBatch" type="range" min="1" max="64" value="1"><span class="vl" id="vBatch">1</span></div></div>
+            <div class="knob"><div class="lab">Precision</div>
+              <select id="kPrec"><option value="2">FP16 / BF16 (2 B)</option><option value="1">INT8 (1 B)</option><option value="0.5">INT4 (0.5 B)</option></select>
+            </div>
+          </div>
+          <div class="calc">
+            <div class="b"><div class="v" id="oCache">10.7 GB</div><div class="l">Cache size</div><div class="x" id="oFormula">2·32·8192·32·128·2 B</div></div>
+            <div class="b"><div class="v" id="oPerTok">1.31 MB</div><div class="l">Per token</div></div>
+            <div class="b"><div class="v" id="oA100">— %</div><div class="l">Of one A100 80 GB</div></div>
+            <div class="b"><div class="v" id="oMaxBatch">—</div><div class="l">Max batch on A100</div></div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>Without vs with cache</span></h2>
+      <div class="flow">
+        <div class="flow-card">
+          <h5>// without cache</h5>
+          <div class="flow-step"><div class="n">1</div><div><div class="t">For token <code>t = N</code>, recompute K, V for <code>x_1 … x_N</code></div><div class="ops">FLOPs · O(N · d²)</div></div></div>
+          <div class="flow-step"><div class="n">2</div><div><div class="t">Attention over all N keys</div><div class="ops">FLOPs · O(N · d)</div></div></div>
+          <div class="flow-step"><div class="n">3</div><div><div class="t">Total cost across N steps: O(N² · d²)</div><div class="ops">quadratic · catastrophic</div></div></div>
+          <div class="flow-step"><div class="n">→</div><div><div class="t">Decode time scales with N²</div></div></div>
+        </div>
+        <div class="flow-card">
+          <h5>// with cache</h5>
+          <div class="flow-step"><div class="n">1</div><div><div class="t">For new token, compute only <code>k_N, v_N</code></div><div class="ops">FLOPs · O(d²)</div></div></div>
+          <div class="flow-step"><div class="n">2</div><div><div class="t">Append to cache · attention reads cached K, V</div><div class="ops">FLOPs · O(N · d) · memory-bound</div></div></div>
+          <div class="flow-step"><div class="n">3</div><div><div class="t">Total cost across N steps: O(N · d²) compute, O(N²·d) memory traffic</div><div class="ops">linear compute · the bottleneck moves to bandwidth</div></div></div>
+          <div class="flow-step"><div class="n">→</div><div><div class="t">Decode time scales with N (memory-bound)</div></div></div>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>How it scales</span></h2>
+      <table class="tbl">
+        <thead><tr><th>Model</th><th>L</th><th>h · d_h</th><th>per token</th><th class="r">8k ctx · FP16</th><th class="r">32k ctx · FP16</th></tr></thead>
+        <tbody>
+          <tr><td>GPT-2 small</td><td>12</td><td>12·64</td><td>36 KB</td><td class="r">0.28 GB</td><td class="r">1.13 GB</td></tr>
+          <tr><td>Llama-7B</td><td>32</td><td>32·128</td><td>1.31 MB</td><td class="r">10.7 GB</td><td class="r">42.9 GB</td></tr>
+          <tr class="high"><td>Llama-70B</td><td>80</td><td>64·128</td><td>2.62 MB</td><td class="r">21.5 GB</td><td class="r">86 GB · ⚠️</td></tr>
+          <tr><td>Mistral-7B (GQA k=4)</td><td>32</td><td>8·128</td><td>336 KB</td><td class="r">2.7 GB</td><td class="r">10.7 GB</td></tr>
+        </tbody>
+      </table>
+      <div class="callout tip">
+        <div class="lab">// take-away</div>
+        At 32k context, a single Llama-70B sequence eats more cache than a whole A100 has. Either you shrink the cache (GQA, MQA, quantization, H2O) or you page it (vLLM/PagedAttention). All of Memory &amp; Serving exists to manage this growth.
+      </div>
+
+      <h2 id="s6" data-n="§ 06"><span>Mini-game</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Diagnose the cache</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div id="gameArea">
+            <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Why caching works</span></a>
+        <a href="#s2"><span class="n">02</span><span>Anatomy</span></a>
+        <a href="#s3"><span class="n">03</span><span>Footprint formula</span></a>
+        <a href="#s4"><span class="n">04</span><span>With vs without</span></a>
+        <a href="#s5"><span class="n">05</span><span>Scaling table</span></a>
+        <a href="#s6"><span class="n">06</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 11 KV-Cache <span class="dot">·</span> Memory &amp; Serving</div><div>chapter 11 of 29 <span class="dot">●</span> 13 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "11" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'11', related:['06','07','21','26'] });
+
+/* cache animation */
+const grid = document.getElementById('cacheGrid');
+const LAYERS = 6, MAX_TOK = 24;
+let curTokens = 0;
+function buildGrid(){
+  grid.innerHTML = '';
+  for (let l = 0; l < LAYERS; l++){
+    const row = document.createElement('div'); row.className = 'layer-row';
+    row.innerHTML = `<div class="lab">L${(l+1).toString().padStart(2,'0')}</div>`;
+    const cells = document.createElement('div'); cells.className = 'cells';
+    for (let t = 0; t < MAX_TOK; t++) {
+      const k = document.createElement('div'); k.className='c'; k.dataset.l=l; k.dataset.t=t; k.dataset.kv='k';
+      cells.appendChild(k);
+      const v = document.createElement('div'); v.className='c'; v.dataset.l=l; v.dataset.t=t; v.dataset.kv='v';
+      cells.appendChild(v);
+    }
+    row.appendChild(cells); grid.appendChild(row);
+  }
+}
+function fillTo(n){
+  curTokens = n;
+  document.getElementById('cgIdx').textContent = n;
+  grid.querySelectorAll('.c').forEach(c => {
+    const t = +c.dataset.t, kv = c.dataset.kv;
+    if (t < n) {
+      if (!c.classList.contains(kv)) {
+        c.classList.add(kv, 'new');
+        setTimeout(()=>c.classList.remove('new'), 400);
+      }
+    } else {
+      c.classList.remove('k','v','new');
+    }
+  });
+}
+buildGrid();
+let cgTimer = null;
+document.getElementById('cgPlay').addEventListener('click', () => {
+  if (cgTimer) { clearInterval(cgTimer); cgTimer = null; return; }
+  cgTimer = setInterval(() => {
+    if (curTokens >= MAX_TOK) { clearInterval(cgTimer); cgTimer = null; return; }
+    fillTo(curTokens + 1);
+  }, 220);
+});
+document.getElementById('cgStep').addEventListener('click', () => { if (curTokens < MAX_TOK) fillTo(curTokens + 1); });
+document.getElementById('cgReset').addEventListener('click', () => { fillTo(0); });
+
+/* calculator */
+const presets = {
+  gpt2: { L: 12, h: 12, d: 64, name: 'GPT-2' },
+  llama7: { L: 32, h: 32, d: 128, name: 'Llama-7B' },
+  llama70: { L: 80, h: 64, d: 128, name: 'Llama-70B' },
+  mistral7: { L: 32, h: 8, d: 128, name: 'Mistral-7B (GQA)' },
+};
+function fmtBytes(b){
+  if (b < 1024) return b.toFixed(0) + ' B';
+  if (b < 1024**2) return (b/1024).toFixed(1) + ' KB';
+  if (b < 1024**3) return (b/1024**2).toFixed(1) + ' MB';
+  return (b/1024**3).toFixed(2) + ' GB';
+}
+function calc(){
+  const presetK = document.getElementById('kPreset').value;
+  let L = 32, h = 32, d = 128;
+  if (presets[presetK]) { L = presets[presetK].L; h = presets[presetK].h; d = presets[presetK].d; }
+  const N = parseInt(document.getElementById('kSeq').value);
+  const B = parseInt(document.getElementById('kBatch').value);
+  const bp = parseFloat(document.getElementById('kPrec').value);
+  const perTok = 2 * L * h * d * bp;
+  const total = perTok * N * B;
+  document.getElementById('vSeq').textContent = N.toLocaleString();
+  document.getElementById('vBatch').textContent = B;
+  document.getElementById('oCache').textContent = fmtBytes(total);
+  document.getElementById('oPerTok').textContent = fmtBytes(perTok);
+  document.getElementById('oFormula').textContent = `2·${L}·${N}·${h}·${d}·${bp} B${B>1?' × '+B:''}`;
+  const a100 = 80 * 1024**3;
+  document.getElementById('oA100').textContent = (total/a100*100).toFixed(1) + ' %';
+  const usable = a100 - 14*1024**3; // ~14 GB for weights
+  document.getElementById('oMaxBatch').textContent = Math.max(0, Math.floor(usable / (perTok * N)));
+}
+['kPreset','kSeq','kBatch','kPrec'].forEach(id => document.getElementById(id).addEventListener('input', calc));
+calc();
+
+/* mini-game */
+const GAME = [
+  { q: 'Why is the K/V cache safe to keep across decode steps?', opts: [
+    { t: 'K and V depend only on past tokens — they\'re immutable once computed', h: 'Causal masking', c: true },
+    { t: 'They are quantized to INT8', h: 'Different optimization' },
+    { t: 'They are recomputed each step', h: 'That\'s without-cache' },
+    { t: 'Attention bypasses them', h: 'No' },
+  ]},
+  { q: 'A Llama-70B at 32k context · FP16 needs ~86 GB cache. What does this break?', opts: [
+    { t: 'Single A100 80 GB serving — must page or shrink', h: 'Out of HBM', c: true },
+    { t: 'FP16 numerical range', h: 'Different concern' },
+    { t: 'Tokenizer vocabulary', h: 'Unrelated' },
+    { t: 'Position embeddings', h: 'Unrelated' },
+  ]},
+  { q: 'Decoding is described as memory-bound. What does that mean concretely?', opts: [
+    { t: 'Time is dominated by reading cache from HBM, not by FLOPs', h: 'GPU MMUs are idle', c: true },
+    { t: 'GPU is OOM', h: 'Different failure' },
+    { t: 'CPU memory is the bottleneck', h: 'No' },
+    { t: 'Cache fits in registers', h: 'Hardly ever' },
+  ]},
+  { q: 'GQA with k=4 reduces the cache by what factor compared to MHA?', opts: [
+    { t: '4× — fewer KV heads', h: 'Cache scales with KV heads, not Q heads', c: true },
+    { t: '2×', h: 'Wrong factor' },
+    { t: '8×', h: 'Wrong factor' },
+    { t: 'No reduction', h: 'It does reduce' },
+  ]},
+  { q: 'PagedAttention\'s primary contribution to KV cache management is?', opts: [
+    { t: 'Block-wise allocation eliminates fragmentation, lifts batch sizes', h: 'OS-paging analogy', c: true },
+    { t: 'Quantizes to INT4', h: 'Different paper' },
+    { t: 'Discards heavy hitters', h: 'That\'s H2O' },
+    { t: 'Tiles attention by row', h: 'That\'s FlashAttention' },
+  ]},
+];
+let gIdx=0, gScore=0;
+function renderG(){
+  if (gIdx >= GAME.length){
+    document.getElementById('gameArea').style.display='none';
+    document.getElementById('gameDone').style.display='block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${GAME.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games')||'{}'); games['11']=gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games)); return;
+  }
+  const q = GAME[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx+1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${GAME.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const b = document.getElementById('gameBoard'); b.innerHTML='';
+  let answered=false;
+  q.opts.forEach(o => {
+    const el = document.createElement('button'); el.className='game-opt';
+    el.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    el.addEventListener('click', () => {
+      if (answered) return; answered=true;
+      if (o.c) { el.classList.add('correct'); gScore++; }
+      else { el.classList.add('wrong'); b.querySelectorAll('.game-opt').forEach((x,i)=>{ if (q.opts[i].c) x.classList.add('correct'); }); }
+      setTimeout(()=>{ gIdx++; renderG(); }, 1100);
+    });
+    b.appendChild(el);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx=0; gScore=0;
+  document.getElementById('gameArea').style.display='block';
+  document.getElementById('gameDone').style.display='none';
+  renderG();
+});
+renderG();
+</script>
+</body>
+</html>

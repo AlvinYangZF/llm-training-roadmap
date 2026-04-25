@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Algorithm Visualizations · Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═════════════════════════════════ TOKENS ═════════════════════════════════ */
+:root, [data-theme="light"] {
+  --bg:        #f2ead9;
+  --bg-2:      #ece2cb;
+  --surface:   #fbf5e7;
+  --surface-2: #f4ecd4;
+  --ink:       #1a120a;
+  --ink-2:     #4a3a22;
+  --mute:      #8a7452;
+  --rule:      #d8cba5;
+  --rule-2:    #e5dbbc;
+  --accent:    #b8471f;
+  --accent-2:  #8b3410;
+  --accent-bg: rgba(184,71,31,0.08);
+  --ochre:     #a0681a;
+  --moss:      #556b2f;
+  --ink-blue:  #374962;
+
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --serif: ui-serif, Georgia, 'Times New Roman', serif;
+}
+[data-theme="dark"] {
+  --bg:        #120d07;
+  --bg-2:      #1a1209;
+  --surface:   #1a140c;
+  --surface-2: #22190e;
+  --ink:       #f2e6cc;
+  --ink-2:     #d4c4a4;
+  --mute:      #8a7452;
+  --rule:      #2a200f;
+  --rule-2:    #221a0b;
+  --accent:    #e8885a;
+  --accent-2:  #d86e3c;
+  --accent-bg: rgba(232,136,90,0.10);
+  --ochre:     #d4a548;
+  --moss:      #a3c074;
+  --ink-blue:  #91a8cc;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+html, body { background: var(--bg); color: var(--ink); font-family: var(--sans); }
+body { font-feature-settings: 'ss01', 'cv11'; line-height: 1.5; overflow-x: hidden; }
+a { color: inherit; text-decoration: none; }
+::selection { background: var(--accent-bg); color: var(--accent); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 5px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--mute); }
+
+/* ═════════════════════════════════ TOP BAR ═════════════════════════════════ */
+.top {
+  position: sticky; top: 0; z-index: 50;
+  border-bottom: 1px solid var(--rule);
+  padding: 16px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: color-mix(in oklab, var(--bg) 90%, transparent);
+  backdrop-filter: blur(16px);
+  font-family: var(--mono); font-size: 11px; color: var(--mute);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.top .brand { color: var(--ink); font-weight: 600; letter-spacing: -0.01em; text-transform: none; font-size: 14px; font-family: var(--sans); }
+.top .brand::before {
+  content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+  background: var(--accent); margin-right: 8px; vertical-align: -1px;
+}
+.top .sep { margin: 0 10px; opacity: 0.4; text-transform: none; }
+.top-right { display: flex; gap: 20px; align-items: center; }
+.top-right a { cursor: pointer; }
+.top-right a:hover { color: var(--ink); }
+.top-right a.active { color: var(--accent); }
+.top-right .divider { width: 1px; height: 12px; background: var(--rule); }
+#themeBtn { cursor: pointer; user-select: none; }
+
+/* ═════════════════════════════════ SHELL ═════════════════════════════════ */
+.shell { max-width: 1280px; margin: 0 auto; padding: 64px 40px 80px; }
+
+/* ═════════════════════════════════ HERO ═════════════════════════════════ */
+.hero { border-bottom: 2px solid var(--ink); padding-bottom: 36px; margin-bottom: 48px; }
+.hero-over {
+  font-family: var(--mono); font-size: 11px; color: var(--accent);
+  letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 28px;
+  display: flex; align-items: center; gap: 12px;
+}
+.hero-over::before { content: ''; width: 28px; height: 1px; background: var(--accent); }
+.hero-over .meta { color: var(--mute); letter-spacing: 0.08em; }
+
+/* --- Hero layout A: Display Numeral (default) --- */
+.hero[data-layout="numeral"] .hero-grid {
+  display: grid; grid-template-columns: 1.35fr 1fr; gap: 56px; align-items: end;
+}
+.hero[data-layout="numeral"] .hero-num {
+  font-size: clamp(140px, 24vw, 340px);
+  font-weight: 800; letter-spacing: -0.065em; line-height: 0.82;
+  color: var(--ink); font-feature-settings: 'tnum'; position: relative;
+}
+.hero[data-layout="numeral"] .hero-num::after {
+  content: ''; position: absolute; bottom: 0.22em; right: -0.12em;
+  width: 0.12em; height: 0.12em; background: var(--accent); border-radius: 50%;
+}
+.hero[data-layout="numeral"] .hero-right .kicker {
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 600; letter-spacing: -0.025em; line-height: 1.08; color: var(--ink); margin-bottom: 18px;
+}
+.hero[data-layout="numeral"] .hero-right .kicker em { font-style: italic; font-family: var(--serif); font-weight: 500; color: var(--accent); }
+.hero[data-layout="numeral"] .hero-right p { color: var(--ink-2); font-size: 15px; line-height: 1.6; max-width: 42ch; }
+
+/* --- Hero layout B: Headline + Index --- */
+.hero[data-layout="headline"] .hero-grid {
+  display: grid; grid-template-columns: 1.6fr 1fr; gap: 64px; align-items: start;
+}
+.hero[data-layout="headline"] .hero-num { display: none; }
+.hero[data-layout="headline"] .hero-right .kicker {
+  font-size: clamp(44px, 5.4vw, 82px);
+  font-weight: 700; letter-spacing: -0.035em; line-height: 0.98; color: var(--ink);
+  margin-bottom: 24px;
+}
+.hero[data-layout="headline"] .hero-right .kicker em { font-style: italic; font-family: var(--serif); font-weight: 500; color: var(--accent); }
+.hero[data-layout="headline"] .hero-right p { color: var(--ink-2); font-size: 16px; line-height: 1.6; max-width: 44ch; }
+.hero[data-layout="headline"] .hero-grid > div:first-child::before {
+  content: 'Σ Index';
+  display: block; font-family: var(--mono); font-size: 11px; color: var(--mute);
+  letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule); margin-bottom: 16px;
+}
+.index-mini { display: none; }
+.hero[data-layout="headline"] .index-mini {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px 28px;
+  font-family: var(--mono); font-size: 12px;
+}
+.hero[data-layout="headline"] .index-mini .row {
+  display: flex; gap: 10px; padding: 5px 0;
+  border-bottom: 1px dashed var(--rule-2);
+  color: var(--ink-2);
+}
+.hero[data-layout="headline"] .index-mini .row .n { color: var(--mute); font-weight: 500; min-width: 22px; }
+.hero[data-layout="headline"] .index-mini .row .yr { margin-left: auto; color: var(--mute); }
+
+/* --- Hero layout C: Progress-first --- */
+.hero[data-layout="progress"] .hero-grid {
+  display: grid; grid-template-columns: 1fr; gap: 32px;
+}
+.hero[data-layout="progress"] .hero-num { display: none; }
+.hero[data-layout="progress"] .hero-right .kicker {
+  font-size: clamp(42px, 5.2vw, 72px);
+  font-weight: 700; letter-spacing: -0.032em; line-height: 1.02; color: var(--ink);
+  margin-bottom: 16px; max-width: 22ch;
+}
+.hero[data-layout="progress"] .hero-right .kicker em { font-style: italic; font-family: var(--serif); font-weight: 500; color: var(--accent); }
+.hero[data-layout="progress"] .hero-right p { color: var(--ink-2); font-size: 16px; line-height: 1.6; max-width: 56ch; }
+.hero[data-layout="progress"] .big-progress {
+  margin-top: 8px;
+  border: 1px solid var(--rule); background: var(--surface);
+  border-radius: 4px; padding: 24px 28px;
+}
+.hero[data-layout="progress"] .bp-top {
+  display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px;
+}
+.hero[data-layout="progress"] .bp-top .v {
+  font-size: 64px; font-weight: 700; letter-spacing: -0.04em; color: var(--ink); line-height: 1;
+  font-feature-settings: 'tnum';
+}
+.hero[data-layout="progress"] .bp-top .v span { color: var(--accent); }
+.hero[data-layout="progress"] .bp-top .l {
+  font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+/* shared hero-right container clears */
+.hero-right > p { margin: 0; }
+
+/* ═════════════════════════════════ HERO META ═════════════════════════════════ */
+.hero-meta {
+  margin-top: 36px; padding-top: 22px; border-top: 1px solid var(--rule);
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 32px;
+  font-family: var(--mono);
+}
+.hero-meta .cell .v {
+  font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -0.02em;
+  font-feature-settings: 'tnum';
+}
+.hero-meta .cell .v sup { font-size: 11px; color: var(--accent); font-weight: 500; margin-left: 4px; vertical-align: super; }
+.hero-meta .cell .l { font-size: 10px; color: var(--mute); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+
+/* ═════════════════════════════════ TOC / VIEW-SWITCH ═════════════════════════════════ */
+.bar {
+  display: flex; gap: 28px; flex-wrap: wrap; align-items: baseline;
+  font-family: var(--mono); font-size: 12px;
+  padding: 14px 0; border-bottom: 1px solid var(--rule); margin-bottom: 48px;
+  color: var(--mute); letter-spacing: 0.04em;
+}
+.bar .label { color: var(--mute); text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; }
+.bar a { color: var(--ink-2); cursor: pointer; }
+.bar a:hover { color: var(--accent); }
+.bar .spacer { flex: 1; min-width: 20px; }
+.bar .view-switch {
+  display: inline-flex; gap: 0; border: 1px solid var(--rule);
+  border-radius: 4px; background: var(--surface); padding: 3px;
+}
+.bar .view-switch button {
+  border: 0; background: transparent; color: var(--ink-2); cursor: pointer;
+  font: inherit; font-size: 11px; padding: 5px 14px; border-radius: 3px;
+  letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 6px;
+}
+.bar .view-switch button.active { background: var(--ink); color: var(--bg); }
+
+/* ═════════════════════════════════ SECTION HEADER ═════════════════════════════════ */
+.sect {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: baseline;
+  margin: 64px 0 24px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--rule);
+}
+.sect .n { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.12em; }
+.sect h2 { font-size: 26px; font-weight: 600; letter-spacing: -0.022em; color: var(--ink); }
+.sect h2 em { font-style: italic; font-family: var(--serif); color: var(--mute); font-weight: 400; font-size: 17px; margin-left: 14px; letter-spacing: 0; }
+.sect .yr { font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.1em; }
+
+/* ═════════════════════════════════ CARD GRID ═════════════════════════════════ */
+.grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--rule); border: 1px solid var(--rule);
+}
+.card {
+  background: var(--surface);
+  padding: 22px 24px 20px;
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 204px; position: relative;
+  transition: background .15s;
+}
+.card:hover { background: var(--bg); }
+.card:hover .c-num { color: var(--accent); }
+.card:hover .c-arr { opacity: 1; transform: translate(3px, -3px); color: var(--accent); }
+.c-top { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.04em; }
+.c-num {
+  font-size: 34px; font-weight: 700; color: var(--ink);
+  letter-spacing: -0.035em; line-height: 1; font-family: var(--sans);
+  font-feature-settings: 'tnum';
+  transition: color .15s;
+  margin-top: -2px;
+}
+.c-arr { position: absolute; top: 16px; right: 16px; width: 16px; height: 16px; opacity: 0.25; color: var(--ink-2); transition: all .2s; }
+.c-title { font-size: 15px; font-weight: 600; letter-spacing: -0.012em; color: var(--ink); line-height: 1.25; }
+.c-desc  { font-size: 13px; color: var(--ink-2); line-height: 1.55; flex: 1; }
+.c-foot {
+  display: flex; align-items: center; gap: 8px; margin-top: 6px;
+  font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.05em;
+}
+.c-foot .cat { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); }
+.c-foot .cat::before { content:''; width: 6px; height: 6px; border-radius: 50%; }
+.cat.foundation::before { background: var(--ink-blue); }
+.cat.compute::before    { background: var(--moss); }
+.cat.memory::before     { background: var(--accent); }
+.cat.system::before     { background: var(--ochre); }
+.c-foot .dot { color: var(--rule); }
+.c-foot .status { margin-left: auto; }
+.c-foot .status.done    { color: var(--moss); }
+.c-foot .status.visited { color: var(--accent); }
+
+/* ═════════════════════════════════ GRAPH VIEW ═════════════════════════════════ */
+.graph-wrap {
+  display: none;
+  margin-top: 8px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+}
+.graph-wrap.on { display: block; }
+.graph-head {
+  padding: 16px 22px; border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+  font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.06em;
+}
+.graph-head .legend { display: flex; gap: 18px; }
+.graph-head .legend .it { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); text-transform: uppercase; font-size: 10px; letter-spacing: 0.1em; }
+.graph-head .legend .sw { width: 8px; height: 8px; border-radius: 50%; }
+.graph-head .controls { display: flex; gap: 6px; }
+.graph-head .controls button {
+  font: inherit; font-size: 11px; font-family: var(--mono);
+  border: 1px solid var(--rule); background: var(--bg);
+  color: var(--ink-2); padding: 4px 10px; cursor: pointer; border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+.graph-head .controls button:hover { border-color: var(--accent); color: var(--accent); }
+.graph-canvas {
+  position: relative; height: 640px;
+  background:
+    radial-gradient(circle at 15% 20%, var(--accent-bg) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, color-mix(in oklab, var(--ink-blue) 12%, transparent) 0%, transparent 50%);
+  overflow: hidden;
+  cursor: grab;
+}
+.graph-canvas:active { cursor: grabbing; }
+.graph-canvas::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--rule-2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule-2) 1px, transparent 1px);
+  background-size: 40px 40px; opacity: 0.6;
+  pointer-events: none;
+}
+.graph-canvas canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.graph-tooltip {
+  position: absolute; pointer-events: none;
+  background: var(--ink); color: var(--bg);
+  padding: 10px 14px; border-radius: 3px; max-width: 260px;
+  font-size: 12px; line-height: 1.5;
+  opacity: 0; transition: opacity .15s;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  z-index: 3;
+}
+.graph-tooltip.on { opacity: 1; }
+.graph-tooltip .t-num { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 3px; }
+.graph-tooltip .t-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+.graph-tooltip .t-desc { color: color-mix(in oklab, var(--bg) 75%, transparent); font-size: 11px; line-height: 1.5; }
+
+/* ═════════════════════════════════ SUMMARY ═════════════════════════════════ */
+.summary {
+  margin-top: 72px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px;
+  background: var(--rule); border: 1px solid var(--rule);
+}
+.summary > div { background: var(--surface); padding: 28px; }
+.summary h3 {
+  font-size: 11px; font-family: var(--mono); color: var(--accent);
+  letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px;
+}
+.summary p { color: var(--ink-2); font-size: 13px; line-height: 1.6; }
+.summary .big {
+  font-size: 56px; font-weight: 700; letter-spacing: -0.035em; color: var(--ink);
+  margin-bottom: 6px; line-height: 1; font-feature-settings: 'tnum';
+}
+.summary .big span { font-size: 22px; color: var(--mute); }
+.summary a.next-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px; color: var(--accent);
+  letter-spacing: 0.08em; text-transform: uppercase; margin-top: 14px;
+  border-bottom: 1px solid var(--accent); padding-bottom: 2px;
+}
+.summary a.next-link:hover { color: var(--accent-2); }
+
+/* ═════════════════════════════════ FOOTER ═════════════════════════════════ */
+.foot {
+  margin-top: 72px; padding-top: 20px; border-top: 1px solid var(--rule);
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  font-family: var(--mono); font-size: 11px; color: var(--mute);
+  letter-spacing: 0.05em;
+}
+.foot .dot { color: var(--accent); }
+
+/* ═════════════════════════════════ TWEAKS PANEL ═════════════════════════════════ */
+.tweaks {
+  display: none;
+  position: fixed; right: 20px; bottom: 20px; z-index: 60;
+  width: 280px;
+  background: var(--surface);
+  border: 1px solid var(--rule); border-radius: 4px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08);
+  font-family: var(--sans);
+  overflow: hidden;
+}
+.tweaks.on { display: block; }
+.tweaks .tw-head {
+  padding: 12px 16px;
+  background: var(--ink); color: var(--bg);
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.tweaks .tw-head button { background: transparent; border: 0; color: var(--bg); cursor: pointer; font-size: 14px; opacity: 0.7; }
+.tweaks .tw-head button:hover { opacity: 1; }
+.tweaks .tw-body { padding: 16px; }
+.tweaks .tw-label {
+  font-family: var(--mono); font-size: 10px; color: var(--mute);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px;
+}
+.tweaks .tw-options { display: flex; flex-direction: column; gap: 6px; }
+.tweaks .tw-opt {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 12px; border: 1px solid var(--rule);
+  border-radius: 3px; background: var(--bg);
+  cursor: pointer; transition: all .15s;
+}
+.tweaks .tw-opt:hover { border-color: var(--ink-2); }
+.tweaks .tw-opt.active { border-color: var(--accent); background: var(--accent-bg); }
+.tweaks .tw-opt .radio {
+  width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--rule);
+  margin-top: 3px; flex-shrink: 0;
+}
+.tweaks .tw-opt.active .radio { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 2px var(--surface); }
+.tweaks .tw-opt .lab { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 2px; }
+.tweaks .tw-opt .sub { font-size: 11px; color: var(--mute); line-height: 1.4; }
+
+/* ═════════════════════════════════ RESPONSIVE ═════════════════════════════════ */
+@media (max-width: 1000px) {
+  .hero[data-layout="numeral"] .hero-grid,
+  .hero[data-layout="headline"] .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+  .grid { grid-template-columns: 1fr 1fr; }
+  .summary { grid-template-columns: 1fr 1fr; }
+  .hero-meta { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 600px) {
+  .shell { padding: 40px 20px 60px; }
+  .top { padding: 12px 20px; }
+  .grid, .summary { grid-template-columns: 1fr; }
+  .hero-meta { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .sect { grid-template-columns: 1fr; gap: 4px; }
+  .sect .yr { justify-self: start; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<nav class="top">
+  <div><span class="brand">llm-viz</span><span class="sep">—</span>an interactive roadmap for modern language models</div>
+  <div class="top-right">
+    <a id="viewGridBtn" class="active">grid</a>
+    <a id="viewGraphBtn">graph</a>
+    <span class="divider"></span>
+    <a id="resetBtn">reset</a>
+    <a id="themeBtn">◐ theme</a>
+  </div>
+</nav>
+
+<main class="shell">
+
+  <!-- ═══════════════════ HERO ═══════════════════ -->
+  <section class="hero" id="hero" data-layout="numeral">
+    <div class="hero-over">Issue 02 · March 2026 · v2.1 <span class="meta"> // 29 topics · 4 categories · 10 years</span></div>
+
+    <div class="hero-grid">
+      <!-- left col: big numeral OR index list -->
+      <div>
+        <div class="hero-num">29</div>
+        <div class="index-mini" id="indexMini"></div>
+      </div>
+
+      <!-- right col: kicker + description + progress panel -->
+      <div class="hero-right">
+        <div class="kicker">interactive lessons on <em>how LLMs actually work</em>, from the math up.</div>
+        <p>A visual roadmap covering Transformer fundamentals, inference-time compute, KV-cache memory management, disaggregated serving, and the retrieval stack. Every topic is a hands-on page — read, poke, play the mini-game, move on.</p>
+
+        <div class="big-progress" style="display:none">
+          <div class="bp-top">
+            <div class="v"><span id="bpPct">24</span>%</div>
+            <div class="l">of the roadmap<br/>visited</div>
+          </div>
+          <div id="bpStrip"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-meta">
+      <div class="cell"><div class="v">29<sup>tot</sup></div><div class="l">Topics</div></div>
+      <div class="cell"><div class="v">4</div><div class="l">Categories</div></div>
+      <div class="cell"><div class="v">2016—2026</div><div class="l">Timespan</div></div>
+      <div class="cell"><div class="v">7 / 29</div><div class="l">You've visited</div></div>
+      <div class="cell"><div class="v">3 / 29</div><div class="l">Games cleared</div></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ BAR ═══════════════════ -->
+  <nav class="bar">
+    <span class="label">Contents</span>
+    <a href="#s-pre">00 prerequisites</a>
+    <a href="#s-found">01 foundations</a>
+    <a href="#s-comp">02 compute</a>
+    <a href="#s-mem">03 memory · serving</a>
+    <a href="#s-rag">04 rag · retrieval</a>
+    <a href="#s-core">05 training · tokens</a>
+    <span class="spacer"></span>
+    <div class="view-switch">
+      <button id="swGrid" class="active">⌗ grid</button>
+      <button id="swGraph">⊙ graph</button>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════ GRID VIEW ═══════════════════ -->
+  <div id="gridView">
+
+    <div class="sect" id="s-pre">
+      <span class="n">0.</span>
+      <h2>Prerequisites <em>the math your attention heads run on</em></h2>
+      <span class="yr">math</span>
+    </div>
+    <div class="grid" data-range="00"></div>
+
+    <div class="sect" id="s-found">
+      <span class="n">I.</span>
+      <h2>Foundations <em>the architecture that started it all</em></h2>
+      <span class="yr">2017 — 2019</span>
+    </div>
+    <div class="grid" data-range="01-03"></div>
+
+    <div class="sect" id="s-comp">
+      <span class="n">II.</span>
+      <h2>Compute <em>IO-aware attention and the two phases of inference</em></h2>
+      <span class="yr">2022</span>
+    </div>
+    <div class="grid" data-range="04-05"></div>
+
+    <div class="sect" id="s-mem">
+      <span class="n">III.</span>
+      <h2>Memory &amp; Serving <em>where bigger contexts stop being free</em></h2>
+      <span class="yr">2023 — 2026</span>
+    </div>
+    <div class="grid" data-range="06-11"></div>
+
+    <div class="sect" id="s-rag">
+      <span class="n">IV.</span>
+      <h2>RAG &amp; Retrieval <em>grounding generation in external knowledge</em></h2>
+      <span class="yr">2019 — 2025</span>
+    </div>
+    <div class="grid" data-range="12-22"></div>
+
+    <div class="sect" id="s-core">
+      <span class="n">V.</span>
+      <h2>Training &amp; Core Concepts <em>tokens, loss, adaptation, decoding</em></h2>
+      <span class="yr">core</span>
+    </div>
+    <div class="grid" data-range="23-28"></div>
+  </div>
+
+  <!-- ═══════════════════ GRAPH VIEW ═══════════════════ -->
+  <div class="graph-wrap" id="graphView">
+    <div class="graph-head">
+      <div class="legend">
+        <span class="it"><span class="sw" style="background:var(--ink-blue)"></span>foundation</span>
+        <span class="it"><span class="sw" style="background:var(--moss)"></span>compute</span>
+        <span class="it"><span class="sw" style="background:var(--accent)"></span>memory</span>
+        <span class="it"><span class="sw" style="background:var(--ochre)"></span>system</span>
+      </div>
+      <div style="display:flex;gap:16px;align-items:center">
+        <span>29 nodes · 34 edges · drag to rearrange</span>
+        <div class="controls">
+          <button id="gZoomIn">+</button>
+          <button id="gZoomOut">−</button>
+          <button id="gReset">reset</button>
+        </div>
+      </div>
+    </div>
+    <div class="graph-canvas" id="graphCanvas">
+      <canvas></canvas>
+      <div class="graph-tooltip" id="graphTip">
+        <div class="t-num"></div>
+        <div class="t-title"></div>
+        <div class="t-desc"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ SUMMARY ═══════════════════ -->
+  <div class="summary">
+    <div>
+      <h3>// Progress</h3>
+      <div class="big">24<span>%</span></div>
+      <p>Of the roadmap visited. Average time-on-page <b style="color:var(--ink)">4m 12s</b>. Keep going — the serving-systems chapters (08–10) are where it pays off.</p>
+    </div>
+    <div>
+      <h3>// Next up</h3>
+      <div class="big">04</div>
+      <p><b style="color:var(--ink)">Prefill &amp; Decode.</b> Understand the two-phase inference pipeline before you touch vLLM, Mooncake, or anything disaggregated.</p>
+      <a class="next-link">continue →</a>
+    </div>
+    <div>
+      <h3>// Suggested path</h3>
+      <div class="big" style="font-size:22px;letter-spacing:-0.01em;line-height:1.4">
+        01 → 02 → 04 → 05<br/>→ 06 → 09 → 10
+      </div>
+      <p style="margin-top:10px">Seven chapters, ~42 minutes. The shortest route from "attention is all you need" to production-scale disaggregated serving.</p>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <div>llm-viz <span class="dot">·</span> interactive learning series <span class="dot">·</span> v2.1.0</div>
+    <div>2026-03-31 <span class="dot">●</span> made for reading</div>
+  </footer>
+</main>
+
+<!-- ═══════════════════ TWEAKS ═══════════════════ -->
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head">
+    <span>Tweaks</span>
+    <button id="twClose">×</button>
+  </div>
+  <div class="tw-body">
+    <div class="tw-label">Hero layout</div>
+    <div class="tw-options" id="twHeroOpts">
+      <div class="tw-opt active" data-layout="numeral">
+        <div class="radio"></div>
+        <div>
+          <div class="lab">Display numeral</div>
+          <div class="sub">Huge "29" anchors the left column</div>
+        </div>
+      </div>
+      <div class="tw-opt" data-layout="headline">
+        <div class="radio"></div>
+        <div>
+          <div class="lab">Headline + index</div>
+          <div class="sub">Big editorial kicker, condensed index on the left</div>
+        </div>
+      </div>
+      <div class="tw-opt" data-layout="progress">
+        <div class="radio"></div>
+        <div>
+          <div class="lab">Progress-first</div>
+          <div class="sub">Single-column, reading-percentage front and center</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<script>
+/* ═════════════════════════════════ DATA ═════════════════════════════════ */
+const TOPICS = [
+  {id:'00', yr:'math', cat:'foundation', t:'Linear Algebra Basics',   d:'Vectors, dot products, matmul, softmax — the math behind every attention head.',                       st:'done'},
+  {id:'01', yr:'2017', cat:'foundation', t:'Transformer Basics',      d:'"Attention Is All You Need" — an interactive QKV walkthrough.',                                       st:'done'},
+  {id:'02', yr:'2019', cat:'foundation', t:'GPT-2 Architecture',      d:'Decoder-only Transformer, Pre-LN, BPE tokenization, weight tying — visually.',                        st:'visited'},
+  {id:'03', yr:'2019', cat:'foundation', t:'Sparse Transformers',     d:'O(N√N) attention via local + strided patterns. Process sequences up to 65K tokens.',                 st:''},
+  {id:'04', yr:'core', cat:'compute',    t:'Prefill & Decode',        d:'The two-phase inference pipeline — compute-bound prefill, memory-bound autoregressive decoding.',    st:'done'},
+  {id:'05', yr:'2022', cat:'compute',    t:'FlashAttention',          d:'IO-aware attention with tiling + online softmax. Never materialize the N×N matrix in HBM.',          st:'visited'},
+  {id:'06', yr:'2023', cat:'memory',     t:'PagedAttention / vLLM',   d:'OS-inspired KV cache paging with block tables. 2–4× throughput by killing fragmentation.',           st:'visited'},
+  {id:'07', yr:'2023', cat:'memory',     t:'H2O — Heavy-Hitter Oracle', d:'95%+ attention sparsity → 20× KV cache compression by keeping only heavy hitters.',                st:''},
+  {id:'08', yr:'2024', cat:'system',     t:'StreamingLLM',            d:'Attention sinks discovery + sliding window for constant-memory streaming.',                          st:''},
+  {id:'09', yr:'2025', cat:'system',     t:'PD Separation',           d:'Disaggregate prefill and decode into independent GPU pools for optimal resource utilization.',      st:'visited'},
+  {id:'10', yr:'2025', cat:'system',     t:'Mooncake Architecture',   d:'KV-cache-centric disaggregated serving with 3-tier cache pool. USENIX FAST 2025 Best Paper.',        st:''},
+  {id:'11', yr:'core', cat:'memory',     t:'KV Cache',                d:'Why decoding gets cheaper after the first token. Memory growth, hit rates, eviction.',              st:''},
+  {id:'12', yr:'2020', cat:'foundation', t:'Dense Retrieval',         d:'DPR & ColBERT — dense vectors beat BM25 by +19%. Token-level late interaction.',                    st:''},
+  {id:'13', yr:'2020', cat:'foundation', t:'RAG Pipeline',            d:'Retrieve-then-generate paradigm + HyDE zero-shot query enhancement.',                                st:'visited'},
+  {id:'14', yr:'2024', cat:'compute',    t:'Adaptive RAG',            d:'Self-RAG reflection tokens, CRAG corrective retrieval, FLARE active mid-generation retrieval.',     st:''},
+  {id:'15', yr:'1994', cat:'system',     t:'BM25',                    d:'The lexical baseline that still wins. Three knobs and an inverted index.',                          st:''},
+  {id:'16', yr:'2022', cat:'system',     t:'RAG at Scale',            d:'RETRO: 7.5B + retrieval matches 175B GPT-3. Taxonomy from Naive to Modular.',                        st:''},
+  {id:'17', yr:'2019', cat:'system',     t:'DiskANN',                 d:'Vamana graph + SSD index: billion-scale ANN on a single node with 64GB RAM.',                        st:''},
+  {id:'18', yr:'2024', cat:'system',     t:'AiSAQ',                   d:'DRAM-free ANN: ~10MB RAM for billion-scale search. Sub-ms index switching for RAG.',                 st:''},
+  {id:'19', yr:'2016', cat:'foundation', t:'HNSW',                    d:'Hierarchical Navigable Small World — the default ANN algorithm in all vector databases.',            st:''},
+  {id:'20', yr:'2024', cat:'compute',    t:'Hybrid Search',           d:'BM25 + Dense + Reranking fusion. RRF, SPLADE, cross-encoder pipeline.',                              st:''},
+  {id:'21', yr:'2024', cat:'compute',    t:'KG Construction',         d:'LLM-driven knowledge graph building. LightRAG, HippoRAG, entity extraction.',                        st:''},
+  {id:'22', yr:'2025', cat:'system',     t:'CAG vs RAG',              d:'Cache-Augmented Generation: preload KV cache vs retrieve. When to use which.',                       st:''},
+  {id:'23', yr:'core', cat:'foundation', t:'Embeddings',              d:'How text becomes vectors. Word2Vec, sentence transformers, similarity in vector space.',            st:''},
+  {id:'24', yr:'core', cat:'foundation', t:'Tokenization',            d:'BPE, SentencePiece, how models see text. Vocabulary design and subword splitting.',                  st:''},
+  {id:'25', yr:'core', cat:'compute',    t:'Training & Loss',         d:'Cross-entropy loss, backprop, learning-rate schedules, gradient descent visualized.',               st:''},
+  {id:'26', yr:'2023', cat:'memory',     t:'MQA / GQA',               d:'Multi-Query and Grouped-Query Attention — sharing KV heads to shrink the cache.',                   st:''},
+  {id:'27', yr:'2021', cat:'compute',    t:'LoRA',                    d:'Low-Rank Adaptation. Fine-tune billion-parameter models with <1% trainable params.',                st:''},
+  {id:'28', yr:'core', cat:'foundation', t:'Decoding',                d:'Temperature, top-k, top-p, beam search. How models choose the next token.',                          st:''},
+];
+const EDGES = [
+  ['01','00'],['02','01'],['03','01'],['04','02'],['05','01'],['05','04'],
+  ['06','04'],['07','01'],['07','06'],['08','07'],['08','01'],['09','04'],['09','06'],
+  ['10','09'],['10','06'],['11','06'],['11','07'],
+  ['12','01'],['13','12'],['13','01'],['14','13'],['15','14'],['16','13'],
+  ['17','12'],['18','17'],['18','13'],['19','12'],['17','19'],
+  ['20','12'],['20','13'],['21','15'],['22','13'],['22','16'],
+  ['23','00'],['12','23'],['24','01'],['25','00'],['25','01'],['26','06'],
+  ['27','25'],['27','01'],['28','01'],['28','04'],
+];
+
+/* ═════════════════════════════════ CARDS ═════════════════════════════════ */
+const ARROW = '<svg class="c-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+const SLUGS = {
+  '00':'linear-algebra','01':'transformer-basics','02':'gpt2','03':'sparse-transformer',
+  '04':'prefill-decode','05':'flashattention','06':'paged-attention','07':'h2o',
+  '08':'rag-retrieval','09':'rag-generation','10':'rag-eval','11':'kv-cache',
+  '12':'dense-retrieval','13':'rag-pipeline','14':'adaptive-rag','15':'bm25',
+  '16':'rag-at-scale','17':'diskann','18':'aisaq','19':'hnsw',
+  '20':'hybrid-search','21':'kg-construction','22':'cag-vs-rag','23':'embeddings',
+  '24':'tokenization','25':'training-loss','26':'mqa-gqa','27':'lora','28':'decoding',
+};
+function pageHref(id) { return SLUGS[id] ? `pages/${id}-${SLUGS[id]}.html` : '#'; }
+function card(t) {
+  const label = t.st==='done' ? '✓ completed' : t.st==='visited' ? '● visited' : '○ unread';
+  const cls   = t.st==='done' ? 'done' : t.st==='visited' ? 'visited' : '';
+  return `<a class="card" href="${pageHref(t.id)}">
+    <div class="c-top"><span>${t.yr}</span><span>${t.cat}</span></div>
+    ${ARROW}
+    <div class="c-num">${t.id}</div>
+    <div class="c-title">${t.t}</div>
+    <div class="c-desc">${t.d}</div>
+    <div class="c-foot">
+      <span class="cat ${t.cat}">${t.cat}</span>
+      <span class="dot">·</span>
+      <span>${t.yr}</span>
+      <span class="status ${cls}">${label}</span>
+    </div>
+  </a>`;
+}
+function idIn(range, id) {
+  if (range === '00') return id === '00';
+  const [a,b] = range.split('-').map(Number);
+  const n = parseInt(id, 10);
+  return n >= a && n <= b;
+}
+document.querySelectorAll('.grid').forEach(g => {
+  const r = g.getAttribute('data-range');
+  g.innerHTML = TOPICS.filter(t => idIn(r, t.id)).map(card).join('');
+});
+
+/* index-mini in Hero layout B */
+const idx = document.getElementById('indexMini');
+idx.innerHTML = TOPICS.slice(0, 14).map(t => `
+  <div class="row"><span class="n">${t.id}</span><span>${t.t}</span><span class="yr">${t.yr}</span></div>
+`).join('');
+
+/* big-progress strip in Hero layout C */
+const strip = document.getElementById('bpStrip');
+if (strip) {
+  strip.style.display = 'grid';
+  strip.style.gridTemplateColumns = 'repeat(29, 1fr)';
+  strip.style.gap = '3px';
+  strip.innerHTML = TOPICS.map((t,i) => {
+    const bg = t.st==='done' ? 'var(--accent)' : t.st==='visited' ? 'color-mix(in oklab, var(--accent) 50%, transparent)' : 'var(--rule)';
+    return `<span style="height:10px;border-radius:2px;background:${bg}"></span>`;
+  }).join('');
+}
+
+/* ═════════════════════════════════ THEME ═════════════════════════════════ */
+const themeBtn = document.getElementById('themeBtn');
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('llm-viz-theme', t);
+  themeBtn.textContent = t === 'dark' ? '◑ light' : '◐ dark';
+}
+setTheme(localStorage.getItem('llm-viz-theme') || 'light');
+themeBtn.addEventListener('click', e => {
+  e.preventDefault();
+  const cur = document.documentElement.getAttribute('data-theme');
+  setTheme(cur === 'dark' ? 'light' : 'dark');
+  if (gridView.style.display !== 'none' && graphReady) drawGraph();
+});
+
+/* ═════════════════════════════════ VIEW SWITCH ═════════════════════════════════ */
+const gridView  = document.getElementById('gridView');
+const graphView = document.getElementById('graphView');
+const swGrid    = document.getElementById('swGrid');
+const swGraph   = document.getElementById('swGraph');
+const viewGridBtn  = document.getElementById('viewGridBtn');
+const viewGraphBtn = document.getElementById('viewGraphBtn');
+let graphReady = false;
+
+function setView(v) {
+  if (v === 'graph') {
+    gridView.style.display = 'none';
+    graphView.classList.add('on');
+    swGrid.classList.remove('active'); swGraph.classList.add('active');
+    viewGridBtn.classList.remove('active'); viewGraphBtn.classList.add('active');
+    if (!graphReady) initGraph();
+    localStorage.setItem('llm-viz-view', 'graph');
+  } else {
+    gridView.style.display = '';
+    graphView.classList.remove('on');
+    swGrid.classList.add('active'); swGraph.classList.remove('active');
+    viewGridBtn.classList.add('active'); viewGraphBtn.classList.remove('active');
+    localStorage.setItem('llm-viz-view', 'grid');
+  }
+}
+swGrid.addEventListener('click', () => setView('grid'));
+swGraph.addEventListener('click', () => setView('graph'));
+viewGridBtn.addEventListener('click', (e) => { e.preventDefault(); setView('grid'); });
+viewGraphBtn.addEventListener('click', (e) => { e.preventDefault(); setView('graph'); });
+document.getElementById('resetBtn').addEventListener('click', e => {
+  e.preventDefault();
+  localStorage.removeItem('llm-viz-view');
+  localStorage.removeItem('llm-viz-theme');
+  localStorage.removeItem('llm-viz-hero');
+  location.reload();
+});
+if (localStorage.getItem('llm-viz-view') === 'graph') setView('graph');
+
+/* ═════════════════════════════════ HERO LAYOUT TWEAK ═════════════════════════════════ */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "heroLayout": "numeral"
+}/*EDITMODE-END*/;
+
+const heroEl = document.getElementById('hero');
+const bpEl = document.querySelector('.big-progress');
+function applyHero(layout) {
+  heroEl.setAttribute('data-layout', layout);
+  // big-progress only shows in 'progress' layout
+  if (bpEl) bpEl.style.display = layout === 'progress' ? 'block' : 'none';
+  // highlight matching tweaks opt
+  document.querySelectorAll('#twHeroOpts .tw-opt').forEach(o => {
+    o.classList.toggle('active', o.getAttribute('data-layout') === layout);
+  });
+  localStorage.setItem('llm-viz-hero', layout);
+}
+applyHero(localStorage.getItem('llm-viz-hero') || TWEAK_DEFAULTS.heroLayout);
+
+/* ═════════════════════════════════ TWEAKS PANEL ═════════════════════════════════ */
+const tweaksEl = document.getElementById('tweaks');
+document.getElementById('twClose').addEventListener('click', () => {
+  tweaksEl.classList.remove('on');
+  window.parent.postMessage({ type: '__deactivate_edit_mode_ack' }, '*');
+});
+document.querySelectorAll('#twHeroOpts .tw-opt').forEach(o => {
+  o.addEventListener('click', () => {
+    const layout = o.getAttribute('data-layout');
+    applyHero(layout);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { heroLayout: layout } }, '*');
+  });
+});
+
+window.addEventListener('message', e => {
+  if (!e.data || !e.data.type) return;
+  if (e.data.type === '__activate_edit_mode')   tweaksEl.classList.add('on');
+  if (e.data.type === '__deactivate_edit_mode') tweaksEl.classList.remove('on');
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+/* ═════════════════════════════════ KNOWLEDGE GRAPH ═════════════════════════════════ */
+let gCanvas, gCtx, gW, gH, gNodes = [], gEdges = [], gDragNode = null, gHover = null;
+let gCamX = 0, gCamY = 0, gCamS = 1, gPan = null, gAnim;
+
+const CAT_COL = () => {
+  const c = getComputedStyle(document.documentElement);
+  return {
+    foundation: c.getPropertyValue('--ink-blue').trim(),
+    compute:    c.getPropertyValue('--moss').trim(),
+    memory:     c.getPropertyValue('--accent').trim(),
+    system:     c.getPropertyValue('--ochre').trim(),
+  };
+};
+
+function initGraph() {
+  graphReady = true;
+  const wrap = document.getElementById('graphCanvas');
+  gCanvas = wrap.querySelector('canvas');
+  gCtx = gCanvas.getContext('2d');
+  resizeCanvas();
+
+  // layered initial layout by category
+  const cx = gW / 2, cy = gH / 2;
+  const layerY = { foundation: cy - 200, compute: cy - 60, memory: cy + 70, system: cy + 200 };
+  const totals = {}, seen = {};
+  TOPICS.forEach(t => totals[t.cat] = (totals[t.cat]||0) + 1);
+  gNodes = TOPICS.map(t => {
+    const n = (seen[t.cat] = (seen[t.cat]||0) + 1) - 1;
+    const N = totals[t.cat];
+    const spread = Math.min(gW * 0.78, N * 72);
+    const xOff = N === 1 ? 0 : (n/(N-1) - 0.5) * spread;
+    return { ...t, x: cx + xOff + (Math.random()-0.5)*16, y: layerY[t.cat] + (Math.random()-0.5)*16, vx:0, vy:0, r: 20 };
+  });
+  gEdges = EDGES.map(([a,b]) => ({ s: gNodes.find(n=>n.id===a), t: gNodes.find(n=>n.id===b) })).filter(e=>e.s&&e.t);
+
+  attachGraphEvents();
+  tick();
+}
+function resizeCanvas() {
+  if (!gCanvas) return;
+  const r = gCanvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  gW = r.width; gH = r.height;
+  gCanvas.width = gW * dpr; gCanvas.height = gH * dpr;
+  gCanvas.style.width = gW + 'px'; gCanvas.style.height = gH + 'px';
+  gCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+const SPRING = 150, SK = 0.005, REP = 6500, DAMP = 0.85, GRAV = 0.0025;
+function step() {
+  for (let i=0;i<gNodes.length;i++) for (let j=i+1;j<gNodes.length;j++) {
+    const a = gNodes[i], b = gNodes[j];
+    let dx = a.x - b.x, dy = a.y - b.y;
+    let d = Math.sqrt(dx*dx + dy*dy) || 1;
+    let f = REP / (d*d);
+    let fx = dx/d*f, fy = dy/d*f;
+    a.vx += fx; a.vy += fy; b.vx -= fx; b.vy -= fy;
+  }
+  gEdges.forEach(e => {
+    let dx = e.s.x - e.t.x, dy = e.s.y - e.t.y;
+    let d = Math.sqrt(dx*dx + dy*dy) || 1;
+    let f = (d - SPRING) * SK;
+    let fx = dx/d*f, fy = dy/d*f;
+    e.s.vx -= fx; e.s.vy -= fy; e.t.vx += fx; e.t.vy += fy;
+  });
+  const cx = gW/2, cy = gH/2;
+  gNodes.forEach(n => {
+    n.vx += (cx - n.x) * GRAV;
+    n.vy += (cy - n.y) * GRAV;
+    if (n === gDragNode) return;
+    n.vx *= DAMP; n.vy *= DAMP;
+    n.x += n.vx; n.y += n.vy;
+  });
+}
+function drawGraph() {
+  if (!gCtx) return;
+  const col = CAT_COL();
+  const ruleColor = getComputedStyle(document.documentElement).getPropertyValue('--rule').trim();
+  const inkColor = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+  const surfColor = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim();
+  const muteColor = getComputedStyle(document.documentElement).getPropertyValue('--mute').trim();
+
+  gCtx.clearRect(0, 0, gW, gH);
+  gCtx.save();
+  gCtx.translate(gW/2, gH/2);
+  gCtx.scale(gCamS, gCamS);
+  gCtx.translate(-gW/2 + gCamX, -gH/2 + gCamY);
+
+  // edges
+  gEdges.forEach(e => {
+    const dx = e.t.x - e.s.x, dy = e.t.y - e.s.y;
+    const d = Math.sqrt(dx*dx + dy*dy) || 1;
+    const sr = e.s.r + 3, tr = e.t.r + 3;
+    const x1 = e.s.x + dx/d*sr, y1 = e.s.y + dy/d*sr;
+    const x2 = e.t.x - dx/d*tr, y2 = e.t.y - dy/d*tr;
+    const active = gHover && (gHover === e.s || gHover === e.t);
+    gCtx.strokeStyle = active ? col[gHover.cat] : ruleColor;
+    gCtx.lineWidth = active ? 1.8 : 1;
+    gCtx.globalAlpha = active ? 0.9 : 0.7;
+    gCtx.beginPath(); gCtx.moveTo(x1, y1); gCtx.lineTo(x2, y2); gCtx.stroke();
+    // tiny arrow
+    const ang = Math.atan2(y2-y1, x2-x1);
+    gCtx.beginPath();
+    gCtx.moveTo(x2, y2);
+    gCtx.lineTo(x2 - 6*Math.cos(ang-0.35), y2 - 6*Math.sin(ang-0.35));
+    gCtx.lineTo(x2 - 6*Math.cos(ang+0.35), y2 - 6*Math.sin(ang+0.35));
+    gCtx.closePath();
+    gCtx.fillStyle = active ? col[gHover.cat] : ruleColor;
+    gCtx.fill();
+  });
+  gCtx.globalAlpha = 1;
+
+  // nodes
+  gNodes.forEach(n => {
+    const c = col[n.cat] || muteColor;
+    const hover = n === gHover;
+    const r = hover ? n.r + 2 : n.r;
+
+    // outer ring
+    gCtx.beginPath(); gCtx.arc(n.x, n.y, r, 0, Math.PI * 2);
+    gCtx.fillStyle = surfColor;
+    gCtx.fill();
+    gCtx.lineWidth = hover ? 2.5 : 1.5;
+    gCtx.strokeStyle = c;
+    gCtx.stroke();
+
+    // inner fill (solid)
+    gCtx.beginPath(); gCtx.arc(n.x, n.y, r * 0.62, 0, Math.PI * 2);
+    gCtx.fillStyle = c;
+    gCtx.fill();
+
+    // id number
+    gCtx.fillStyle = surfColor;
+    gCtx.font = `600 10px 'JetBrains Mono', monospace`;
+    gCtx.textAlign = 'center'; gCtx.textBaseline = 'middle';
+    gCtx.fillText(n.id, n.x, n.y);
+
+    // label
+    gCtx.fillStyle = hover ? c : inkColor;
+    gCtx.font = `${hover ? '600' : '500'} 11px Inter, sans-serif`;
+    gCtx.textBaseline = 'top';
+    gCtx.fillText(n.t, n.x, n.y + r + 6);
+  });
+  gCtx.restore();
+}
+function tick() {
+  step(); drawGraph();
+  gAnim = requestAnimationFrame(tick);
+}
+function attachGraphEvents() {
+  const wrap = document.getElementById('graphCanvas');
+  const tip = document.getElementById('graphTip');
+
+  function screenToGraph(sx, sy) {
+    const x = (sx - gW/2) / gCamS + gW/2 - gCamX;
+    const y = (sy - gH/2) / gCamS + gH/2 - gCamY;
+    return { x, y };
+  }
+  function pick(sx, sy) {
+    const { x, y } = screenToGraph(sx, sy);
+    for (let i = gNodes.length-1; i >= 0; i--) {
+      const n = gNodes[i], dx = x-n.x, dy = y-n.y;
+      if (dx*dx + dy*dy < (n.r + 6)*(n.r + 6)) return n;
+    }
+    return null;
+  }
+  let clickT = 0;
+  wrap.addEventListener('mousedown', e => {
+    const r = gCanvas.getBoundingClientRect();
+    const sx = e.clientX - r.left, sy = e.clientY - r.top;
+    const n = pick(sx, sy);
+    clickT = Date.now();
+    if (n) { gDragNode = n; n.vx = n.vy = 0; }
+    else { gPan = { sx: e.clientX, sy: e.clientY, cx: gCamX, cy: gCamY }; }
+  });
+  wrap.addEventListener('mousemove', e => {
+    const r = gCanvas.getBoundingClientRect();
+    const sx = e.clientX - r.left, sy = e.clientY - r.top;
+    if (gDragNode) {
+      const p = screenToGraph(sx, sy);
+      gDragNode.x = p.x; gDragNode.y = p.y; gDragNode.vx = gDragNode.vy = 0;
+    } else if (gPan) {
+      gCamX = gPan.cx + (e.clientX - gPan.sx) / gCamS;
+      gCamY = gPan.cy + (e.clientY - gPan.sy) / gCamS;
+    } else {
+      const n = pick(sx, sy);
+      gHover = n;
+      if (n) {
+        tip.querySelector('.t-num').textContent = `#${n.id} · ${n.yr}`;
+        tip.querySelector('.t-title').textContent = n.t;
+        tip.querySelector('.t-desc').textContent = n.d;
+        tip.classList.add('on');
+        let tx = sx + 16, ty = sy - 8;
+        if (tx + 280 > gW) tx = sx - 280;
+        if (ty + 100 > gH) ty = gH - 110;
+        if (ty < 6) ty = 6;
+        tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
+      } else { tip.classList.remove('on'); }
+    }
+  });
+  wrap.addEventListener('mouseup', () => {
+    const dt = Date.now() - clickT;
+    if (gDragNode && dt < 200) {
+      const href = pageHref(gDragNode.id);
+      if (href !== '#') window.location.href = href;
+    }
+    gDragNode = null; gPan = null;
+  });
+  wrap.addEventListener('mouseleave', () => {
+    gDragNode = null; gPan = null; gHover = null;
+    tip.classList.remove('on');
+  });
+  wrap.addEventListener('wheel', e => {
+    e.preventDefault();
+    const f = e.deltaY > 0 ? 0.92 : 1.08;
+    gCamS = Math.max(0.4, Math.min(2.5, gCamS * f));
+  }, { passive: false });
+
+  window.addEventListener('resize', () => {
+    if (graphReady) resizeCanvas();
+  });
+
+  document.getElementById('gZoomIn').addEventListener('click', () => { gCamS = Math.min(2.5, gCamS * 1.2); });
+  document.getElementById('gZoomOut').addEventListener('click', () => { gCamS = Math.max(0.4, gCamS * 0.83); });
+  document.getElementById('gReset').addEventListener('click', () => {
+    gCamX = 0; gCamY = 0; gCamS = 1;
+    const cx = gW/2, cy = gH/2;
+    const layerY = { foundation: cy - 200, compute: cy - 60, memory: cy + 70, system: cy + 200 };
+    const totals = {}, seen = {};
+    TOPICS.forEach(t => totals[t.cat] = (totals[t.cat]||0) + 1);
+    gNodes.forEach(n => {
+      const k = (seen[n.cat] = (seen[n.cat]||0) + 1) - 1;
+      const N = totals[n.cat];
+      const spread = Math.min(gW * 0.78, N * 72);
+      n.x = gW/2 + (N === 1 ? 0 : (k/(N-1) - 0.5) * spread);
+      n.y = layerY[n.cat];
+      n.vx = n.vy = 0;
+    });
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>25 Training &amp; Loss · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+.eq { font-family: var(--mono); font-size: 14px; padding: 14px 16px; background: var(--bg); border-left: 3px solid var(--accent); color: var(--ink); margin: 12px 0; line-height: 1.7; letter-spacing: 0.01em; }
+.eq .var { color: var(--accent); font-weight: 600; }
+.eq .com { color: var(--mute); font-size: 11px; }
+
+.tok-pred { display: grid; gap: 4px; margin: 12px 0; }
+.tp-row { display:grid; grid-template-columns: 90px 1fr 70px; gap: 10px; align-items: center; padding: 6px 10px; background: var(--bg); border:1px solid var(--rule); border-radius: 2px; }
+.tp-row .tok { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 600; }
+.tp-row.tgt { background: color-mix(in oklab, var(--moss) 12%, transparent); border-color: var(--moss); }
+.tp-row .bar { height: 8px; background: var(--rule); border-radius: 1px; overflow: hidden; }
+.tp-row .bar .f { height:100%; background: var(--accent); }
+.tp-row.tgt .bar .f { background: var(--moss); }
+.tp-row .pct { font-family: var(--mono); font-size: 11px; color: var(--mute); text-align: right; }
+
+.loss-svg { width:100%; height: 280px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+
+.sched-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+.sched-card { padding: 14px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.sched-card .h { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+.sched-card h4 { font-size: 14px; color: var(--ink); margin-bottom: 6px; }
+.sched-card svg { width:100%; height: 60px; margin: 6px 0; }
+.sched-card p { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+
+.knobs { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 12px 0; }
+.knob { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.knob .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom:6px; }
+.knob .vl { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+.knob .row { display:flex; align-items:center; gap:10px; }
+.knob input[type=range] { flex:1; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top"><div><a href="../index.html" class="brand">llm-viz</a></div><div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div></nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat compute">Compute</span><span class="sep">/</span><span class="here">25 Training &amp; Loss</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 25</span><span class="sep">·</span><span>Compute</span><span class="sep">·</span><span>core · 11 min read</span></div>
+    <div class="phero-grid"><div class="phero-num">25</div><div>
+      <h1>The model learns by being <em>wrong</em>.</h1>
+      <div class="dek">Cross-entropy measures how surprised the model is by the right answer. Backprop pushes weights to make it less surprised next time. Repeat ~10¹³ times.</div>
+    </div></div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">−log p</div><div class="l">Loss · per token</div></div>
+      <div class="c"><div class="v">∇L</div><div class="l">Backprop signal</div></div>
+      <div class="c"><div class="v">AdamW</div><div class="l">Default optimizer</div></div>
+      <div class="c"><div class="v">3e-4</div><div class="l">Karpathy LR</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">A language model is just a function from context to probability distribution over the vocabulary. Training is the process of nudging that function to put more mass on the tokens that actually came next.</p>
+
+      <h2 id="s1" data-n="§ 01"><span>Cross-entropy · the loss</span></h2>
+      <p>For each predicted token, compute the negative log-probability the model assigned to the true next token. Sum across the sequence, average across the batch. That\'s it.</p>
+      <div class="eq">L = −∑ <span class="var">log p(x<sub>t</sub> | x<sub>&lt;t</sub>)</span><br><span class="com">// average over tokens · perplexity = exp(L)</span></div>
+      <p>If the model assigns 0.5 to the right token, the loss is 0.69. If it assigns 0.99, the loss is 0.01. If it assigns 0.001, the loss is 6.9. The log makes high-confidence wrong answers very expensive.</p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · "The cat sat on the ___"</span><span class="tag">forward</span></div>
+        <div class="dbd">
+          <div class="tok-pred">
+            <div class="tp-row tgt"><span class="tok">mat</span><div class="bar"><div class="f" style="width:62%"></div></div><span class="pct">0.62 · target</span></div>
+            <div class="tp-row"><span class="tok">floor</span><div class="bar"><div class="f" style="width:18%"></div></div><span class="pct">0.18</span></div>
+            <div class="tp-row"><span class="tok">chair</span><div class="bar"><div class="f" style="width:11%"></div></div><span class="pct">0.11</span></div>
+            <div class="tp-row"><span class="tok">roof</span><div class="bar"><div class="f" style="width:5%"></div></div><span class="pct">0.05</span></div>
+            <div class="tp-row"><span class="tok">moon</span><div class="bar"><div class="f" style="width:1%"></div></div><span class="pct">0.01</span></div>
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.06em;text-transform:uppercase">// loss = −log(0.62) = <span style="color:var(--accent);font-weight:600">0.478</span></div>
+        </div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>Gradient descent · the move</span></h2>
+      <p>Backprop computes ∂L/∂w for every parameter. Adam adapts the step per parameter using running estimates of the gradient mean and variance. Update: <code style="font-family:var(--mono);background:var(--bg);padding:2px 6px;border:1px solid var(--rule);border-radius:2px">w ← w − η · m̂/(√v̂ + ε)</code>.</p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Loss landscape · descent</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <svg class="loss-svg" id="loss" viewBox="0 0 900 280"></svg>
+          <div class="knobs">
+            <div class="knob"><div class="lab">Learning rate</div><div class="row"><input id="kLr" type="range" min="1" max="100" value="20"><span class="vl" id="vLr">2e-2</span></div></div>
+            <div class="knob"><div class="lab">Step</div><div class="row"><input id="kStep" type="range" min="0" max="60" value="0"><span class="vl" id="vStep">0</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>Schedules · the discipline</span></h2>
+      <p>A constant LR will overshoot at the start (random init) and undershoot at the end (near a minimum). Schedules fix this. Three you\'ll see in every paper:</p>
+      <div class="sched-grid">
+        <div class="sched-card"><div class="h">Linear · simplest</div><h4>Warmup → linear decay</h4>
+          <svg viewBox="0 0 200 60"><path d="M 5 50 L 30 10 L 195 50" stroke="#b8471f" stroke-width="2" fill="none"/></svg>
+          <p>Warm up over the first few % of steps to avoid early divergence, then decay linearly to zero.</p>
+        </div>
+        <div class="sched-card"><div class="h">Cosine · 2020s default</div><h4>Smooth half-cycle</h4>
+          <svg viewBox="0 0 200 60"><path d="M 5 50 L 30 10 Q 110 10 195 50" stroke="#b8471f" stroke-width="2" fill="none"/></svg>
+          <p>Same warmup, then a smooth cosine decay. Why cosine? Empirically, slightly better. Mostly tradition.</p>
+        </div>
+        <div class="sched-card"><div class="h">WSD · 2024 trend</div><h4>Warmup, stable, decay</h4>
+          <svg viewBox="0 0 200 60"><path d="M 5 50 L 30 10 L 150 10 L 195 50" stroke="#b8471f" stroke-width="2" fill="none"/></svg>
+          <p>Constant LR for most of training, late-stage decay. Cleaner ablations · cheap to extend a run.</p>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>What goes wrong</span></h2>
+      <ul style="list-style:none;padding-left:0;margin:8px 0">
+        <li style="padding:8px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-size:14px"><strong style="color:var(--ink)">Loss spikes →</strong> bad batch, gradient explosion. Clip gradients to norm 1.0. Skip-and-continue is fine.</li>
+        <li style="padding:8px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-size:14px"><strong style="color:var(--ink)">Loss plateau →</strong> LR too small, or model is overfit on something narrow. Add data variety.</li>
+        <li style="padding:8px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-size:14px"><strong style="color:var(--ink)">Loss diverges →</strong> LR too high, mixed-precision underflow. Lower LR, switch to bf16, longer warmup.</li>
+        <li style="padding:8px 0;color:var(--ink-2);font-size:14px"><strong style="color:var(--ink)">Train-eval gap →</strong> overfitting. Add dropout, data, or stop training.</li>
+      </ul>
+
+      <h2 id="s5" data-n="§ 05"><span>Mini-game</span></h2>
+      <div class="demo"><div class="dhd"><span class="ttl">Game · Training intuition</span><span class="tag" id="gameTag">0 / 5</span></div><div class="dbd">
+        <div id="gameArea">
+          <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+          <div class="game-q" id="gameQ"></div>
+          <div class="game-board" id="gameBoard"></div>
+        </div>
+        <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+          <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+          <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+        </div>
+      </div></div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Cross-entropy</span></a>
+        <a href="#s2"><span class="n">02</span><span>Gradient descent</span></a>
+        <a href="#s3"><span class="n">03</span><span>Schedules</span></a>
+        <a href="#s4"><span class="n">04</span><span>What goes wrong</span></a>
+        <a href="#s5"><span class="n">05</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 25 Training &amp; Loss <span class="dot">·</span> Compute</div><div>chapter 25 of 29 <span class="dot">●</span> 11 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks"><div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div><div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+  <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+  <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "25"</div></div></div>
+  <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number</div></div></div>
+</div></div></aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'25', related:['01','02','24','27','28'] });
+
+(function(){
+  // Loss surface · simple bowl with descent path
+  const W=900,H=280;
+  function loss(x,y){return 0.5*(x-450)*(x-450)/4000 + 0.5*(y-140)*(y-140)/2000;}
+  function render(){
+    const lr=parseInt(document.getElementById('kLr').value);
+    const step=parseInt(document.getElementById('kStep').value);
+    document.getElementById('vLr').textContent=(lr/1000).toFixed(3).replace(/^0+/,'');
+    document.getElementById('vStep').textContent=step;
+    let g='<defs><pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M 30 0 L 0 0 0 30" fill="none" stroke="#e8dfc5" stroke-width="0.5"/></pattern></defs><rect width="900" height="280" fill="url(#grid)"/>';
+    // Contour rings
+    for(let r=20;r<260;r+=30){g+=`<ellipse cx="450" cy="140" rx="${r*1.4}" ry="${r}" fill="none" stroke="#d8cba5" stroke-width="0.6"/>`;}
+    // Path
+    let x=80,y=40;const pts=[[x,y]];const eta=lr/2000;
+    for(let i=0;i<step;i++){
+      const gx=(x-450)/4000, gy=(y-140)/2000;
+      x-=gx*eta*4000; y-=gy*eta*4000;
+      // add tiny oscillation if lr is high
+      if(lr>60){y+=Math.sin(i*0.8)*8;}
+      pts.push([x,y]);
+    }
+    const path = pts.map((p,i)=>(i===0?'M':'L')+p[0]+' '+p[1]).join(' ');
+    g+=`<path d="${path}" stroke="#b8471f" stroke-width="1.5" fill="none" opacity="0.85"/>`;
+    pts.forEach((p,i)=>{g+=`<circle cx="${p[0]}" cy="${p[1]}" r="${i===pts.length-1?4:1.8}" fill="${i===pts.length-1?'#b8471f':'#8b3410'}"/>`;});
+    g+=`<circle cx="450" cy="140" r="3" fill="#556b2f"/><text x="460" y="144" font-family="JetBrains Mono" font-size="10" fill="#556b2f">minimum</text>`;
+    g+=`<text x="80" y="32" font-family="JetBrains Mono" font-size="10" fill="#8a7452">start</text>`;
+    g+=`<text x="20" y="270" font-family="JetBrains Mono" font-size="10" fill="#8a7452">loss = ${loss(pts[pts.length-1][0],pts[pts.length-1][1]).toFixed(2)}</text>`;
+    document.getElementById('loss').innerHTML=g;
+  }
+  document.getElementById('kLr').addEventListener('input',render);
+  document.getElementById('kStep').addEventListener('input',render);
+  render();
+})();
+
+const GAME=[
+  {q:'Cross-entropy loss for a token where the model assigned probability 0.5 to the correct answer?',opts:[{t:'≈ 0.69 · −log(0.5)',h:'natural log',c:true},{t:'0.5',h:'No, log scale'},{t:'1.0',h:'No'},{t:'0',h:'Only if p=1'}]},
+  {q:'Why warmup the LR for the first ~1% of steps?',opts:[{t:'Random init produces wild gradients · large LR diverges',h:'Stability',c:true},{t:'Hardware needs warmup',h:'No'},{t:'Tradition only',h:'There is a reason'},{t:'Saves memory',h:'No'}]},
+  {q:'Adam tracks two moments. Which?',opts:[{t:'Mean (m) and uncentered variance (v) of gradients',h:'Per parameter, EMA',c:true},{t:'Loss and accuracy',h:'No'},{t:'Activations and gradients',h:'No'},{t:'Weights and biases',h:'No'}]},
+  {q:'Loss spikes mid-training. First fix?',opts:[{t:'Clip gradient norm to 1.0, skip-and-continue',h:'Default reflex',c:true},{t:'Restart from scratch',h:'Wasteful'},{t:'Increase LR',h:'Worse'},{t:'Switch to fp32',h:'Helps but expensive'}]},
+  {q:'Cosine vs linear decay · the practical difference?',opts:[{t:'Mostly tradition · cosine slightly better empirically, both fine',h:'Don\'t over-think it',c:true},{t:'Cosine is 10× better',h:'Overstated'},{t:'Linear is faster',h:'Same compute'},{t:'Cosine needs fewer steps',h:'No'}]},
+];
+let gI=0,gS=0;
+function rg(){
+  if(gI>=GAME.length){document.getElementById('gameArea').style.display='none';document.getElementById('gameDone').style.display='block';document.getElementById('gameFinal').textContent=`${gS} / ${GAME.length}`;const g=JSON.parse(localStorage.getItem('llm-viz-games')||'{}');g['25']=gS;localStorage.setItem('llm-viz-games',JSON.stringify(g));return;}
+  const q=GAME[gI];document.getElementById('gameIdx').textContent=gI+1;document.getElementById('gameScore').textContent=gS;document.getElementById('gameTag').textContent=`${gI} / ${GAME.length}`;document.getElementById('gameQ').innerHTML=q.q;
+  const b=document.getElementById('gameBoard');b.innerHTML='';let an=false;
+  q.opts.forEach(o=>{const e=document.createElement('button');e.className='game-opt';e.innerHTML=`<div class="q">${o.t}</div><div class="h">${o.h}</div>`;e.addEventListener('click',()=>{if(an)return;an=true;if(o.c){e.classList.add('correct');gS++;}else{e.classList.add('wrong');b.querySelectorAll('.game-opt').forEach((x,i)=>{if(q.opts[i].c)x.classList.add('correct');});}setTimeout(()=>{gI++;rg();},1100);});b.appendChild(e);});
+}
+document.getElementById('gameRestart').addEventListener('click',()=>{gI=0;gS=0;document.getElementById('gameArea').style.display='block';document.getElementById('gameDone').style.display='none';rg();});
+rg();
+</script>
+</body>
+</html>

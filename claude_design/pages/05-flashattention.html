@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>05 FlashAttention · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.mem-diag { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 14px 0; }
+.mem-cell { padding: 20px 22px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; position: relative; cursor: pointer; transition: all 0.2s; }
+.mem-cell:hover { border-color: var(--accent); }
+.mem-cell .tag { position: absolute; top: 12px; right: 14px; font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.12em; text-transform: uppercase; }
+.mem-cell h4 { font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; margin-bottom: 4px; }
+.mem-cell .sub { font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.06em; margin-bottom: 14px; }
+.mem-cell .bar { height: 10px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin: 10px 0 6px; }
+.mem-cell .bar .fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+.mem-cell .bw-label { font-family: var(--mono); font-size: 11px; color: var(--ink-2); display: flex; justify-content: space-between; }
+.mem-cell .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--rule); }
+.mem-cell .metric .v { font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--accent); letter-spacing: -0.01em; }
+.mem-cell .metric .l { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 14px 0; }
+.compare-col { padding: 16px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.compare-col h4 { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
+.compare-col.std h4 { color: var(--mute); }
+.compare-col.flash h4 { color: var(--accent); }
+.matrix-viz { aspect-ratio: 1; position: relative; background: var(--surface); border: 1px solid var(--rule); border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+.matrix-viz canvas { width: 100%; height: 100%; display: block; }
+.compare-col .hbm-bar { height: 6px; border-radius: 2px; overflow: hidden; background: var(--surface-2); margin-top: 8px; }
+.compare-col .hbm-bar .f { height: 100%; transition: width 0.8s; }
+.compare-col.std .hbm-bar .f { background: var(--accent); }
+.compare-col.flash .hbm-bar .f { background: var(--moss); }
+.compare-col .hbm-lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 6px; display: flex; justify-content: space-between; }
+
+.tile-stage { padding: 18px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.tile-grid { display: grid; gap: 3px; margin: 10px 0; }
+.tile-cell { aspect-ratio: 1; background: var(--surface-2); border-radius: 2px; transition: all 0.3s; position: relative; }
+.tile-cell.done { background: color-mix(in oklab, var(--moss) 35%, var(--surface)); }
+.tile-cell.active { background: var(--accent); box-shadow: 0 0 0 2px var(--accent-2), 0 0 18px rgba(184,71,31,0.4); }
+.tile-cell.sram { background: var(--ochre); }
+.tile-controls { display: flex; gap: 10px; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--rule); }
+.tile-step-label { font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; flex: 1; }
+.sram-bar { height: 8px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin: 8px 0 4px; }
+.sram-bar .f { height: 100%; background: var(--ochre); transition: width 0.4s; }
+
+.softmax-steps { display: flex; gap: 4px; margin: 14px 0; }
+.sm-step { flex: 1; padding: 16px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; cursor: pointer; }
+.sm-step.active { border-color: var(--accent); background: var(--accent-bg); }
+.sm-step .ix { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; }
+.sm-step .title { font-size: 13px; color: var(--ink); font-weight: 600; margin-top: 4px; }
+.sm-step .val { font-family: var(--mono); font-size: 11px; color: var(--ink-2); margin-top: 6px; line-height: 1.6; }
+.sm-trace { padding: 18px; background: var(--surface); border: 1px solid var(--rule); border-radius: 3px; font-family: var(--mono); font-size: 12px; color: var(--ink-2); line-height: 1.8; }
+.sm-trace .hi { color: var(--accent); font-weight: 600; }
+.sm-trace .var { color: var(--ochre); }
+
+.perf-bars { display: flex; flex-direction: column; gap: 8px; }
+.perf-row { display: grid; grid-template-columns: 70px 1fr 60px; gap: 12px; align-items: center; font-family: var(--mono); font-size: 12px; }
+.perf-row .lbl { color: var(--mute); letter-spacing: 0.08em; }
+.perf-row .bar { height: 22px; background: var(--surface-2); border-radius: 2px; overflow: hidden; position: relative; }
+.perf-row .bar .std { position: absolute; top: 0; left: 0; bottom: 0; background: var(--accent); border-radius: 2px; display: flex; align-items: center; padding-left: 8px; color: var(--bg); font-weight: 600; font-size: 10px; transition: width 0.8s; }
+.perf-row .bar .flash { position: absolute; top: 0; left: 0; bottom: 0; background: var(--moss); border-radius: 2px; display: flex; align-items: center; padding-left: 8px; color: var(--bg); font-weight: 600; font-size: 10px; transition: width 0.8s; }
+.perf-row .speedup { color: var(--accent); text-align: right; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div>
+</nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat compute">Compute</span><span class="sep">/</span><span class="here">05 FlashAttention</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 05</span><span class="sep">·</span><span>Compute</span><span class="sep">·</span><span>2022 · 16 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">05</div>
+      <div>
+        <h1>Attention, rewritten as <em>an IO problem</em>.</h1>
+        <div class="dek">Standard attention spends 80% of its time moving an N×N matrix between HBM and SRAM. FlashAttention never writes it — just tiles, streams, and keeps a running softmax. Same output, 2–4× faster, O(N) memory.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">2022</div><div class="l">Tri Dao (Stanford)</div></div>
+      <div class="c"><div class="v">13×</div><div class="l">HBM:SRAM BW gap</div></div>
+      <div class="c"><div class="v">O(N)</div><div class="l">Memory · was O(N²)</div></div>
+      <div class="c"><div class="v">2–4×</div><div class="l">Wall-clock speedup</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        The GPU on your desk has two memories. A huge slow one (HBM) and a tiny fast one (SRAM). Standard attention treats them as if they were interchangeable — it isn't. Once you realize attention is bottlenecked on <i>where</i> data lives, not <i>how many</i> FLOPs it needs, the whole algorithm gets rewritten.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>The GPU memory hierarchy</span></h2>
+      <p>
+        An A100 has ~40–80 GB of HBM at ~1.5 TB/s and ~20 MB of SRAM at ~19 TB/s. That 13× bandwidth gap is what FlashAttention exploits. If your algorithm touches HBM a lot, you'll saturate its bandwidth long before you run out of FLOPs.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Memory hierarchy</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="mem-diag">
+            <div class="mem-cell">
+              <div class="tag">on-chip</div>
+              <h4>SRAM</h4>
+              <div class="sub">// ~20 MB per SM · shared + L1</div>
+              <div class="bar"><div class="fill" style="width: 100%; background: var(--ochre)"></div></div>
+              <div class="bw-label"><span>bandwidth</span><span style="color:var(--ochre)">19 TB/s</span></div>
+              <div class="metrics">
+                <div class="metric"><div class="v" style="color:var(--ochre)">~20 MB</div><div class="l">Capacity</div></div>
+                <div class="metric"><div class="v" style="color:var(--ochre)">~1 cycle</div><div class="l">Latency</div></div>
+              </div>
+            </div>
+            <div class="mem-cell">
+              <div class="tag">off-chip</div>
+              <h4>HBM</h4>
+              <div class="sub">// ~40–80 GB · global device memory</div>
+              <div class="bar"><div class="fill" style="width: 8%"></div></div>
+              <div class="bw-label"><span>bandwidth (relative)</span><span style="color:var(--accent)">1.5 TB/s</span></div>
+              <div class="metrics">
+                <div class="metric"><div class="v">40 GB</div><div class="l">Capacity</div></div>
+                <div class="metric"><div class="v">~400 cy</div><div class="l">Latency</div></div>
+              </div>
+            </div>
+          </div>
+          <p style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:4px">// 13× bandwidth gap. The algorithm that minimizes HBM traffic wins — even if it does more FLOPs.</p>
+        </div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>Standard vs Flash</span> <em>the whole story in one picture</em></h2>
+      <p>
+        Standard attention materializes a full N×N matrix in HBM: write it, read it back for softmax, read it <i>again</i> to multiply by V. That's 3 passes over O(N²) bytes. FlashAttention never materializes it at all.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Standard vs FlashAttention</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="compare-grid">
+            <div class="compare-col std">
+              <h4>// standard attention</h4>
+              <div class="matrix-viz"><canvas id="stdCanvas"></canvas></div>
+              <div class="hbm-bar"><div class="f" style="width: 100%"></div></div>
+              <div class="hbm-lab"><span>HBM traffic</span><span id="stdTraffic" style="color:var(--accent)">O(N²) · 3 passes</span></div>
+            </div>
+            <div class="compare-col flash">
+              <h4>// flashattention</h4>
+              <div class="matrix-viz"><canvas id="flashCanvas"></canvas></div>
+              <div class="hbm-bar"><div class="f" style="width: 18%"></div></div>
+              <div class="hbm-lab"><span>HBM traffic</span><span id="flashTraffic" style="color:var(--moss)">O(N²·d/M) · tiled</span></div>
+            </div>
+          </div>
+          <p style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:4px">// watch the red matrix (HBM writes) vs the green tiles (SRAM-only). same math, ~5× less memory traffic.</p>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>Tiling</span> <em>split, stream, accumulate</em></h2>
+      <p>
+        Break Q and K into blocks of size $B_r \times B_c$ where $B_c = M / (4d)$ — just small enough that a pair of tiles fits in SRAM with room for intermediates. For each query tile, stream through all key tiles, compute partial attention on-chip, accumulate the output. That's it.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Tiling walkthrough</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="tile-stage">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">Q × Kᵀ tile grid</div>
+            <div class="tile-grid" id="tileGrid" style="grid-template-columns: repeat(8, 1fr)"></div>
+            <div class="sram-bar"><div class="f" id="sramFill" style="width:0%"></div></div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--mute);letter-spacing:0.08em;text-transform:uppercase;display:flex;justify-content:space-between">
+              <span>sram usage</span><span id="sramPct">0 %</span>
+            </div>
+            <div class="tile-controls">
+              <span class="tile-step-label" id="tileStepLbl">Step 0 / 64 · tile (0, 0)</span>
+              <button class="btn" id="tilePrev">‹ prev</button>
+              <button class="btn pri" id="tilePlay">▶ auto</button>
+              <button class="btn" id="tileNext">next ›</button>
+            </div>
+          </div>
+          <p style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px">
+            // orange = tile currently loaded into SRAM. green = done. at any moment, only one tile-pair lives in fast memory.
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>Online softmax</span> <em>the clever trick that makes it work</em></h2>
+      <p>
+        You can't softmax one tile at a time and just sum — softmax is global. The online softmax trick fixes this by tracking a running max $m_i$ and running denominator $\ell_i$. When a new tile's max is larger, you <i>rescale</i> your previous partial sum by $e^{m_{\text{old}} - m_{\text{new}}}$. Mathematically identical to global softmax; numerically stable; requires a single streaming pass.
+      </p>
+
+      <div class="math-block">
+        <div class="label">// online softmax update</div>
+        $$m_{\text{new}} = \max(m_{\text{old}}, \max(x_{\text{block}})), \quad \ell_{\text{new}} = e^{m_{\text{old}} - m_{\text{new}}} \cdot \ell_{\text{old}} + \sum e^{x_{\text{block}} - m_{\text{new}}}$$
+      </div>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Step through the softmax</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="softmax-steps" id="smSteps">
+            <div class="sm-step active" data-s="0"><div class="ix">// tile 1</div><div class="title">x = [1.0, 2.0, 0.5]</div><div class="val">max = 2.0<br>sum = 4.95</div></div>
+            <div class="sm-step" data-s="1"><div class="ix">// tile 2</div><div class="title">x = [3.0, 2.5, 1.0]</div><div class="val">new max · 3.0<br>rescale factor · e⁻¹</div></div>
+            <div class="sm-step" data-s="2"><div class="ix">// tile 3</div><div class="title">x = [0.2, 1.5, 0.8]</div><div class="val">max stays · 3.0<br>accumulate</div></div>
+          </div>
+          <div class="sm-trace" id="smTrace"></div>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>The payoff</span> <em>2–4× faster, O(N) memory</em></h2>
+      <p>Wall-clock speedup vs standard attention, across sequence lengths:</p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Performance bars</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="perf-bars" id="perfBars"></div>
+          <p style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:14px">
+            // red = standard attention ms. green = FlashAttention ms. speedup grows with N — the whole point.
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s6" data-n="§ 06"><span>Where this leads</span></h2>
+      <div class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+        <a href="04-prefill-decode.html" class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px;text-decoration:none">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase">← 04 Prefill &amp; Decode</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:8px">The two-phase pipeline. Prefill is what benefits most from Flash.</div>
+        </a>
+        <a href="06-paged-attention.html" class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px;text-decoration:none">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase">→ 06 PagedAttention</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:8px">Flash handles a single forward pass. PagedAttention handles thousands of requests.</div>
+        </a>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Memory hierarchy</span></a>
+        <a href="#s2"><span class="n">02</span><span>Standard vs Flash</span></a>
+        <a href="#s3"><span class="n">03</span><span>Tiling walkthrough</span></a>
+        <a href="#s4"><span class="n">04</span><span>Online softmax</span></a>
+        <a href="#s5"><span class="n">05</span><span>The payoff</span></a>
+        <a href="#s6"><span class="n">06</span><span>Where this leads</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+      <div><div class="lab">Reference</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--ink-2);line-height:1.5">
+          Dao et al., 2022<br/><span style="color:var(--mute)">FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 05 FlashAttention <span class="dot">·</span> Compute</div><div>chapter 05 of 29 <span class="dot">●</span> 16 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category · year overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "05" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '05', related: ['03','04','06','07'] });
+
+/* Std vs Flash canvas animation */
+function setupCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return { ctx, w: rect.width, h: rect.height };
+}
+let animT = 0;
+function drawStd() {
+  const c = document.getElementById('stdCanvas'); if (!c) return;
+  const { ctx, w, h } = setupCanvas(c);
+  ctx.fillStyle = 'rgba(242,234,217,0.9)'; ctx.fillRect(0,0,w,h);
+  // draw NxN matrix cells, color = red if materialized
+  const N = 12;
+  const cellW = w / N, cellH = h / N;
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      const phase = (animT + i * 0.1 + j * 0.07) % 3;
+      let alpha = 0.15 + 0.8 * Math.max(0, Math.sin(phase * Math.PI / 3));
+      ctx.fillStyle = `rgba(184, 71, 31, ${alpha})`;
+      ctx.fillRect(i * cellW + 1, j * cellH + 1, cellW - 2, cellH - 2);
+    }
+  }
+}
+function drawFlash() {
+  const c = document.getElementById('flashCanvas'); if (!c) return;
+  const { ctx, w, h } = setupCanvas(c);
+  ctx.fillStyle = 'rgba(242,234,217,0.9)'; ctx.fillRect(0,0,w,h);
+  const N = 12;
+  const cellW = w / N, cellH = h / N;
+  // always light ghost grid
+  ctx.fillStyle = 'rgba(85, 107, 47, 0.08)';
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++)
+    ctx.fillRect(i*cellW+1, j*cellH+1, cellW-2, cellH-2);
+  // single active 3x3 tile moves through grid
+  const totalTiles = 16; // 4x4
+  const tileIdx = Math.floor(animT * 4) % totalTiles;
+  const ti = tileIdx % 4, tj = Math.floor(tileIdx / 4);
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+    ctx.fillStyle = 'rgba(85, 107, 47, 0.85)';
+    ctx.fillRect((ti*3+i)*cellW+1, (tj*3+j)*cellH+1, cellW-2, cellH-2);
+  }
+  // sram indicator ring
+  ctx.strokeStyle = 'rgba(160, 104, 26, 0.8)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(ti*3*cellW, tj*3*cellH, 3*cellW, 3*cellH);
+}
+function animateCompare() {
+  animT += 0.04;
+  drawStd(); drawFlash();
+  requestAnimationFrame(animateCompare);
+}
+setTimeout(() => { animateCompare(); }, 100);
+
+/* Tile walkthrough */
+const TILES = 64; // 8x8
+const tileGrid = document.getElementById('tileGrid');
+for (let i=0;i<TILES;i++) { const el = document.createElement('div'); el.className='tile-cell'; tileGrid.appendChild(el); }
+let tileStep = 0;
+let tilePlaying = false;
+let tileTimer;
+function renderTiles() {
+  const cells = tileGrid.children;
+  for (let i = 0; i < cells.length; i++) {
+    const el = cells[i];
+    el.classList.remove('active','sram','done');
+    if (i < tileStep) el.classList.add('done');
+    else if (i === tileStep) el.classList.add('active','sram');
+  }
+  const ti = tileStep % 8, tj = Math.floor(tileStep / 8);
+  document.getElementById('tileStepLbl').textContent = `Step ${tileStep} / ${TILES} · tile (${ti}, ${tj})`;
+  const sram = tileStep < TILES ? 42 + (tileStep % 7) * 5 : 0;
+  document.getElementById('sramFill').style.width = sram + '%';
+  document.getElementById('sramPct').textContent = sram + ' %';
+}
+document.getElementById('tileNext').addEventListener('click', () => { tileStep = Math.min(TILES, tileStep + 1); renderTiles(); });
+document.getElementById('tilePrev').addEventListener('click', () => { tileStep = Math.max(0, tileStep - 1); renderTiles(); });
+document.getElementById('tilePlay').addEventListener('click', (e) => {
+  tilePlaying = !tilePlaying;
+  e.target.textContent = tilePlaying ? '⏸ pause' : '▶ auto';
+  if (tilePlaying) {
+    tileTimer = setInterval(() => {
+      tileStep = (tileStep + 1) % (TILES + 1);
+      renderTiles();
+    }, 260);
+  } else {
+    clearInterval(tileTimer);
+  }
+});
+renderTiles();
+
+/* Softmax stepper */
+const SM_TRACES = [
+  `m<sub>old</sub> = <span class="var">−∞</span>, ℓ<sub>old</sub> = <span class="var">0</span><br>
+tile = [1.0, 2.0, 0.5]<br>
+max(tile) = <span class="hi">2.0</span> &nbsp; → &nbsp; m<sub>new</sub> = max(−∞, 2.0) = <span class="hi">2.0</span><br>
+rescale factor = e<sup>m<sub>old</sub>−m<sub>new</sub></sup> = <span class="var">0</span><br>
+ℓ<sub>new</sub> = 0·ℓ<sub>old</sub> + e<sup>−1</sup>+e<sup>0</sup>+e<sup>−1.5</sup> = <span class="hi">1.83</span>`,
+  `m<sub>old</sub> = <span class="var">2.0</span>, ℓ<sub>old</sub> = <span class="var">1.83</span><br>
+tile = [3.0, 2.5, 1.0]<br>
+max(tile) = <span class="hi">3.0</span> &nbsp; → &nbsp; m<sub>new</sub> = max(2.0, 3.0) = <span class="hi">3.0</span><br>
+rescale factor = e<sup>2.0−3.0</sup> = <span class="hi">0.368</span>  &nbsp;<span style="color:var(--mute)">// shrink previous</span><br>
+ℓ<sub>new</sub> = 0.368·1.83 + e<sup>0</sup>+e<sup>−0.5</sup>+e<sup>−2</sup> = <span class="hi">2.41</span>`,
+  `m<sub>old</sub> = <span class="var">3.0</span>, ℓ<sub>old</sub> = <span class="var">2.41</span><br>
+tile = [0.2, 1.5, 0.8]<br>
+max(tile) = <span class="hi">1.5</span> &nbsp; → &nbsp; m<sub>new</sub> = max(3.0, 1.5) = <span class="hi">3.0</span>  &nbsp;<span style="color:var(--mute)">// unchanged</span><br>
+rescale factor = e<sup>0</sup> = <span class="hi">1.0</span><br>
+ℓ<sub>new</sub> = 2.41 + e<sup>−2.8</sup>+e<sup>−1.5</sup>+e<sup>−2.2</sup> = <span class="hi">2.77</span><br>
+<span style="color:var(--moss)">// final: identical to batched softmax — to within FP error.</span>`
+];
+document.getElementById('smTrace').innerHTML = SM_TRACES[0];
+document.querySelectorAll('.sm-step').forEach(el => el.addEventListener('click', () => {
+  document.querySelectorAll('.sm-step').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('smTrace').innerHTML = SM_TRACES[+el.dataset.s];
+}));
+
+/* Perf bars */
+const PERF = [
+  { n: '1K',  std: 2.1,   flash: 1.1,  speedup: 1.9 },
+  { n: '2K',  std: 8.2,   flash: 3.0,  speedup: 2.7 },
+  { n: '4K',  std: 32,    flash: 9.8,  speedup: 3.3 },
+  { n: '8K',  std: 128,   flash: 36,   speedup: 3.6 },
+  { n: '16K', std: 512,   flash: 132,  speedup: 3.9 },
+];
+const maxMs = 512;
+const pb = document.getElementById('perfBars');
+pb.innerHTML = PERF.map(p => `
+  <div class="perf-row">
+    <span class="lbl">N = ${p.n}</span>
+    <div class="bar">
+      <div class="std" style="width:${(p.std/maxMs)*100}%">${p.std} ms</div>
+    </div>
+    <span class="speedup">—</span>
+  </div>
+  <div class="perf-row">
+    <span class="lbl" style="color:var(--moss)">+ flash</span>
+    <div class="bar">
+      <div class="flash" style="width:${(p.flash/maxMs)*100}%">${p.flash} ms</div>
+    </div>
+    <span class="speedup">${p.speedup.toFixed(1)}×</span>
+  </div>
+`).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>06 PagedAttention / vLLM · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.os-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+.os-col { padding: 16px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.os-col h5 { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.os-row { display:grid; grid-template-columns: 1fr 30px 1fr; align-items:center; gap: 8px; margin: 6px 0; }
+.os-box { padding: 8px 10px; background: var(--surface); border: 1px solid var(--rule); border-radius: 2px; font-family: var(--mono); font-size: 11px; color: var(--ink); text-align:center; }
+.os-arrow { color: var(--mute); text-align: center; font-family: var(--mono); }
+
+.bars { display:flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.bar-row { display:grid; grid-template-columns: 130px 1fr 60px; gap: 12px; align-items: center; }
+.bar-row .lbl { font-family: var(--mono); font-size: 11px; color: var(--ink-2); letter-spacing: 0.04em; }
+.bar-row .pct { font-family: var(--mono); font-size: 12px; color: var(--accent); text-align: right; font-weight: 600; }
+.bar { height: 22px; background: var(--surface); border: 1px solid var(--rule); border-radius: 2px; position:relative; overflow: hidden; display:flex; }
+.bar .seg { height: 100%; }
+.bar .seg.used { background: var(--accent); }
+.bar .seg.frag { background: color-mix(in oklab, var(--ochre) 60%, transparent); }
+.bar .seg.reserved { background: color-mix(in oklab, var(--mute) 30%, transparent); border-right: 1px dashed var(--mute); }
+.bar .seg.tail { background: color-mix(in oklab, var(--accent) 25%, transparent); }
+
+/* block grid */
+.block-pool { display:grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin: 10px 0; }
+.blk { aspect-ratio: 1; border: 1px solid var(--rule); border-radius: 2px; display:flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; cursor: pointer; transition: all 0.15s; background: var(--surface); color: var(--mute); }
+.blk .ix { font-size: 9px; letter-spacing: 0.05em; }
+.blk .tk { font-size: 9px; opacity: 0.8; }
+.blk[data-seq="0"] { background: color-mix(in oklab, var(--accent) 20%, transparent); border-color: var(--accent); color: var(--accent); }
+.blk[data-seq="1"] { background: color-mix(in oklab, var(--ink-blue) 20%, transparent); border-color: var(--ink-blue); color: var(--ink-blue); }
+.blk[data-seq="2"] { background: color-mix(in oklab, var(--moss) 25%, transparent); border-color: var(--moss); color: var(--moss); }
+.blk.shared { border-style: dashed; border-width: 2px; }
+
+.seq-list { display:flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.seq { padding: 10px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; display:grid; grid-template-columns: 90px 1fr auto; gap: 12px; align-items: center; }
+.seq .nm { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.seq[data-seq="0"] .nm { color: var(--accent); }
+.seq[data-seq="1"] .nm { color: var(--ink-blue); }
+.seq[data-seq="2"] .nm { color: var(--moss); }
+.seq .table { display:flex; gap: 4px; flex-wrap: wrap; }
+.seq .map { font-family: var(--mono); font-size: 11px; padding: 3px 7px; background: var(--surface); border: 1px solid var(--rule); border-radius: 2px; color: var(--ink-2); }
+.seq .map .arr { color: var(--mute); margin: 0 4px; }
+.seq button { font: inherit; font-family: var(--mono); font-size: 10px; padding: 5px 10px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); cursor: pointer; border-radius: 2px; letter-spacing: 0.05em; text-transform: uppercase; }
+.seq button:hover { border-color: var(--accent); color: var(--accent); }
+
+.cow-stage { display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; margin: 14px 0; }
+.cow-step { padding: 12px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; cursor: pointer; }
+.cow-step.active { border-color: var(--accent); background: var(--accent-bg); }
+.cow-step .stp { font-family: var(--mono); font-size: 9px; color: var(--accent); letter-spacing: 0.12em; }
+.cow-step .ttl { font-size: 12px; color: var(--ink); margin-top: 4px; font-weight: 600; }
+.cow-canvas { width:100%; height: 280px; background: var(--bg); border:1px solid var(--rule); border-radius: 3px; }
+
+.frag-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0; }
+.frag-card { padding: 16px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.frag-card h5 { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+.game-q code { font-family: var(--mono); font-size: 14px; background: var(--surface-2); padding: 1px 6px; border-radius: 2px; border:1px solid var(--rule); }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div>
+</nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat memory">Memory &amp; Serving</span><span class="sep">/</span><span class="here">06 PagedAttention</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 06</span><span class="sep">·</span><span>Memory &amp; Serving</span><span class="sep">·</span><span>2023 · 16 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">06</div>
+      <div>
+        <h1>Treat the KV cache like <em>virtual memory</em>.</h1>
+        <div class="dek">vLLM borrowed the OS playbook: pages, page tables, and on-demand allocation. The result was 2–4× throughput on the same GPU — by deleting the fragmentation that conventional engines were silently bleeding.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">2023</div><div class="l">SOSP · Kwon et al.</div></div>
+      <div class="c"><div class="v">96%</div><div class="l">KV utilization</div></div>
+      <div class="c"><div class="v">2–4×</div><div class="l">Throughput vs HF</div></div>
+      <div class="c"><div class="v">16</div><div class="l">Tokens / block (default)</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        Before vLLM, an LLM serving engine reserved a contiguous KV slab per request — sized for the worst case, sequence-length-wise — and watched 60–80% of GPU memory sit empty. The fix is the same one OS designers landed on in 1962: stop pretending memory is contiguous. Use pages, build a per-process page table, allocate on demand.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>The OS analogy</span> <em>same problem, same fix</em></h2>
+      <p>
+        The mapping is almost too clean. Sequences are processes. KV-cache pages are virtual pages. A block table is a page table. Physical GPU blocks are physical frames. The kernel allocates on page fault; PagedAttention allocates on token append.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Diagram · The mapping in one picture</span><span class="tag">static</span></div>
+        <div class="dbd">
+          <div class="os-grid">
+            <div class="os-col">
+              <h5>// operating system</h5>
+              <div class="os-row"><div class="os-box">virtual page</div><div class="os-arrow">→</div><div class="os-box">physical frame</div></div>
+              <div class="os-row"><div class="os-box">page table</div><div class="os-arrow">↓</div><div class="os-box">page-table entry</div></div>
+              <div class="os-row"><div class="os-box">page fault</div><div class="os-arrow">→</div><div class="os-box">demand paging</div></div>
+              <div class="os-row"><div class="os-box">fork()</div><div class="os-arrow">→</div><div class="os-box">copy-on-write</div></div>
+            </div>
+            <div class="os-col">
+              <h5>// PagedAttention</h5>
+              <div class="os-row"><div class="os-box">logical KV block</div><div class="os-arrow">→</div><div class="os-box">physical KV block</div></div>
+              <div class="os-row"><div class="os-box">block table</div><div class="os-arrow">↓</div><div class="os-box">block-table entry</div></div>
+              <div class="os-row"><div class="os-box">token append</div><div class="os-arrow">→</div><div class="os-box">on-demand alloc</div></div>
+              <div class="os-row"><div class="os-box">beam search</div><div class="os-arrow">→</div><div class="os-box">CoW on divergence</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>Memory waste</span> <em>where the gigabytes go</em></h2>
+      <p>
+        The chart below is, more or less, why vLLM exists. <i>Static</i> reservation pre-allocates max-seq for every request and almost everything is wasted. <i>Dynamic contiguous</i> pre-allocates a max guess and external fragmentation eats the rest. Paging keeps everything tight; only the last block has a tiny tail.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Memory utilization across allocation strategies</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="bars">
+            <div class="bar-row">
+              <span class="lbl">Static reservation</span>
+              <div class="bar"><div class="seg used" style="width:38%"></div><div class="seg reserved" style="width:62%"></div></div>
+              <span class="pct">38%</span>
+            </div>
+            <div class="bar-row">
+              <span class="lbl">Contiguous dynamic</span>
+              <div class="bar"><div class="seg used" style="width:55%"></div><div class="seg frag" style="width:25%"></div><div class="seg reserved" style="width:20%"></div></div>
+              <span class="pct">55%</span>
+            </div>
+            <div class="bar-row">
+              <span class="lbl">PagedAttention</span>
+              <div class="bar"><div class="seg used" style="width:96%"></div><div class="seg tail" style="width:4%"></div></div>
+              <span class="pct">96%</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:16px;font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:14px;letter-spacing:0.06em;text-transform:uppercase;flex-wrap:wrap">
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);vertical-align:-1px;margin-right:4px"></span>used</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:color-mix(in oklab, var(--ochre) 60%, transparent);vertical-align:-1px;margin-right:4px"></span>fragmentation</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:color-mix(in oklab, var(--mute) 30%, transparent);vertical-align:-1px;margin-right:4px"></span>over-reservation</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:color-mix(in oklab, var(--accent) 25%, transparent);vertical-align:-1px;margin-right:4px"></span>last-block tail</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>The block table, live</span> <em>append a token, watch it map</em></h2>
+      <p>
+        Three concurrent sequences share an 8-block GPU pool. Block size = 4 tokens. Click "+ token" on any sequence to allocate as needed; "drop" to free its blocks back to the pool.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Block-table allocator</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">// physical block pool — 8 blocks × 4 tokens</div>
+          <div class="block-pool" id="blockPool"></div>
+          <div class="seq-list" id="seqList"></div>
+          <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px;letter-spacing:0.08em;text-transform:uppercase">
+            <span>Free blocks: <b id="freeCount" style="color:var(--ink)">8</b> / 8</span>
+            <span>Tokens stored: <b id="tokCount" style="color:var(--ink)">0</b></span>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>Copy-on-Write for beam search</span> <em>fork without the copy</em></h2>
+      <p>
+        Beam search runs $k$ candidate continuations in parallel. They share a long prefix and only diverge at the very end. Copying the whole KV cache per beam wastes massive memory; PagedAttention shares the prefix blocks across beams and only copies a block when one beam writes to it.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Animation · CoW across 4 beams</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="cow-stage" id="cowStage">
+            <div class="cow-step active" data-step="0"><div class="stp">step 01</div><div class="ttl">Shared prefix</div></div>
+            <div class="cow-step" data-step="1"><div class="stp">step 02</div><div class="ttl">Fork into 4 beams</div></div>
+            <div class="cow-step" data-step="2"><div class="stp">step 03</div><div class="ttl">Beam B writes</div></div>
+            <div class="cow-step" data-step="3"><div class="stp">step 04</div><div class="ttl">CoW · independent block</div></div>
+          </div>
+          <canvas class="cow-canvas" id="cowCanvas" width="1100" height="280"></canvas>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px;letter-spacing:0.04em">
+            // ≈ 75% memory saved versus a naïve per-beam copy.
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Three flavors of fragmentation</span> <em>and what paging fixes</em></h2>
+      <div class="frag-grid">
+        <div class="frag-card">
+          <h5>Internal</h5>
+          <p style="font-size:13px;color:var(--ink-2);line-height:1.55">Last block is partially full — the tail. Average waste = block_size / 2 tokens per sequence. <b>Reduced</b> by smaller block size.</p>
+        </div>
+        <div class="frag-card">
+          <h5>External</h5>
+          <p style="font-size:13px;color:var(--ink-2);line-height:1.55">Free memory is scattered in chunks too small for any new request. <b>Eliminated</b> by paging — any free block fits.</p>
+        </div>
+        <div class="frag-card">
+          <h5>Reservation</h5>
+          <p style="font-size:13px;color:var(--ink-2);line-height:1.55">Pre-allocating max_seq_len even when most requests are short. <b>Eliminated</b> by on-demand allocation.</p>
+        </div>
+      </div>
+
+      <h2 id="s6" data-n="§ 06"><span>Mini-game</span> <em>pick the right tactic</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Diagnose &amp; fix</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div id="gameArea">
+            <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>OS analogy</span></a>
+        <a href="#s2"><span class="n">02</span><span>Memory waste</span></a>
+        <a href="#s3"><span class="n">03</span><span>Block table</span></a>
+        <a href="#s4"><span class="n">04</span><span>Copy-on-Write</span></a>
+        <a href="#s5"><span class="n">05</span><span>Fragmentation flavors</span></a>
+        <a href="#s6"><span class="n">06</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+      <div><div class="lab">Reference</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--ink-2);line-height:1.5">
+          Kwon et al. 2023<br/><span style="color:var(--mute)">Efficient Memory Management for LLM Serving with PagedAttention · SOSP</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 06 PagedAttention <span class="dot">·</span> Memory &amp; Serving</div><div>chapter 06 of 29 <span class="dot">●</span> 16 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead, editorial headline</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "06" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '06', related: ['04','05','07','09','10','11'] });
+
+/* ==== Section 3: block-table allocator ==== */
+const POOL_SIZE = 8;
+const BLOCK_SIZE = 4;
+let pool = Array(POOL_SIZE).fill(null); // {seq, ix, used} or null
+let seqs = [
+  { id:0, name:'req-A', tokens:0, blocks:[] },
+  { id:1, name:'req-B', tokens:0, blocks:[] },
+  { id:2, name:'req-C', tokens:0, blocks:[] },
+];
+function renderPool() {
+  const el = document.getElementById('blockPool');
+  el.innerHTML = '';
+  pool.forEach((cell, i) => {
+    const blk = document.createElement('div');
+    blk.className = 'blk';
+    if (cell !== null) {
+      blk.dataset.seq = cell.seq;
+      blk.innerHTML = `<div class="ix">blk ${i}</div><div class="tk">${cell.used}/${BLOCK_SIZE}</div>`;
+    } else {
+      blk.innerHTML = `<div class="ix">blk ${i}</div><div class="tk">free</div>`;
+    }
+    el.appendChild(blk);
+  });
+  let free = pool.filter(p => p === null).length;
+  let totalTok = pool.reduce((n, p) => n + (p ? p.used : 0), 0);
+  document.getElementById('freeCount').textContent = free;
+  document.getElementById('tokCount').textContent = totalTok;
+}
+function renderSeqs() {
+  const el = document.getElementById('seqList');
+  el.innerHTML = '';
+  seqs.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'seq';
+    row.dataset.seq = s.id;
+    const map = s.blocks.length ? s.blocks.map((b,i) => `<span class="map">L${i}<span class="arr">→</span>P${b}</span>`).join('') : '<span class="map" style="color:var(--mute)">no blocks</span>';
+    row.innerHTML = `
+      <div class="nm">${s.name} · ${s.tokens}t</div>
+      <div class="table">${map}</div>
+      <div style="display:flex;gap:6px"><button data-act="add" data-id="${s.id}">+ token</button><button data-act="drop" data-id="${s.id}">drop</button></div>
+    `;
+    el.appendChild(row);
+  });
+}
+function addToken(sid) {
+  const s = seqs.find(x => x.id === sid);
+  if (!s) return;
+  const nextLogical = s.tokens;
+  const blockIx = Math.floor(nextLogical / BLOCK_SIZE);
+  if (blockIx >= s.blocks.length) {
+    // need a new block
+    const free = pool.findIndex(p => p === null);
+    if (free === -1) return;
+    pool[free] = { seq: sid, ix: blockIx, used: 0 };
+    s.blocks.push(free);
+  }
+  const phys = s.blocks[blockIx];
+  pool[phys].used++;
+  s.tokens++;
+  renderAll();
+}
+function dropSeq(sid) {
+  const s = seqs.find(x => x.id === sid);
+  if (!s) return;
+  s.blocks.forEach(b => { pool[b] = null; });
+  s.blocks = []; s.tokens = 0;
+  renderAll();
+}
+function renderAll() { renderPool(); renderSeqs(); }
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const id = parseInt(btn.dataset.id);
+  if (btn.dataset.act === 'add') addToken(id);
+  if (btn.dataset.act === 'drop') dropSeq(id);
+});
+// preload some tokens
+addToken(0); addToken(0); addToken(0); addToken(0); addToken(0);
+addToken(1); addToken(1); addToken(1);
+addToken(2); addToken(2); addToken(2); addToken(2); addToken(2); addToken(2);
+
+/* ==== Section 4: CoW canvas ==== */
+const cowCanvas = document.getElementById('cowCanvas');
+const cowCtx = cowCanvas.getContext('2d');
+let cowStep = 0;
+function resizeCow() {
+  const r = cowCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  cowCanvas.width = r.width * dpr; cowCanvas.height = r.height * dpr;
+  cowCanvas.style.width = r.width + 'px'; cowCanvas.style.height = r.height + 'px';
+  cowCtx.setTransform(dpr,0,0,dpr,0,0);
+}
+function drawCow() {
+  resizeCow();
+  const r = cowCanvas.getBoundingClientRect();
+  const W = r.width, H = r.height;
+  cowCtx.clearRect(0,0,W,H);
+  const beams = ['A','B','C','D'];
+  const beamColors = ['#b8471f','#374962','#556b2f','#a0681a'];
+  const blockW = 70, blockH = 36, gap = 6;
+  const startX = 60, startY = 40;
+  // 3 prefix blocks
+  beams.forEach((b, bi) => {
+    cowCtx.fillStyle = '#8a7452';
+    cowCtx.font = '600 11px JetBrains Mono, monospace';
+    cowCtx.textAlign = 'left'; cowCtx.textBaseline = 'middle';
+    cowCtx.fillText(`beam ${b}`, 6, startY + bi*(blockH+gap) + blockH/2);
+  });
+  for (let bi = 0; bi < 4; bi++) {
+    const y = startY + bi*(blockH+gap);
+    for (let i = 0; i < 3; i++) {
+      const x = startX + i * (blockW + gap);
+      // shared prefix — single block visual style
+      const sharedAcrossAll = (cowStep >= 0);
+      cowCtx.fillStyle = sharedAcrossAll && bi > 0 ? 'rgba(184,71,31,0.06)' : '#fbf5e7';
+      cowCtx.strokeStyle = '#b8471f';
+      cowCtx.lineWidth = bi === 0 ? 1.5 : 0.6;
+      if (bi > 0) cowCtx.setLineDash([3,3]); else cowCtx.setLineDash([]);
+      cowCtx.fillRect(x, y, blockW, blockH);
+      cowCtx.strokeRect(x, y, blockW, blockH);
+      cowCtx.setLineDash([]);
+      cowCtx.fillStyle = bi === 0 ? '#b8471f' : '#8a7452';
+      cowCtx.font = '600 10px JetBrains Mono, monospace';
+      cowCtx.textAlign = 'center';
+      cowCtx.fillText(`prefix ${i}`, x + blockW/2, y + blockH/2);
+    }
+    // per-beam tail
+    if (cowStep >= 1) {
+      const x = startX + 3*(blockW + gap);
+      // beam B copy at step 3+
+      const bSplit = (bi === 1) && cowStep >= 2;
+      const indep = (bi === 1) && cowStep >= 3;
+      cowCtx.fillStyle = indep ? `${beamColors[bi]}22` : 'rgba(184,71,31,0.06)';
+      cowCtx.strokeStyle = indep ? beamColors[bi] : '#b8471f';
+      cowCtx.lineWidth = indep ? 1.6 : 0.8;
+      if (!indep) cowCtx.setLineDash([3,3]); else cowCtx.setLineDash([]);
+      cowCtx.fillRect(x, y, blockW, blockH);
+      cowCtx.strokeRect(x, y, blockW, blockH);
+      cowCtx.setLineDash([]);
+      cowCtx.fillStyle = indep ? beamColors[bi] : '#8a7452';
+      cowCtx.font = '600 10px JetBrains Mono, monospace';
+      cowCtx.textAlign = 'center';
+      cowCtx.fillText(bSplit && !indep ? '✎ writing' : (indep ? `tail ${beams[bi]}` : `shared`), x + blockW/2, y + blockH/2);
+    }
+  }
+  // legend
+  cowCtx.fillStyle = '#8a7452';
+  cowCtx.font = '500 11px JetBrains Mono, monospace';
+  cowCtx.textAlign = 'left';
+  const desc = ['3 blocks shared across all 4 beams.', 'Each beam logically has its own tail block — still pointing to shared.', 'Beam B attempts to write a different token. Trigger CoW.', 'Block is duplicated; beam B now has its own physical block.'][cowStep];
+  cowCtx.fillText(`// ${desc}`, 6, H - 22);
+}
+document.querySelectorAll('#cowStage .cow-step').forEach(el => el.addEventListener('click', () => {
+  document.querySelectorAll('#cowStage .cow-step').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  cowStep = parseInt(el.dataset.step);
+  drawCow();
+}));
+window.addEventListener('resize', drawCow);
+setTimeout(drawCow, 60);
+let auto = setInterval(() => {
+  cowStep = (cowStep + 1) % 4;
+  document.querySelectorAll('#cowStage .cow-step').forEach((x,i) => x.classList.toggle('active', i === cowStep));
+  drawCow();
+}, 2400);
+cowCanvas.addEventListener('mouseenter', () => clearInterval(auto));
+
+/* ==== Mini-game ==== */
+const GAME = [
+  { q: 'Your engine reserves <code>max_seq_len = 4096</code> per request, but average is 380 tokens. GPU memory utilization is 35%. Most accurate diagnosis?', opts: [
+    { t: 'Reservation waste — pre-allocation dominates', h: 'Common pre-vLLM pattern', c: true },
+    { t: 'Internal fragmentation in last block', h: 'Marginal at this scale' },
+    { t: 'External fragmentation', h: 'Possible but secondary' },
+    { t: 'Quantization overhead', h: 'Unrelated' },
+  ]},
+  { q: 'You shrink PagedAttention block size from 16 to 4 tokens. What happens?', opts: [
+    { t: 'Internal frag drops; metadata + lookup overhead rises', h: 'The classic trade', c: true },
+    { t: 'Throughput unconditionally improves', h: 'Not so simple' },
+    { t: 'CoW breaks', h: 'Independent of block size' },
+    { t: 'Memory bandwidth doubles', h: 'No' },
+  ]},
+  { q: 'Beam search with k=8 beams, prompt = 2K tokens. Naïve KV copying uses 8× memory. PagedAttention\'s saving comes from?', opts: [
+    { t: 'Compression', h: 'Different technique' },
+    { t: 'Sharing prefix blocks via the block table; only diverging tails copy', h: 'CoW + paging', c: true },
+    { t: 'Quantizing all 8 caches', h: 'Orthogonal' },
+    { t: 'Beam pruning', h: 'Different orthogonal trick' },
+  ]},
+  { q: 'A request is preempted (low priority). Its KV blocks should be?', opts: [
+    { t: 'Discarded forever', h: 'Wastes work' },
+    { t: 'Swapped to CPU memory; restored when scheduled again', h: 'vLLM does this', c: true },
+    { t: 'Compressed in place', h: 'Not the standard play' },
+    { t: 'Kept on GPU regardless', h: 'Defeats preemption' },
+  ]},
+  { q: 'Which fragmentation flavor does PagedAttention <b>NOT</b> eliminate?', opts: [
+    { t: 'External fragmentation', h: 'Eliminated' },
+    { t: 'Reservation waste', h: 'Eliminated by demand alloc' },
+    { t: 'Internal fragmentation in the last block', h: 'Inherent — only minimized', c: true },
+    { t: 'Memory leaks', h: 'Different category' },
+  ]},
+];
+let gIdx=0, gScore=0;
+function renderG(){
+  if (gIdx >= GAME.length) {
+    document.getElementById('gameArea').style.display='none';
+    document.getElementById('gameDone').style.display='block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${GAME.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games')||'{}'); games['06']=gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games));
+    return;
+  }
+  const q = GAME[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx+1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${GAME.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const b = document.getElementById('gameBoard'); b.innerHTML='';
+  let answered=false;
+  q.opts.forEach(o => {
+    const el = document.createElement('button'); el.className='game-opt';
+    el.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    el.addEventListener('click', () => {
+      if (answered) return; answered=true;
+      if (o.c) { el.classList.add('correct'); gScore++; }
+      else { el.classList.add('wrong'); b.querySelectorAll('.game-opt').forEach((x,i)=>{ if (q.opts[i].c) x.classList.add('correct'); }); }
+      setTimeout(()=>{ gIdx++; renderG(); }, 1100);
+    });
+    b.appendChild(el);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx=0; gScore=0;
+  document.getElementById('gameArea').style.display='block';
+  document.getElementById('gameDone').style.display='none';
+  renderG();
+});
+renderG();
+</script>
+</body>
+</html>

@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>01 Transformer Basics · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+/* page-specific */
+.tokens-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
+.tok {
+  padding: 6px 12px; border: 1px solid var(--rule); background: var(--surface);
+  border-radius: 3px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+  cursor: pointer; user-select: none; transition: all 0.15s;
+}
+.tok:hover { border-color: var(--accent); }
+.tok.active { border-color: var(--accent); background: var(--accent); color: var(--bg); }
+.tok.attended { box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 40%, transparent); }
+
+.qkv-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 18px 0;
+}
+.qkv-card {
+  padding: 16px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px;
+}
+.qkv-card h4 {
+  font-size: 12px; font-weight: 600; color: var(--accent);
+  letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px;
+}
+.qkv-card .fn { font-family: var(--mono); font-size: 13px; color: var(--ink); margin-bottom: 10px; }
+.qkv-card .desc { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+
+/* attention matrix */
+.attn-matrix { width: 100%; max-width: 560px; margin: 8px auto; }
+.attn-row { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+.attn-row .lab {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+  min-width: 72px; text-align: right; padding-right: 8px;
+}
+.attn-cell {
+  flex: 1; height: 22px; border-radius: 2px; position: relative;
+  font-family: var(--mono); font-size: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink); cursor: pointer; transition: transform 0.15s;
+}
+.attn-cell:hover { transform: scale(1.08); z-index: 2; }
+.attn-cells-head { display: flex; gap: 4px; margin-bottom: 6px; padding-left: 80px; }
+.attn-cells-head span {
+  flex: 1; text-align: center; font-family: var(--mono); font-size: 10px;
+  color: var(--mute); text-transform: lowercase;
+}
+
+/* architecture SVG */
+.arch-fig svg { width: 100%; height: auto; display: block; }
+
+/* game */
+.game-board {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  margin-top: 16px;
+}
+.game-opt {
+  padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg);
+  border-radius: 3px; cursor: pointer; text-align: left;
+  font: inherit; color: var(--ink-2); transition: all 0.15s;
+}
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong   { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; margin-bottom: 4px; color: var(--ink); letter-spacing: 0.02em; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--mono); font-size: 11px; color: var(--mute);
+  letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px;
+}
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q {
+  font-size: 18px; color: var(--ink); line-height: 1.45;
+  letter-spacing: -0.015em; padding: 20px 0; font-weight: 500;
+}
+.game-q code { font-family: var(--mono); font-size: 15px; background: var(--surface-2); padding: 2px 8px; border-radius: 3px; border: 1px solid var(--rule); }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+/* layer stack */
+.stack { display: flex; flex-direction: column; gap: 4px; }
+.stack .blk {
+  padding: 12px 16px; border: 1px solid var(--rule); border-radius: 3px;
+  background: var(--bg); display: flex; align-items: center; gap: 12px;
+  font-size: 13px; color: var(--ink-2);
+}
+.stack .blk .ix { font-family: var(--mono); font-size: 11px; color: var(--mute); min-width: 28px; }
+.stack .blk .name { color: var(--ink); font-weight: 500; flex: 1; }
+.stack .blk .shape { font-family: var(--mono); font-size: 10px; color: var(--mute); }
+.stack .blk.lay { background: var(--surface); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="read-bar"><div class="fill"></div></div>
+
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right">
+    <a href="../index.html">roadmap</a>
+    <span class="divider"></span>
+    <a id="themeBtn">◐ theme</a>
+  </div>
+</nav>
+
+<div class="crumbs">
+  <a href="../index.html">Roadmap</a>
+  <span class="sep">/</span>
+  <span class="cat foundation">Foundations</span>
+  <span class="sep">/</span>
+  <span class="here">01 Transformer Basics</span>
+</div>
+
+<main class="pg">
+
+  <!-- ═══════════ HERO ═══════════ -->
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye">
+      <span>Chapter 01</span><span class="sep">·</span><span>Foundations</span><span class="sep">·</span><span>2017 · 20 min read</span>
+    </div>
+    <div class="phero-grid">
+      <div class="phero-num">01</div>
+      <div>
+        <h1>Attention is <em>all you need</em>.</h1>
+        <div class="dek">The Transformer replaced recurrence with a single mechanism — scaled dot-product attention — that lets every token in a sequence look at every other token in parallel. Eight years later it still runs every model you've heard of.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">2017</div><div class="l">Published</div></div>
+      <div class="c"><div class="v">O(N²)</div><div class="l">Attention cost</div></div>
+      <div class="c"><div class="v">213K+</div><div class="l">Paper citations</div></div>
+      <div class="c"><div class="v">6 + 6</div><div class="l">Enc / dec layers (orig.)</div></div>
+    </div>
+  </section>
+
+  <!-- ═══════════ BODY ═══════════ -->
+  <div class="body">
+    <article class="prose">
+
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        In June 2017, a Google team published a paper titled <i>Attention Is All You Need</i>. It ran 15 pages. It contained one diagram — the now-ubiquitous stack of boxes — and a single formula that would, within five years, dominate every subfield of machine learning. This page unpacks that formula, mechanically, one piece at a time.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>The problem with recurrence</span> <em>why 2017 needed something new</em></h2>
+      <p>
+        Before Transformers, language models used <b>recurrent neural networks</b> — they processed tokens one at a time, passing a hidden state forward. This had two fatal flaws for scale:
+      </p>
+      <ul>
+        <li><b>Sequential.</b> To compute token N, you needed tokens 1 through N−1. No GPU parallelism within a sequence.</li>
+        <li><b>Forgetful.</b> Information from position 1 had to survive 500 hops of matrix multiplication to reach position 500. In practice, it didn't.</li>
+      </ul>
+      <p>
+        The Transformer proposes a radical alternative: every position attends to every other position <b>directly</b>, in a single matrix multiplication. No recurrence, no convolution, no sequential bottleneck.
+      </p>
+
+      <h2 id="s2" data-n="§ 02"><span>Tokens become vectors</span> <em>the embedding step</em></h2>
+      <p>
+        Before any attention happens, each token is mapped to a vector of dimension $d_{model}$ — typically 512, 768, or 4096. A vocabulary of size $V$ becomes a lookup table $E \in \mathbb{R}^{V \times d_{model}}$. Token 1337 is just row 1337.
+      </p>
+      <p>
+        Positional information is added next — either sinusoidal (original paper) or learned (GPT-2) or rotary (LLaMA). Without it, the Transformer would be permutation-invariant: "dog bites man" and "man bites dog" would produce identical outputs.
+      </p>
+
+      <div class="demo">
+        <div class="dhd">
+          <span class="ttl">Demo · Tokenization → Embedding</span>
+          <span class="tag live">live</span>
+        </div>
+        <div class="dbd">
+          <p style="font-size:13px;color:var(--ink-2);margin-bottom:12px">Click a token to see its (truncated) embedding vector and positional encoding:</p>
+          <div class="tokens-row" id="tokRow"></div>
+          <div style="margin-top:16px;padding:14px;background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--ink-2);min-height:60px" id="tokOut">
+            Click a token above.
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>Query · Key · Value</span> <em>three projections, one mechanism</em></h2>
+      <p>
+        Here is the central idea: for each token, we compute three different vectors by multiplying the embedding by three learned matrices. These are, by convention, called <b>Query</b>, <b>Key</b>, and <b>Value</b>.
+      </p>
+
+      <div class="qkv-grid">
+        <div class="qkv-card">
+          <h4>Query (Q)</h4>
+          <div class="fn">$Q = XW_Q$</div>
+          <div class="desc">"What am I looking for?" — one vector per token, posted as a question to every other token.</div>
+        </div>
+        <div class="qkv-card">
+          <h4>Key (K)</h4>
+          <div class="fn">$K = XW_K$</div>
+          <div class="desc">"What do I have?" — each token advertises its content through a key. Queries are matched against keys.</div>
+        </div>
+        <div class="qkv-card">
+          <h4>Value (V)</h4>
+          <div class="fn">$V = XW_V$</div>
+          <div class="desc">"What do I contribute?" — the actual information passed along once attention weights are determined.</div>
+        </div>
+      </div>
+
+      <p>
+        The analogy that clicks for most people: a Transformer layer is a <b>differentiable dictionary lookup</b>. Each token poses a query, every other token offers a key; the dot product query · key measures how well they match; the softmax turns matches into probabilities; values are weighted and summed.
+      </p>
+
+      <h2 id="s4" data-n="§ 04"><span>Scaled dot-product attention</span> <em>the single formula that runs the world</em></h2>
+      <div class="math-block">
+        <div class="label">// Attention formula — from Vaswani et al. 2017</div>
+        $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^{\top}}{\sqrt{d_k}}\right) V$$
+      </div>
+      <p>Read this left to right:</p>
+      <ol>
+        <li>$QK^{\top}$ — a matrix of dot products, one per (query, key) pair. Shape $N \times N$ where $N$ is sequence length.</li>
+        <li>Divide by $\sqrt{d_k}$ — a <b>scaling trick</b>. Without it, large dot products push softmax into regions where gradients vanish.</li>
+        <li>Softmax over each row — turn raw scores into probabilities that sum to 1.</li>
+        <li>Multiply by $V$ — each output token is a weighted sum of value vectors.</li>
+      </ol>
+
+      <div class="callout tip">
+        <div class="lab">// intuition</div>
+        The <code>√d_k</code> scaling is not cosmetic. For $d_k = 64$, unscaled dot products have standard deviation 8. Softmax on values of that magnitude is effectively a one-hot — gradients die. Divide by 8 and you're back to a well-behaved distribution.
+      </div>
+
+      <div class="demo">
+        <div class="dhd">
+          <span class="ttl">Demo · Attention matrix</span>
+          <span class="tag live">live</span>
+        </div>
+        <div class="dbd">
+          <p style="font-size:13px;color:var(--ink-2);margin-bottom:16px">
+            Attention weights for the sentence <code>"the cat sat on the mat"</code>. Each row is a query (what the token is asking); each column is a key. Cells show the softmax'd similarity. Hover any cell.
+          </p>
+          <div class="attn-matrix" id="attnMatrix"></div>
+          <p style="font-size:11px;color:var(--mute);font-family:var(--mono);margin-top:14px">
+            // notice how <b style="color:var(--accent)">"sat"</b> attends most to <b style="color:var(--accent)">"cat"</b> (subject) and <b style="color:var(--accent)">"mat"</b> (object).
+            <br/>// in a real model, these patterns emerge during training — no one programs them.
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Multi-head attention</span> <em>many conversations at once</em></h2>
+      <p>
+        One attention mechanism can only learn one kind of relationship. So Transformers run $h$ of them in parallel — typically $h = 8$ or $h = 12$ — each with its own $W_Q$, $W_K$, $W_V$. Outputs are concatenated and projected:
+      </p>
+      <div class="math-block">
+        $$\text{MultiHead}(Q,K,V) = \text{Concat}(\text{head}_1, \dots, \text{head}_h) W_O$$
+      </div>
+      <p>
+        Empirically, different heads learn different roles — some track syntax, some track coreference ("it" → "the dog"), some track nothing interpretable. This <b>redundancy</b> is a feature: if one head breaks, the rest compensate.
+      </p>
+
+      <h2 id="s6" data-n="§ 06"><span>The full block</span> <em>how the pieces stack</em></h2>
+      <p>
+        A Transformer <b>block</b> is attention followed by a feed-forward network, each wrapped in a residual connection and layer normalization. A model is $L$ blocks stacked deep — $L=6$ in the original paper, $L=96$ in GPT-3, $L=126$ in Llama 3.1 405B.
+      </p>
+
+      <figure class="arch-fig">
+        <svg viewBox="0 0 520 360" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+          <style>
+            .lbl { font:500 12px Inter,sans-serif; fill: var(--ink); }
+            .lbl-s { font:500 10px 'JetBrains Mono',monospace; fill: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; }
+            .box { fill: var(--surface); stroke: var(--rule); stroke-width: 1; }
+            .box-attn { fill: var(--accent-bg); stroke: var(--accent); }
+            .wire { stroke: var(--ink-2); stroke-width: 1.5; fill: none; color: var(--ink-2); }
+            .wire-r { stroke: var(--accent); stroke-width: 1.5; fill: none; stroke-dasharray: 4 3; color: var(--accent); }
+          </style>
+          <!-- input -->
+          <rect class="box" x="180" y="20" width="160" height="32" rx="2"/>
+          <text class="lbl" x="260" y="40" text-anchor="middle">Input embeddings + positions</text>
+          <line class="wire" x1="260" y1="52" x2="260" y2="76" marker-end="url(#a)"/>
+          <!-- LN 1 -->
+          <rect class="box" x="200" y="76" width="120" height="24" rx="2"/>
+          <text class="lbl" x="260" y="92" text-anchor="middle" style="font-size:11px">LayerNorm</text>
+          <line class="wire" x1="260" y1="100" x2="260" y2="118" marker-end="url(#a)"/>
+          <!-- Multi-head attention -->
+          <rect class="box box-attn" x="170" y="118" width="180" height="52" rx="2"/>
+          <text class="lbl" x="260" y="138" text-anchor="middle">Multi-Head Attention</text>
+          <text class="lbl-s" x="260" y="156" text-anchor="middle">Q · K · V  →  h heads</text>
+          <line class="wire" x1="260" y1="170" x2="260" y2="188" marker-end="url(#a)"/>
+          <!-- + residual -->
+          <circle class="box" cx="260" cy="196" r="10"/>
+          <text class="lbl" x="260" y="200" text-anchor="middle">+</text>
+          <!-- residual wire -->
+          <path class="wire-r" d="M 260 52 Q 410 52 410 196 L 272 196" marker-end="url(#a)"/>
+          <text class="lbl-s" x="418" y="124" style="fill: var(--accent)">residual</text>
+          <line class="wire" x1="260" y1="206" x2="260" y2="220" marker-end="url(#a)"/>
+          <!-- LN 2 -->
+          <rect class="box" x="200" y="220" width="120" height="24" rx="2"/>
+          <text class="lbl" x="260" y="236" text-anchor="middle" style="font-size:11px">LayerNorm</text>
+          <line class="wire" x1="260" y1="244" x2="260" y2="262" marker-end="url(#a)"/>
+          <!-- FFN -->
+          <rect class="box" x="200" y="262" width="120" height="40" rx="2"/>
+          <text class="lbl" x="260" y="278" text-anchor="middle">FFN (d→4d→d)</text>
+          <text class="lbl-s" x="260" y="293" text-anchor="middle">GELU / ReLU</text>
+          <line class="wire" x1="260" y1="302" x2="260" y2="318" marker-end="url(#a)"/>
+          <!-- + residual 2 -->
+          <circle class="box" cx="260" cy="326" r="10"/>
+          <text class="lbl" x="260" y="330" text-anchor="middle">+</text>
+          <path class="wire-r" d="M 260 206 Q 110 206 110 326 L 250 326" marker-end="url(#a)"/>
+          <text class="lbl-s" x="60" y="262" style="fill: var(--accent)">residual</text>
+          <!-- block label -->
+          <rect x="40" y="60" width="90" height="290" fill="none" stroke="var(--rule)" stroke-dasharray="3 3"/>
+          <text class="lbl-s" x="85" y="220" text-anchor="middle" transform="rotate(-90 85 220)">× L blocks</text>
+        </svg>
+        <figcaption class="fcap"><b>Figure 1</b> Anatomy of a single Transformer block. Pre-LN variant (GPT-2 and later). Dashed lines are residual connections — they keep gradients flowing through deep stacks.</figcaption>
+      </figure>
+
+      <div class="demo">
+        <div class="dhd">
+          <span class="ttl">Demo · Layer stack</span>
+          <span class="tag">interactive</span>
+        </div>
+        <div class="dbd">
+          <p style="font-size:13px;color:var(--ink-2);margin-bottom:14px">Slide to pick model depth. Each block's shape shown on the right.</p>
+          <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px">
+            <input type="range" id="depthSlider" min="2" max="12" value="6" step="1" style="flex:1"/>
+            <span id="depthLbl" style="font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600;min-width:64px">L = 6</span>
+          </div>
+          <div class="stack" id="layerStack"></div>
+        </div>
+      </div>
+
+      <h2 id="s7" data-n="§ 07"><span>Mini-game</span> <em>which head did what?</em></h2>
+      <p>
+        The best way to tell if you've understood attention is to reason about <b>patterns</b>. Below are attention matrices from a trained model, stripped of context. Match each to its likely role.
+      </p>
+
+      <div class="demo">
+        <div class="dhd">
+          <span class="ttl">Game · Head identification</span>
+          <span class="tag" id="gameTag">0 / 5</span>
+        </div>
+        <div class="dbd">
+          <div class="game-status">
+            <span>QUESTION <span id="gameIdx">1</span> / 5</span>
+            <span class="score">SCORE <span id="gameScore">0</span></span>
+          </div>
+          <div id="gameArea">
+            <svg id="gameMatrix" viewBox="0 0 260 260" style="display:block;margin:0 auto;max-width:260px"></svg>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s8" data-n="§ 08"><span>What comes next</span> <em>where this chapter leads</em></h2>
+      <p>
+        You now understand the engine that drives every modern LLM. The next chapters build out from here:
+      </p>
+      <div class="grid-2" style="margin-top:20px">
+        <a href="02-gpt2.html" class="qkv-card" style="text-decoration:none;display:block">
+          <h4>→ 02 GPT-2 Architecture</h4>
+          <div class="desc" style="margin-top:6px">How OpenAI turned the decoder half of this diagram into a language model that shocked 2019.</div>
+        </a>
+        <a href="04-prefill-decode.html" class="qkv-card" style="text-decoration:none;display:block">
+          <h4>→ 04 Prefill &amp; Decode</h4>
+          <div class="desc" style="margin-top:6px">Why attention has <i>two</i> computational regimes at inference time, and why that split defines modern serving systems.</div>
+        </a>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div>
+        <div class="lab">On this page</div>
+        <div class="toc">
+          <a href="#s1"><span class="n">01</span><span>The problem with recurrence</span></a>
+          <a href="#s2"><span class="n">02</span><span>Tokens become vectors</span></a>
+          <a href="#s3"><span class="n">03</span><span>Query · Key · Value</span></a>
+          <a href="#s4"><span class="n">04</span><span>Scaled dot-product</span></a>
+          <a href="#s5"><span class="n">05</span><span>Multi-head attention</span></a>
+          <a href="#s6"><span class="n">06</span><span>The full block</span></a>
+          <a href="#s7"><span class="n">07</span><span>Mini-game</span></a>
+          <a href="#s8"><span class="n">08</span><span>What comes next</span></a>
+        </div>
+      </div>
+      <div>
+        <div class="lab">Related</div>
+        <div class="related"></div>
+      </div>
+      <div>
+        <div class="lab">Reference</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--ink-2);line-height:1.5">
+          <div>Vaswani et al. 2017<br/><span style="color:var(--mute)">Attention Is All You Need</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+
+  <footer class="foot">
+    <div>llm-viz <span class="dot">·</span> 01 Transformer Basics <span class="dot">·</span> Foundations</div>
+    <div>chapter 01 of 29 <span class="dot">●</span> 20 min read</div>
+  </footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body">
+    <div class="tw-label">Hero layout</div>
+    <div class="tw-options" id="twHeroOpts">
+      <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category · year overhead, editorial headline</div></div></div>
+      <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "01" alongside title</div></div></div>
+      <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors the hero</div></div></div>
+    </div>
+  </div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '01', related: ['02', '04', '05', '28'] });
+
+/* === Demo: tokens === */
+const TOKENS = ['The', 'cat', 'sat', 'on', 'the', 'mat'];
+const tokRow = document.getElementById('tokRow');
+const tokOut = document.getElementById('tokOut');
+TOKENS.forEach((t, i) => {
+  const el = document.createElement('span');
+  el.className = 'tok';
+  el.textContent = t;
+  el.addEventListener('click', () => {
+    document.querySelectorAll('#tokRow .tok').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    // simulated embedding
+    const emb = Array.from({length:8}, (_, k) => (Math.sin((i+1)*(k+1)*1.7) * 0.9).toFixed(3));
+    const pos = Array.from({length:8}, (_, k) =>
+      (k % 2 === 0 ? Math.sin(i / Math.pow(10000, k/8)) : Math.cos(i / Math.pow(10000, (k-1)/8))).toFixed(3)
+    );
+    tokOut.innerHTML = `
+      <div style="color:var(--accent);margin-bottom:6px">token_id = ${i + 1337}   // '${t}'</div>
+      <div style="margin-bottom:4px"><span style="color:var(--mute)">embedding[:8]</span>  = [ ${emb.join(', ')}, … ]</div>
+      <div style="margin-bottom:4px"><span style="color:var(--mute)">positional[:8]</span> = [ ${pos.join(', ')}, … ]</div>
+      <div><span style="color:var(--mute)">→ input[:8]</span>    = [ ${emb.map((e,k)=>(parseFloat(e)+parseFloat(pos[k])).toFixed(3)).join(', ')}, … ]</div>
+    `;
+  });
+  tokRow.appendChild(el);
+});
+
+/* === Demo: attention matrix === */
+const ATTN_SENTENCE = ['the','cat','sat','on','the','mat'];
+const ATTN = [
+  // softmaxed attention weights per row
+  [0.42, 0.08, 0.10, 0.08, 0.22, 0.10],
+  [0.08, 0.54, 0.14, 0.06, 0.08, 0.10],
+  [0.06, 0.38, 0.18, 0.10, 0.08, 0.20],
+  [0.08, 0.12, 0.18, 0.30, 0.18, 0.14],
+  [0.25, 0.10, 0.08, 0.14, 0.32, 0.11],
+  [0.08, 0.14, 0.16, 0.10, 0.16, 0.36],
+];
+const am = document.getElementById('attnMatrix');
+let html = `<div class="attn-cells-head">${ATTN_SENTENCE.map(w => `<span>${w}</span>`).join('')}</div>`;
+ATTN.forEach((row, i) => {
+  html += `<div class="attn-row"><span class="lab">${ATTN_SENTENCE[i]} →</span>`;
+  row.forEach((v, j) => {
+    const hex = Math.round(184 + (1 - v) * 50);
+    const c = `rgba(184,71,31,${v * 1.8})`;
+    const textCol = v > 0.3 ? '#fbf5e7' : 'var(--ink)';
+    html += `<span class="attn-cell" style="background:${c};color:${textCol}" title="${ATTN_SENTENCE[i]} attends to ${ATTN_SENTENCE[j]}: ${v.toFixed(2)}">${v.toFixed(2)}</span>`;
+  });
+  html += `</div>`;
+});
+am.innerHTML = html;
+
+/* === Demo: layer stack === */
+const depthSlider = document.getElementById('depthSlider');
+const depthLbl = document.getElementById('depthLbl');
+const stackEl = document.getElementById('layerStack');
+const BLOCKS = ['Embed', 'Pos encoding', 'Attn + FFN block', 'LayerNorm (final)', 'LM head'];
+function renderStack(L) {
+  depthLbl.textContent = `L = ${L}`;
+  let out = '';
+  out += `<div class="blk"><span class="ix">00</span><span class="name">Embed + Pos</span><span class="shape">[N, 768]</span></div>`;
+  for (let i = 1; i <= L; i++) {
+    out += `<div class="blk lay"><span class="ix">${String(i).padStart(2,'0')}</span><span class="name">Transformer block ${i} <span style="color:var(--mute);font-weight:400;font-size:11px">· attn + FFN + 2× residual</span></span><span class="shape">[N, 768]</span></div>`;
+  }
+  out += `<div class="blk"><span class="ix">${String(L+1).padStart(2,'0')}</span><span class="name">LayerNorm + LM head</span><span class="shape">[N, 50257]</span></div>`;
+  stackEl.innerHTML = out;
+}
+depthSlider.addEventListener('input', e => renderStack(parseInt(e.target.value)));
+renderStack(6);
+
+/* === Mini-game === */
+const QUESTIONS = [
+  {
+    // diagonal pattern
+    gen: (ctx, W) => {
+      for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+        const v = i === j ? 0.8 : 0.02 + Math.random()*0.08;
+        drawCell(ctx, i, j, v, W);
+      }
+    },
+    q: 'This head attends almost exclusively to the <code>same token</code>. What role is this?',
+    opts: [
+      { t: 'Identity / passthrough', h: 'Each token attends to itself', c: true },
+      { t: 'Previous-token copy', h: 'Offset-by-1 attention' },
+      { t: 'Subject-verb binding', h: 'Syntactic role' },
+      { t: 'Position decoder', h: 'Recovers position info' },
+    ],
+  },
+  {
+    // subdiagonal pattern (attends to previous token)
+    gen: (ctx, W) => {
+      for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+        const v = (i > 0 && j === i - 1) ? 0.82 : 0.02 + Math.random()*0.06;
+        drawCell(ctx, i, j, v, W);
+      }
+    },
+    q: 'This head attends to <code>token at position i−1</code> for every token i. What is this?',
+    opts: [
+      { t: 'Identity head', h: 'Self-attention' },
+      { t: 'Previous-token head', h: 'Tracks what came before', c: true },
+      { t: 'Punctuation detector', h: 'Attends to periods' },
+      { t: 'Random init (untrained)', h: 'No signal' },
+    ],
+  },
+  {
+    // first-token attention (BOS / attention-sink)
+    gen: (ctx, W) => {
+      for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+        const v = j === 0 ? 0.75 : 0.02 + Math.random()*0.1;
+        drawCell(ctx, i, j, v, W);
+      }
+    },
+    q: 'Every token attends heavily to <code>position 0</code>. You\'ll see this in large trained models. What is happening?',
+    opts: [
+      { t: 'Attention sink (BOS)', h: 'Dump bucket for unused mass', c: true },
+      { t: 'Subject tracking', h: 'Head found the sentence subject' },
+      { t: 'Bug in masking', h: 'Causal mask broken' },
+      { t: 'End-of-text token', h: 'Attending to EOS' },
+    ],
+  },
+  {
+    // uniform
+    gen: (ctx, W) => {
+      for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+        drawCell(ctx, i, j, 0.12 + Math.random()*0.03, W);
+      }
+    },
+    q: 'This head produces a <code>near-uniform</code> distribution over all positions. What have we likely found?',
+    opts: [
+      { t: 'A "bag of words" head', h: 'Averages context equally', c: true },
+      { t: 'A coreference tracker', h: 'Finds pronoun antecedents' },
+      { t: 'An untrained layer', h: 'Weights are zero' },
+      { t: 'A positional encoder', h: 'Recovers token position' },
+    ],
+  },
+  {
+    // block pattern
+    gen: (ctx, W) => {
+      for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+        const sameBlock = Math.floor(i/4) === Math.floor(j/4);
+        const v = sameBlock ? 0.18 + Math.random()*0.12 : 0.02 + Math.random()*0.05;
+        drawCell(ctx, i, j, v, W);
+      }
+    },
+    q: 'This head attends within <code>local windows</code> only. What pattern is this?',
+    opts: [
+      { t: 'Causal masking artifact', h: 'Just the causal mask' },
+      { t: 'Local / windowed attention', h: 'Short-range focus', c: true },
+      { t: 'Positional sinusoid', h: 'Encoding leaked' },
+      { t: 'Token repetition', h: 'Same-token match' },
+    ],
+  },
+];
+function drawCell(ctx, i, j, v, W) {
+  const s = W / 8;
+  const alpha = Math.min(1, v * 1.8);
+  ctx.fillStyle = `rgba(184,71,31,${alpha})`;
+  ctx.fillRect(j*s + 1, i*s + 1, s - 2, s - 2);
+}
+
+let gIdx = 0, gScore = 0, answered = false;
+const gameMatrix = document.getElementById('gameMatrix');
+const gameQ = document.getElementById('gameQ');
+const gameBoard = document.getElementById('gameBoard');
+const gameIdxEl = document.getElementById('gameIdx');
+const gameScoreEl = document.getElementById('gameScore');
+const gameTag = document.getElementById('gameTag');
+const gameDone = document.getElementById('gameDone');
+const gameArea = document.getElementById('gameArea');
+const gameFinal = document.getElementById('gameFinal');
+
+function renderGame() {
+  if (gIdx >= QUESTIONS.length) {
+    gameArea.style.display = 'none';
+    gameDone.style.display = 'block';
+    gameFinal.textContent = `${gScore} / ${QUESTIONS.length}`;
+    // update visited-plus-game in localStorage
+    const games = JSON.parse(localStorage.getItem('llm-viz-games') || '{}');
+    games['01'] = gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games));
+    return;
+  }
+  answered = false;
+  const q = QUESTIONS[gIdx];
+  gameIdxEl.textContent = gIdx + 1;
+  gameScoreEl.textContent = gScore;
+  gameTag.textContent = `${gIdx} / ${QUESTIONS.length}`;
+  gameQ.innerHTML = q.q;
+
+  // draw SVG (we use canvas-style fillRect via <rect>)
+  const W = 240;
+  gameMatrix.innerHTML = '';
+  const ns = 'http://www.w3.org/2000/svg';
+  const bg = document.createElementNS(ns, 'rect');
+  bg.setAttribute('x','10'); bg.setAttribute('y','10'); bg.setAttribute('width','240'); bg.setAttribute('height','240');
+  bg.setAttribute('fill','var(--bg)'); bg.setAttribute('stroke','var(--rule)');
+  gameMatrix.appendChild(bg);
+  // fake ctx
+  const ctx = {
+    fillStyle: 'black',
+    fillRect(x, y, w, h) {
+      const r = document.createElementNS(ns, 'rect');
+      r.setAttribute('x', 10 + x);
+      r.setAttribute('y', 10 + y);
+      r.setAttribute('width', w);
+      r.setAttribute('height', h);
+      r.setAttribute('fill', this.fillStyle);
+      gameMatrix.appendChild(r);
+    },
+    set fillStyle(v) { this._fs = v; },
+    get fillStyle() { return this._fs; },
+  };
+  q.gen(ctx, W);
+
+  gameBoard.innerHTML = '';
+  q.opts.forEach((o, oi) => {
+    const b = document.createElement('button');
+    b.className = 'game-opt';
+    b.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    b.addEventListener('click', () => {
+      if (answered) return;
+      answered = true;
+      if (o.c) { b.classList.add('correct'); gScore++; }
+      else {
+        b.classList.add('wrong');
+        // reveal correct
+        gameBoard.querySelectorAll('.game-opt').forEach((el, idx) => {
+          if (q.opts[idx].c) el.classList.add('correct');
+        });
+      }
+      gameScoreEl.textContent = gScore;
+      setTimeout(() => { gIdx++; renderGame(); }, 1100);
+    });
+    gameBoard.appendChild(b);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx = 0; gScore = 0;
+  gameArea.style.display = 'block';
+  gameDone.style.display = 'none';
+  renderGame();
+});
+renderGame();
+</script>
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>19 HNSW · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.hnsw-canvas { width: 100%; height: 480px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; display: block; cursor: crosshair; }
+.layer-info { display:flex; gap:16px; padding: 12px 16px; background: var(--bg); border: 1px solid var(--rule); border-top: 0; border-radius: 0 0 3px 3px; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.04em; }
+.layer-info .it { display: inline-flex; align-items: center; gap: 6px; }
+.layer-info .sw { width: 10px; height: 10px; border-radius: 50%; border: 1px solid currentColor; }
+
+.knobs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 14px 0; }
+.knob { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.knob .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+.knob .row { display: flex; align-items: center; gap: 10px; }
+.knob .val { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; min-width: 32px; text-align: right; }
+
+.stats-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 16px; }
+.stat { padding: 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: 3px; }
+.stat .v { font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; font-feature-settings: 'tnum'; }
+.stat .l { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
+
+.game-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+.game-q code { font-family: var(--mono); font-size: 14px; background: var(--surface-2); padding: 1px 6px; border-radius: 2px; border:1px solid var(--rule); }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div>
+</nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat foundation">Foundations</span><span class="sep">/</span><span class="here">19 HNSW</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 19</span><span class="sep">·</span><span>Foundations</span><span class="sep">·</span><span>2016 · 15 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">19</div>
+      <div>
+        <h1>How to find a needle in <em>a billion-vector haystack</em>.</h1>
+        <div class="dek">HNSW — Hierarchical Navigable Small World — is the default ANN index in Faiss, Pinecone, Milvus, Qdrant, and every vector database you've heard of. It's a graph that looks like a subway map, and it's almost absurdly effective.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">2016</div><div class="l">Malkov &amp; Yashunin</div></div>
+      <div class="c"><div class="v">O(log N)</div><div class="l">Query cost</div></div>
+      <div class="c"><div class="v">&gt;95%</div><div class="l">Recall (well-tuned)</div></div>
+      <div class="c"><div class="v">M, ef</div><div class="l">Two main knobs</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        Exhaustive nearest-neighbor search is simple, correct, and useless at scale. A billion vectors × 768 dims × 4 bytes = 3 TB of data touched per query. HNSW trades a tiny amount of accuracy for a <b>thousandfold speedup</b> by navigating a layered graph whose shortcuts shrink the search space exponentially.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>The small-world insight</span> <em>why six degrees of separation matters</em></h2>
+      <p>
+        In a "small-world" graph, any two nodes are connected by a short path — even though most connections are local. Your brain is one. So is the internet. So is the friendship graph on Facebook.
+      </p>
+      <p>
+        The trick: layer the graph. Most nodes live only at the <b>bottom layer</b> with dense local connections. A few lucky nodes get promoted to higher layers with sparser, longer-range edges. Search starts at the top (big jumps, small layer), drops down each time it finds a "good enough" neighbor, and finishes on the dense bottom floor.
+      </p>
+
+      <div class="callout tip">
+        <div class="lab">// intuition</div>
+        Think of it as a <b>multi-resolution map</b>. Top layer is the subway — 5 stations, gets you across town. Middle is the bus network. Bottom is walking the street. You use the subway until you're close, then descend to fine-grained navigation.
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>Interactive HNSW</span> <em>click to query</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · 2D HNSW visualization</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <p style="font-size:13px;color:var(--ink-2);margin-bottom:12px">
+            100 vectors laid out on a plane, layered by random promotion (prob $1/M$). Click anywhere to issue a query — the red path shows the greedy descent.
+          </p>
+          <canvas class="hnsw-canvas" id="hnswCanvas" width="1000" height="480"></canvas>
+          <div class="layer-info">
+            <span class="it"><span class="sw" style="background:var(--ink-blue);border-color:var(--ink-blue)"></span>layer 0 (all)</span>
+            <span class="it"><span class="sw" style="background:var(--ochre);border-color:var(--ochre)"></span>layer 1</span>
+            <span class="it"><span class="sw" style="background:var(--moss);border-color:var(--moss)"></span>layer 2</span>
+            <span class="it"><span class="sw" style="background:var(--accent);border-color:var(--accent)"></span>layer 3 (sparse)</span>
+            <span class="it" style="margin-left:auto"><span style="width:20px;height:2px;background:var(--accent);display:inline-block;margin-right:6px"></span>search path</span>
+          </div>
+          <div class="knobs">
+            <div class="knob">
+              <div class="lab">M — max neighbors/layer</div>
+              <div class="row"><input type="range" id="kM" min="4" max="32" value="16" style="flex:1"><span class="val" id="kMv">16</span></div>
+            </div>
+            <div class="knob">
+              <div class="lab">ef — search beam width</div>
+              <div class="row"><input type="range" id="kEf" min="1" max="32" value="10" style="flex:1"><span class="val" id="kEfv">10</span></div>
+            </div>
+            <div class="knob">
+              <div class="lab">N — corpus size</div>
+              <div class="row"><input type="range" id="kN" min="30" max="200" value="100" step="10" style="flex:1"><span class="val" id="kNv">100</span></div>
+            </div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat"><div class="v" id="statHops">—</div><div class="l">Hops to answer</div></div>
+            <div class="stat"><div class="v" id="statDist">—</div><div class="l">Distances computed</div></div>
+            <div class="stat"><div class="v" id="statRecall">—</div><div class="l">Found in top-5?</div></div>
+            <div class="stat"><div class="v" id="statLayers">—</div><div class="l">Layers traversed</div></div>
+          </div>
+          <p style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:14px">
+            // bump M and ef to increase recall; watch distance count rise in proportion.
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>The algorithm in 6 lines</span> <em>deceptively simple</em></h2>
+      <div class="math-block">
+        <div class="label">// greedy search</div>
+<pre style="font-family:var(--mono);font-size:13px;color:var(--ink);line-height:1.65;margin:0"><span style="color:var(--mute)">fn</span> search(q, entry):
+  <span style="color:var(--ink-2)">cur</span> = entry
+  <span style="color:var(--mute)">for</span> layer <span style="color:var(--mute)">in</span> [max_layer … 1]:
+    cur = <span style="color:var(--accent)">greedy_descend</span>(q, cur, layer)   <span style="color:var(--mute)">// big jumps</span>
+  <span style="color:var(--mute)">return</span> <span style="color:var(--accent)">beam_search</span>(q, cur, layer=0, ef)  <span style="color:var(--mute)">// fine-grained</span>
+</pre>
+      </div>
+      <p>
+        <code>greedy_descend</code> looks at a node's neighbors, jumps to whichever is closer to the query, repeats until no neighbor improves. <code>beam_search</code> on the bottom layer keeps the $ef$ closest candidates and explores their neighborhoods until the frontier stops shrinking. That's it.
+      </p>
+
+      <h2 id="s4" data-n="§ 04"><span>The two knobs</span> <em>M and ef</em></h2>
+      <div class="qkv-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0">
+        <div style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px">M — edges per node</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55">Controls <b>graph density</b>. Higher M = better recall, bigger index. Typical: 16–32. Set at build time, permanent.</div>
+        </div>
+        <div style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px">ef — search beam width</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55">Controls <b>query quality</b>. Higher ef = more neighbors explored = higher recall, higher latency. Set per-query. 10 → fast, 200 → careful.</div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <div class="lab">// deletes are the pain point</div>
+        HNSW has no native "remove a node" operation. Production systems either rebuild periodically, tombstone-and-skip, or use a deletion log. This is the biggest operational gotcha in every vector DB.
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Mini-game</span> <em>tune the index</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · What knob to turn?</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div id="gameArea">
+            <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s6" data-n="§ 06"><span>Where this leads</span></h2>
+      <div class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+        <a href="17-diskann.html" class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px;text-decoration:none">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase">→ 17 DiskANN</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:8px">When the whole graph doesn't fit in RAM. Billion-scale on a single node.</div>
+        </a>
+        <a href="18-aisaq.html" class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px;text-decoration:none">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase">→ 18 AiSAQ</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:8px">DRAM-free ANN — 10 MB to search a billion vectors. For multi-tenant RAG.</div>
+        </a>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Small-world insight</span></a>
+        <a href="#s2"><span class="n">02</span><span>Interactive HNSW</span></a>
+        <a href="#s3"><span class="n">03</span><span>The algorithm</span></a>
+        <a href="#s4"><span class="n">04</span><span>The two knobs</span></a>
+        <a href="#s5"><span class="n">05</span><span>Mini-game</span></a>
+        <a href="#s6"><span class="n">06</span><span>Where this leads</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+      <div><div class="lab">Reference</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--ink-2);line-height:1.5">
+          Malkov &amp; Yashunin, 2016<br/><span style="color:var(--mute)">Efficient and robust approximate nearest neighbor search using HNSW graphs</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 19 HNSW <span class="dot">·</span> Foundations</div><div>chapter 19 of 29 <span class="dot">●</span> 15 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category · year overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "19" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '19', related: ['12','17','18'] });
+
+/* ==== HNSW visualization ==== */
+const canvas = document.getElementById('hnswCanvas');
+const ctx = canvas.getContext('2d');
+let N = 100, M = 16, ef = 10;
+let nodes = [], edges = [];
+const LAYER_COLORS = ['#374962','#a0681a','#556b2f','#b8471f'];
+
+function resize() {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+resize();
+window.addEventListener('resize', () => { resize(); draw(); });
+
+function build() {
+  const w = canvas.getBoundingClientRect().width;
+  const h = canvas.getBoundingClientRect().height;
+  nodes = [];
+  // cluster-y distribution — 3 clusters + noise
+  const clusters = [
+    { x: w*0.25, y: h*0.35, r: 90 },
+    { x: w*0.6, y: h*0.65, r: 110 },
+    { x: w*0.82, y: h*0.28, r: 70 },
+  ];
+  for (let i = 0; i < N; i++) {
+    const c = clusters[i % clusters.length];
+    const ang = Math.random() * Math.PI * 2;
+    const r = Math.random() * c.r;
+    // assign layer with geometric distribution
+    let layer = 0;
+    while (Math.random() < 1/M && layer < 3) layer++;
+    nodes.push({
+      x: c.x + Math.cos(ang)*r,
+      y: c.y + Math.sin(ang)*r,
+      layer,
+    });
+  }
+  // edges — within each layer, connect to M nearest nodes of that layer OR higher (node sees its own layer's neighbors)
+  edges = [];
+  for (let L = 0; L <= 3; L++) {
+    const members = nodes.map((n,i) => ({n,i})).filter(x => x.n.layer >= L);
+    members.forEach(({n,i}) => {
+      const dists = members
+        .filter(x => x.i !== i)
+        .map(x => ({i:x.i, d: (x.n.x-n.x)**2 + (x.n.y-n.y)**2}))
+        .sort((a,b) => a.d - b.d).slice(0, Math.max(3, Math.floor(M/2)));
+      dists.forEach(({i:j}) => {
+        if (!edges.some(e => e.L === L && ((e.a===i&&e.b===j)||(e.a===j&&e.b===i)))) {
+          edges.push({ a:i, b:j, L });
+        }
+      });
+    });
+  }
+}
+
+let query = null, path = [], stats = { hops:0, dist:0, layers:0, found:false };
+function search(qx, qy) {
+  path = []; stats = { hops:0, dist:0, layers:0, found:false };
+  // ground truth top-5 on layer 0
+  const gt = nodes.map((n,i) => ({ i, d: (n.x-qx)**2 + (n.y-qy)**2 })).sort((a,b)=>a.d-b.d).slice(0,5).map(x=>x.i);
+  // find max layer entry
+  let maxL = Math.max(...nodes.map(n => n.layer));
+  stats.layers = maxL + 1;
+  let cur = nodes.findIndex(n => n.layer === maxL);
+  if (cur < 0) cur = 0;
+  path.push({ i: cur, L: maxL });
+  // greedy descend layers
+  for (let L = maxL; L >= 1; L--) {
+    let improved = true;
+    while (improved) {
+      improved = false;
+      const neigh = edges.filter(e => e.L === L && (e.a === cur || e.b === cur)).map(e => e.a === cur ? e.b : e.a);
+      let best = cur;
+      let bestD = (nodes[cur].x-qx)**2 + (nodes[cur].y-qy)**2;
+      neigh.forEach(nb => {
+        stats.dist++;
+        const d = (nodes[nb].x-qx)**2 + (nodes[nb].y-qy)**2;
+        if (d < bestD) { bestD = d; best = nb; improved = true; }
+      });
+      if (improved) { cur = best; path.push({ i: cur, L }); stats.hops++; }
+    }
+  }
+  // beam search at layer 0
+  let beam = [cur];
+  const visited = new Set([cur]);
+  for (let k = 0; k < ef * 3; k++) {
+    let nextBeam = [];
+    beam.forEach(b => {
+      const neigh = edges.filter(e => e.L === 0 && (e.a === b || e.b === b)).map(e => e.a === b ? e.b : e.a);
+      neigh.forEach(nb => { if (!visited.has(nb)) { visited.add(nb); nextBeam.push(nb); stats.dist++; } });
+    });
+    if (!nextBeam.length) break;
+    nextBeam.sort((a,b) => (nodes[a].x-qx)**2 + (nodes[a].y-qy)**2 - ((nodes[b].x-qx)**2 + (nodes[b].y-qy)**2));
+    beam = nextBeam.slice(0, ef);
+    const newBest = beam[0];
+    if (newBest !== path[path.length-1].i) { path.push({ i: newBest, L: 0 }); stats.hops++; }
+  }
+  // answer = best of visited
+  const answer = Array.from(visited).sort((a,b) => (nodes[a].x-qx)**2 + (nodes[a].y-qy)**2 - ((nodes[b].x-qx)**2 + (nodes[b].y-qy)**2))[0];
+  stats.found = gt.includes(answer);
+  document.getElementById('statHops').textContent = stats.hops;
+  document.getElementById('statDist').textContent = stats.dist;
+  document.getElementById('statRecall').textContent = stats.found ? 'yes' : 'no';
+  document.getElementById('statRecall').style.color = stats.found ? 'var(--moss)' : 'var(--accent)';
+  document.getElementById('statLayers').textContent = stats.layers;
+}
+
+function draw() {
+  const w = canvas.getBoundingClientRect().width;
+  const h = canvas.getBoundingClientRect().height;
+  ctx.clearRect(0,0,w,h);
+  // edges
+  ctx.lineWidth = 0.7;
+  edges.forEach(e => {
+    const alpha = e.L === 0 ? 0.15 : e.L === 1 ? 0.28 : 0.55;
+    ctx.strokeStyle = LAYER_COLORS[e.L];
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.moveTo(nodes[e.a].x, nodes[e.a].y);
+    ctx.lineTo(nodes[e.b].x, nodes[e.b].y);
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+  // path
+  if (path.length > 1) {
+    ctx.strokeStyle = '#b8471f';
+    ctx.lineWidth = 2.4;
+    ctx.setLineDash([6,3]);
+    ctx.beginPath();
+    ctx.moveTo(nodes[path[0].i].x, nodes[path[0].i].y);
+    path.forEach(p => ctx.lineTo(nodes[p.i].x, nodes[p.i].y));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // nodes
+  nodes.forEach((n, i) => {
+    const r = 3 + n.layer * 1.5;
+    ctx.fillStyle = LAYER_COLORS[n.layer];
+    ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2); ctx.fill();
+  });
+  // query
+  if (query) {
+    ctx.fillStyle = '#b8471f';
+    ctx.strokeStyle = '#1a120a';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(query.x, query.y, 8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fbf5e7';
+    ctx.font = '600 10px JetBrains Mono,monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('q', query.x, query.y);
+  }
+}
+
+canvas.addEventListener('click', e => {
+  const r = canvas.getBoundingClientRect();
+  query = { x: e.clientX - r.left, y: e.clientY - r.top };
+  search(query.x, query.y);
+  draw();
+});
+['kM','kEf','kN'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    M = parseInt(document.getElementById('kM').value);
+    ef = parseInt(document.getElementById('kEf').value);
+    N = parseInt(document.getElementById('kN').value);
+    document.getElementById('kMv').textContent = M;
+    document.getElementById('kEfv').textContent = ef;
+    document.getElementById('kNv').textContent = N;
+    build();
+    if (query) search(query.x, query.y);
+    draw();
+  });
+});
+build();
+// default query
+setTimeout(() => {
+  const r = canvas.getBoundingClientRect();
+  query = { x: r.width*0.7, y: r.height*0.5 };
+  search(query.x, query.y);
+  draw();
+}, 80);
+
+/* Mini-game */
+const GAME = [
+  { q: 'Recall is 85% but you need 98%. Latency is fine. Which knob?', opts: [
+    { t: 'Increase ef (search-time)', h: 'No rebuild needed', c: true },
+    { t: 'Increase M (build-time)', h: 'Needs rebuild' },
+    { t: 'Decrease N', h: 'Would drop data' },
+    { t: 'Switch to BM25', h: 'Different paradigm' },
+  ]},
+  { q: 'Index is 4× bigger than expected. Disk cost matters. Knob?', opts: [
+    { t: 'Decrease M', h: 'Smaller graph', c: true },
+    { t: 'Decrease ef', h: 'Does not affect size' },
+    { t: 'Quantize vectors first', h: 'Separate fix' },
+    { t: 'Increase N', h: 'Makes it worse' },
+  ]},
+  { q: 'Which statement about HNSW deletes is true?', opts: [
+    { t: 'Native delete removes the node cleanly', h: 'No' },
+    { t: 'No native delete — tombstone and rebuild periodically', h: 'Biggest ops gotcha', c: true },
+    { t: 'Deletion auto-triggers a rebuild', h: 'Not in standard impls' },
+    { t: 'Deletes are free and instant', h: 'Wishful' },
+  ]},
+  { q: 'Why does HNSW need multiple layers at all?', opts: [
+    { t: 'To reduce memory footprint', h: 'Not primary reason' },
+    { t: 'To enable O(log N) long-range jumps', h: 'Subway-over-walking analogy', c: true },
+    { t: 'To support deletes', h: 'Orthogonal' },
+    { t: 'For numerical stability', h: 'Irrelevant' },
+  ]},
+  { q: 'You need <b>one billion</b> vectors on a single 64 GB RAM node. HNSW alone?', opts: [
+    { t: 'Yes — HNSW handles this natively', h: 'No, fits ~100M' },
+    { t: 'Use DiskANN (SSD-backed graph)', h: 'Exactly this use case', c: true },
+    { t: 'Shard across 16 HNSW nodes', h: 'Valid but heavier' },
+    { t: 'Use BM25 instead', h: 'Different problem' },
+  ]},
+];
+let gIdx=0, gScore=0;
+function renderG(){
+  if (gIdx >= GAME.length) {
+    document.getElementById('gameArea').style.display='none';
+    document.getElementById('gameDone').style.display='block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${GAME.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games')||'{}'); games['19']=gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games));
+    return;
+  }
+  const q = GAME[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx+1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${GAME.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const b = document.getElementById('gameBoard'); b.innerHTML='';
+  let answered=false;
+  q.opts.forEach(o=>{
+    const el=document.createElement('button'); el.className='game-opt';
+    el.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    el.addEventListener('click', ()=>{
+      if (answered) return; answered=true;
+      if (o.c){ el.classList.add('correct'); gScore++; }
+      else { el.classList.add('wrong'); b.querySelectorAll('.game-opt').forEach((x,i)=>{ if (q.opts[i].c) x.classList.add('correct'); }); }
+      setTimeout(()=>{ gIdx++; renderG(); }, 1100);
+    });
+    b.appendChild(el);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', ()=>{ gIdx=0; gScore=0;
+  document.getElementById('gameArea').style.display='block';
+  document.getElementById('gameDone').style.display='none';
+  renderG();
+});
+renderG();
+</script>
+</body>
+</html>

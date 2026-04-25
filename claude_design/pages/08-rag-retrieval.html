@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>08 RAG Retrieval · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.search-box { display:flex; gap:10px; align-items:center; padding: 10px 14px; background: var(--bg); border:1px solid var(--rule); border-radius: 3px; margin-bottom: 12px; }
+.search-box input { flex:1; padding:8px 10px; border:1px solid var(--rule); background: var(--surface); border-radius: 2px; font: inherit; font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.search-box input:focus { outline:none; border-color: var(--accent); }
+.search-box .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; }
+
+.docs { display: grid; gap: 8px; }
+.doc { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; transition: all 0.2s; }
+.doc.hit { border-color: var(--accent); background: var(--accent-bg); }
+.doc .head { display:flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 6px; }
+.doc .id { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; }
+.doc .score { font-family: var(--mono); font-size: 11px; color: var(--accent); font-weight: 600; }
+.doc .text { font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+.doc .text mark { background: var(--accent); color: var(--bg); padding: 0 3px; border-radius: 1px; font-weight: 500; }
+.doc .text mark.dense { background: var(--ink-blue); }
+
+.tabs { display: flex; gap: 2px; padding: 3px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 3px; width: fit-content; margin-bottom: 12px; }
+.tab { padding: 6px 12px; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; border-radius: 2px; }
+.tab.active { background: var(--bg); color: var(--ink); font-weight: 600; }
+
+.scatter-svg { width:100%; aspect-ratio: 16/8; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.metric { padding: 14px; background: var(--surface); border:1px solid var(--rule); border-radius:3px; }
+.metric .v { font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; font-feature-settings:'tnum'; }
+.metric .l { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+
+.flow { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; align-items: center; margin: 12px 0; }
+.flow .stage { padding: 14px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; text-align: center; }
+.flow .stage .num { font-family: var(--mono); font-size: 9px; color: var(--mute); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+.flow .stage .ttl { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 600; }
+.flow .stage .sub { font-size: 11px; color: var(--ink-2); margin-top: 6px; line-height: 1.4; }
+.flow .arr { text-align:center; font-family: var(--mono); color: var(--accent); font-size: 18px; font-weight: 600; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div>
+</nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat system">RAG &amp; System</span><span class="sep">/</span><span class="here">08 RAG Retrieval</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 08</span><span class="sep">·</span><span>RAG &amp; System</span><span class="sep">·</span><span>core · 14 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">08</div>
+      <div>
+        <h1>The retriever decides the <em>ceiling</em>.</h1>
+        <div class="dek">An LLM can\'t answer from documents it never saw. RAG\'s top-line accuracy is bounded by recall@k of the retrieval step — and recall depends entirely on whether you matched <em>words</em>, <em>meaning</em>, or both. Lexical, dense, and hybrid each fail in different ways.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">Recall@k</div><div class="l">The metric that matters</div></div>
+      <div class="c"><div class="v">BM25</div><div class="l">Lexical baseline · 1994</div></div>
+      <div class="c"><div class="v">DPR / E5</div><div class="l">Dense encoders · 2020+</div></div>
+      <div class="c"><div class="v">Hybrid + RRF</div><div class="l">Production default</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        Retrieval is the half of RAG most teams underinvest in. Generation can\'t fix retrieval errors — it can only paper over them. Spend a day on your retriever and a week of "prompt engineering" disappears.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>Two ways to find a passage</span></h2>
+      <p>
+        <strong>Lexical</strong> matches surface tokens — a query and document share the word "transformer," they connect. <strong>Dense</strong> matches meaning — "neural attention" finds "self-attention" even with zero word overlap. Each catches what the other misses. The bug pattern is asymmetric:
+      </p>
+      <div class="callout tip">
+        <div class="lab">// failure modes</div>
+        <strong>Lexical-only</strong> · misses paraphrases, synonyms, multilingual.<br>
+        <strong>Dense-only</strong> · misses rare terms, codes (ICD-10, error codes), exact names.<br>
+        <strong>Both</strong> · fail on multi-hop or implicit reasoning queries (chapter 09).
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>Try it · same corpus, three retrievers</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Live retrieval over 12-passage corpus</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="search-box">
+            <span class="lab">query</span>
+            <input id="qInput" type="text" value="how does attention work" />
+          </div>
+          <div class="tabs">
+            <div class="tab active" data-mode="lex">Lexical · BM25</div>
+            <div class="tab" data-mode="dense">Dense · cosine</div>
+            <div class="tab" data-mode="hybrid">Hybrid · RRF</div>
+          </div>
+          <div style="display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap">
+            <button class="btn" data-fill="how does attention work">attention</button>
+            <button class="btn" data-fill="multi-head self attention">paraphrase</button>
+            <button class="btn" data-fill="transformer 2017">specific year</button>
+            <button class="btn" data-fill="ICD-10 code H35.81">rare token</button>
+            <button class="btn" data-fill="memory bandwidth bottleneck">conceptual</button>
+          </div>
+          <div class="docs" id="docs"></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px">
+            <div class="metric"><div class="v" id="oRecall">— %</div><div class="l">Recall@5 (this query)</div></div>
+            <div class="metric"><div class="v" id="oTopHit">—</div><div class="l">Best hit score</div></div>
+            <div class="metric"><div class="v" id="oMode">lexical</div><div class="l">Active retriever</div></div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>Where lexical and dense disagree</span></h2>
+      <p>
+        Plot every passage in 2D embedding space. Color by lexical-vs-dense match for the current query. The two retrievers light up <em>different regions</em> — that\'s why hybrid wins.
+      </p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Lexical (orange) ∪ Dense (blue) overlay</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <svg class="scatter-svg" id="scatter" viewBox="0 0 900 450"></svg>
+          <div style="display:flex;gap:14px;font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:8px;letter-spacing:0.06em;text-transform:uppercase;flex-wrap:wrap">
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);vertical-align:-1px;margin-right:4px"></span>lexical hit</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--ink-blue);vertical-align:-1px;margin-right:4px"></span>dense hit</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--moss);vertical-align:-1px;margin-right:4px"></span>both</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>The retrieval pipeline</span></h2>
+      <div class="flow">
+        <div class="stage"><div class="num">// 01</div><div class="ttl">Embed query</div><div class="sub">~10 ms · 768/1024-d vector</div></div>
+        <div class="arr">→</div>
+        <div class="stage"><div class="num">// 02</div><div class="ttl">ANN search · top-100</div><div class="sub">HNSW / IVF · ~5-30 ms</div></div>
+        <div class="arr">→</div>
+        <div class="stage" style="grid-column:1"><div class="num">// 03</div><div class="ttl">Lexical · top-100</div><div class="sub">BM25 inverted index · ~5 ms</div></div>
+        <div class="arr">→</div>
+        <div class="stage"><div class="num">// 04</div><div class="ttl">Fuse · RRF</div><div class="sub">Reciprocal-rank fusion</div></div>
+        <div class="arr">→</div>
+        <div class="stage" style="grid-column:1"><div class="num">// 05</div><div class="ttl">Rerank top-30</div><div class="sub">Cross-encoder · 50-200 ms</div></div>
+        <div class="arr">→</div>
+        <div class="stage"><div class="num">// 06</div><div class="ttl">Send to LLM</div><div class="sub">Top 5-10 passages</div></div>
+        <div class="arr"></div>
+        <div class="stage" style="opacity:0"></div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Recall&commat;k <em>is</em> the budget</span></h2>
+      <div class="callout math">
+        $$\text{end-to-end accuracy} \le \text{Recall@k} \times \text{generator accuracy given gold passage}$$
+        <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px;letter-spacing:0.04em">// generator can\'t fix what retriever didn\'t fetch.</div>
+      </div>
+      <p>
+        If recall@5 is 70%, your RAG accuracy ceiling is 70% — even with a perfect generator. Push retrieval before tuning prompts. This is also why "give the LLM the whole document" is sometimes the right play: it makes recall@k = 1 by force, at the cost of context length.
+      </p>
+
+      <h2 id="s6" data-n="§ 06"><span>Mini-game</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Pick the right retriever</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div id="gameArea">
+            <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Lexical vs dense</span></a>
+        <a href="#s2"><span class="n">02</span><span>Live demo</span></a>
+        <a href="#s3"><span class="n">03</span><span>Disagreement map</span></a>
+        <a href="#s4"><span class="n">04</span><span>Pipeline</span></a>
+        <a href="#s5"><span class="n">05</span><span>Recall@k budget</span></a>
+        <a href="#s6"><span class="n">06</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 08 RAG Retrieval <span class="dot">·</span> RAG &amp; System</div><div>chapter 08 of 29 <span class="dot">●</span> 14 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "08" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'08', related:['09','10','12','15','16','22'] });
+
+/* corpus */
+const CORPUS = [
+  { id:'D01', text:'Self-attention computes a weighted sum where weights are dot products of queries and keys.', tags:['attention','transformer','core'], rel:['attention','self','transformer'] },
+  { id:'D02', text:'Multi-head attention runs several attention layers in parallel and concatenates their outputs.', tags:['attention','transformer'], rel:['attention','multi-head'] },
+  { id:'D03', text:'The Transformer architecture was introduced in the 2017 paper "Attention Is All You Need".', tags:['transformer','history'], rel:['transformer','2017'] },
+  { id:'D04', text:'Memory bandwidth, not compute, is the dominant bottleneck during decode for large language models.', tags:['serving','memory'], rel:['memory','bandwidth'] },
+  { id:'D05', text:'BM25 ranks documents by term-frequency × inverse-document-frequency with length normalization.', tags:['lexical','search'], rel:['bm25','lexical'] },
+  { id:'D06', text:'Dense passage retrieval encodes both queries and documents into a shared vector space.', tags:['dense','retrieval'], rel:['dense','retrieval','passage'] },
+  { id:'D07', text:'ICD-10 code H35.81 refers to retinal edema, a swelling of the macular region.', tags:['medical','code'], rel:['icd-10','h35.81','medical'] },
+  { id:'D08', text:'PagedAttention manages KV cache memory in fixed-size blocks like an operating system.', tags:['serving','attention'], rel:['paged','attention','memory'] },
+  { id:'D09', text:'Reciprocal-rank fusion merges multiple ranked lists by summing 1/(k+rank).', tags:['fusion','ranking'], rel:['rrf','fusion','ranking'] },
+  { id:'D10', text:'Cross-encoders score a query-document pair jointly and are accurate but slow.', tags:['rerank'], rel:['cross-encoder','rerank'] },
+  { id:'D11', text:'GPT-2 was released in 2019 and demonstrated strong zero-shot generalization.', tags:['gpt','history'], rel:['gpt-2','2019','history'] },
+  { id:'D12', text:'HNSW is a graph-based approximate nearest neighbour index with logarithmic search.', tags:['ann','vector'], rel:['hnsw','ann','graph'] },
+];
+
+/* simple BM25-ish */
+function tok(s){ return s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean); }
+function bm25Score(q, d){
+  const qt = new Set(tok(q));
+  const dt = tok(d.text);
+  const dtSet = new Set(dt);
+  let s = 0;
+  qt.forEach(t => {
+    if (dtSet.has(t)) s += 1.5;
+    if (d.rel && d.rel.includes(t)) s += 1.0;
+    if (d.tags && d.tags.includes(t)) s += 0.5;
+  });
+  return s;
+}
+
+/* synthetic dense: each doc has a fixed 2D embedding; query embedding from word match w/ some semantic mapping */
+const SEMANTIC = {
+  attention:[0.8,0.4], 'self-attention':[0.78,0.42], 'self':[0.7,0.4],
+  transformer:[0.7,0.3], 'multi-head':[0.85,0.45], 'multihead':[0.85,0.45],
+  bm25:[-0.7,0.3], lexical:[-0.65,0.4],
+  dense:[-0.4,0.7], retrieval:[-0.3,0.65], passage:[-0.3,0.7],
+  memory:[0.1,-0.7], bandwidth:[0.15,-0.72], bottleneck:[0.1,-0.6],
+  paged:[0.0,-0.5],
+  rrf:[-0.4,-0.3], fusion:[-0.4,-0.3],
+  rerank:[-0.6,-0.5], 'cross-encoder':[-0.6,-0.5],
+  hnsw:[-0.2,0.4], ann:[-0.25,0.45],
+  gpt:[0.5,0.5], 'gpt-2':[0.5,0.55],
+  '2017':[0.6,0.25], '2019':[0.5,0.55],
+  icd:[-0.85,-0.7], 'icd-10':[-0.85,-0.7], 'h35':[-0.88,-0.65], 'h35.81':[-0.88,-0.65], retinal:[-0.85,-0.7], medical:[-0.85,-0.65],
+  works:[0.0,0.0], how:[0.0,0.0], does:[0.0,0.0], the:[0,0], a:[0,0], to:[0,0],
+};
+function embed(text){
+  const ts = tok(text); let x = 0, y = 0, n = 0;
+  ts.forEach(t => { const v = SEMANTIC[t]; if (v) { x += v[0]; y += v[1]; n++; } });
+  if (n===0) return [0,0];
+  return [x/n, y/n];
+}
+function cos(a,b){
+  const da = Math.hypot(a[0],a[1]), db = Math.hypot(b[0],b[1]);
+  if (da === 0 || db === 0) return 0;
+  return (a[0]*b[0]+a[1]*b[1])/(da*db);
+}
+
+/* render */
+const docsEl = document.getElementById('docs');
+let curMode = 'lex';
+function rrf(rankings, k=60){
+  const scores = {};
+  rankings.forEach(r => {
+    r.forEach((item, idx) => {
+      scores[item.id] = (scores[item.id] || 0) + 1/(k + idx + 1);
+    });
+  });
+  return Object.entries(scores).map(([id,score])=>({id,score})).sort((a,b)=>b.score-a.score);
+}
+function highlight(text, words, cls){
+  let out = text;
+  words.forEach(w => { if (!w) return; const re = new RegExp('\\b('+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')\\b','gi'); out = out.replace(re, `<mark class="${cls}">$1</mark>`); });
+  return out;
+}
+function search(){
+  const q = document.getElementById('qInput').value.trim();
+  document.getElementById('oMode').textContent = curMode === 'lex' ? 'lexical' : curMode === 'dense' ? 'dense' : 'hybrid';
+  if (!q) { docsEl.innerHTML = ''; return; }
+  const qe = embed(q);
+  const lexScored = CORPUS.map(d => ({ ...d, lex: bm25Score(q,d) })).sort((a,b)=>b.lex-a.lex);
+  const denseScored = CORPUS.map(d => ({ ...d, dense: cos(qe, embed(d.text)) })).sort((a,b)=>b.dense-a.dense);
+  let ranked, scoreField;
+  if (curMode === 'lex') { ranked = lexScored; scoreField = 'lex'; }
+  else if (curMode === 'dense') { ranked = denseScored; scoreField = 'dense'; }
+  else { 
+    const fused = rrf([lexScored, denseScored]);
+    ranked = fused.map(f => ({ ...CORPUS.find(c=>c.id===f.id), hybrid: f.score }));
+    scoreField = 'hybrid';
+  }
+  const top = ranked.slice(0, 6);
+  const qWords = tok(q);
+  docsEl.innerHTML = top.map((d,i) => {
+    const isHit = i < 3;
+    const sc = (d[scoreField] || 0).toFixed(curMode==='hybrid'?3:2);
+    const cls = curMode==='dense' ? 'dense' : '';
+    const txt = curMode === 'dense' ? d.text : highlight(d.text, qWords, cls);
+    return `<div class="doc${isHit?' hit':''}"><div class="head"><span class="id">${d.id} · rank ${i+1}</span><span class="score">${sc}</span></div><div class="text">${txt}</div></div>`;
+  }).join('');
+  // metric stats
+  const top5 = ranked.slice(0,5);
+  document.getElementById('oRecall').textContent = Math.round(top5.filter(d=>d[scoreField]>0).length/5*100) + '%';
+  document.getElementById('oTopHit').textContent = (top[0][scoreField]||0).toFixed(2);
+  drawScatter(qe, lexScored, denseScored);
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  curMode = t.dataset.mode;
+  search();
+}));
+document.getElementById('qInput').addEventListener('input', search);
+document.querySelectorAll('[data-fill]').forEach(b => b.addEventListener('click', () => {
+  document.getElementById('qInput').value = b.dataset.fill; search();
+}));
+
+/* scatter */
+function drawScatter(qe, lex, dense){
+  const svg = document.getElementById('scatter');
+  const W = 900, H = 450, pad = 40;
+  const map = (p) => [pad + (W-2*pad)*(p[0]+1)/2, pad + (H-2*pad)*(1-(p[1]+1)/2)];
+  const lexHits = new Set(lex.slice(0,4).map(d=>d.id));
+  const denseHits = new Set(dense.slice(0,4).map(d=>d.id));
+  let g = '';
+  // axes
+  g += `<line x1="${W/2}" y1="${pad}" x2="${W/2}" y2="${H-pad}" stroke="#e8dfc5" stroke-width="0.5" stroke-dasharray="2 3"/>`;
+  g += `<line x1="${pad}" y1="${H/2}" x2="${W-pad}" y2="${H/2}" stroke="#e8dfc5" stroke-width="0.5" stroke-dasharray="2 3"/>`;
+  // dots
+  CORPUS.forEach(d => {
+    const p = map(embed(d.text));
+    const inLex = lexHits.has(d.id), inDense = denseHits.has(d.id);
+    let fill = '#d8cba5';
+    if (inLex && inDense) fill = '#5a7a3a';
+    else if (inLex) fill = '#b8471f';
+    else if (inDense) fill = '#3a4a5e';
+    g += `<circle cx="${p[0]}" cy="${p[1]}" r="${inLex||inDense?9:6}" fill="${fill}" stroke="#1a120a" stroke-width="0.5"/>`;
+    g += `<text x="${p[0]+12}" y="${p[1]+4}" font-family="JetBrains Mono, monospace" font-size="9" fill="#1a120a">${d.id}</text>`;
+  });
+  // query
+  const qp = map(qe);
+  g += `<circle cx="${qp[0]}" cy="${qp[1]}" r="8" fill="none" stroke="#1a120a" stroke-width="2"/>`;
+  g += `<circle cx="${qp[0]}" cy="${qp[1]}" r="3" fill="#1a120a"/>`;
+  g += `<text x="${qp[0]+12}" y="${qp[1]+4}" font-family="JetBrains Mono, monospace" font-size="10" fill="#1a120a" font-weight="700">query</text>`;
+  svg.innerHTML = g;
+}
+
+search();
+
+/* mini-game */
+const GAME = [
+  { q: 'User searches for "ICD-10 H35.81". Which retriever is most likely to win?', opts: [
+    { t: 'Lexical / BM25 — exact codes are token matches', h: 'Dense embeddings smear codes', c: true },
+    { t: 'Dense only', h: 'Likely misses' },
+    { t: 'Pure semantic search', h: 'Same problem' },
+    { t: 'No retriever needed', h: 'You still need to find it' },
+  ]},
+  { q: '"Recall@5 = 70%" sets your RAG accuracy ceiling at?', opts: [
+    { t: '70% — generator can\'t fix missing passages', h: 'Recall is the upper bound', c: true },
+    { t: '100% — generator can hallucinate the answer', h: 'That\'s not RAG' },
+    { t: '35% — half is a generator\'s fault', h: 'No' },
+    { t: 'Independent of retrieval', h: 'It\'s the bottleneck' },
+  ]},
+  { q: 'Hybrid retrieval beats pure dense because?', opts: [
+    { t: 'Lexical catches rare tokens dense smears; sets are complementary', h: 'Different failure modes', c: true },
+    { t: 'It\'s faster', h: 'Slower actually' },
+    { t: 'Dense always wrong', h: 'False' },
+    { t: 'BM25 is newer', h: 'BM25 is from 1994' },
+  ]},
+  { q: 'RRF fuses two ranked lists by?', opts: [
+    { t: 'Summing 1/(k+rank) per document across lists', h: 'Rank-only, score-free', c: true },
+    { t: 'Multiplying scores', h: 'Different fusion' },
+    { t: 'Picking the higher score', h: 'Not RRF' },
+    { t: 'Cross-encoder rerank', h: 'Different stage' },
+  ]},
+  { q: 'Your dense retriever scores well on dev set, ships, and real users complain. Likely cause?', opts: [
+    { t: 'Distribution shift — real queries paraphrase or contain codes/names not in train', h: 'Test the rare tail', c: true },
+    { t: 'Vector DB is wrong', h: 'Possible but rarer' },
+    { t: 'Embedding dim too low', h: 'Less common' },
+    { t: 'LLM is broken', h: 'Wrong layer' },
+  ]},
+];
+let gIdx=0, gScore=0;
+function renderG(){
+  if (gIdx >= GAME.length){
+    document.getElementById('gameArea').style.display='none';
+    document.getElementById('gameDone').style.display='block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${GAME.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games')||'{}'); games['08']=gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games)); return;
+  }
+  const q = GAME[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx+1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${GAME.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const b = document.getElementById('gameBoard'); b.innerHTML='';
+  let answered=false;
+  q.opts.forEach(o => {
+    const el = document.createElement('button'); el.className='game-opt';
+    el.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    el.addEventListener('click', () => {
+      if (answered) return; answered=true;
+      if (o.c) { el.classList.add('correct'); gScore++; }
+      else { el.classList.add('wrong'); b.querySelectorAll('.game-opt').forEach((x,i)=>{ if (q.opts[i].c) x.classList.add('correct'); }); }
+      setTimeout(()=>{ gIdx++; renderG(); }, 1100);
+    });
+    b.appendChild(el);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx=0; gScore=0;
+  document.getElementById('gameArea').style.display='block';
+  document.getElementById('gameDone').style.display='none';
+  renderG();
+});
+renderG();
+</script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>17 DiskANN · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+.cmp { display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0; }
+.cmp-card { padding: 16px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.cmp-card .name { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+.cmp-card .scale { font-size: 22px; font-weight: 700; color: var(--ink); margin: 6px 0 4px; letter-spacing: -0.02em; }
+.cmp-card .desc { font-size: 12px; color: var(--ink-2); line-height: 1.55; }
+.vamana-svg { width: 100%; height: 320px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.knobs { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+.knob { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.knob .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom:6px; }
+.knob .vl { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+.knob .row { display:flex; align-items:center; gap:10px; }
+.knob input[type=range] { flex:1; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top"><div><a href="../index.html" class="brand">llm-viz</a></div><div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div></nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat system">RAG &amp; System</span><span class="sep">/</span><span class="here">17 DiskANN</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 17</span><span class="sep">·</span><span>RAG &amp; System</span><span class="sep">·</span><span>2019 · 11 min read</span></div>
+    <div class="phero-grid"><div class="phero-num">17</div><div>
+      <h1>A billion vectors. <em>One</em> server. 64 GB of RAM.</h1>
+      <div class="dek">DiskANN puts the whole graph on SSD, keeps a tiny index in memory, and does ~10ms recall@95. The Vamana graph is the trick — short edges for accuracy, long edges for navigation, on disk.</div>
+    </div></div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">1B vec</div><div class="l">Single node</div></div>
+      <div class="c"><div class="v">64 GB</div><div class="l">RAM budget</div></div>
+      <div class="c"><div class="v">~10 ms</div><div class="l">Median latency</div></div>
+      <div class="c"><div class="v">95%</div><div class="l">recall@10</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">HNSW is fast — but you need the whole graph in RAM. At 1B vectors × 768 dim × 4 bytes, that\'s 3 TB. DiskANN solves this with a single-layer graph designed for SSD-friendly traversal, plus a quantized in-memory cache.</p>
+
+      <h2 id="s1" data-n="§ 01"><span>The memory wall</span></h2>
+      <div class="cmp">
+        <div class="cmp-card"><div class="name">Brute force</div><div class="scale">3 TB</div><div class="desc">All vectors in RAM · O(N) per query · won\'t fit on one box.</div></div>
+        <div class="cmp-card"><div class="name">HNSW</div><div class="scale">3.8 TB</div><div class="desc">Vectors + multi-layer graph, all in RAM. Distributed shards needed.</div></div>
+        <div class="cmp-card"><div class="name">DiskANN</div><div class="scale">~30 GB</div><div class="desc">Quantized vectors + entry points in RAM. Full graph + raw vectors on SSD.</div></div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>Vamana · the graph</span></h2>
+      <p>HNSW uses multiple layers; DiskANN uses one. The Vamana graph is built greedily with a parameter <strong>α</strong> ≥ 1: when adding edges, prune candidates that can be reached via existing edges of length ≤ α × direct distance. <strong>α = 1</strong> gives the tightest graph (fewest edges); <strong>α &gt; 1</strong> retains some long-range edges that help navigation.</p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · α tunes graph density</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="knobs">
+            <div class="knob"><div class="lab">α (alpha)</div><div class="row"><input id="kAlpha" type="range" min="100" max="200" value="120" step="5"><span class="vl" id="vAlpha">1.2</span></div></div>
+            <div class="knob"><div class="lab">R (max degree)</div><div class="row"><input id="kR" type="range" min="8" max="32" value="16"><span class="vl" id="vR">16</span></div></div>
+          </div>
+          <svg class="vamana-svg" id="vam" viewBox="0 0 900 320"></svg>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:6px;letter-spacing:0.06em;text-transform:uppercase">// 60 random points · prune by α · cap degree at R</div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>Search · greedy with PQ</span></h2>
+      <p>At query time: start at a fixed entry node, fetch its neighbours <em>from disk</em>, score using <strong>product-quantized</strong> approximations of the vectors in RAM, pick the closest unvisited, repeat. Re-rank the final candidates with full-precision vectors loaded from SSD. Average disk reads per query: ~50–200.</p>
+
+      <h2 id="s4" data-n="§ 04"><span>Why one layer works</span></h2>
+      <p>HNSW\'s upper layers exist to <em>route</em> — to skip across the graph quickly. Vamana achieves this with a single layer because α &gt; 1 keeps long edges in the same graph. The result: less metadata, fewer disk seeks, simpler eviction.</p>
+
+      <h2 id="s5" data-n="§ 05"><span>Mini-game</span></h2>
+      <div class="demo"><div class="dhd"><span class="ttl">Game · Tune DiskANN</span><span class="tag" id="gameTag">0 / 5</span></div><div class="dbd">
+        <div id="gameArea">
+          <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+          <div class="game-q" id="gameQ"></div>
+          <div class="game-board" id="gameBoard"></div>
+        </div>
+        <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+          <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+          <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+        </div>
+      </div></div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>The memory wall</span></a>
+        <a href="#s2"><span class="n">02</span><span>Vamana graph</span></a>
+        <a href="#s3"><span class="n">03</span><span>Search with PQ</span></a>
+        <a href="#s4"><span class="n">04</span><span>Why one layer</span></a>
+        <a href="#s5"><span class="n">05</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 17 DiskANN <span class="dot">·</span> RAG &amp; System</div><div>chapter 17 of 29 <span class="dot">●</span> 11 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks"><div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div><div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+  <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+  <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "17"</div></div></div>
+  <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number</div></div></div>
+</div></div></aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'17', related:['12','18','19','08'] });
+
+/* Vamana mini graph */
+const SEED = 42;
+function rand(s){let x=Math.sin(s)*1e4;return x-Math.floor(x);}
+function buildPts(n){const a=[];for(let i=0;i<n;i++){a.push({x:80+rand(SEED+i*7)*740,y:30+rand(SEED+i*13)*260});}return a;}
+const PTS = buildPts(60);
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function buildGraph(alpha,R){
+  const N=PTS.length;
+  const edges=Array.from({length:N},()=>[]);
+  for(let i=0;i<N;i++){
+    const cands=[];
+    for(let j=0;j<N;j++) if(j!==i) cands.push({j,d:dist(PTS[i],PTS[j])});
+    cands.sort((a,b)=>a.d-b.d);
+    const kept=[];
+    for(const c of cands){
+      let pruned=false;
+      for(const k of kept){
+        if(dist(PTS[k.j],PTS[c.j])*alpha<c.d){pruned=true;break;}
+      }
+      if(!pruned){kept.push(c);if(kept.length>=R)break;}
+    }
+    edges[i]=kept.map(k=>k.j);
+  }
+  return edges;
+}
+function drawVam(){
+  const a=parseInt(document.getElementById('kAlpha').value)/100;
+  const R=parseInt(document.getElementById('kR').value);
+  document.getElementById('vAlpha').textContent=a.toFixed(2);
+  document.getElementById('vR').textContent=R;
+  const edges=buildGraph(a,R);
+  let g='';
+  edges.forEach((nbrs,i)=>{
+    nbrs.forEach(j=>{
+      if(j>i){
+        const long = dist(PTS[i],PTS[j])>180;
+        g+=`<line x1="${PTS[i].x}" y1="${PTS[i].y}" x2="${PTS[j].x}" y2="${PTS[j].y}" stroke="${long?'#b8471f':'#3a4a5e'}" stroke-width="${long?1.2:0.8}" opacity="${long?0.7:0.45}"/>`;
+      }
+    });
+  });
+  PTS.forEach((p,i)=>{g+=`<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#1a1810" stroke="#fbf6e7" stroke-width="1.5"/>`;});
+  document.getElementById('vam').innerHTML=g;
+}
+['kAlpha','kR'].forEach(id=>document.getElementById(id).addEventListener('input',drawVam));
+drawVam();
+
+const GAME=[
+  {q:'Vamana α=1 builds the?',opts:[{t:'Tightest graph — fewest edges, lowest navigation quality',h:'No long edges retained',c:true},{t:'Densest graph',h:'Opposite'},{t:'A multi-layer graph',h:'No layers'},{t:'Random graph',h:'No'}]},
+  {q:'Why does DiskANN keep PQ vectors in RAM?',opts:[{t:'To score candidates without disk reads during traversal',h:'PQ is ~32× smaller',c:true},{t:'For backup',h:'Wrong'},{t:'For training',h:'No'},{t:'For sharding',h:'No'}]},
+  {q:'Disk reads per query?',opts:[{t:'~50–200 reads, mostly sequential neighbour fetches',h:'Bounded by graph degree',c:true},{t:'1',h:'Too few'},{t:'1M',h:'Too many'},{t:'0 — all in RAM',h:'No'}]},
+  {q:'Why one layer (vs HNSW\'s many)?',opts:[{t:'α>1 keeps long-range edges, so single layer routes well',h:'Long edges replace upper layers',c:true},{t:'Hardware limit',h:'No'},{t:'Patent reasons',h:'No'},{t:'No reason — coincidence',h:'No'}]},
+  {q:'When NOT to use DiskANN?',opts:[{t:'When data fits in RAM and latency must be < 1 ms',h:'HNSW wins there',c:true},{t:'For 1B vectors',h:'DiskANN excels'},{t:'On a single node',h:'Designed for it'},{t:'When SSDs are available',h:'Required'}]},
+];
+let gI=0,gS=0;
+function rg(){
+  if(gI>=GAME.length){document.getElementById('gameArea').style.display='none';document.getElementById('gameDone').style.display='block';document.getElementById('gameFinal').textContent=`${gS} / ${GAME.length}`;const g=JSON.parse(localStorage.getItem('llm-viz-games')||'{}');g['17']=gS;localStorage.setItem('llm-viz-games',JSON.stringify(g));return;}
+  const q=GAME[gI];document.getElementById('gameIdx').textContent=gI+1;document.getElementById('gameScore').textContent=gS;document.getElementById('gameTag').textContent=`${gI} / ${GAME.length}`;document.getElementById('gameQ').innerHTML=q.q;
+  const b=document.getElementById('gameBoard');b.innerHTML='';let an=false;
+  q.opts.forEach(o=>{const e=document.createElement('button');e.className='game-opt';e.innerHTML=`<div class="q">${o.t}</div><div class="h">${o.h}</div>`;e.addEventListener('click',()=>{if(an)return;an=true;if(o.c){e.classList.add('correct');gS++;}else{e.classList.add('wrong');b.querySelectorAll('.game-opt').forEach((x,i)=>{if(q.opts[i].c)x.classList.add('correct');});}setTimeout(()=>{gI++;rg();},1100);});b.appendChild(e);});
+}
+document.getElementById('gameRestart').addEventListener('click',()=>{gI=0;gS=0;document.getElementById('gameArea').style.display='block';document.getElementById('gameDone').style.display='none';rg();});
+rg();
+</script>
+</body>
+</html>

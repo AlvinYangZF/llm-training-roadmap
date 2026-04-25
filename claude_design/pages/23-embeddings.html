@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>23 Embeddings · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.emb-row { display:grid; grid-template-columns: 110px 1fr 60px; gap:12px; align-items:center; margin: 6px 0; font-family: var(--mono); font-size: 12px; }
+.emb-row .word { color: var(--ink); font-weight: 600; }
+.emb-vec { display:flex; gap:2px; height:18px; }
+.emb-vec .cell { flex:1; min-width:6px; border-radius: 1px; }
+.emb-row .sim { text-align: right; color: var(--accent); font-weight: 600; }
+
+.scatter { background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.scatter text { font-family: var(--mono); font-size: 11px; fill: var(--ink); }
+.scatter .cluster-label { font-size: 10px; fill: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; }
+
+.analogy-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 16px 0; }
+.analogy-card { padding: 14px 16px; border: 1px solid var(--rule); background: var(--bg); border-radius: 3px; }
+.analogy-card .a-eq { font-family: var(--mono); font-size: 13px; color: var(--ink); margin-bottom: 6px; }
+.analogy-card .a-eq .op { color: var(--accent); }
+.analogy-card .a-result { font-family: var(--mono); font-size: 11px; color: var(--mute); }
+
+.ctrl-row { display:flex; gap:16px; align-items:center; margin:10px 0; flex-wrap: wrap; }
+.ctrl-row label { font-family: var(--mono); font-size:11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; min-width: 70px; }
+.ctrl-row input[type=text] { flex:1; min-width: 160px; padding: 8px 12px; border: 1px solid var(--rule); background: var(--bg); border-radius: 3px; font: inherit; font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.ctrl-row input[type=text]:focus { outline: none; border-color: var(--accent); }
+
+.cos-viz { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px; }
+.cos-out { padding: 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; font-family: var(--mono); font-size: 12px; color: var(--ink-2); line-height: 1.8; }
+.cos-out .big { font-size: 32px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; }
+
+.game-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.45; padding: 12px 0 16px; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="read-bar"><div class="fill"></div></div>
+
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right">
+    <a href="../index.html">roadmap</a>
+    <span class="divider"></span>
+    <a id="themeBtn">◐ theme</a>
+  </div>
+</nav>
+
+<div class="crumbs">
+  <a href="../index.html">Roadmap</a>
+  <span class="sep">/</span>
+  <span class="cat foundation">Foundations</span>
+  <span class="sep">/</span>
+  <span class="here">23 Embeddings</span>
+</div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 23</span><span class="sep">·</span><span>Foundations</span><span class="sep">·</span><span>core · 14 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">23</div>
+      <div>
+        <h1>Words become <em>vectors</em>, vectors become <em>geometry</em>.</h1>
+        <div class="dek">An embedding maps a token, a sentence, or a whole document to a point in $\mathbb{R}^d$. The trick is: similar meanings end up close together, and arithmetic in vector space mirrors arithmetic in meaning. Every retriever, classifier, and reranker rides on this.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">768 / 1536</div><div class="l">Typical dim</div></div>
+      <div class="c"><div class="v">cos(θ)</div><div class="l">Similarity metric</div></div>
+      <div class="c"><div class="v">≈ 0</div><div class="l">Random vec sim</div></div>
+      <div class="c"><div class="v">2013</div><div class="l">word2vec</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        Computers don't understand "cat" — but they understand a 768-dimensional vector that happens to sit very close to the vector for "kitten". Embeddings are how we smuggle <i>meaning</i> into linear algebra.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>From symbols to vectors</span> <em>the one-hot wasteland</em></h2>
+      <p>
+        The naive way to encode words is <b>one-hot</b>: vocabulary of 50,000 → each word is a vector with a single 1 and 49,999 zeros. This works, but it's terrible: <code>cos("cat", "kitten") = 0</code>, same as <code>cos("cat", "lawnmower") = 0</code>. Geometry tells us nothing.
+      </p>
+      <p>
+        A learned <b>embedding matrix</b> $E \in \mathbb{R}^{|V| \times d}$ replaces this with $d$-dimensional dense vectors (typically $d = 256$ to $1536$). Each row is a word's coordinates in semantic space. During training, gradients pull related words together and push unrelated ones apart.
+      </p>
+
+      <h2 id="s2" data-n="§ 02"><span>Cosine similarity</span> <em>direction is meaning</em></h2>
+      <p>
+        Once words are vectors, "similar" means "pointing in similar directions". The standard metric is <b>cosine similarity</b>:
+      </p>
+      <div class="math-block">
+        <div class="label">// cosine similarity — angle between two vectors</div>
+        $$\text{cos}(u, v) \;=\; \frac{u \cdot v}{\|u\|\,\|v\|} \;\in\; [-1, +1]$$
+      </div>
+      <p>
+        +1 means perfectly aligned (synonyms, near-paraphrases). 0 means orthogonal (unrelated). −1 means opposite. Magnitude doesn't matter — only direction. This is why embedding models almost always L2-normalize at the end.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Cosine similarity</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="ctrl-row">
+            <label>word A</label>
+            <input type="text" id="cosA" value="cat"/>
+          </div>
+          <div class="ctrl-row">
+            <label>word B</label>
+            <input type="text" id="cosB" value="kitten"/>
+          </div>
+          <div class="cos-viz">
+            <svg id="cosSvg" viewBox="0 0 200 200" style="width:100%;background:var(--bg);border:1px solid var(--rule);border-radius:3px"></svg>
+            <div class="cos-out">
+              <div class="big" id="cosVal">—</div>
+              <div style="color:var(--mute);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px">cosine similarity</div>
+              <div>angle: <span id="cosAng" style="color:var(--ink);font-weight:600">—</span></div>
+              <div>verdict: <span id="cosVerdict" style="color:var(--ink);font-weight:600">—</span></div>
+              <div style="margin-top:10px;font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:0.08em">// try: cat / dog · king / queen · pizza / democracy</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>The vector zoo</span> <em>look at the actual numbers</em></h2>
+      <p>
+        Embeddings aren't magic — they're just rows of floats. Here's what a 16-dim toy projection looks like for a few words. Notice how cat/kitten/dog have similar fingerprints; "democracy" is wildly different.
+      </p>
+      <div id="vecZoo" style="margin: 20px 0"></div>
+      <p style="font-size:12px;color:var(--mute);font-family:var(--mono);margin-top:-4px">// red = positive component, blue = negative. similarity is to "cat".</p>
+
+      <h2 id="s4" data-n="§ 04"><span>Geometry of meaning</span> <em>analogies are arithmetic</em></h2>
+      <p>
+        The famous result from word2vec: vector arithmetic captures relationships. The classic example:
+      </p>
+      <div class="math-block">
+        <div class="label">// the most-quoted equation in NLP</div>
+        $$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
+      </div>
+      <p>
+        Subtracting "man" from "king" isolates the concept of <i>royalty without male-ness</i>. Add "woman" and you land near "queen". The model never saw this equation — it emerged from learning to predict surrounding words.
+      </p>
+      <div class="analogy-grid">
+        <div class="analogy-card">
+          <div class="a-eq">paris <span class="op">−</span> france <span class="op">+</span> japan</div>
+          <div class="a-result">→ tokyo</div>
+        </div>
+        <div class="analogy-card">
+          <div class="a-eq">walking <span class="op">−</span> walked <span class="op">+</span> swam</div>
+          <div class="a-result">→ swimming</div>
+        </div>
+        <div class="analogy-card">
+          <div class="a-eq">windows <span class="op">−</span> microsoft <span class="op">+</span> apple</div>
+          <div class="a-result">→ macos</div>
+        </div>
+        <div class="analogy-card">
+          <div class="a-eq">bigger <span class="op">−</span> big <span class="op">+</span> small</div>
+          <div class="a-result">→ smaller</div>
+        </div>
+      </div>
+      <div class="callout warn">
+        <div class="lab">// reality check</div>
+        These analogies work surprisingly well — but they're not perfect, and they encode every bias in the training corpus. Doctor − man + woman often returns "nurse". The geometry is a mirror of the data.
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Semantic clusters</span> <em>see the manifold</em></h2>
+      <p>
+        Project a high-dim embedding down to 2D with PCA or t-SNE and the structure becomes visible: animals over here, programming languages over there, countries clustered by continent. The model never labeled these clusters — geometry emerged from co-occurrence statistics.
+      </p>
+      <svg id="manifold" viewBox="0 0 600 380" class="scatter" style="width:100%;height:auto;margin:16px 0"></svg>
+      <p style="font-size:12px;color:var(--mute);font-family:var(--mono);margin-top:-4px">// 2D projection of a toy 384-dim model. real embedding spaces look much like this.</p>
+
+      <h2 id="s6" data-n="§ 06"><span>Token vs sentence vs document</span> <em>three scales</em></h2>
+      <p>
+        Embeddings come in different granularities, and they're built differently:
+      </p>
+      <ul>
+        <li><b>Token embeddings.</b> A row in the LLM's input matrix. Lookup-based, learned during pretraining. Used <i>inside</i> the model.</li>
+        <li><b>Sentence / passage embeddings.</b> A single vector per text chunk. Learned via contrastive training (positive pairs pulled together, negatives pushed apart). Used by retrieval.</li>
+        <li><b>Document embeddings.</b> Sentence embeddings, mean-pooled or recombined. Used for clustering, dedup, dataset curation.</li>
+      </ul>
+      <p>
+        For retrieval, the workhorse is <b>sentence-transformers</b> style: take an LLM's last hidden states, mean-pool, L2-normalize. Fine-tune with InfoNCE loss on (query, positive, hard-negative) triplets.
+      </p>
+
+      <h2 id="s7" data-n="§ 07"><span>Why this matters downstream</span> <em>three big use cases</em></h2>
+      <ul>
+        <li><b>Retrieval (Ch. 12, 13).</b> Embed the query, embed the docs, top-k by cosine. The whole RAG stack.</li>
+        <li><b>Clustering &amp; dedup.</b> Group similar docs without labels. Used heavily in pretraining data prep.</li>
+        <li><b>Reranking signals.</b> Cosine sim becomes a feature in a richer cross-encoder ranker.</li>
+      </ul>
+
+      <h2 id="s8" data-n="§ 08"><span>Mini-game</span> <em>which is closer?</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Pick the closer pair</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div class="game-status"><span>QUESTION <span id="gameIdx">1</span> / 5</span><span class="score">SCORE <span id="gameScore">0</span></span></div>
+          <div id="gameArea">
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+
+    </article>
+
+    <aside class="rail">
+      <div>
+        <div class="lab">On this page</div>
+        <div class="toc">
+          <a href="#s1"><span class="n">01</span><span>From symbols to vectors</span></a>
+          <a href="#s2"><span class="n">02</span><span>Cosine similarity</span></a>
+          <a href="#s3"><span class="n">03</span><span>The vector zoo</span></a>
+          <a href="#s4"><span class="n">04</span><span>Analogy arithmetic</span></a>
+          <a href="#s5"><span class="n">05</span><span>Semantic clusters</span></a>
+          <a href="#s6"><span class="n">06</span><span>Three scales</span></a>
+          <a href="#s7"><span class="n">07</span><span>Downstream uses</span></a>
+          <a href="#s8"><span class="n">08</span><span>Mini-game</span></a>
+        </div>
+      </div>
+      <div>
+        <div class="lab">Related</div>
+        <div class="related"></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+
+  <footer class="foot">
+    <div>llm-viz <span class="dot">·</span> 23 Embeddings <span class="dot">·</span> Foundations</div>
+    <div>chapter 23 of 29 <span class="dot">●</span> 14 min read</div>
+  </footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body">
+    <div class="tw-label">Hero layout</div>
+    <div class="tw-options" id="twHeroOpts">
+      <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Editorial headline</div></div></div>
+      <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "23" alongside title</div></div></div>
+      <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors the hero</div></div></div>
+    </div>
+  </div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '23', related: ['12', '13', '19', '24'] });
+
+/* === Toy embedding "model" — deterministic per word === */
+function hash(s) { let h = 2166136261 >>> 0; for (let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; }
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return (s >>> 0) / 4294967296; }; }
+const SEMANTIC_CLUSTERS = {
+  cat:[1,0],kitten:[1,0],dog:[1,0],puppy:[1,0],hamster:[1,0],horse:[1,0],lion:[1,0],
+  tokyo:[2,0],paris:[2,0],london:[2,0],berlin:[2,0],rome:[2,0],madrid:[2,0],
+  france:[2,1],japan:[2,1],germany:[2,1],italy:[2,1],spain:[2,1],uk:[2,1],
+  king:[3,0],queen:[3,0],prince:[3,0],princess:[3,0],royalty:[3,0],
+  man:[3,1],woman:[3,1],boy:[3,1],girl:[3,1],person:[3,1],
+  python:[4,0],javascript:[4,0],rust:[4,0],typescript:[4,0],haskell:[4,0],ruby:[4,0],
+  pizza:[5,0],pasta:[5,0],sushi:[5,0],burger:[5,0],bread:[5,0],
+  democracy:[6,0],politics:[6,0],government:[6,0],senate:[6,0],
+  walking:[7,0],walked:[7,0],running:[7,0],swimming:[7,0],swam:[7,0],
+  big:[8,0],bigger:[8,0],small:[8,0],smaller:[8,0],huge:[8,0],tiny:[8,0],
+  windows:[9,0],macos:[9,0],linux:[9,0],
+  microsoft:[9,1],apple:[9,1],google:[9,1],
+};
+const D = 16;
+function embed(word) {
+  word = word.toLowerCase().trim();
+  const cluster = SEMANTIC_CLUSTERS[word] || [hash(word) % 100, 0];
+  const r1 = rng(1000 + cluster[0] * 31 + cluster[1]);   // shared cluster signal
+  const r2 = rng(hash(word));                            // per-word noise
+  const v = new Array(D);
+  for (let i = 0; i < D; i++) {
+    const cs = (r1() - 0.5) * 1.8;
+    const ns = (r2() - 0.5) * 0.5;
+    v[i] = cs + ns;
+  }
+  // L2 normalize
+  const norm = Math.sqrt(v.reduce((s,x)=>s+x*x,0));
+  return v.map(x => x / (norm || 1));
+}
+function cosine(a, b) { let s = 0; for (let i=0;i<a.length;i++) s += a[i]*b[i]; return s; }
+
+/* === Cosine demo === */
+const cosA = document.getElementById('cosA'), cosB = document.getElementById('cosB');
+function renderCos() {
+  const a = embed(cosA.value || 'cat'), b = embed(cosB.value || 'kitten');
+  const sim = cosine(a, b);
+  document.getElementById('cosVal').textContent = sim.toFixed(3);
+  const ang = Math.acos(Math.max(-1, Math.min(1, sim))) * 180 / Math.PI;
+  document.getElementById('cosAng').textContent = ang.toFixed(1) + '°';
+  let v = 'unrelated';
+  if (sim > 0.75) v = 'near-synonyms';
+  else if (sim > 0.5) v = 'closely related';
+  else if (sim > 0.25) v = 'somewhat related';
+  else if (sim > 0) v = 'weakly related';
+  else v = 'opposite / unrelated';
+  document.getElementById('cosVerdict').textContent = v;
+  // draw two vectors as arrows
+  const svg = document.getElementById('cosSvg');
+  const cx = 100, cy = 100, r = 80;
+  // We need 2D angles — derive from first two PCA-like components
+  const ang1 = (hash(cosA.value || 'a') % 360);
+  const ang2 = ang1 + ang;
+  const x1 = cx + r * Math.cos(ang1 * Math.PI / 180);
+  const y1 = cy - r * Math.sin(ang1 * Math.PI / 180);
+  const x2 = cx + r * Math.cos(ang2 * Math.PI / 180);
+  const y2 = cy - r * Math.sin(ang2 * Math.PI / 180);
+  svg.innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="${r+8}" fill="none" stroke="var(--rule)" stroke-dasharray="2 3"/>
+    <line x1="${cx}" y1="${cy}" x2="${x1}" y2="${y1}" stroke="var(--accent)" stroke-width="2"/>
+    <line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="var(--ink-blue)" stroke-width="2"/>
+    <circle cx="${x1}" cy="${y1}" r="4" fill="var(--accent)"/>
+    <circle cx="${x2}" cy="${y2}" r="4" fill="var(--ink-blue)"/>
+    <text x="${x1+8}" y="${y1+4}" fill="var(--accent)" font-family="var(--mono)" font-size="11">${(cosA.value||'a').slice(0,12)}</text>
+    <text x="${x2+8}" y="${y2+4}" fill="var(--ink-blue)" font-family="var(--mono)" font-size="11">${(cosB.value||'b').slice(0,12)}</text>
+    <path d="M${cx+22} ${cy} A 22 22 0 0 ${ang2 > ang1 ? 0 : 1} ${cx + 22*Math.cos(ang2 * Math.PI / 180)} ${cy - 22*Math.sin(ang2 * Math.PI / 180)}" fill="none" stroke="var(--mute)" stroke-width="1"/>
+    <text x="${cx-3}" y="${cy-30}" fill="var(--mute)" font-family="var(--mono)" font-size="10">θ</text>
+  `;
+}
+cosA.addEventListener('input', renderCos);
+cosB.addEventListener('input', renderCos);
+renderCos();
+
+/* === Vector zoo === */
+function renderZoo() {
+  const words = ['cat', 'kitten', 'dog', 'pizza', 'paris', 'democracy'];
+  const ref = embed('cat');
+  const html = words.map(w => {
+    const v = embed(w);
+    const sim = cosine(v, ref);
+    const cells = v.map(x => {
+      const intensity = Math.min(1, Math.abs(x) * 6);
+      const color = x >= 0 ? `oklch(60% ${0.18*intensity} 35)` : `oklch(60% ${0.18*intensity} 240)`;
+      return `<div class="cell" style="background:${color};opacity:${0.25 + intensity*0.75}"></div>`;
+    }).join('');
+    return `<div class="emb-row"><span class="word">${w}</span><div class="emb-vec">${cells}</div><span class="sim">${sim.toFixed(2)}</span></div>`;
+  }).join('');
+  document.getElementById('vecZoo').innerHTML = html;
+}
+renderZoo();
+
+/* === Manifold scatter === */
+function renderManifold() {
+  const svg = document.getElementById('manifold');
+  const W = 600, H = 380;
+  const groups = [
+    { label: 'animals',     color: 'var(--accent)',  cx: 130, cy: 100, words: ['cat','kitten','dog','puppy','horse','lion'] },
+    { label: 'cities',      color: 'var(--ink-blue)', cx: 460, cy: 80,  words: ['tokyo','paris','london','berlin','rome'] },
+    { label: 'royalty',     color: 'var(--ochre)',   cx: 480, cy: 250, words: ['king','queen','prince','princess'] },
+    { label: 'languages',   color: 'var(--moss)',    cx: 130, cy: 280, words: ['python','rust','haskell','ruby'] },
+    { label: 'food',        color: '#9c5e2c',        cx: 300, cy: 180, words: ['pizza','pasta','sushi','burger'] },
+  ];
+  let html = '';
+  // grid
+  for (let x = 0; x < W; x += 60) html += `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="var(--rule-2)" stroke-width="0.5"/>`;
+  for (let y = 0; y < H; y += 60) html += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="var(--rule-2)" stroke-width="0.5"/>`;
+  groups.forEach(g => {
+    // cluster halo
+    html += `<circle cx="${g.cx}" cy="${g.cy}" r="65" fill="${g.color}" opacity="0.06"/>`;
+    html += `<text x="${g.cx}" y="${g.cy - 70}" class="cluster-label" text-anchor="middle">${g.label}</text>`;
+    g.words.forEach((w, i) => {
+      const ang = (i / g.words.length) * Math.PI * 2;
+      const r = 28 + (hash(w) % 18);
+      const x = g.cx + r * Math.cos(ang);
+      const y = g.cy + r * Math.sin(ang);
+      html += `<circle cx="${x}" cy="${y}" r="3.5" fill="${g.color}"/>`;
+      html += `<text x="${x + 6}" y="${y + 4}" font-size="10">${w}</text>`;
+    });
+  });
+  svg.innerHTML = html;
+}
+renderManifold();
+
+/* === Mini-game === */
+const QS = [
+  { q: 'Which pair is more similar in embedding space?', opts: [
+    { t: 'cat / kitten', c: true, h: 'both animals, near-synonyms' },
+    { t: 'cat / democracy', h: 'completely unrelated' },
+    { t: 'cat / pizza', h: 'no relation' },
+    { t: 'cat / python (the language)', h: 'unrelated' },
+  ]},
+  { q: 'You add: vector(king) − vector(man) + vector(woman). Most likely nearest word?', opts: [
+    { t: 'queen', c: true, h: 'classic word2vec analogy' },
+    { t: 'prince', h: 'preserves gender; misses the swap' },
+    { t: 'horse', h: 'unrelated' },
+    { t: 'apple', h: 'unrelated' },
+  ]},
+  { q: 'cos(u, v) = 0 means…', opts: [
+    { t: 'The vectors are orthogonal — semantically unrelated', c: true, h: 'angle = 90°' },
+    { t: 'They are identical', h: 'cos = 1 means identical' },
+    { t: 'They are opposites', h: 'cos = −1 means opposite' },
+    { t: 'One vector is the zero vector', h: 'undefined, not 0' },
+  ]},
+  { q: 'Why do embedding models L2-normalize their output?', opts: [
+    { t: 'So cosine similarity becomes a simple dot product', c: true, h: 'unit vectors → cos = u·v' },
+    { t: 'It improves training loss', h: 'no — it changes the metric' },
+    { t: 'It makes vectors smaller', h: 'true but not the reason' },
+    { t: 'It is required by HNSW', h: 'no, HNSW supports many metrics' },
+  ]},
+  { q: 'Sentence embeddings are typically trained with…', opts: [
+    { t: 'Contrastive loss on (query, positive, negative) triplets', c: true, h: 'InfoNCE / triplet loss' },
+    { t: 'Plain next-token prediction', h: 'that gives token embeddings, not sentence' },
+    { t: 'Reinforcement learning from human feedback', h: 'wrong tool' },
+    { t: 'Random projection from one-hot vectors', h: 'not learned at all' },
+  ]},
+];
+let gIdx = 0, gScore = 0, answered = false;
+function renderGame() {
+  if (gIdx >= QS.length) {
+    document.getElementById('gameArea').style.display = 'none';
+    document.getElementById('gameDone').style.display = 'block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${QS.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games') || '{}');
+    games['23'] = gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games));
+    return;
+  }
+  answered = false;
+  const q = QS[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx + 1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${QS.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const board = document.getElementById('gameBoard');
+  board.innerHTML = '';
+  q.opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'game-opt';
+    b.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    b.addEventListener('click', () => {
+      if (answered) return;
+      answered = true;
+      if (o.c) { b.classList.add('correct'); gScore++; }
+      else { b.classList.add('wrong'); board.querySelectorAll('.game-opt').forEach((el, idx) => { if (q.opts[idx].c) el.classList.add('correct'); }); }
+      document.getElementById('gameScore').textContent = gScore;
+      setTimeout(() => { gIdx++; renderGame(); }, 1100);
+    });
+    board.appendChild(b);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx = 0; gScore = 0;
+  document.getElementById('gameArea').style.display = 'block';
+  document.getElementById('gameDone').style.display = 'none';
+  renderGame();
+});
+renderGame();
+</script>
+</body>
+</html>

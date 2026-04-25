@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>22 CAG vs RAG · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+.split { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+.col-card { padding: 16px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.col-card .h { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; font-weight: 600; }
+.col-card h4 { font-size: 16px; color: var(--ink); margin-bottom: 10px; font-weight: 700; }
+.col-card .stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--rule); font-family: var(--mono); font-size: 12px; }
+.col-card .stat:last-child { border-bottom: none; }
+.col-card .stat .l { color: var(--mute); letter-spacing: 0.04em; }
+.col-card .stat .v { color: var(--ink); font-weight: 600; }
+
+.knobs { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 12px 0; }
+.knob { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.knob .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom:6px; }
+.knob .vl { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+.knob .row { display:flex; align-items:center; gap:10px; }
+.knob input[type=range] { flex:1; }
+
+.bar-cmp { display:grid; grid-template-columns: 100px 1fr 80px; gap:14px; align-items:center; padding: 10px 12px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; margin-bottom: 6px; }
+.bar-cmp .lbl { font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; }
+.bar-cmp .bar { height: 22px; background: color-mix(in oklab, var(--accent) 15%, transparent); border:1px solid var(--rule); border-radius: 2px; }
+.bar-cmp .bar .fill { height: 100%; background: var(--accent); transition: width 0.2s; }
+.bar-cmp.alt .bar .fill { background: var(--ink-2); }
+.bar-cmp .v { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight:600; text-align:right; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top"><div><a href="../index.html" class="brand">llm-viz</a></div><div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div></nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat system">RAG &amp; System</span><span class="sep">/</span><span class="here">22 CAG vs RAG</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 22</span><span class="sep">·</span><span>RAG &amp; System</span><span class="sep">·</span><span>2025 · 9 min read</span></div>
+    <div class="phero-grid"><div class="phero-num">22</div><div>
+      <h1>Skip retrieval. Just <em>preload</em> the corpus.</h1>
+      <div class="dek">Cache-Augmented Generation puts the entire knowledge base in the LLM\'s KV cache once. Every subsequent query reads from cache, no retrieval, no vector index. When the corpus fits — CAG wins on latency and accuracy.</div>
+    </div></div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">0 ms</div><div class="l">Retrieval latency</div></div>
+      <div class="c"><div class="v">~100 K</div><div class="l">Practical corpus ceiling</div></div>
+      <div class="c"><div class="v">+8%</div><div class="l">Accuracy vs RAG · small corpus</div></div>
+      <div class="c"><div class="v">Once</div><div class="l">Cost · upfront prefill</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">RAG\'s costs are real: retrieval mistakes, latency budget, ranking complexity. CAG asks: if your knowledge fits in 100 K tokens, why not just stuff it into context once and reuse the KV cache forever? Long-context LLMs make this newly cheap.</p>
+
+      <h2 id="s1" data-n="§ 01"><span>Side by side</span></h2>
+      <div class="split">
+        <div class="col-card"><div class="h">RAG</div><h4>Retrieve · then generate</h4>
+          <div class="stat"><span class="l">Per-query retrieval</span><span class="v">50–200 ms</span></div>
+          <div class="stat"><span class="l">Context per query</span><span class="v">~3 K tok</span></div>
+          <div class="stat"><span class="l">Index storage</span><span class="v">Disk · GBs</span></div>
+          <div class="stat"><span class="l">Best for</span><span class="v">Large corpus</span></div>
+          <div class="stat"><span class="l">Failure mode</span><span class="v">Wrong chunks</span></div>
+        </div>
+        <div class="col-card"><div class="h">CAG</div><h4>Preload · then query</h4>
+          <div class="stat"><span class="l">Per-query retrieval</span><span class="v">0 ms</span></div>
+          <div class="stat"><span class="l">Context per query</span><span class="v">~100 K tok in cache</span></div>
+          <div class="stat"><span class="l">Index storage</span><span class="v">GPU mem · KV cache</span></div>
+          <div class="stat"><span class="l">Best for</span><span class="v">Small corpus, high QPS</span></div>
+          <div class="stat"><span class="l">Failure mode</span><span class="v">Corpus updates</span></div>
+        </div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>The math · when CAG wins</span></h2>
+      <p>CAG\'s upfront cost is one big prefill (e.g., 100 K tokens). Each query then pays only its own decode tokens, with the corpus sitting in the KV cache. RAG re-pays a small prefill per query (the retrieved context), plus retrieval latency. The crossover depends on QPS and corpus size.</p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Cost crossover</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="knobs">
+            <div class="knob"><div class="lab">Corpus tokens</div><div class="row"><input id="kCorp" type="range" min="10" max="500" value="80" step="10"><span class="vl" id="vCorp">80 K</span></div></div>
+            <div class="knob"><div class="lab">Queries / hour</div><div class="row"><input id="kQ" type="range" min="1" max="10000" value="500"><span class="vl" id="vQ">500</span></div></div>
+            <div class="knob"><div class="lab">Retrieved tokens</div><div class="row"><input id="kRet" type="range" min="500" max="8000" value="3000" step="500"><span class="vl" id="vRet">3000</span></div></div>
+          </div>
+          <div class="bar-cmp"><div class="lbl">RAG · prefill cost</div><div class="bar"><div class="fill" id="bRag"></div></div><div class="v" id="vRagC">—</div></div>
+          <div class="bar-cmp alt"><div class="lbl">CAG · prefill cost</div><div class="bar"><div class="fill" id="bCag"></div></div><div class="v" id="vCagC">—</div></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:8px;letter-spacing:0.06em;text-transform:uppercase" id="winner"></div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>Updates · the catch</span></h2>
+      <p>RAG\'s index updates incrementally — add a doc, embed, push. CAG must <em>reprefill</em> the entire corpus when the underlying knowledge changes. For static or slowly-changing corpora (product manuals, regulations, code-base snapshots) this is fine. For high-churn data (news, chat history) — RAG wins.</p>
+
+      <h2 id="s4" data-n="§ 04"><span>Hybrid · the obvious move</span></h2>
+      <p>Production teams ship both. CAG holds the stable, evergreen knowledge in cache. RAG fetches the fast-moving long tail. The LLM gets context from both, decides which to trust per question. Latency stays low, freshness stays current, accuracy stays high.</p>
+
+      <h2 id="s5" data-n="§ 05"><span>Mini-game</span></h2>
+      <div class="demo"><div class="dhd"><span class="ttl">Game · CAG vs RAG triage</span><span class="tag" id="gameTag">0 / 5</span></div><div class="dbd">
+        <div id="gameArea">
+          <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+          <div class="game-q" id="gameQ"></div>
+          <div class="game-board" id="gameBoard"></div>
+        </div>
+        <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+          <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+          <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+        </div>
+      </div></div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Side by side</span></a>
+        <a href="#s2"><span class="n">02</span><span>The math</span></a>
+        <a href="#s3"><span class="n">03</span><span>Updates · the catch</span></a>
+        <a href="#s4"><span class="n">04</span><span>Hybrid</span></a>
+        <a href="#s5"><span class="n">05</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 22 CAG vs RAG <span class="dot">·</span> RAG &amp; System</div><div>chapter 22 of 29 <span class="dot">●</span> 9 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks"><div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div><div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+  <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+  <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "22"</div></div></div>
+  <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number</div></div></div>
+</div></div></aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'22', related:['11','13','14','16','21'] });
+
+function recompute(){
+  const corp=parseInt(document.getElementById('kCorp').value)*1000;
+  const qph=parseInt(document.getElementById('kQ').value);
+  const ret=parseInt(document.getElementById('kRet').value);
+  document.getElementById('vCorp').textContent=(corp/1000).toFixed(0)+' K';
+  document.getElementById('vQ').textContent=qph.toLocaleString();
+  document.getElementById('vRet').textContent=ret.toLocaleString();
+  const ragCost=qph*ret;
+  const cagCost=corp+qph*100;
+  const max=Math.max(ragCost,cagCost);
+  document.getElementById('bRag').style.width=(ragCost/max*100)+'%';
+  document.getElementById('bCag').style.width=(cagCost/max*100)+'%';
+  document.getElementById('vRagC').textContent=(ragCost/1000).toFixed(0)+'K tok';
+  document.getElementById('vCagC').textContent=(cagCost/1000).toFixed(0)+'K tok';
+  const w = ragCost < cagCost ? 'RAG' : 'CAG';
+  const ratio = (Math.max(ragCost,cagCost)/Math.min(ragCost,cagCost)).toFixed(2);
+  document.getElementById('winner').innerHTML = `// winner · <span style="color:var(--accent);font-weight:600">${w}</span> by ${ratio}× tokens / hour`;
+}
+['kCorp','kQ','kRet'].forEach(id=>document.getElementById(id).addEventListener('input',recompute));
+recompute();
+
+const GAME=[
+  {q:'CAG\'s mechanism?',opts:[{t:'Preload entire corpus into KV cache once, reuse for all queries',h:'No retrieval at query time',c:true},{t:'Smaller embedding model',h:'Different layer'},{t:'Faster vector index',h:'No vector index in CAG'},{t:'Multi-hop graph search',h:'No'}]},
+  {q:'CAG\'s biggest weakness?',opts:[{t:'Updates require full reprefill — bad for high-churn corpora',h:'Static knowledge is the sweet spot',c:true},{t:'Latency',h:'CAG has zero retrieval latency'},{t:'Cannot do QA',h:'It can'},{t:'No accuracy',h:'Often higher than RAG'}]},
+  {q:'When is CAG strictly better than RAG?',opts:[{t:'Small static corpus, high QPS, latency-critical app',h:'Pay prefill once, save forever',c:true},{t:'1B docs',h:'Won\'t fit in cache'},{t:'Real-time news',h:'Updates kill it'},{t:'Multi-tenant',h:'KV cache per tenant is expensive'}]},
+  {q:'Why does long-context (1M tok) make CAG more practical?',opts:[{t:'More corpora fit in a single prefill',h:'Practical ceiling moved up',c:true},{t:'Faster decode',h:'Same'},{t:'Cheaper retrieval',h:'No retrieval'},{t:'Better embeddings',h:'No'}]},
+  {q:'Hybrid CAG + RAG · who holds what?',opts:[{t:'CAG: stable evergreen knowledge · RAG: fast-moving long tail',h:'Best of both',c:true},{t:'CAG: news · RAG: docs',h:'Backwards'},{t:'They never combine',h:'They do'},{t:'Both same data',h:'Wasteful'}]},
+];
+let gI=0,gS=0;
+function rg(){
+  if(gI>=GAME.length){document.getElementById('gameArea').style.display='none';document.getElementById('gameDone').style.display='block';document.getElementById('gameFinal').textContent=`${gS} / ${GAME.length}`;const g=JSON.parse(localStorage.getItem('llm-viz-games')||'{}');g['22']=gS;localStorage.setItem('llm-viz-games',JSON.stringify(g));return;}
+  const q=GAME[gI];document.getElementById('gameIdx').textContent=gI+1;document.getElementById('gameScore').textContent=gS;document.getElementById('gameTag').textContent=`${gI} / ${GAME.length}`;document.getElementById('gameQ').innerHTML=q.q;
+  const b=document.getElementById('gameBoard');b.innerHTML='';let an=false;
+  q.opts.forEach(o=>{const e=document.createElement('button');e.className='game-opt';e.innerHTML=`<div class="q">${o.t}</div><div class="h">${o.h}</div>`;e.addEventListener('click',()=>{if(an)return;an=true;if(o.c){e.classList.add('correct');gS++;}else{e.classList.add('wrong');b.querySelectorAll('.game-opt').forEach((x,i)=>{if(q.opts[i].c)x.classList.add('correct');});}setTimeout(()=>{gI++;rg();},1100);});b.appendChild(e);});
+}
+document.getElementById('gameRestart').addEventListener('click',()=>{gI=0;gS=0;document.getElementById('gameArea').style.display='block';document.getElementById('gameDone').style.display='none';rg();});
+rg();
+</script>
+</body>
+</html>

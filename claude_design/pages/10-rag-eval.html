@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>10 RAG Evaluation · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+.metric-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 12px 0; }
+.metric { padding: 14px; background: var(--surface); border:1px solid var(--rule); border-radius:3px; }
+.metric .v { font-size: 26px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; font-feature-settings:'tnum'; }
+.metric .l { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+.metric .delta { font-family: var(--mono); font-size: 11px; margin-top: 4px; }
+.metric .delta.up { color: var(--moss); }
+.metric .delta.down { color: var(--accent); }
+
+.cm { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+.cm-card { padding: 14px 16px; border:1px solid var(--rule); background:var(--bg); border-radius:3px; }
+.cm-card h5 { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
+.cm-mat { display:grid; grid-template-columns: 80px 1fr 1fr; gap: 4px; font-family: var(--mono); font-size: 11px; }
+.cm-mat .h { color: var(--mute); padding: 4px 6px; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+.cm-mat .c { padding: 14px; background: var(--surface); border-radius: 2px; text-align: center; }
+.cm-mat .c.tp { background: color-mix(in oklab, var(--moss) 30%, var(--surface)); color: var(--ink); font-weight: 700; }
+.cm-mat .c.tn { background: color-mix(in oklab, var(--moss) 15%, var(--surface)); color: var(--ink); }
+.cm-mat .c.fp, .cm-mat .c.fn { background: var(--accent-bg); color: var(--accent); font-weight: 700; }
+
+.knobs { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+.knob { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.knob .lab { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom:6px; }
+.knob .vl { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+.knob .row { display:flex; align-items:center; gap:10px; }
+.knob input[type=range] { flex:1; }
+
+.chart { width:100%; height: 280px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+
+.cases { display: grid; gap: 8px; }
+.case { padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius:3px; }
+.case .head { display:flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.case .id { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; }
+.case .verdict { font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 2px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.verdict.pass { background: color-mix(in oklab, var(--moss) 25%, transparent); color: var(--ink); }
+.verdict.fail { background: var(--accent); color: var(--bg); }
+.case .q { font-size: 13px; color: var(--ink); margin-bottom: 4px; }
+.case .a { font-size: 12px; color: var(--ink-2); line-height: 1.45; font-family: var(--mono); }
+.case .why { font-size: 11px; color: var(--mute); margin-top: 6px; font-family: var(--mono); }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div>
+</nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat system">RAG &amp; System</span><span class="sep">/</span><span class="here">10 RAG Evaluation</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 10</span><span class="sep">·</span><span>RAG &amp; System</span><span class="sep">·</span><span>practice · 12 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">10</div>
+      <div>
+        <h1>If you can\'t measure it, you can\'t ship it.</h1>
+        <div class="dek">RAG has two failure surfaces — retrieval and generation — and one user-facing metric. Decompose them: <em>recall@k</em> for retrieval, <em>faithfulness</em> &amp; <em>answer relevance</em> for generation. The trick is keeping eval cheap enough to run on every PR.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">Recall@k</div><div class="l">Retrieval ceiling</div></div>
+      <div class="c"><div class="v">Faithfulness</div><div class="l">Did it cite or fabricate?</div></div>
+      <div class="c"><div class="v">Relevance</div><div class="l">Did it answer the Q?</div></div>
+      <div class="c"><div class="v">200-500</div><div class="l">Eval set size that suffices</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        "It feels better" is not a regression test. The instant your RAG pipeline has more than one knob, you need numbers. The good news: a 200-question eval set with three metrics catches 90% of the regressions you\'d ever ship.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>The four metrics that matter</span></h2>
+      <div class="metric-grid">
+        <div class="metric"><div class="v">Recall@k</div><div class="l">Retrieval</div><div class="delta up">// did we fetch the gold?</div></div>
+        <div class="metric"><div class="v">MRR / nDCG</div><div class="l">Retrieval ranking</div><div class="delta up">// is gold near the top?</div></div>
+        <div class="metric"><div class="v">Faithfulness</div><div class="l">Generation</div><div class="delta up">// every claim cited and supported?</div></div>
+        <div class="metric"><div class="v">Answer relevance</div><div class="l">Generation</div><div class="delta up">// does it actually answer the Q?</div></div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>Build the eval set</span></h2>
+      <div class="callout tip">
+        <div class="lab">// recipe</div>
+        <strong>1.</strong> Sample 200 real user questions (or synthesize from your corpus with an LLM, then human-spot-check).<br>
+        <strong>2.</strong> For each: mark gold passage(s), gold answer, and an answer rubric (3-5 facts that must appear).<br>
+        <strong>3.</strong> Stratify: easy / hard / impossible (no answer in corpus). Don\'t skip the impossible bucket — it catches hallucination.
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>Live: tune the threshold</span></h2>
+      <p>Most RAG decisions are threshold-decisions. Move the slider and watch precision and recall trade off:</p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Retrieval threshold sweep · 200-question eval set</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="knobs">
+            <div class="knob"><div class="lab">Score threshold</div><div class="row"><input id="kThr" type="range" min="0" max="100" value="40"><span class="vl" id="vThr">0.40</span></div></div>
+            <div class="knob"><div class="lab">Top-k</div><div class="row"><input id="kK" type="range" min="1" max="20" value="5"><span class="vl" id="vK">5</span></div></div>
+            <div class="knob"><div class="lab">Eval mode</div>
+              <select id="kMode" style="width:100%;padding:6px;border:1px solid var(--rule);background:var(--bg);font:inherit;font-family:var(--mono);font-size:12px">
+                <option value="retrieve">Retrieval only</option>
+                <option value="generate">Full pipeline</option>
+              </select>
+            </div>
+          </div>
+          <div class="metric-grid">
+            <div class="metric"><div class="v" id="oRec">— %</div><div class="l">Recall@k</div></div>
+            <div class="metric"><div class="v" id="oPrec">— %</div><div class="l">Precision@k</div></div>
+            <div class="metric"><div class="v" id="oF1">— %</div><div class="l">F1</div></div>
+            <div class="metric"><div class="v" id="oFaith">— %</div><div class="l">Faithfulness</div></div>
+          </div>
+          <svg class="chart" id="prChart" viewBox="0 0 900 280" preserveAspectRatio="none"></svg>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:6px;letter-spacing:0.06em;text-transform:uppercase">// precision–recall · current operating point ●</div>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>The confusion matrices</span></h2>
+      <div class="cm">
+        <div class="cm-card">
+          <h5>Retrieval</h5>
+          <div class="cm-mat">
+            <div class="h"></div><div class="h">gold present</div><div class="h">gold absent</div>
+            <div class="h">retrieved</div><div class="c tp" id="cmTP">142</div><div class="c fp" id="cmFP">28</div>
+            <div class="h">missed</div><div class="c fn" id="cmFN">18</div><div class="c tn" id="cmTN">12</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--ink-2);margin-top:10px;line-height:1.6">
+            recall · <span style="color:var(--accent)" id="cmR">88.7%</span> · precision · <span style="color:var(--accent)" id="cmP">83.5%</span>
+          </div>
+        </div>
+        <div class="cm-card">
+          <h5>Faithfulness</h5>
+          <div class="cm-mat">
+            <div class="h"></div><div class="h">claim true</div><div class="h">claim hallucinated</div>
+            <div class="h">cited</div><div class="c tp">156</div><div class="c fp">9</div>
+            <div class="h">uncited</div><div class="c fn">7</div><div class="c tn">28</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--ink-2);margin-top:10px;line-height:1.6">
+            faithfulness · <span style="color:var(--accent)">94.5%</span> · 9 hallucinations on 200 questions
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Failure cases · the real value</span></h2>
+      <p>Aggregate metrics are the headline. The shipping signal is reading the failures.</p>
+      <div class="cases" id="cases"></div>
+
+      <h2 id="s6" data-n="§ 06"><span>Mini-game</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Diagnose the regression</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div id="gameArea">
+            <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Four metrics</span></a>
+        <a href="#s2"><span class="n">02</span><span>Build the eval set</span></a>
+        <a href="#s3"><span class="n">03</span><span>Threshold sweep</span></a>
+        <a href="#s4"><span class="n">04</span><span>Confusion matrices</span></a>
+        <a href="#s5"><span class="n">05</span><span>Failure cases</span></a>
+        <a href="#s6"><span class="n">06</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 10 RAG Evaluation <span class="dot">·</span> RAG &amp; System</div><div>chapter 10 of 29 <span class="dot">●</span> 12 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "10" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'10', related:['08','09','16','17'] });
+
+/* threshold sweep simulation */
+function simulate() {
+  const thr = parseInt(document.getElementById('kThr').value)/100;
+  const k = parseInt(document.getElementById('kK').value);
+  const mode = document.getElementById('kMode').value;
+  document.getElementById('vThr').textContent = thr.toFixed(2);
+  document.getElementById('vK').textContent = k;
+  // recall increases with k, decreases with thr; precision opposite
+  const recall = Math.max(0, Math.min(0.97, 0.55 + 0.04*k - 0.4*thr + 0.1*Math.log(k+1)));
+  const precision = Math.max(0, Math.min(0.97, 0.95 - 0.03*k + 0.3*thr));
+  const f1 = 2*recall*precision/(recall+precision || 1);
+  const faith = mode === 'generate' ? Math.max(0.4, Math.min(0.99, 0.7 + 0.3*recall - 0.1*(1-precision))) : recall;
+  document.getElementById('oRec').textContent = (recall*100).toFixed(1)+' %';
+  document.getElementById('oPrec').textContent = (precision*100).toFixed(1)+' %';
+  document.getElementById('oF1').textContent = (f1*100).toFixed(1)+' %';
+  document.getElementById('oFaith').textContent = (faith*100).toFixed(1)+' %';
+  // PR curve
+  const svg = document.getElementById('prChart');
+  const W=900,H=280,pad=40;
+  let g = '';
+  for (let i = 0; i <= 4; i++){
+    const yy = pad + (H-2*pad)*i/4;
+    const xx = pad + (W-2*pad)*i/4;
+    g += `<line x1="${pad}" y1="${yy}" x2="${W-pad}" y2="${yy}" stroke="#e8dfc5" stroke-width="0.5" stroke-dasharray="2 3"/>`;
+    g += `<line x1="${xx}" y1="${pad}" x2="${xx}" y2="${H-pad}" stroke="#e8dfc5" stroke-width="0.5" stroke-dasharray="2 3"/>`;
+  }
+  // axes labels
+  g += `<text x="${pad}" y="${H-12}" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a6f60">recall →</text>`;
+  g += `<text x="${pad-30}" y="${pad+10}" font-family="JetBrains Mono, monospace" font-size="10" fill="#7a6f60">precision ↑</text>`;
+  // PR curve points (parameterized by threshold)
+  const pts = [];
+  for (let t = 0; t <= 1.001; t += 0.05) {
+    const r = Math.max(0, Math.min(0.97, 0.55 + 0.04*k - 0.4*t + 0.1*Math.log(k+1)));
+    const p = Math.max(0, Math.min(0.97, 0.95 - 0.03*k + 0.3*t));
+    pts.push([r, p]);
+  }
+  let path = '';
+  pts.forEach((pt,i) => {
+    const x = pad + (W-2*pad)*pt[0];
+    const y = pad + (H-2*pad)*(1 - pt[1]);
+    path += `${i===0?'M':'L'} ${x} ${y} `;
+  });
+  g += `<path d="${path}" stroke="#b8471f" stroke-width="2" fill="none"/>`;
+  // current operating point
+  const cx = pad + (W-2*pad)*recall;
+  const cy = pad + (H-2*pad)*(1 - precision);
+  g += `<line x1="${cx}" y1="${pad}" x2="${cx}" y2="${H-pad}" stroke="#1a120a" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.4"/>`;
+  g += `<line x1="${pad}" y1="${cy}" x2="${W-pad}" y2="${cy}" stroke="#1a120a" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.4"/>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="8" fill="#1a120a"/>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="14" fill="none" stroke="#1a120a" stroke-width="1.5"/>`;
+  svg.innerHTML = g;
+}
+['kThr','kK','kMode'].forEach(id => document.getElementById(id).addEventListener('input', simulate));
+simulate();
+
+/* failure cases */
+const CASES = [
+  { id:'Q-042', verdict:'fail', q:'Which year was the Transformer paper published?', a:'The Transformer paper was published in 2018. [D11]', why:'// hallucinated year. [D11] is GPT-2. Gold = [D03] · 2017. Retrieval missed.' },
+  { id:'Q-067', verdict:'fail', q:'Explain multi-head attention.', a:'I don\'t know.', why:'// false-refuse. [D02] was retrieved at rank 6 but truncated by budget = 600.' },
+  { id:'Q-103', verdict:'pass', q:'What is BM25?', a:'BM25 ranks documents by tf-idf with length normalization [D05].', why:'// gold retrieved at rank 1, faithful, cited.' },
+  { id:'Q-128', verdict:'fail', q:'When did GPT-4 launch?', a:'GPT-4 launched in March 2023 according to internal docs.', why:'// no source in corpus. Should have refused. Faithfulness violation.' },
+];
+const casesEl = document.getElementById('cases');
+casesEl.innerHTML = CASES.map(c => `
+  <div class="case">
+    <div class="head"><span class="id">${c.id}</span><span class="verdict ${c.verdict}">${c.verdict}</span></div>
+    <div class="q">${c.q}</div>
+    <div class="a">→ ${c.a}</div>
+    <div class="why">${c.why}</div>
+  </div>
+`).join('');
+
+/* mini-game */
+const GAME = [
+  { q: 'Faithfulness drops 4pp after a retriever swap. Recall is up 6pp. What\'s happening?', opts: [
+    { t: 'New retriever brings noisier passages — model anchors on irrelevant cites', h: 'Recall ↑ at the cost of precision', c: true },
+    { t: 'Generator regression', h: 'Generator unchanged' },
+    { t: 'Tokenizer broke', h: 'Unrelated' },
+    { t: 'Random variance', h: '4pp is too large' },
+  ]},
+  { q: 'You only test on 30 questions. Why is that risky?', opts: [
+    { t: 'Confidence intervals on small N hide regressions', h: 'Need 200+ for stable estimates', c: true },
+    { t: 'Eval is too slow', h: 'Wrong direction' },
+    { t: 'Retriever can memorize', h: 'Different concern' },
+    { t: 'Faithfulness needs LLM judge', h: 'Possible but secondary' },
+  ]},
+  { q: 'Which metric catches the bug "model fabricates a citation"?', opts: [
+    { t: 'Faithfulness — claim must trace back to a real cited passage', h: 'Definition of faithfulness', c: true },
+    { t: 'Recall@k', h: 'Different layer' },
+    { t: 'BLEU score', h: 'Word-overlap, not citation' },
+    { t: 'Latency', h: 'Unrelated' },
+  ]},
+  { q: 'A user-flagged failure is not in your eval set. What do you do first?', opts: [
+    { t: 'Add it (and its variants) to the eval set; then fix', h: 'Bug-driven eval growth', c: true },
+    { t: 'Fix it without adding', h: 'Risk regression next month' },
+    { t: 'Wait for more reports', h: 'Don\'t' },
+    { t: 'Rewrite the prompt', h: 'Premature' },
+  ]},
+  { q: 'You see Recall@5 = 90% but answer relevance only 65%. Bottleneck is?', opts: [
+    { t: 'Generation — gold is in context but model isn\'t using it well', h: 'Retrieval is fine', c: true },
+    { t: 'Retrieval', h: 'Already 90%' },
+    { t: 'Embedding', h: 'Same as retrieval' },
+    { t: 'Vector DB', h: 'Already retrieving correctly' },
+  ]},
+];
+let gIdx=0, gScore=0;
+function renderG(){
+  if (gIdx >= GAME.length){
+    document.getElementById('gameArea').style.display='none';
+    document.getElementById('gameDone').style.display='block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${GAME.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games')||'{}'); games['10']=gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games)); return;
+  }
+  const q = GAME[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx+1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${GAME.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const b = document.getElementById('gameBoard'); b.innerHTML='';
+  let answered=false;
+  q.opts.forEach(o => {
+    const el = document.createElement('button'); el.className='game-opt';
+    el.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    el.addEventListener('click', () => {
+      if (answered) return; answered=true;
+      if (o.c) { el.classList.add('correct'); gScore++; }
+      else { el.classList.add('wrong'); b.querySelectorAll('.game-opt').forEach((x,i)=>{ if (q.opts[i].c) x.classList.add('correct'); }); }
+      setTimeout(()=>{ gIdx++; renderG(); }, 1100);
+    });
+    b.appendChild(el);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx=0; gScore=0;
+  document.getElementById('gameArea').style.display='block';
+  document.getElementById('gameDone').style.display='none';
+  renderG();
+});
+renderG();
+</script>
+</body>
+</html>

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>24 Tokenization · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.tok-vis { display: flex; flex-wrap: wrap; gap: 3px; padding: 16px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; font-family: var(--mono); font-size: 13px; line-height: 1.9; min-height: 60px; }
+.tok { display: inline-block; padding: 2px 7px; border-radius: 3px; color: var(--ink); border: 1px solid color-mix(in oklab, currentColor 30%, transparent); position: relative; }
+.tok .id { font-size: 9px; color: var(--mute); display: block; line-height: 1; margin-top: 2px; }
+.tok-pal-0 { background: color-mix(in oklab, var(--accent) 18%, var(--bg)); }
+.tok-pal-1 { background: color-mix(in oklab, var(--ink-blue) 18%, var(--bg)); }
+.tok-pal-2 { background: color-mix(in oklab, var(--moss) 18%, var(--bg)); }
+.tok-pal-3 { background: color-mix(in oklab, var(--ochre) 22%, var(--bg)); }
+.tok-pal-4 { background: color-mix(in oklab, var(--accent) 10%, var(--bg)); }
+.tok-pal-5 { background: color-mix(in oklab, var(--ink-blue) 10%, var(--bg)); }
+
+.bpe-trace { font-family: var(--mono); font-size: 12px; line-height: 1.85; }
+.bpe-step { padding: 8px 12px; border-left: 2px solid var(--rule); margin-bottom: 6px; }
+.bpe-step.cur { border-color: var(--accent); background: var(--accent-bg); }
+.bpe-step .lab { display: inline-block; min-width: 70px; color: var(--mute); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.bpe-step .merge { color: var(--accent); font-weight: 600; }
+.bpe-step .seq { color: var(--ink); }
+.bpe-step .seq .pair { background: color-mix(in oklab, var(--accent) 25%, var(--bg)); padding: 1px 4px; border-radius: 2px; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0; }
+.stat-card { padding: 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.stat-card .v { font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; font-feature-settings: 'tnum'; font-family: var(--mono); }
+.stat-card .l { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+
+.tok-cmp { display: grid; grid-template-columns: 90px 1fr 60px; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--rule-2); font-family: var(--mono); font-size: 12px; }
+.tok-cmp .name { color: var(--ink); font-weight: 600; }
+.tok-cmp .bar { height: 14px; background: var(--accent); border-radius: 2px; }
+.tok-cmp .n { text-align: right; color: var(--accent); font-weight: 600; }
+
+.ctrl-row { display:flex; gap:16px; align-items:center; margin:10px 0; flex-wrap: wrap; }
+.ctrl-row label { font-family: var(--mono); font-size:11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; min-width: 60px; }
+.ctrl-row textarea { flex:1; min-width: 200px; min-height: 60px; padding: 10px 12px; border: 1px solid var(--rule); background: var(--bg); border-radius: 3px; font: inherit; font-family: var(--mono); font-size: 13px; color: var(--ink); resize: vertical; }
+.ctrl-row textarea:focus { outline: none; border-color: var(--accent); }
+.ctrl-row select { padding: 6px 10px; font: inherit; font-family: var(--mono); font-size: 12px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); border-radius: 3px; }
+
+.game-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.45; padding: 12px 0 16px; font-weight: 500; }
+.game-q code { font-family: var(--mono); font-size: 14px; background: var(--surface-2); padding: 2px 8px; border-radius: 3px; border: 1px solid var(--rule); }
+</style>
+</head>
+<body>
+
+<div class="read-bar"><div class="fill"></div></div>
+
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right">
+    <a href="../index.html">roadmap</a>
+    <span class="divider"></span>
+    <a id="themeBtn">◐ theme</a>
+  </div>
+</nav>
+
+<div class="crumbs">
+  <a href="../index.html">Roadmap</a>
+  <span class="sep">/</span>
+  <span class="cat foundation">Foundations</span>
+  <span class="sep">/</span>
+  <span class="here">24 Tokenization</span>
+</div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 24</span><span class="sep">·</span><span>Foundations</span><span class="sep">·</span><span>core · 12 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">24</div>
+      <div>
+        <h1>Before the model sees text, it sees <em>integers</em>.</h1>
+        <div class="dek">A tokenizer chops a stream of UTF-8 bytes into chunks the model knows about — usually 50K to 200K of them. Get this layer wrong and your model can't spell, can't count, can't multiply, and bills you twice as many tokens for the privilege.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">~4 chars</div><div class="l">≈ 1 token (English)</div></div>
+      <div class="c"><div class="v">50,257</div><div class="l">GPT-2 vocab</div></div>
+      <div class="c"><div class="v">200,019</div><div class="l">GPT-4o vocab</div></div>
+      <div class="c"><div class="v">BPE</div><div class="l">Dominant algorithm</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        Tokenizers are the most-ignored, most-blamed component of every LLM stack. They decide your context limit, your bill, and whether your model can do arithmetic.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>Why not just characters or words?</span> <em>the goldilocks problem</em></h2>
+      <p>
+        Two obvious extremes both fail:
+      </p>
+      <ul>
+        <li><b>Character-level.</b> Vocab is tiny (256 bytes), but sequences are 4× longer. Compute scales as $O(N^2)$, so this is a disaster for long context.</li>
+        <li><b>Word-level.</b> Sequences are short, but you need a 500K+ vocab to cover real text — and you still get <code>&lt;UNK&gt;</code> on every typo, name, or new word.</li>
+      </ul>
+      <p>
+        Subword tokenization splits the difference. Common words become single tokens; rare or novel words decompose into reusable pieces. The dominant algorithm is <b>Byte-Pair Encoding (BPE)</b>, used by GPT-2/3/4, Llama, Claude, and most production models.
+      </p>
+
+      <h2 id="s2" data-n="§ 02"><span>BPE in one paragraph</span> <em>greedy merge</em></h2>
+      <p>
+        Start with a vocab of single bytes (or characters). Count every adjacent pair in your training corpus. Find the most frequent pair — say <code>(t, h)</code> — and add <code>th</code> to the vocab as a new symbol. Re-tokenize. Repeat 50,000 times. The vocab now contains common letters, common digrams, common syllables, common words, and common phrases — graded by frequency.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · BPE merge trace</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">// encoding: <span style="color:var(--ink)">"lower newer"</span> with merge order: er, lo, ne, ow, low, ne·w</div>
+          <div class="bpe-trace" id="bpeTrace"></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn" id="bpePrev">← step</button>
+            <button class="btn pri" id="bpePlay">▶ play</button>
+            <button class="btn" id="bpeNext">step →</button>
+            <button class="btn" id="bpeReset">⟲ reset</button>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>See your text get tokenized</span> <em>live</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Tokenizer playground</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="ctrl-row">
+            <label>scheme</label>
+            <select id="tkScheme">
+              <option value="word">words (whitespace)</option>
+              <option value="bpe" selected>BPE-style (subword)</option>
+              <option value="char">characters</option>
+              <option value="byte">UTF-8 bytes</option>
+            </select>
+          </div>
+          <div class="ctrl-row">
+            <label>text</label>
+            <textarea id="tkInput">The unhappiness of antidisestablishmentarianism is unparalleled. Tokenization happens before the model sees anything: 3.14159 + 2.71828 = ?</textarea>
+          </div>
+          <div class="tok-vis" id="tkOut"></div>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="v" id="tkCount">—</div><div class="l">tokens</div></div>
+            <div class="stat-card"><div class="v" id="tkChars">—</div><div class="l">characters</div></div>
+            <div class="stat-card"><div class="v" id="tkRatio">—</div><div class="l">chars / token</div></div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--mute);font-family:var(--mono)">// real BPE here is approximated — production tokenizers use trained merge tables. The shape is correct.</p>
+
+      <h2 id="s4" data-n="§ 04"><span>The tax on different scripts</span> <em>not all languages cost the same</em></h2>
+      <p>
+        BPE is trained on a corpus — usually mostly English. So English compresses well: <i>~4 characters per token</i>. Other scripts pay a <b>tokenizer tax</b> because their characters never made it into common merges. Rough numbers for the same 100-character message:
+      </p>
+      <div style="margin: 16px 0">
+        <div class="tok-cmp"><span class="name">English</span><div><div class="bar" style="width:30%"></div></div><span class="n">~25</span></div>
+        <div class="tok-cmp"><span class="name">Spanish</span><div><div class="bar" style="width:36%"></div></div><span class="n">~30</span></div>
+        <div class="tok-cmp"><span class="name">Japanese</span><div><div class="bar" style="width:75%"></div></div><span class="n">~62</span></div>
+        <div class="tok-cmp"><span class="name">Hindi</span><div><div class="bar" style="width:88%"></div></div><span class="n">~73</span></div>
+        <div class="tok-cmp"><span class="name">Burmese</span><div><div class="bar" style="width:100%"></div></div><span class="n">~83</span></div>
+      </div>
+      <div class="callout warn">
+        <div class="lab">// real-world consequence</div>
+        Same prompt, different language: a Burmese user pays roughly 3× the per-character cost of an English user, hits context limits faster, and waits longer for first token. Newer tokenizers (GPT-4o, Gemini) deliberately broaden their training mix to compress non-English better.
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Why your model can't count letters</span> <em>tokens hide the alphabet</em></h2>
+      <p>
+        Ask a model "how many R's are in <i>strawberry</i>?" and it will often say two. Why? Because <code>strawberry</code> tokenizes as something like <code>[straw][berry]</code> — the model never sees individual letters. Counting characters inside a token is a parlor trick we never trained it to do.
+      </p>
+      <p>
+        Same goes for: reversing strings, splitting CamelCase, doing digit-by-digit arithmetic. All of these get easier when the tokenizer is tuned to split digits individually and preserve byte-level fallbacks (which GPT-4o does, but earlier GPTs did not).
+      </p>
+
+      <h2 id="s6" data-n="§ 06"><span>BPE vs SentencePiece vs WordPiece</span> <em>the algorithm zoo</em></h2>
+      <ul>
+        <li><b>BPE (byte-level).</b> GPT-2, GPT-4, Llama, Mistral. Operates on UTF-8 bytes — never produces <code>&lt;UNK&gt;</code>.</li>
+        <li><b>SentencePiece (unigram).</b> T5, mT5, ALBERT. Probabilistic; supports sampling alternative tokenizations during training (subword regularization).</li>
+        <li><b>WordPiece.</b> BERT, DistilBERT. Like BPE but picks merges that maximize likelihood, not frequency.</li>
+        <li><b>Tiktoken.</b> OpenAI's super-fast Rust BPE; uses regex pre-tokenization to keep merges sane (numbers, contractions, punctuation).</li>
+      </ul>
+
+      <h2 id="s7" data-n="§ 07"><span>Practical takeaways</span></h2>
+      <ul>
+        <li><b>Estimate ~4 chars per token</b> for English when planning context budgets — and test before shipping multilingual.</li>
+        <li><b>Pre-tokenize numbers digit-by-digit</b> if your task involves arithmetic. Force splits with <code>1 2 3 4</code> instead of <code>1234</code>.</li>
+        <li><b>Special tokens are cheap.</b> <code>&lt;|im_start|&gt;</code>, <code>&lt;|tool_call|&gt;</code> etc. are added to the vocab as single tokens — they cost 1 each.</li>
+        <li><b>Tokenizer mismatch is silent.</b> Embed with one tokenizer, generate with another → garbled output. Always verify the tokenizer ID in your model card.</li>
+      </ul>
+
+      <h2 id="s8" data-n="§ 08"><span>Mini-game</span> <em>guess the token count</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Token math</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div class="game-status"><span>QUESTION <span id="gameIdx">1</span> / 5</span><span class="score">SCORE <span id="gameScore">0</span></span></div>
+          <div id="gameArea">
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+
+    </article>
+
+    <aside class="rail">
+      <div>
+        <div class="lab">On this page</div>
+        <div class="toc">
+          <a href="#s1"><span class="n">01</span><span>Why not chars or words</span></a>
+          <a href="#s2"><span class="n">02</span><span>BPE in a paragraph</span></a>
+          <a href="#s3"><span class="n">03</span><span>Live tokenizer</span></a>
+          <a href="#s4"><span class="n">04</span><span>The script tax</span></a>
+          <a href="#s5"><span class="n">05</span><span>Counting letters</span></a>
+          <a href="#s6"><span class="n">06</span><span>Algorithm zoo</span></a>
+          <a href="#s7"><span class="n">07</span><span>Takeaways</span></a>
+          <a href="#s8"><span class="n">08</span><span>Mini-game</span></a>
+        </div>
+      </div>
+      <div>
+        <div class="lab">Related</div>
+        <div class="related"></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+
+  <footer class="foot">
+    <div>llm-viz <span class="dot">·</span> 24 Tokenization <span class="dot">·</span> Foundations</div>
+    <div>chapter 24 of 29 <span class="dot">●</span> 12 min read</div>
+  </footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body">
+    <div class="tw-label">Hero layout</div>
+    <div class="tw-options" id="twHeroOpts">
+      <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Editorial headline</div></div></div>
+      <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "24" alongside title</div></div></div>
+      <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors the hero</div></div></div>
+    </div>
+  </div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '24', related: ['23', '02', '28', '12'] });
+
+/* === BPE merge trace === */
+const BPE_STEPS = [
+  { lab:'init',     seq:['l','o','w','e','r',' ','n','e','w','e','r'], pair:null, merge:null },
+  { lab:'merge 1',  seq:['l','o','w','er',' ','n','e','w','er'],       pair:[3,4], merge:'e+r → er' },
+  { lab:'merge 2',  seq:['lo','w','er',' ','n','e','w','er'],          pair:[0,1], merge:'l+o → lo' },
+  { lab:'merge 3',  seq:['lo','w','er',' ','ne','w','er'],             pair:[4,5], merge:'n+e → ne' },
+  { lab:'merge 4',  seq:['low','er',' ','new','er'],                   pair:null,  merge:'lo+w → low, ne+w → new' },
+  { lab:'merge 5',  seq:['lower',' ','newer'],                         pair:null,  merge:'low+er → lower, new+er → newer' },
+];
+let bpeIdx = 0, bpePlaying = false, bpeTimer = null;
+function renderBpe() {
+  const el = document.getElementById('bpeTrace');
+  el.innerHTML = BPE_STEPS.map((s, i) => {
+    const seqHtml = s.seq.map((t, j) => {
+      const hi = s.pair && (j === s.pair[0] || j === s.pair[1]);
+      return hi ? `<span class="pair">${t.replace(' ','·')}</span>` : `<span>${t.replace(' ','·')}</span>`;
+    }).join(' · ');
+    return `<div class="bpe-step ${i === bpeIdx ? 'cur' : ''}" style="opacity:${i <= bpeIdx ? 1 : 0.35}">
+      <span class="lab">${s.lab}</span>
+      <span class="seq">${seqHtml}</span>
+      ${s.merge ? `<span class="merge"> · ${s.merge}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+document.getElementById('bpeNext').addEventListener('click', () => { bpeIdx = Math.min(BPE_STEPS.length - 1, bpeIdx + 1); renderBpe(); });
+document.getElementById('bpePrev').addEventListener('click', () => { bpeIdx = Math.max(0, bpeIdx - 1); renderBpe(); });
+document.getElementById('bpeReset').addEventListener('click', () => { bpeIdx = 0; bpePlaying = false; clearInterval(bpeTimer); document.getElementById('bpePlay').textContent = '▶ play'; renderBpe(); });
+document.getElementById('bpePlay').addEventListener('click', () => {
+  bpePlaying = !bpePlaying;
+  const btn = document.getElementById('bpePlay');
+  btn.textContent = bpePlaying ? '⏸ pause' : '▶ play';
+  if (bpePlaying) {
+    bpeTimer = setInterval(() => {
+      if (bpeIdx >= BPE_STEPS.length - 1) { bpePlaying = false; clearInterval(bpeTimer); btn.textContent = '▶ play'; return; }
+      bpeIdx++; renderBpe();
+    }, 1000);
+  } else { clearInterval(bpeTimer); }
+});
+renderBpe();
+
+/* === Tokenizer playground === */
+const COMMON = new Set(['the','a','an','of','to','in','is','it','and','or','for','on','at','with','by','as','from','that','this','be','was','were','are','am','have','has','had','do','does','did','can','could','will','would','should','before','after','if','not','but','model','token','sees','happens','anything','what','many','how','why']);
+function tokenize(text, scheme) {
+  if (scheme === 'word') {
+    return text.split(/(\s+|[.,!?;:()\[\]"'-])/).filter(Boolean);
+  }
+  if (scheme === 'char') {
+    return Array.from(text);
+  }
+  if (scheme === 'byte') {
+    return Array.from(new TextEncoder().encode(text)).map(b => String.fromCharCode(b));
+  }
+  // BPE-style approximation: split words; keep common words whole, split rare into ~3-char chunks; split digits per-char.
+  const toks = [];
+  const re = /(\s+)|([0-9])|([a-zA-Z]+)|([^\sa-zA-Z0-9])/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const piece = m[0];
+    if (m[1]) { toks.push('·' + piece); continue; }
+    if (m[2]) { toks.push(piece); continue; }
+    if (m[4]) { toks.push(piece); continue; }
+    // word
+    const lower = piece.toLowerCase();
+    if (COMMON.has(lower) || piece.length <= 4) {
+      toks.push(piece);
+    } else {
+      // greedy 3-5 char chunks
+      let i = 0;
+      while (i < piece.length) {
+        const len = i === 0 ? Math.min(4, piece.length - i) : Math.min(3 + (i % 2), piece.length - i);
+        toks.push(piece.slice(i, i + len));
+        i += len;
+      }
+    }
+  }
+  return toks;
+}
+function renderTokens() {
+  const text = document.getElementById('tkInput').value;
+  const scheme = document.getElementById('tkScheme').value;
+  const toks = tokenize(text, scheme);
+  const out = document.getElementById('tkOut');
+  out.innerHTML = toks.map((t, i) => {
+    const display = t.replace(/^·/, '␣').replace(/\n/g, '↵');
+    const id = 1000 + (Math.abs(t.charCodeAt(0) * 31 + (t.charCodeAt(1) || 0) * 17 + (t.charCodeAt(2) || 0)) % 49000);
+    return `<span class="tok tok-pal-${i % 6}">${display}<span class="id">${id}</span></span>`;
+  }).join('');
+  document.getElementById('tkCount').textContent = toks.length.toLocaleString();
+  document.getElementById('tkChars').textContent = text.length.toLocaleString();
+  document.getElementById('tkRatio').textContent = (text.length / Math.max(1, toks.length)).toFixed(2);
+}
+document.getElementById('tkInput').addEventListener('input', renderTokens);
+document.getElementById('tkScheme').addEventListener('change', renderTokens);
+renderTokens();
+
+/* === Mini-game === */
+const QS = [
+  { q: 'Roughly how many tokens does the English sentence "I went to the store" use under a BPE tokenizer?', opts: [
+    { t: '~5 tokens (one per word)', c: true, h: 'short common words → one token each' },
+    { t: '~20 tokens (one per character)', h: 'that would be char-level' },
+    { t: '~1 token (whole sentence)', h: 'no — vocab is finite' },
+    { t: '~50 tokens (UTF-8 bytes)', h: 'ASCII English ≠ that many bytes' },
+  ]},
+  { q: 'Why does the model often miscount letters in "strawberry"?', opts: [
+    { t: 'Because it is tokenized as [straw][berry] — the letters are hidden inside tokens', c: true, h: 'no per-letter view' },
+    { t: 'Because BPE strips silent letters', h: 'no — BPE preserves all bytes' },
+    { t: 'Because of the temperature setting', h: 'unrelated' },
+    { t: 'Because attention drops repeated chars', h: 'no such mechanism' },
+  ]},
+  { q: 'Which language pays the highest tokenizer tax?', opts: [
+    { t: 'Burmese', c: true, h: 'rare in training corpus, complex script' },
+    { t: 'English', h: 'cheapest — corpus is mostly English' },
+    { t: 'Spanish', h: 'cheap, latin script' },
+    { t: 'Python source code', h: 'often well-tokenized' },
+  ]},
+  { q: 'What is the main advantage of byte-level BPE over character-level BPE?', opts: [
+    { t: 'It never produces <UNK> — every byte sequence is representable', c: true, h: 'covers any UTF-8' },
+    { t: 'It uses fewer parameters', h: 'unrelated' },
+    { t: 'It is faster to compute', h: 'similar speed' },
+    { t: 'It improves attention quality directly', h: 'tokenizer is upstream of attention' },
+  ]},
+  { q: 'You estimate ~4 chars/token for English. A 16K-token context fits roughly how many characters?', opts: [
+    { t: '~64,000 characters (~10K English words)', c: true, h: '16K × 4' },
+    { t: '~16,000 characters', h: 'that would be 1 char/token' },
+    { t: '~4,000 characters', h: 'wrong direction' },
+    { t: '~1,000,000 characters', h: 'far too many' },
+  ]},
+];
+let gIdx = 0, gScore = 0, answered = false;
+function renderGame() {
+  if (gIdx >= QS.length) {
+    document.getElementById('gameArea').style.display = 'none';
+    document.getElementById('gameDone').style.display = 'block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${QS.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games') || '{}');
+    games['24'] = gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games));
+    return;
+  }
+  answered = false;
+  const q = QS[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx + 1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${QS.length}`;
+  document.getElementById('gameQ').innerHTML = q.q;
+  const board = document.getElementById('gameBoard');
+  board.innerHTML = '';
+  q.opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'game-opt';
+    b.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    b.addEventListener('click', () => {
+      if (answered) return;
+      answered = true;
+      if (o.c) { b.classList.add('correct'); gScore++; }
+      else { b.classList.add('wrong'); board.querySelectorAll('.game-opt').forEach((el, idx) => { if (q.opts[idx].c) el.classList.add('correct'); }); }
+      document.getElementById('gameScore').textContent = gScore;
+      setTimeout(() => { gIdx++; renderGame(); }, 1100);
+    });
+    board.appendChild(b);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx = 0; gScore = 0;
+  document.getElementById('gameArea').style.display = 'block';
+  document.getElementById('gameDone').style.display = 'none';
+  renderGame();
+});
+renderGame();
+</script>
+</body>
+</html>

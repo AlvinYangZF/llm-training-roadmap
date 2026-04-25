@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>14 Adaptive RAG · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+.flow { display:grid; gap:8px; margin: 12px 0; }
+.flow-row { display:grid; grid-template-columns: 80px 1fr; gap: 14px; align-items: start; padding: 10px 12px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.flow-row .step { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; padding-top:2px; }
+.flow-row .body { color: var(--ink-2); font-size: 13px; line-height: 1.55; }
+.flow-row .body strong { color: var(--ink); font-weight: 600; }
+.flow-row.active { border-color: var(--accent); background: var(--accent-bg); }
+.flow-row.active .step { color: var(--accent); font-weight: 600; }
+
+.qbench { display:grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.qbench .col h4 { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+.qbench .q { padding: 10px 12px; margin-bottom: 6px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; cursor: pointer; font-size: 13px; color: var(--ink-2); transition: all 0.15s; }
+.qbench .q:hover { border-color: var(--ink-2); color: var(--ink); }
+.qbench .q.sel { border-color: var(--accent); background: var(--accent-bg); color: var(--ink); }
+
+.scoreboard { display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+.scoreboard .c { padding: 14px; background: var(--surface); border: 1px solid var(--rule); border-radius:3px; }
+.scoreboard .c .v { font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; font-family: var(--mono); }
+.scoreboard .c .l { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+
+.refl-stream { padding: 12px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; font-family: var(--mono); font-size: 12px; line-height: 1.7; color: var(--ink-2); }
+.refl-stream .tok { display: inline; }
+.refl-stream .ref { color: var(--accent); font-weight: 600; padding: 1px 4px; background: var(--accent-bg); border-radius: 2px; }
+.refl-stream .ref.ok { color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top"><div><a href="../index.html" class="brand">llm-viz</a></div><div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div></nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat compute">Compute</span><span class="sep">/</span><span class="here">14 Adaptive RAG</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 14</span><span class="sep">·</span><span>Compute</span><span class="sep">·</span><span>2024 · 12 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">14</div>
+      <div>
+        <h1>Don\'t retrieve when you <em>already know</em>.</h1>
+        <div class="dek">Self-RAG, CRAG, FLARE — three flavours of the same idea. Stop treating retrieval as a fixed pipeline; let the model decide when, what, and how much to fetch. Latency drops, accuracy holds.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">Self-RAG</div><div class="l">Reflection tokens</div></div>
+      <div class="c"><div class="v">CRAG</div><div class="l">Corrective retrieval</div></div>
+      <div class="c"><div class="v">FLARE</div><div class="l">Active mid-gen retrieval</div></div>
+      <div class="c"><div class="v">−40%</div><div class="l">Avg retrieval calls</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">Vanilla RAG retrieves once, blindly, no matter the query. Adaptive RAG asks the model itself: do I need help here? Often the answer is no — and skipping retrieval is faster <em>and</em> more accurate.</p>
+
+      <h2 id="s1" data-n="§ 01"><span>The retrieval-cost problem</span></h2>
+      <p>Every retrieval step is 50–200 ms (vector lookup) + 1–2k tokens of context. For trivial queries — "what year was Python released?" — the model already knows. Forcing retrieval adds latency, dilutes the prompt, and sometimes injects bad context that <em>hurts</em> accuracy.</p>
+      <div class="scoreboard">
+        <div class="c"><div class="v">100%</div><div class="l">Vanilla RAG · always retrieves</div></div>
+        <div class="c"><div class="v">~60%</div><div class="l">Self-RAG · learned threshold</div></div>
+        <div class="c"><div class="v">~35%</div><div class="l">FLARE · trigger on uncertainty</div></div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>Self-RAG · reflection tokens</span></h2>
+      <p>Train the model to emit <span class="kbd">[Retrieve]</span>, <span class="kbd">[Relevant]</span>, <span class="kbd">[Supported]</span>, <span class="kbd">[Useful]</span> as part of its output stream. At inference, a controller reads these tokens and conditionally fetches passages, re-ranks them, or skips ahead.</p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Reflection-token stream</span><span class="tag">trace</span></div>
+        <div class="dbd">
+          <div class="refl-stream">
+            <span class="tok">User asks: <em>"Who wrote The Great Gatsby?"</em></span><br>
+            <span class="ref">[Retrieve=No]</span> <span class="tok">F. Scott Fitzgerald wrote The Great Gatsby in 1925.</span> <span class="ref ok">[Useful=Yes]</span><br><br>
+            <span class="tok">User asks: <em>"What did Anthropic ship in March 2025?"</em></span><br>
+            <span class="ref">[Retrieve=Yes]</span> <span class="tok">→ search · top-3 → </span><span class="ref ok">[Relevant=Yes]</span> <span class="tok">Anthropic released Claude 3.7 Sonnet in March 2025</span> <span class="ref ok">[Supported=Fully]</span> <span class="tok">with extended thinking…</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>CRAG · grade and correct</span></h2>
+      <p>CRAG retrieves first, then asks a lightweight evaluator: <em>are these passages actually useful?</em> Three branches: <strong>Correct</strong> (use as-is), <strong>Ambiguous</strong> (refine + websearch), <strong>Incorrect</strong> (discard, do websearch). The evaluator is a small T5 — not the main LLM — so the overhead is bounded.</p>
+      <div class="flow">
+        <div class="flow-row"><div class="step">01 retrieve</div><div class="body">Top-k from local index — same as vanilla RAG.</div></div>
+        <div class="flow-row"><div class="step">02 grade</div><div class="body"><strong>T5-large evaluator</strong> scores each passage. Threshold splits into 3 buckets.</div></div>
+        <div class="flow-row active"><div class="step">03 branch</div><div class="body"><strong>Correct</strong> → refine and use · <strong>Ambiguous</strong> → refine + web · <strong>Incorrect</strong> → discard, web only.</div></div>
+        <div class="flow-row"><div class="step">04 generate</div><div class="body">LLM gets the refined context. Refinement strips boilerplate, keeps strips of relevant text.</div></div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>FLARE · trigger on uncertainty</span></h2>
+      <p>FLARE generates a <em>draft</em> sentence first. If any token has probability below a threshold (default 0.5), the low-confidence span becomes the next query. Retrieve, regenerate that sentence, continue. The result: retrieval happens mid-generation, only at the moments it\'s actually needed.</p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Pick a query · see the path</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="qbench">
+            <div class="col">
+              <h4>Tap a query</h4>
+              <div class="q" data-q="0">When was the Eiffel Tower built?</div>
+              <div class="q" data-q="1">What did Anthropic announce last week?</div>
+              <div class="q" data-q="2">Compare Mooncake and PD Separation.</div>
+              <div class="q" data-q="3">2 + 2 = ?</div>
+              <div class="q" data-q="4">Summarise our internal Q3 sales doc.</div>
+            </div>
+            <div class="col">
+              <h4>Path · approach · cost</h4>
+              <div id="qOut" style="padding:14px;background:var(--bg);border:1px solid var(--rule);border-radius:3px;min-height:200px;font-family:var(--mono);font-size:12px;color:var(--ink-2);line-height:1.7">
+                <span style="color:var(--mute)">// tap a query on the left to trace the adaptive path</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>When to use which</span></h2>
+      <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;margin:12px 0">
+        <thead><tr><th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase">Constraint</th><th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase">Pick</th><th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-size:10px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase">Why</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Can fine-tune your LLM</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--accent)">Self-RAG</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--ink-2)">Reflection tokens are baked in — best quality</td></tr>
+          <tr><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Closed-source LLM</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--accent)">CRAG</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--ink-2)">External evaluator, no LLM training</td></tr>
+          <tr><td style="padding:8px 10px;border-bottom:1px solid var(--rule)">Long-form generation</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--accent)">FLARE</td><td style="padding:8px 10px;border-bottom:1px solid var(--rule);color:var(--ink-2)">Mid-gen retrieval keeps long answers grounded</td></tr>
+          <tr><td style="padding:8px 10px">Latency-critical</td><td style="padding:8px 10px;color:var(--accent)">Self-RAG (skip mode)</td><td style="padding:8px 10px;color:var(--ink-2)">Lowest avg retrieval rate</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s6" data-n="§ 06"><span>Mini-game</span></h2>
+      <div class="demo"><div class="dhd"><span class="ttl">Game · Adaptive RAG triage</span><span class="tag" id="gameTag">0 / 5</span></div><div class="dbd">
+        <div id="gameArea">
+          <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+          <div class="game-q" id="gameQ"></div>
+          <div class="game-board" id="gameBoard"></div>
+        </div>
+        <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+          <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+          <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+        </div>
+      </div></div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>The retrieval-cost problem</span></a>
+        <a href="#s2"><span class="n">02</span><span>Self-RAG</span></a>
+        <a href="#s3"><span class="n">03</span><span>CRAG</span></a>
+        <a href="#s4"><span class="n">04</span><span>FLARE</span></a>
+        <a href="#s5"><span class="n">05</span><span>When to use which</span></a>
+        <a href="#s6"><span class="n">06</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 14 Adaptive RAG <span class="dot">·</span> Compute</div><div>chapter 14 of 29 <span class="dot">●</span> 12 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "14" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'14', related:['08','13','15','16','22'] });
+
+const QUERIES = [
+  { ql:'When was the Eiffel Tower built?', path:'<span style="color:var(--moss)">[Retrieve=No]</span><br>// model has stable factual knowledge<br>// answer in 1 hop', cost:'0 retrievals · 80 tokens' },
+  { ql:'What did Anthropic announce last week?', path:'<span style="color:var(--accent)">[Retrieve=Yes]</span><br>→ websearch · top-3<br><span style="color:var(--moss)">[Relevant=Yes]</span> use<br><span style="color:var(--moss)">[Supported=Fully]</span>', cost:'1 retrieval · 1.4k tokens' },
+  { ql:'Compare Mooncake and PD Separation.', path:'<span style="color:var(--accent)">[Retrieve=Yes]</span><br>→ vector index · top-5<br>FLARE re-trigger on "throughput" span<br><span style="color:var(--moss)">[Supported=Partial]</span>', cost:'2 retrievals · 2.1k tokens' },
+  { ql:'2 + 2 = ?', path:'<span style="color:var(--moss)">[Retrieve=No]</span><br>// trivial · skip everything', cost:'0 retrievals · 5 tokens' },
+  { ql:'Summarise our internal Q3 sales doc.', path:'<span style="color:var(--accent)">[Retrieve=Yes · Required]</span><br>→ doc-id direct fetch<br>not a similarity question<br><span style="color:var(--moss)">[Supported=Fully]</span>', cost:'1 fetch · 8k tokens' },
+];
+document.querySelectorAll('.qbench .q').forEach((el,i) => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.qbench .q').forEach(x => x.classList.remove('sel'));
+    el.classList.add('sel');
+    const q = QUERIES[i];
+    document.getElementById('qOut').innerHTML = `<div style="color:var(--ink);margin-bottom:10px">${q.ql}</div><div style="line-height:1.7">${q.path}</div><div style="margin-top:10px;color:var(--mute);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">// cost · ${q.cost}</div>`;
+  });
+});
+
+const GAME = [
+  { q: 'A reflection token like [Retrieve=No] is generated by?', opts: [
+    { t: 'The fine-tuned LLM itself, as part of its output stream', h: 'Self-RAG bakes it in', c: true },
+    { t: 'A separate router model', h: 'That\'s another approach' },
+    { t: 'A regex on the prompt', h: 'No' },
+    { t: 'A vector-DB callback', h: 'No' },
+  ]},
+  { q: 'CRAG\'s evaluator returns "Incorrect" — what happens?', opts: [
+    { t: 'Discard the retrieved passages and do a websearch', h: 'External knowledge fallback', c: true },
+    { t: 'Use them anyway', h: 'Defeats the point' },
+    { t: 'Throw an error', h: 'No' },
+    { t: 'Re-rank with a cross-encoder', h: 'CRAG uses a different mechanism' },
+  ]},
+  { q: 'FLARE triggers retrieval when?', opts: [
+    { t: 'A draft token has probability below a threshold (uncertainty)', h: 'Mid-gen, only when needed', c: true },
+    { t: 'Every sentence', h: 'Vanilla' },
+    { t: 'Never', h: 'No' },
+    { t: 'Only at the start', h: 'Vanilla again' },
+  ]},
+  { q: 'For a closed-source LLM (no fine-tuning), best fit?', opts: [
+    { t: 'CRAG — external evaluator, no LLM training needed', h: 'Works with any LLM behind an API', c: true },
+    { t: 'Self-RAG', h: 'Requires fine-tuning' },
+    { t: 'FLARE', h: 'Needs token logprobs not always exposed' },
+    { t: 'Vanilla RAG', h: 'Not adaptive' },
+  ]},
+  { q: 'Adaptive RAG\'s biggest cost win comes from?', opts: [
+    { t: 'Skipping retrieval entirely on queries the model already knows', h: '~40% of calls in production', c: true },
+    { t: 'Faster vector indexes', h: 'Different layer' },
+    { t: 'Smaller embedding models', h: 'Same' },
+    { t: 'Bigger LLM', h: 'No' },
+  ]},
+];
+let gIdx=0,gScore=0;
+function renderG(){
+  if (gIdx>=GAME.length){
+    document.getElementById('gameArea').style.display='none';
+    document.getElementById('gameDone').style.display='block';
+    document.getElementById('gameFinal').textContent=`${gScore} / ${GAME.length}`;
+    const games=JSON.parse(localStorage.getItem('llm-viz-games')||'{}');games['14']=gScore;
+    localStorage.setItem('llm-viz-games',JSON.stringify(games));return;
+  }
+  const q=GAME[gIdx];
+  document.getElementById('gameIdx').textContent=gIdx+1;
+  document.getElementById('gameScore').textContent=gScore;
+  document.getElementById('gameTag').textContent=`${gIdx} / ${GAME.length}`;
+  document.getElementById('gameQ').innerHTML=q.q;
+  const b=document.getElementById('gameBoard');b.innerHTML='';
+  let answered=false;
+  q.opts.forEach(o=>{const el=document.createElement('button');el.className='game-opt';el.innerHTML=`<div class="q">${o.t}</div><div class="h">${o.h}</div>`;el.addEventListener('click',()=>{if(answered)return;answered=true;if(o.c){el.classList.add('correct');gScore++;}else{el.classList.add('wrong');b.querySelectorAll('.game-opt').forEach((x,i)=>{if(q.opts[i].c)x.classList.add('correct');});}setTimeout(()=>{gIdx++;renderG();},1100);});b.appendChild(el);});
+}
+document.getElementById('gameRestart').addEventListener('click',()=>{gIdx=0;gScore=0;document.getElementById('gameArea').style.display='block';document.getElementById('gameDone').style.display='none';renderG();});
+renderG();
+</script>
+</body>
+</html>

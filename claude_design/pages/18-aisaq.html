@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>18 AiSAQ · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+.ram-bar { display:grid; grid-template-columns: 120px 1fr 80px; gap:14px; align-items:center; padding: 10px 12px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; margin-bottom: 6px; }
+.ram-bar .lbl { font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; }
+.ram-bar .bar { height: 22px; background: color-mix(in oklab, var(--accent) 15%, transparent); border:1px solid var(--rule); border-radius: 2px; }
+.ram-bar .bar .fill { height: 100%; background: var(--accent); }
+.ram-bar.alt .bar .fill { background: var(--ink-2); }
+.ram-bar .v { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight:600; text-align:right; }
+
+.swap-demo { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.swap-card { padding: 14px; background: var(--bg); border:1px solid var(--rule); border-radius:3px; }
+.swap-card h4 { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+.swap-card .row { display:flex; justify-content: space-between; padding: 6px 0; font-family: var(--mono); font-size: 11px; color: var(--ink-2); border-bottom: 1px solid var(--rule); }
+.swap-card .row:last-child { border-bottom: none; }
+.swap-card .row .v { color: var(--ink); font-weight: 600; }
+
+.game-board { display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display:flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.5; padding: 8px 0 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top"><div><a href="../index.html" class="brand">llm-viz</a></div><div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div></nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat system">RAG &amp; System</span><span class="sep">/</span><span class="here">18 AiSAQ</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 18</span><span class="sep">·</span><span>RAG &amp; System</span><span class="sep">·</span><span>2024 · 9 min read</span></div>
+    <div class="phero-grid"><div class="phero-num">18</div><div>
+      <h1>Billion-scale ANN with <em>10 MB</em> of RAM.</h1>
+      <div class="dek">AiSAQ takes DiskANN further: even the PQ table stays on SSD. RAM is reduced from ~30 GB to ~10 MB. The cost: one extra disk seek per hop. The benefit: hot-swap indexes in milliseconds, run dozens of tenants on one box.</div>
+    </div></div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">10 MB</div><div class="l">RAM · billion vectors</div></div>
+      <div class="c"><div class="v">~3000×</div><div class="l">vs DiskANN RAM</div></div>
+      <div class="c"><div class="v">&lt; 1 ms</div><div class="l">Index switch</div></div>
+      <div class="c"><div class="v">~15 ms</div><div class="l">P50 query latency</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">DiskANN was already memory-frugal — but in multi-tenant RAG (one index per customer, hundreds of customers), even 30 GB × 100 tenants is impossible. AiSAQ\'s answer: store <em>all</em> vector data on SSD, including the PQ codebook.</p>
+
+      <h2 id="s1" data-n="§ 01"><span>RAM budgets · billion vectors</span></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Per-engine RAM at 1B × 768d</span><span class="tag">data</span></div>
+        <div class="dbd" style="padding:14px">
+          <div class="ram-bar"><div class="lbl">FAISS Flat</div><div class="bar"><div class="fill" style="width:100%"></div></div><div class="v">3 TB</div></div>
+          <div class="ram-bar"><div class="lbl">HNSW</div><div class="bar"><div class="fill" style="width:100%"></div></div><div class="v">~3.8 TB</div></div>
+          <div class="ram-bar alt"><div class="lbl">DiskANN</div><div class="bar"><div class="fill" style="width:1%"></div></div><div class="v">~30 GB</div></div>
+          <div class="ram-bar alt"><div class="lbl">AiSAQ</div><div class="bar"><div class="fill" style="width:0.04%; min-width:2px"></div></div><div class="v">~10 MB</div></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:8px;letter-spacing:0.06em;text-transform:uppercase">// log scale would flatten this · linear shows the dominance</div>
+        </div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>What\'s on disk vs RAM</span></h2>
+      <div class="swap-demo">
+        <div class="swap-card">
+          <h4>DiskANN</h4>
+          <div class="row"><span>Graph nodes (full vectors)</span><span class="v">SSD</span></div>
+          <div class="row"><span>Graph edges</span><span class="v">SSD</span></div>
+          <div class="row"><span>PQ codes (compressed)</span><span class="v">RAM</span></div>
+          <div class="row"><span>Entry points</span><span class="v">RAM</span></div>
+          <div class="row" style="border-top:2px solid var(--rule);margin-top:6px;padding-top:10px"><span style="color:var(--accent)">RAM total</span><span class="v" style="color:var(--accent)">~30 GB</span></div>
+        </div>
+        <div class="swap-card">
+          <h4>AiSAQ</h4>
+          <div class="row"><span>Graph nodes (full vectors)</span><span class="v">SSD</span></div>
+          <div class="row"><span>Graph edges</span><span class="v">SSD</span></div>
+          <div class="row"><span>PQ codes</span><span class="v">SSD</span></div>
+          <div class="row"><span>Entry points</span><span class="v">RAM</span></div>
+          <div class="row" style="border-top:2px solid var(--rule);margin-top:6px;padding-top:10px"><span style="color:var(--accent)">RAM total</span><span class="v" style="color:var(--accent)">~10 MB</span></div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>The hot-swap superpower</span></h2>
+      <p>Because RAM footprint is tiny, you can have <em>thousands</em> of indexes mmap\'d simultaneously. Switching from tenant A to tenant B is a pointer change, not an index load. Index switch latency drops from seconds to sub-millisecond — opening up workloads like per-conversation RAG (one index per chat session) that were uneconomic before.</p>
+
+      <h2 id="s4" data-n="§ 04"><span>Cost · the extra seek</span></h2>
+      <p>Every hop in the graph needs the PQ codes for neighbours, which now come from SSD. AiSAQ co-locates PQ codes with adjacency on disk — one read per hop returns both edges and codes. Net latency cost: ~30–50 % over DiskANN, with SSD throughput being the bottleneck.</p>
+
+      <h2 id="s5" data-n="§ 05"><span>Mini-game</span></h2>
+      <div class="demo"><div class="dhd"><span class="ttl">Game · AiSAQ trade-offs</span><span class="tag" id="gameTag">0 / 5</span></div><div class="dbd">
+        <div id="gameArea">
+          <div class="game-status"><span>Q <span id="gameIdx">1</span> / 5</span><span class="score">Score <span id="gameScore">0</span></span></div>
+          <div class="game-q" id="gameQ"></div>
+          <div class="game-board" id="gameBoard"></div>
+        </div>
+        <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+          <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+          <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+        </div>
+      </div></div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>RAM budgets</span></a>
+        <a href="#s2"><span class="n">02</span><span>Disk vs RAM</span></a>
+        <a href="#s3"><span class="n">03</span><span>Hot-swap</span></a>
+        <a href="#s4"><span class="n">04</span><span>The extra seek</span></a>
+        <a href="#s5"><span class="n">05</span><span>Mini-game</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 18 AiSAQ <span class="dot">·</span> RAG &amp; System</div><div>chapter 18 of 29 <span class="dot">●</span> 9 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks"><div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div><div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+  <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category overhead</div></div></div>
+  <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "18"</div></div></div>
+  <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number</div></div></div>
+</div></div></aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId:'18', related:['12','17','19','22'] });
+
+const GAME=[
+  {q:'AiSAQ\'s key innovation vs DiskANN?',opts:[{t:'Move PQ codes from RAM to SSD too — RAM drops to ~10 MB',h:'Smaller RAM, more seeks',c:true},{t:'Bigger PQ codes',h:'Same'},{t:'Add a layer to the graph',h:'No'},{t:'Use HNSW instead',h:'No'}]},
+  {q:'Why is multi-tenant RAG the killer use case?',opts:[{t:'Thousands of tenants × tiny RAM = feasible on one node',h:'30 GB × N is impossible',c:true},{t:'Single tenant is faster',h:'Same speed' },{t:'Tenants share data',h:'No, isolated'},{t:'Smaller indexes',h:'Same vectors'}]},
+  {q:'Latency cost vs DiskANN?',opts:[{t:'~30–50 % more, bounded by SSD throughput',h:'Extra seeks per hop',c:true},{t:'10× slower',h:'Too pessimistic'},{t:'Identical',h:'Wrong, more seeks'},{t:'2× faster',h:'No'}]},
+  {q:'Index switch latency drops from?',opts:[{t:'Seconds (full RAM load) to sub-ms (mmap pointer flip)',h:'Enables per-session indexes',c:true},{t:'Hours to seconds',h:'Smaller scale'},{t:'No change',h:'Wrong'},{t:'Days',h:'No'}]},
+  {q:'When would you pick DiskANN over AiSAQ?',opts:[{t:'Few large tenants, latency-critical, RAM available',h:'Pay RAM for speed',c:true},{t:'Many small tenants',h:'AiSAQ wins' },{t:'Multi-tenant SaaS',h:'AiSAQ wins'},{t:'Always',h:'Depends'}]},
+];
+let gI=0,gS=0;
+function rg(){
+  if(gI>=GAME.length){document.getElementById('gameArea').style.display='none';document.getElementById('gameDone').style.display='block';document.getElementById('gameFinal').textContent=`${gS} / ${GAME.length}`;const g=JSON.parse(localStorage.getItem('llm-viz-games')||'{}');g['18']=gS;localStorage.setItem('llm-viz-games',JSON.stringify(g));return;}
+  const q=GAME[gI];document.getElementById('gameIdx').textContent=gI+1;document.getElementById('gameScore').textContent=gS;document.getElementById('gameTag').textContent=`${gI} / ${GAME.length}`;document.getElementById('gameQ').innerHTML=q.q;
+  const b=document.getElementById('gameBoard');b.innerHTML='';let an=false;
+  q.opts.forEach(o=>{const e=document.createElement('button');e.className='game-opt';e.innerHTML=`<div class="q">${o.t}</div><div class="h">${o.h}</div>`;e.addEventListener('click',()=>{if(an)return;an=true;if(o.c){e.classList.add('correct');gS++;}else{e.classList.add('wrong');b.querySelectorAll('.game-opt').forEach((x,i)=>{if(q.opts[i].c)x.classList.add('correct');});}setTimeout(()=>{gI++;rg();},1100);});b.appendChild(e);});
+}
+document.getElementById('gameRestart').addEventListener('click',()=>{gI=0;gS=0;document.getElementById('gameArea').style.display='block';document.getElementById('gameDone').style.display='none';rg();});
+rg();
+</script>
+</body>
+</html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 Sparse Transformers · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.pat-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin:20px 0; }
+@media (max-width: 800px){ .pat-grid { grid-template-columns: repeat(2, 1fr); } }
+.pat-card { background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; padding: 14px; }
+.pat-card h4 { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+.pat-card .desc { font-size: 11px; color: var(--ink-2); margin-top: 8px; line-height: 1.5; }
+.pat-card svg { width: 100%; height: auto; display: block; }
+.pat-cost { font-family: var(--mono); font-size: 10px; color: var(--moss); letter-spacing: 0.06em; margin-top: 6px; }
+
+.cost-chart { margin: 20px 0; }
+.cost-chart .bar-group { display: grid; grid-template-columns: 80px 1fr 90px; gap: 10px; align-items: center; margin-bottom: 8px; font-family: var(--mono); font-size: 11px; }
+.cost-chart .bar-group .lab { color: var(--ink-2); }
+.cost-chart .bar-wrap { background: var(--surface-2); border: 1px solid var(--rule); border-radius: 2px; height: 20px; overflow: hidden; }
+.cost-chart .bar { height: 100%; background: var(--accent); transition: width 0.3s; }
+.cost-chart .bar.alt { background: var(--moss); }
+.cost-chart .val { color: var(--accent); font-weight: 600; text-align: right; }
+.cost-chart .val.alt { color: var(--moss); }
+
+.ctrl-row { display:flex; gap:16px; align-items:center; margin:10px 0; flex-wrap: wrap; }
+.ctrl-row label { font-family: var(--mono); font-size:11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; min-width: 50px; }
+.ctrl-row input[type=range] { flex: 1; min-width: 120px; }
+.ctrl-row .val { font-family: var(--mono); font-size:12px; color: var(--accent); font-weight: 600; min-width: 56px; text-align: right; }
+
+.game-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top:16px; }
+.game-opt { padding: 14px 16px; border: 2px solid var(--rule); background: var(--bg); border-radius: 3px; cursor: pointer; text-align: left; font: inherit; color: var(--ink-2); transition: all 0.15s; }
+.game-opt:hover { border-color: var(--ink-2); color: var(--ink); }
+.game-opt.correct { border-color: var(--moss); background: color-mix(in oklab, var(--moss) 15%, transparent); color: var(--ink); }
+.game-opt.wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+.game-opt .q { font-family: var(--mono); font-size: 14px; color: var(--ink); margin-bottom: 4px; letter-spacing: 0.02em; }
+.game-opt .h { font-size: 11px; color: var(--mute); font-family: var(--mono); }
+.game-status { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+.game-status .score { color: var(--ink); font-weight: 600; font-size: 13px; }
+.game-q { font-size: 17px; color: var(--ink); line-height: 1.45; padding: 16px 0; font-weight: 500; }
+.game-q code { font-family: var(--mono); font-size: 14px; background: var(--surface-2); padding: 2px 8px; border-radius: 3px; border: 1px solid var(--rule); }
+</style>
+</head>
+<body>
+
+<div class="read-bar"><div class="fill"></div></div>
+
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right">
+    <a href="../index.html">roadmap</a>
+    <span class="divider"></span>
+    <a id="themeBtn">◐ theme</a>
+  </div>
+</nav>
+
+<div class="crumbs">
+  <a href="../index.html">Roadmap</a>
+  <span class="sep">/</span>
+  <span class="cat foundation">Foundations</span>
+  <span class="sep">/</span>
+  <span class="here">03 Sparse Transformers</span>
+</div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 03</span><span class="sep">·</span><span>Foundations</span><span class="sep">·</span><span>2019 · 16 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">03</div>
+      <div>
+        <h1>Not every token needs <em>every other token</em>.</h1>
+        <div class="dek">Full attention costs <i>O(N²)</i> — quadratic in sequence length. Sparse Transformers break the matrix into structured patterns that bring the cost down to <i>O(N√N)</i>, opening the door to 65K-token contexts before anyone had heard of RoPE.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">O(N√N)</div><div class="l">Per-layer cost</div></div>
+      <div class="c"><div class="v">65,536</div><div class="l">Max context</div></div>
+      <div class="c"><div class="v">2019</div><div class="l">OpenAI paper</div></div>
+      <div class="c"><div class="v">8×</div><div class="l">Speedup on long seq.</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        The attention matrix is $N \times N$. Double the context, quadruple the cost. For $N = 8192$ that's a 67-million-entry matrix per head per layer. Sparse attention asks: <b>do we really need all of it?</b>
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>The quadratic wall</span> <em>why long context is expensive</em></h2>
+      <p>
+        For sequence length $N$ and head dimension $d$, each attention head computes $QK^{\top}$ — shape $N \times N$ — costing $O(N^2 d)$ FLOPs and $O(N^2)$ memory. The memory is the killer: at $N = 32768$, a single head's attention matrix is over 1 GB in FP16.
+      </p>
+      <div class="cost-chart">
+        <div class="bar-group"><span class="lab">N = 1024</span><div class="bar-wrap"><div class="bar" style="width:2%"></div></div><span class="val">~1 M ops</span></div>
+        <div class="bar-group"><span class="lab">N = 4096</span><div class="bar-wrap"><div class="bar" style="width:12%"></div></div><span class="val">~17 M ops</span></div>
+        <div class="bar-group"><span class="lab">N = 16384</span><div class="bar-wrap"><div class="bar" style="width:60%"></div></div><span class="val">~268 M ops</span></div>
+        <div class="bar-group"><span class="lab">N = 65536</span><div class="bar-wrap"><div class="bar" style="width:100%"></div></div><span class="val">~4.3 B ops</span></div>
+      </div>
+      <p style="font-size:12px;color:var(--mute);font-family:var(--mono);margin-top:-4px">// N² FLOPs per head. Times L layers, times h heads, times batch — you see why long context is hard.</p>
+
+      <h2 id="s2" data-n="§ 02"><span>The key insight</span> <em>attention is already sparse</em></h2>
+      <p>
+        In a trained Transformer, most attention weights are near zero. Each token only <i>actually</i> pays attention to a handful of neighbors and a handful of globally important tokens. Sparse attention encodes this structurally — we pick which (i, j) pairs to compute in advance.
+      </p>
+      <p>
+        Child et al. (2019) proposed two patterns that, when composed, give every token a path to every other token in at most two hops:
+      </p>
+
+      <div class="pat-grid">
+        <div class="pat-card">
+          <h4>Dense (full)</h4>
+          <svg viewBox="0 0 80 80" id="patDense"></svg>
+          <div class="pat-cost">O(N²)</div>
+          <div class="desc">Baseline. Every query attends to every key.</div>
+        </div>
+        <div class="pat-card">
+          <h4>Strided</h4>
+          <svg viewBox="0 0 80 80" id="patStride"></svg>
+          <div class="pat-cost">O(N√N)</div>
+          <div class="desc">Local window + every k-th token. Reaches distant positions via "stripes".</div>
+        </div>
+        <div class="pat-card">
+          <h4>Fixed</h4>
+          <svg viewBox="0 0 80 80" id="patFixed"></svg>
+          <div class="pat-cost">O(N√N)</div>
+          <div class="desc">Local windows + a handful of global summary tokens at fixed positions.</div>
+        </div>
+        <div class="pat-card">
+          <h4>BigBird</h4>
+          <svg viewBox="0 0 80 80" id="patBigbird"></svg>
+          <div class="pat-cost">O(N)</div>
+          <div class="desc">Local + global + random. Theoretically sound, approximates full attention.</div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>Interactive · pattern explorer</span> <em>see the cost drop</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Attention pattern cost</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="ctrl-row">
+            <label>N</label>
+            <input type="range" min="16" max="64" step="4" value="32" id="nSl"/>
+            <span class="val" id="nLab">32</span>
+          </div>
+          <div class="ctrl-row">
+            <label>window</label>
+            <input type="range" min="1" max="16" step="1" value="4" id="wSl"/>
+            <span class="val" id="wLab">4</span>
+          </div>
+          <div class="ctrl-row">
+            <label>stride</label>
+            <input type="range" min="2" max="16" step="1" value="6" id="strSl"/>
+            <span class="val" id="strLab">6</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px;align-items:start">
+            <svg id="patLive" viewBox="0 0 200 200" style="width:100%;max-width:360px;display:block;margin:0 auto;border:1px solid var(--rule);background:var(--bg)"></svg>
+            <div style="font-family:var(--mono);font-size:13px;line-height:1.9;color:var(--ink-2)">
+              <div style="color:var(--mute);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px">// cost comparison</div>
+              <div>full attention: <span style="color:var(--ink);font-weight:600" id="fullCost">—</span> cells</div>
+              <div>sparse pattern: <span style="color:var(--accent);font-weight:600" id="sparseCost">—</span> cells</div>
+              <div style="border-top:1px solid var(--rule);margin-top:10px;padding-top:10px">
+                savings: <span style="color:var(--moss);font-weight:600" id="savings">—</span>
+              </div>
+              <div style="margin-top:14px;font-size:11px;color:var(--mute)">// red dots = query 16's key set<br/>// orange = local window, blue = strided</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>Connectivity</span> <em>every token reaches every other in 2 hops</em></h2>
+      <p>
+        The beauty of the strided pattern is that any two tokens are at most <b>two attention hops</b> apart. Token 0 attends to token 5 (local), token 5 attends to token 12 (strided), so token 0's information reaches token 12 in two layers. Stack $L$ layers deep and every token sees everything — just indirectly.
+      </p>
+      <div class="math-block">
+        <div class="label">// composition guarantees full receptive field</div>
+        $$\text{RF}(2) \supseteq \{(i,j) : |i-j| \leq w\} \cup \{(i,j) : (i-j) \bmod s = 0\}$$
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Implementation</span> <em>the block-sparse CUDA kernel</em></h2>
+      <p>
+        Naive sparse attention is <i>slower</i> than dense on GPU — GPUs hate irregular memory access. The trick is <b>block-sparse</b>: pick patterns where non-zero cells form contiguous $b \times b$ blocks (typically $b = 64$). A BSR (block-sparse-row) kernel processes each block as a small dense matmul, recovering tensor-core throughput.
+      </p>
+      <div class="callout warn">
+        <div class="lab">// implementation note</div>
+        OpenAI's original Sparse Transformer required hand-written CUDA. Modern libraries — FlashAttention, xFormers, triton — generalize this. Most long-context models today (Claude, Gemini) use some form of block-sparse or sliding-window attention internally.
+      </div>
+
+      <h2 id="s6" data-n="§ 06"><span>What got built with this</span> <em>the long-context lineage</em></h2>
+      <ul>
+        <li><b>Sparse Transformer (2019).</b> Images, audio, text to 65K tokens. The original.</li>
+        <li><b>Longformer (2020).</b> Local + global attention for documents.</li>
+        <li><b>BigBird (2020).</b> Local + global + random; proves approximation guarantees.</li>
+        <li><b>Mistral / Llama-3 SWA.</b> Sliding-window attention — only local, compose via layers.</li>
+        <li><b>Gemini 1.5 / Claude.</b> Proprietary long-context designs that combine block-sparse with recall layers.</li>
+      </ul>
+      <p>
+        Sparsity is now the default for contexts beyond 32K. Full attention survives only at short context or in research settings.
+      </p>
+
+      <h2 id="s7" data-n="§ 07"><span>Mini-game</span> <em>reading attention patterns</em></h2>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Game · Identify the pattern</span><span class="tag" id="gameTag">0 / 5</span></div>
+        <div class="dbd">
+          <div class="game-status"><span>QUESTION <span id="gameIdx">1</span> / 5</span><span class="score">SCORE <span id="gameScore">0</span></span></div>
+          <div id="gameArea">
+            <svg id="gameSvg" viewBox="0 0 220 220" style="display:block;margin:0 auto;max-width:220px;background:var(--bg);border:1px solid var(--rule)"></svg>
+            <div class="game-q" id="gameQ"></div>
+            <div class="game-board" id="gameBoard"></div>
+          </div>
+          <div id="gameDone" style="display:none;text-align:center;padding:28px 0">
+            <div style="font-size:48px;font-weight:700;color:var(--accent);letter-spacing:-0.03em" id="gameFinal"></div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:0.1em;text-transform:uppercase;margin-top:8px">Final score</div>
+            <button class="btn pri" id="gameRestart" style="margin-top:20px">Try again</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div>
+        <div class="lab">On this page</div>
+        <div class="toc">
+          <a href="#s1"><span class="n">01</span><span>The quadratic wall</span></a>
+          <a href="#s2"><span class="n">02</span><span>Attention is sparse</span></a>
+          <a href="#s3"><span class="n">03</span><span>Pattern explorer</span></a>
+          <a href="#s4"><span class="n">04</span><span>Two-hop reach</span></a>
+          <a href="#s5"><span class="n">05</span><span>Block-sparse kernel</span></a>
+          <a href="#s6"><span class="n">06</span><span>Lineage</span></a>
+          <a href="#s7"><span class="n">07</span><span>Mini-game</span></a>
+        </div>
+      </div>
+      <div>
+        <div class="lab">Related</div>
+        <div class="related"></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+
+  <footer class="foot">
+    <div>llm-viz <span class="dot">·</span> 03 Sparse Transformers <span class="dot">·</span> Foundations</div>
+    <div>chapter 03 of 29 <span class="dot">●</span> 16 min read</div>
+  </footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body">
+    <div class="tw-label">Hero layout</div>
+    <div class="tw-options" id="twHeroOpts">
+      <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category · year overhead, editorial headline</div></div></div>
+      <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "03" alongside title</div></div></div>
+      <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors the hero</div></div></div>
+    </div>
+  </div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '03', related: ['01', '05', '08', '07'] });
+
+/* === Pattern previews === */
+const NS = 'http://www.w3.org/2000/svg';
+function drawPat(id, fn, N=16) {
+  const svg = document.getElementById(id);
+  const s = 80 / N;
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      if (j > i) continue; // causal only
+      if (fn(i, j, N)) {
+        const r = document.createElementNS(NS, 'rect');
+        r.setAttribute('x', j*s); r.setAttribute('y', i*s);
+        r.setAttribute('width', s-0.3); r.setAttribute('height', s-0.3);
+        r.setAttribute('fill', 'var(--accent)');
+        svg.appendChild(r);
+      }
+    }
+  }
+}
+drawPat('patDense', () => true);
+drawPat('patStride', (i,j,N) => Math.abs(i-j) <= 2 || (i-j) % 4 === 0);
+drawPat('patFixed', (i,j,N) => (Math.floor(i/4) === Math.floor(j/4)) || j % 4 === 0);
+drawPat('patBigbird', (i,j,N) => Math.abs(i-j) <= 1 || j === 0 || j === N-1 || (Math.random() < 0.04));
+
+/* === Interactive pattern === */
+function renderLive() {
+  const N = parseInt(document.getElementById('nSl').value);
+  const w = parseInt(document.getElementById('wSl').value);
+  const s = parseInt(document.getElementById('strSl').value);
+  document.getElementById('nLab').textContent = N;
+  document.getElementById('wLab').textContent = w;
+  document.getElementById('strLab').textContent = s;
+  const svg = document.getElementById('patLive');
+  svg.setAttribute('viewBox', `0 0 ${N*6} ${N*6}`);
+  svg.innerHTML = '';
+  const cell = 6;
+  let sparseCells = 0, fullCells = 0;
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j <= i; j++) {
+      fullCells++;
+      const inWin = Math.abs(i - j) <= w;
+      const inStr = ((i - j) % s === 0);
+      if (!inWin && !inStr) continue;
+      sparseCells++;
+      const r = document.createElementNS(NS, 'rect');
+      r.setAttribute('x', j * cell); r.setAttribute('y', i * cell);
+      r.setAttribute('width', cell - 0.5); r.setAttribute('height', cell - 0.5);
+      r.setAttribute('fill', inWin ? 'var(--accent)' : 'var(--ink-blue)');
+      r.setAttribute('fill-opacity', '0.75');
+      svg.appendChild(r);
+    }
+  }
+  // highlight query row 16
+  const qRow = Math.min(16, N-1);
+  const hi = document.createElementNS(NS, 'rect');
+  hi.setAttribute('x', 0); hi.setAttribute('y', qRow * cell);
+  hi.setAttribute('width', N * cell); hi.setAttribute('height', cell - 0.5);
+  hi.setAttribute('fill', 'none'); hi.setAttribute('stroke', 'var(--ink)'); hi.setAttribute('stroke-width', '1');
+  svg.appendChild(hi);
+
+  document.getElementById('fullCost').textContent = fullCells.toLocaleString();
+  document.getElementById('sparseCost').textContent = sparseCells.toLocaleString();
+  const sav = Math.round((1 - sparseCells/fullCells) * 100);
+  document.getElementById('savings').textContent = `${sav}% fewer ops`;
+}
+['nSl','wSl','strSl'].forEach(id => document.getElementById(id).addEventListener('input', renderLive));
+renderLive();
+
+/* === Mini-game === */
+const PATTERNS = [
+  { fn: (i,j,N) => Math.abs(i-j) <= 1, q: 'Which pattern is this?', opts: [
+    { t: 'Sliding window (local only)', c: true, h: 'just nearest neighbors' },
+    { t: 'Strided', h: 'would show stripes' },
+    { t: 'Dense', h: 'would be filled' },
+    { t: 'Global tokens', h: 'would be columns' },
+  ]},
+  { fn: (i,j,N) => j === 0 || j === 1, q: 'Every query attends to positions 0 and 1. What is this?', opts: [
+    { t: 'Global / attention-sink tokens', c: true, h: 'fixed anchor columns' },
+    { t: 'Sliding window', h: 'no locality' },
+    { t: 'Random sparse', h: 'no structure' },
+    { t: 'Causal mask', h: 'just default' },
+  ]},
+  { fn: (i,j,N) => Math.abs(i-j) <= 1 || (i-j) % 5 === 0, q: 'Local window + stripes. Cost class?', opts: [
+    { t: 'O(N√N)', c: true, h: 'classical Sparse Transformer' },
+    { t: 'O(N²)', h: 'would be dense' },
+    { t: 'O(N)', h: 'would be local only' },
+    { t: 'O(log N)', h: 'unrealistic' },
+  ]},
+  { fn: (i,j,N) => Math.floor(i/4) === Math.floor(j/4), q: 'Block-diagonal pattern. What does this look like?', opts: [
+    { t: 'Fixed pattern (within-block attention)', c: true, h: 'local blocks only' },
+    { t: 'Full attention', h: 'would fill everything' },
+    { t: 'BigBird', h: 'would add random + global' },
+    { t: 'Global tokens', h: 'would be columns' },
+  ]},
+  { fn: (i,j,N) => Math.abs(i-j) <= 1 || j===0 || (Math.abs(i*31+j*7)%13 < 1), q: 'Local + global + random. Recognize it?', opts: [
+    { t: 'BigBird', c: true, h: '3-component approximation' },
+    { t: 'Strided', h: 'no random component' },
+    { t: 'Dense', h: 'not full' },
+    { t: 'Sliding window', h: 'too much structure' },
+  ]},
+];
+let gIdx = 0, gScore = 0, answered = false;
+const gq = document.getElementById('gameQ'), gb = document.getElementById('gameBoard');
+function renderGame() {
+  if (gIdx >= PATTERNS.length) {
+    document.getElementById('gameArea').style.display = 'none';
+    document.getElementById('gameDone').style.display = 'block';
+    document.getElementById('gameFinal').textContent = `${gScore} / ${PATTERNS.length}`;
+    const games = JSON.parse(localStorage.getItem('llm-viz-games') || '{}');
+    games['03'] = gScore;
+    localStorage.setItem('llm-viz-games', JSON.stringify(games));
+    return;
+  }
+  answered = false;
+  const q = PATTERNS[gIdx];
+  document.getElementById('gameIdx').textContent = gIdx + 1;
+  document.getElementById('gameScore').textContent = gScore;
+  document.getElementById('gameTag').textContent = `${gIdx} / ${PATTERNS.length}`;
+  // draw pattern
+  const svg = document.getElementById('gameSvg');
+  svg.innerHTML = '';
+  const N = 20, cell = 210 / N;
+  for (let i = 0; i < N; i++) for (let j = 0; j <= i; j++) {
+    if (!q.fn(i, j, N)) continue;
+    const r = document.createElementNS(NS, 'rect');
+    r.setAttribute('x', 5 + j*cell); r.setAttribute('y', 5 + i*cell);
+    r.setAttribute('width', cell-0.3); r.setAttribute('height', cell-0.3);
+    r.setAttribute('fill', 'var(--accent)'); r.setAttribute('fill-opacity', '0.8');
+    svg.appendChild(r);
+  }
+  gq.innerHTML = q.q;
+  gb.innerHTML = '';
+  q.opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'game-opt';
+    b.innerHTML = `<div class="q">${o.t}</div><div class="h">${o.h}</div>`;
+    b.addEventListener('click', () => {
+      if (answered) return;
+      answered = true;
+      if (o.c) { b.classList.add('correct'); gScore++; }
+      else { b.classList.add('wrong'); gb.querySelectorAll('.game-opt').forEach((el, idx) => { if (q.opts[idx].c) el.classList.add('correct'); }); }
+      document.getElementById('gameScore').textContent = gScore;
+      setTimeout(() => { gIdx++; renderGame(); }, 1100);
+    });
+    gb.appendChild(b);
+  });
+}
+document.getElementById('gameRestart').addEventListener('click', () => {
+  gIdx = 0; gScore = 0;
+  document.getElementById('gameArea').style.display = 'block';
+  document.getElementById('gameDone').style.display = 'none';
+  renderGame();
+});
+renderGame();
+</script>
+</body>
+</html>

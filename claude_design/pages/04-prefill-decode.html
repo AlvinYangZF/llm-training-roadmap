@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>04 Prefill &amp; Decode · llm-viz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<link rel="stylesheet" href="_shared.css">
+<style>
+.two-phase { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 18px 0; }
+.phase-card { padding: 20px 22px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; cursor: pointer; transition: all 0.2s; }
+.phase-card:hover { border-color: var(--accent); }
+.phase-card .lbl { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.14em; text-transform: uppercase; }
+.phase-card h4 { font-size: 20px; font-weight: 700; color: var(--ink); margin: 6px 0 10px; letter-spacing: -0.01em; }
+.phase-card .d { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.phase-card .tokens { display: flex; gap: 3px; margin: 14px 0; flex-wrap: wrap; }
+.phase-card .tok { width: 18px; height: 18px; border-radius: 2px; background: var(--surface-2); border: 1px solid var(--rule); }
+.phase-card.prefill .tok { background: var(--accent); border-color: var(--accent); animation: prefillParallel 1.8s ease-out infinite; }
+.phase-card.decode .tok { background: var(--surface-2); }
+.phase-card.decode .tok.on { background: var(--ochre); border-color: var(--ochre); animation: decodeSerial 2.4s linear infinite; }
+@keyframes prefillParallel { 0% { transform: scaleY(0.2); opacity: 0.3 } 40% { transform: scaleY(1); opacity: 1 } 100% { transform: scaleY(1); opacity: 1 } }
+@keyframes decodeSerial { 0%, 40% { opacity: 0 } 50% { opacity: 1 } 100% { opacity: 1 } }
+.phase-card .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--rule); }
+.phase-card .metric .v { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; }
+.phase-card .metric .l { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+
+.timeline { height: 110px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; padding: 14px 18px; position: relative; margin-top: 14px; overflow: hidden; }
+.timeline .track { height: 44px; display: flex; gap: 2px; align-items: center; }
+.timeline .cell { height: 32px; border-radius: 2px; background: var(--surface-2); transition: background 0.15s, box-shadow 0.15s; flex: 0 0 8px; }
+.timeline .cell.prefill { background: var(--accent); box-shadow: 0 0 0 1px var(--accent-2); }
+.timeline .cell.decode { background: var(--ochre); }
+.timeline .cell.cursor { background: var(--ink); box-shadow: 0 0 12px rgba(184,71,31,0.4); }
+.timeline .axis { margin-top: 8px; display:flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.06em; text-transform: uppercase; }
+.timeline-legend { display: flex; gap: 18px; margin-top: 10px; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.04em; }
+.timeline-legend .it { display:inline-flex; align-items: center; gap: 6px; }
+.timeline-legend .sw { width: 12px; height: 12px; border-radius: 2px; }
+
+.kv-calc { display: grid; grid-template-columns: 1.4fr 1fr; gap: 4px; margin: 14px 0; }
+.kv-inputs { padding: 18px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; }
+.kv-inputs .row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--rule); }
+.kv-inputs .row:last-child { border-bottom: 0; }
+.kv-inputs .lbl { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; width: 110px; flex-shrink: 0; }
+.kv-inputs input[type=range] { flex: 1; }
+.kv-inputs .val { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; min-width: 70px; text-align: right; }
+.kv-inputs select { font: inherit; font-family: var(--mono); font-size: 12px; padding: 4px 8px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); border-radius: 2px; }
+.kv-result { padding: 18px; background: var(--surface); border: 1px solid var(--rule); border-radius: 3px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; }
+.kv-result .big { font-size: 52px; font-weight: 700; color: var(--accent); letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.kv-result .unit { font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.14em; text-transform: uppercase; }
+.kv-result .formula { font-family: var(--mono); font-size: 11px; color: var(--ink-2); text-align: center; line-height: 1.6; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--rule); width: 100%; }
+.kv-result .per-req { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+
+.growth-chart { position: relative; height: 340px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; padding: 20px 24px 36px 52px; }
+.growth-chart svg { width: 100%; height: 100%; }
+.growth-chart .tooltip { position: absolute; padding: 8px 12px; background: var(--ink); color: var(--bg); font-family: var(--mono); font-size: 11px; border-radius: 3px; pointer-events: none; opacity: 0; transition: opacity 0.1s; }
+
+.gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 14px; }
+.gauge-card { padding: 22px; background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; text-align: center; }
+.gauge-card h5 { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 14px; }
+.gauge-svg { margin: 0 auto; display: block; }
+.gauge-card .v { font-size: 34px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; margin-top: -24px; font-variant-numeric: tabular-nums; }
+.gauge-card .phase-tag { font-family: var(--mono); font-size: 11px; color: var(--ink); padding: 4px 10px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 2px; letter-spacing: 0.1em; text-transform: uppercase; display: inline-block; margin-top: 8px; }
+.phase-toggle { display: inline-flex; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); padding: 3px; margin-bottom: 14px; }
+.phase-toggle button { border: 0; background: transparent; font: inherit; font-size: 11px; font-family: var(--mono); padding: 6px 16px; border-radius: 3px; color: var(--ink-2); cursor: pointer; letter-spacing: 0.08em; text-transform: uppercase; }
+.phase-toggle button.active { background: var(--ink); color: var(--bg); }
+</style>
+</head>
+<body>
+<div class="read-bar"><div class="fill"></div></div>
+<nav class="top">
+  <div><a href="../index.html" class="brand">llm-viz</a></div>
+  <div class="top-right"><a href="../index.html">roadmap</a><span class="divider"></span><a id="themeBtn">◐ theme</a></div>
+</nav>
+<div class="crumbs"><a href="../index.html">Roadmap</a><span class="sep">/</span><span class="cat compute">Compute</span><span class="sep">/</span><span class="here">04 Prefill &amp; Decode</span></div>
+
+<main class="pg">
+  <section class="phero" data-layout="eyebrow">
+    <div class="eye"><span>Chapter 04</span><span class="sep">·</span><span>Compute</span><span class="sep">·</span><span>core · 14 min read</span></div>
+    <div class="phero-grid">
+      <div class="phero-num">04</div>
+      <div>
+        <h1>Inference is <em>two jobs in a trench coat</em>.</h1>
+        <div class="dek">Prefill is one huge parallel matmul. Decode is a million tiny memory lookups. They share no bottleneck and punish you for running them together on the same hardware.</div>
+      </div>
+    </div>
+    <div class="phero-meta">
+      <div class="c"><div class="v">~70%</div><div class="l">Compute util · prefill</div></div>
+      <div class="c"><div class="v">~5%</div><div class="l">Compute util · decode</div></div>
+      <div class="c"><div class="v">~85%</div><div class="l">Bandwidth util · decode</div></div>
+      <div class="c"><div class="v">2.5 GB</div><div class="l">KV · LLaMA-70B @ 4K</div></div>
+    </div>
+  </section>
+
+  <div class="body">
+    <article class="prose">
+      <p style="font-size:18px;color:var(--ink);line-height:1.55;margin-bottom:24px">
+        You type 100 tokens. The model reads them all at once, fires a single huge matmul across every layer, and produces the first output token — maybe 200 ms in. Then it drops into a different mode: one token at a time, bouncing between HBM and SRAM, bottlenecked on memory bandwidth. Everything downstream in this roadmap — paged attention, flash attention, PD separation — exists because these two phases have nothing in common.
+      </p>
+
+      <h2 id="s1" data-n="§ 01"><span>The two phases, side by side</span></h2>
+      <p>
+        A transformer forward pass looks identical whether you're prefilling a 100-token prompt or decoding the 101st token. But the <i>shape</i> of the inputs changes — and with it, the bottleneck.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Two-phase comparison</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="two-phase">
+            <div class="phase-card prefill">
+              <div class="lbl">// phase 01 · parallel</div>
+              <h4>Prefill</h4>
+              <div class="d">All prompt tokens processed in one batch. Attention becomes a big (N, N) matmul. GPUs love this.</div>
+              <div class="tokens" id="prefillToks"></div>
+              <div class="metrics">
+                <div class="metric"><div class="v">~70%</div><div class="l">Compute</div></div>
+                <div class="metric"><div class="v">~20%</div><div class="l">Bandwidth</div></div>
+              </div>
+            </div>
+            <div class="phase-card decode">
+              <div class="lbl">// phase 02 · serial</div>
+              <h4>Decode</h4>
+              <div class="d">One token in, one token out, repeat. Each step reads the entire KV cache from HBM. GPUs sit idle.</div>
+              <div class="tokens" id="decodeToks"></div>
+              <div class="metrics">
+                <div class="metric"><div class="v">~5%</div><div class="l">Compute</div></div>
+                <div class="metric"><div class="v">~85%</div><div class="l">Bandwidth</div></div>
+              </div>
+            </div>
+          </div>
+          <p style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:4px">// left: all tokens light up together. right: tokens emerge one by one — GPU is 95% idle between them.</p>
+        </div>
+      </div>
+
+      <h2 id="s2" data-n="§ 02"><span>TTFT vs TBT</span> <em>the metrics that matter</em></h2>
+      <p>
+        Because the phases behave differently, you measure them differently:
+      </p>
+      <ul>
+        <li><b>TTFT</b> — Time To First Token. The entire prefill cost. Grows with prompt length.</li>
+        <li><b>TBT</b> — Time Between Tokens (or ITL, Inter-Token Latency). The per-step decode cost. Grows with KV cache size.</li>
+      </ul>
+      <p>
+        A good UX needs TTFT &lt; 500 ms (for responsiveness) and TBT &lt; 50 ms (for smooth streaming). Optimize one and you often worsen the other — which is why serving systems got so complicated.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Token-stream timeline</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <p style="font-size:13px;color:var(--ink-2);margin-bottom:10px">
+            100-token prompt. TTFT = 200 ms (one prefill burst). 50 decode tokens at 30 ms each.
+          </p>
+          <div class="timeline" id="timelineEl">
+            <div class="track" id="timelineTrack"></div>
+            <div class="axis">
+              <span>0 ms</span>
+              <span>TTFT · 200 ms</span>
+              <span>TBT · 30 ms each</span>
+              <span id="tlEnd">1700 ms</span>
+            </div>
+          </div>
+          <div class="timeline-legend">
+            <span class="it"><span class="sw" style="background:var(--accent)"></span>prefill burst</span>
+            <span class="it"><span class="sw" style="background:var(--ochre)"></span>decode steps</span>
+            <span class="it" style="margin-left:auto"><span class="sw" style="background:var(--ink)"></span>current cursor</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s3" data-n="§ 03"><span>The KV cache — the real cost driver</span></h2>
+      <p>
+        During prefill, the model computes keys and values for every prompt token. Throwing them away would force recomputation at every decode step. So we <b>cache</b> them. The cost of that cache is the shape of every serving decision downstream:
+      </p>
+
+      <div class="math-block">
+        <div class="label">// KV cache memory</div>
+        $$M_{\text{KV}} = 2 \cdot n_{\text{layers}} \cdot d_{\text{model}} \cdot L \cdot B \cdot b_{\text{param}}$$
+        <div style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px">
+          2 = one for K, one for V. $L$ = seq len. $B$ = batch. $b$ = bytes (FP16 = 2).
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · KV cache calculator</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="kv-calc">
+            <div class="kv-inputs">
+              <div class="row"><span class="lbl">Layers</span><input type="range" id="kL" min="12" max="96" value="80"><span class="val" id="kLv">80</span></div>
+              <div class="row"><span class="lbl">d_model</span><input type="range" id="kD" min="768" max="8192" step="128" value="8192"><span class="val" id="kDv">8192</span></div>
+              <div class="row"><span class="lbl">Seq len</span><input type="range" id="kSeq" min="512" max="131072" step="512" value="4096"><span class="val" id="kSeqv">4096</span></div>
+              <div class="row"><span class="lbl">Batch</span><input type="range" id="kB" min="1" max="256" value="1"><span class="val" id="kBv">1</span></div>
+              <div class="row"><span class="lbl">Precision</span><select id="kP"><option value="2">FP16 (2 B)</option><option value="4">FP32 (4 B)</option><option value="1">INT8 (1 B)</option><option value="0.5">INT4 (0.5 B)</option></select><span class="val" id="kPv">2 B</span></div>
+            </div>
+            <div class="kv-result">
+              <div class="big" id="kvResult">2.50</div>
+              <div class="unit">gigabytes</div>
+              <div class="per-req" id="kvPer">per request · total: 2.50 GB</div>
+              <div class="formula">2 × layers × d_model × seq × B × bytes</div>
+            </div>
+          </div>
+          <p style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:4px">// LLaMA-70B preset. Bump batch to 16 and watch this blow through 40 GB.</p>
+        </div>
+      </div>
+
+      <h2 id="s4" data-n="§ 04"><span>Linear growth kills batching</span></h2>
+      <p>
+        KV cache grows linearly with both sequence length and batch size. A 70B model processing 16 concurrent 8K-token requests needs ~80 GB just for the cache — before the model weights, before activations. This is the problem PagedAttention (ch. 06) and TurboQuant (ch. 11) were built to solve.
+      </p>
+
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · KV cache vs sequence length</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div class="growth-chart" id="growthChart">
+            <svg viewBox="0 0 720 260" preserveAspectRatio="none">
+              <defs>
+                <pattern id="grid" width="72" height="52" patternUnits="userSpaceOnUse"><path d="M 72 0 L 0 0 0 52" fill="none" stroke="var(--rule)" stroke-width="0.5"/></pattern>
+              </defs>
+              <rect width="720" height="260" fill="url(#grid)"/>
+              <g id="chartLines"></g>
+              <g id="chartLabels"></g>
+            </svg>
+            <div class="tooltip" id="chartTip"></div>
+          </div>
+          <div style="display:flex; gap: 14px; margin-top: 10px; font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.04em">
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:2px;background:var(--ink-blue)"></span>7B</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:2px;background:var(--ochre)"></span>13B</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:2px;background:var(--accent)"></span>70B</span>
+            <span style="margin-left:auto">x-axis: sequence length (1K–32K) · y-axis: GB</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="s5" data-n="§ 05"><span>Utilization gauges</span> <em>the bottleneck, visualized</em></h2>
+      <p>
+        One final picture. Toggle between phases and watch which resource is pegged:
+      </p>
+      <div class="demo">
+        <div class="dhd"><span class="ttl">Demo · Compute vs bandwidth</span><span class="tag live">live</span></div>
+        <div class="dbd">
+          <div style="text-align:center">
+            <div class="phase-toggle" id="phaseToggle">
+              <button class="active" data-p="prefill">prefill</button>
+              <button data-p="decode">decode</button>
+            </div>
+          </div>
+          <div class="gauges">
+            <div class="gauge-card">
+              <h5>// Compute (FLOPs)</h5>
+              <svg class="gauge-svg" width="180" height="110" viewBox="0 0 180 110">
+                <path d="M 20 100 A 70 70 0 0 1 160 100" fill="none" stroke="var(--rule)" stroke-width="14" stroke-linecap="round"/>
+                <path id="gComputeArc" d="M 20 100 A 70 70 0 0 1 160 100" fill="none" stroke="var(--accent)" stroke-width="14" stroke-linecap="round" stroke-dasharray="0 220" style="transition: stroke-dasharray 0.7s cubic-bezier(0.4,0,0.2,1)"/>
+              </svg>
+              <div class="v" id="gComputeV">70%</div>
+              <div class="phase-tag" id="gComputeTag">prefill</div>
+            </div>
+            <div class="gauge-card">
+              <h5>// HBM Bandwidth</h5>
+              <svg class="gauge-svg" width="180" height="110" viewBox="0 0 180 110">
+                <path d="M 20 100 A 70 70 0 0 1 160 100" fill="none" stroke="var(--rule)" stroke-width="14" stroke-linecap="round"/>
+                <path id="gBwArc" d="M 20 100 A 70 70 0 0 1 160 100" fill="none" stroke="var(--ochre)" stroke-width="14" stroke-linecap="round" stroke-dasharray="0 220" style="transition: stroke-dasharray 0.7s cubic-bezier(0.4,0,0.2,1)"/>
+              </svg>
+              <div class="v" id="gBwV" style="color:var(--ochre)">20%</div>
+              <div class="phase-tag" id="gBwTag">prefill</div>
+            </div>
+          </div>
+          <p style="font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:10px;text-align:center">
+            // same model, same hardware. completely different bottleneck.
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s6" data-n="§ 06"><span>Where this leads</span></h2>
+      <div class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+        <a href="05-flashattention.html" class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px;text-decoration:none">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase">→ 05 FlashAttention</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:8px">How to make prefill's attention matmul <i>actually</i> achieve 70% util.</div>
+        </a>
+        <a href="06-paged-attention.html" class="qkv-card" style="padding:16px;background:var(--bg);border:1px solid var(--rule);border-radius:3px;text-decoration:none">
+          <h4 style="font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase">→ 06 PagedAttention</h4>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.55;margin-top:8px">The KV cache is linear. Fragment it like an OS does and batching works again.</div>
+        </a>
+      </div>
+    </article>
+
+    <aside class="rail">
+      <div><div class="lab">On this page</div><div class="toc">
+        <a href="#s1"><span class="n">01</span><span>Two phases</span></a>
+        <a href="#s2"><span class="n">02</span><span>TTFT vs TBT</span></a>
+        <a href="#s3"><span class="n">03</span><span>The KV cache</span></a>
+        <a href="#s4"><span class="n">04</span><span>Linear growth</span></a>
+        <a href="#s5"><span class="n">05</span><span>Utilization gauges</span></a>
+        <a href="#s6"><span class="n">06</span><span>Where this leads</span></a>
+      </div></div>
+      <div><div class="lab">Related</div><div class="related"></div></div>
+    </aside>
+  </div>
+
+  <div class="pager"></div>
+  <footer class="foot"><div>llm-viz <span class="dot">·</span> 04 Prefill &amp; Decode <span class="dot">·</span> Compute</div><div>chapter 04 of 29 <span class="dot">●</span> 14 min read</div></footer>
+</main>
+
+<aside class="tweaks" id="tweaks">
+  <div class="tw-head"><span>Tweaks</span><button id="twClose">×</button></div>
+  <div class="tw-body"><div class="tw-label">Hero layout</div><div class="tw-options" id="twHeroOpts">
+    <div class="tw-opt" data-layout="eyebrow"><div class="radio"></div><div><div class="lab">Eyebrow + title</div><div class="sub">Category · year overhead</div></div></div>
+    <div class="tw-opt" data-layout="numeral"><div class="radio"></div><div><div class="lab">Numeral</div><div class="sub">Big "04" alongside title</div></div></div>
+    <div class="tw-opt" data-layout="stat"><div class="radio"></div><div><div class="lab">Key stat</div><div class="sub">Headline number anchors hero</div></div></div>
+  </div></div>
+</aside>
+
+<script src="_shared.js"></script>
+<script>
+LLMViz.initPage({ currentId: '04', related: ['05','06','09','11'] });
+
+/* Prefill/decode token animation */
+const pf = document.getElementById('prefillToks'); const dc = document.getElementById('decodeToks');
+for (let i=0;i<12;i++) { const t=document.createElement('span'); t.className='tok'; t.style.animationDelay = (i*30)+'ms'; pf.appendChild(t); }
+for (let i=0;i<12;i++) { const t=document.createElement('span'); t.className='tok on'; t.style.animationDelay = (i*180)+'ms'; dc.appendChild(t); }
+
+/* Token-stream timeline */
+function buildTimeline() {
+  const t = document.getElementById('timelineTrack');
+  t.innerHTML = '';
+  // 10 cells for prefill (200ms / 20ms each), then 50 decode cells (30ms each) = 60 cells
+  for (let i=0;i<10;i++) { const c=document.createElement('span'); c.className='cell prefill'; t.appendChild(c); }
+  for (let i=0;i<50;i++) { const c=document.createElement('span'); c.className='cell decode'; c.style.opacity='0.25'; t.appendChild(c); }
+}
+buildTimeline();
+let tlStep = 0;
+function animateTL() {
+  const cells = document.querySelectorAll('#timelineTrack .cell');
+  cells.forEach((c,i) => c.classList.toggle('cursor', i === tlStep));
+  cells.forEach((c,i) => {
+    if (c.classList.contains('decode')) c.style.opacity = i <= tlStep ? '1' : '0.25';
+  });
+  tlStep = (tlStep + 1) % cells.length;
+}
+setInterval(animateTL, 120);
+
+/* KV cache calculator */
+const kvEls = ['kL','kD','kSeq','kB','kP'].map(id => document.getElementById(id));
+function recalcKV() {
+  const L = +kvEls[0].value, D = +kvEls[1].value, S = +kvEls[2].value, B = +kvEls[3].value, P = +kvEls[4].value;
+  document.getElementById('kLv').textContent = L;
+  document.getElementById('kDv').textContent = D.toLocaleString();
+  document.getElementById('kSeqv').textContent = S >= 1024 ? (S/1024).toFixed(S%1024?1:0)+'K' : S;
+  document.getElementById('kBv').textContent = B;
+  document.getElementById('kPv').textContent = `${P} B`;
+  const bytes = 2 * L * D * S * B * P;
+  const gb = bytes / 1e9;
+  document.getElementById('kvResult').textContent = gb < 1 ? gb.toFixed(3) : gb < 10 ? gb.toFixed(2) : gb.toFixed(1);
+  const per = bytes / B / 1e9;
+  document.getElementById('kvPer').textContent = `${per < 1 ? per.toFixed(3) : per.toFixed(2)} GB × ${B} req = ${gb < 1 ? gb.toFixed(3) : gb.toFixed(2)} GB total`;
+}
+kvEls.forEach(el => el.addEventListener('input', recalcKV));
+recalcKV();
+
+/* KV cache growth chart */
+const CHART = {
+  '7B':  { layers: 32, d: 4096,  color: 'var(--ink-blue)' },
+  '13B': { layers: 40, d: 5120,  color: 'var(--ochre)' },
+  '70B': { layers: 80, d: 8192,  color: 'var(--accent)' },
+};
+function gbAt(model, seqK) {
+  const { layers, d } = CHART[model];
+  return (2 * layers * d * seqK * 1024 * 2) / 1e9;
+}
+function drawChart() {
+  const seqs = [1,2,4,8,16,32];
+  const maxGb = gbAt('70B', 32);
+  const W = 720, H = 260, padX = 30, padY = 20;
+  const lines = document.getElementById('chartLines');
+  const labels = document.getElementById('chartLabels');
+  lines.innerHTML = ''; labels.innerHTML = '';
+  Object.entries(CHART).forEach(([k, v]) => {
+    let path = '';
+    seqs.forEach((s, i) => {
+      const x = padX + (i / (seqs.length-1)) * (W - padX*2);
+      const y = H - padY - (gbAt(k, s) / maxGb) * (H - padY*2);
+      path += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+    });
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d', path); p.setAttribute('fill','none'); p.setAttribute('stroke', v.color); p.setAttribute('stroke-width','2.4'); p.setAttribute('stroke-linecap','round');
+    lines.appendChild(p);
+    // end label
+    const x2 = padX + (W - padX*2); const y2 = H - padY - (gbAt(k, 32) / maxGb) * (H - padY*2);
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x', x2 - 4); t.setAttribute('y', y2 - 8);
+    t.setAttribute('fill', v.color); t.setAttribute('font-family','JetBrains Mono, monospace'); t.setAttribute('font-size','11'); t.setAttribute('font-weight','600'); t.setAttribute('text-anchor','end');
+    t.textContent = k + ' · ' + gbAt(k, 32).toFixed(1) + ' GB';
+    labels.appendChild(t);
+  });
+  // x-axis ticks
+  seqs.forEach((s, i) => {
+    const x = padX + (i / (seqs.length-1)) * (W - padX*2);
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x', x); t.setAttribute('y', H - 4);
+    t.setAttribute('fill','var(--mute)'); t.setAttribute('font-family','JetBrains Mono, monospace'); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle');
+    t.textContent = s + 'K';
+    labels.appendChild(t);
+  });
+}
+drawChart();
+
+/* Utilization gauges */
+const PHASES = {
+  prefill: { c: 70, b: 20 },
+  decode:  { c: 5,  b: 85 },
+};
+let currentPhase = 'prefill';
+function setGauges(p) {
+  currentPhase = p;
+  const { c, b } = PHASES[p];
+  const circ = 220; // approx arc length
+  document.getElementById('gComputeArc').setAttribute('stroke-dasharray', `${(c/100)*circ} ${circ}`);
+  document.getElementById('gBwArc').setAttribute('stroke-dasharray', `${(b/100)*circ} ${circ}`);
+  document.getElementById('gComputeV').textContent = c + '%';
+  document.getElementById('gBwV').textContent = b + '%';
+  document.getElementById('gComputeTag').textContent = p;
+  document.getElementById('gBwTag').textContent = p;
+}
+document.getElementById('phaseToggle').querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#phaseToggle button').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active');
+    setGauges(btn.dataset.p);
+  });
+});
+setTimeout(()=>setGauges('prefill'), 100);
+</script>
+</body>
+</html>
